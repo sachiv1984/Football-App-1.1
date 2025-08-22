@@ -1,11 +1,22 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: ['./src/**/*.{html,js}'], // Adjust the glob pattern for your project structure
+  content: ["./src/**/*.{js,jsx,ts,tsx}"],
   theme: {
-    extend: {}, // Extend the default TailwindCSS theme here
+    extend: {
+      colors: {
+        'electric-yellow': '#FFFF00',
+        'neon-green': '#39FF14',
+        'deep-blue': '#003366',
+        'navy': '#000080',
+        'light-grey': '#F5F5F5',
+        'highlight-red': '#EF4444',
+        'highlight-teal': '#14B8A6',
+      },
+      fontFamily: {
+        'sans': ['Inter', 'system-ui', 'sans-serif'],
+        'heading': ['Poppins', 'system-ui', 'sans-serif'],
+      }
+    },
   },
-  plugins: [
-    require('@tailwindcss/forms'), // Add plugins if you're using them
-    require('@tailwindcss/typography'),
-  ],
-};
+  plugins: [require('@tailwindcss/forms'), require('@tailwindcss/typography')],
+}
