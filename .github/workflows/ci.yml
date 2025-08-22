@@ -1,0 +1,51 @@
+name: CI & Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # 2. Setup Node.js with latest LTS and enable npm caching
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 'lts/*'
+          cache: 'npm'
+
+      # 3. Install dependencies
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. Check Prettier formatting
+      - name: Check Prettier formatting
+        run: npm run format -- --check
+
+      # 5. Run ESLint
+      - name: Run ESLint
+        run: npm run lint
+
+      # 6. Run tests
+      - name: Run tests
+        run: npm test -- --watchAll=false
+
+      # 7. Build the app
+      - name: Build
+        run: npm run build
+
+      # 8. Deploy to GitHub Pages (only on main branch)
+      - name: Deploy to GitHub Pages
+        if: github.ref == 'refs/heads/main'
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build
