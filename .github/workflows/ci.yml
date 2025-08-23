@@ -7,8 +7,22 @@ on:
     branches: [main]
 
 jobs:
+  case-sensitivity-check:
+    name: Check File Case Consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Validate Case Sensitivity
+        run: |
+          duplicates=$(git ls-files | awk '{print tolower($0)}' | sort | uniq -d)
+          if [ -n "$duplicates" ]; then
+            echo "Case mismatch detected in filenames: $duplicates"
+            exit 1
+          fi
+
   build-and-deploy:
     runs-on: ubuntu-latest
+    needs: case-sensitivity-check
 
     steps:
       # 1. Checkout the repository
@@ -38,11 +52,15 @@ jobs:
       - name: Run tests
         run: npm test -- --watchAll=false
 
-      # 7. Build the app
+      # 7. TypeScript type check
+      - name: TypeScript Type Check
+        run: npm run type-check
+
+      # 8. Build the app
       - name: Build
         run: npm run build
 
-      # 8. Deploy to GitHub Pages (only on main branch)
+      # 9. Deploy to GitHub Pages (only on main branch)
       - name: Deploy to GitHub Pages
         if: github.ref == 'refs/heads/main'
         uses: peaceiris/actions-gh-pages@v3
