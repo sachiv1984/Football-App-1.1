@@ -4,7 +4,7 @@ import { clsx } from 'clsx';
 import { ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import { TableProps, Column, SortOrder } from './Table.types';
 
-const Table = <T extends Record<string, any>>({
+const Table = <T extends Record<string, unknown>>({
   data,
   columns,
   loading = false,
