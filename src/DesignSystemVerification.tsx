@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
-{progress === 100 && (
+import { CheckCircle, Info, AlertTriangle } from 'lucide-react';
+progress === 100 && (
           <div className="mt-6 p-4 bg-green-100 border border-green-300 rounded-lg">
             <p className="font-semibold text-green-800">🎉 Phase 1 Complete!</p>
             <p className="text-sm text-green-700 mt-1">
               All setup items verified. You're ready to move on to Phase 2: Core Features.
             </p>
           </div>
-        )}
+        )
 
 const Phase1Verification = () => {
   const [checkedItems, setCheckedItems] = useState({});
