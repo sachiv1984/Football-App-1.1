@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CheckCircle, Info, AlertTriangle } from 'lucide-react';
+import { CheckCircle, AlertTriangle } from 'lucide-react';
 
 const Phase1Verification = () => {
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
