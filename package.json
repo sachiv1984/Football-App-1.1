@@ -1,4 +1,4 @@
-{
+I'm{
   "name": "my-app",
   "version": "1.0.0",
   "private": true,
@@ -26,16 +26,15 @@
     "tailwindcss": "^4.1.12"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "lint": "eslint src --ext .ts,.tsx",
-    "lint:fix": "eslint src --ext .ts,.tsx --fix",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d build",
-    "format": "prettier --write \"src/**/*.{ts,tsx,css,md}\""
-    "type-check": "tsc --noEmit"
+  "start": "react-scripts start",
+  "build": "react-scripts build",
+  "test": "react-scripts test",
+  "lint": "eslint src --ext .ts,.tsx",
+  "lint:fix": "eslint src --ext .ts,.tsx --fix",
+  "predeploy": "npm run build",
+  "deploy": "gh-pages -d build",
+  "format": "prettier --write \"src/**/*.{ts,tsx,css,md}\"",
+  "type-check": "tsc --noEmit"
   },
   "browserslist": {
     "production": [
