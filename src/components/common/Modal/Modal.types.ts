@@ -52,27 +52,28 @@ const Modal: React.FC<ModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="fixed inset-0 z-50 overflow-y-auto" onClick={handleOverlayClick}>
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black bg-opacity-50 transition-opacity" />
+      
+      {/* Modal Container */}
       <div 
         className={clsx(
-          'flex min-h-full items-center justify-center p-4',
+          'relative flex min-h-full items-center justify-center p-4',
           {
             'items-center': centered,
             'items-start pt-16': !centered,
           }
         )}
-        onClick={handleOverlayClick}
       >
-        {/* Backdrop */}
-        <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" />
-        
         {/* Modal */}
         <div
           className={clsx(
-            'relative w-full transform rounded-lg bg-white shadow-xl transition-all',
+            'relative w-full transform rounded-lg bg-white shadow-xl transition-all z-10',
             sizeClasses[size],
             className
           )}
+          onClick={(e) => e.stopPropagation()}
         >
           {title && (
             <Modal.Header title={title} onClose={closable ? onClose : undefined} closable={closable} />
