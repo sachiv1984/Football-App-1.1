@@ -1,20 +1,32 @@
-// src/components/common/Modal/Modal.tsx
-import React, { useEffect } from 'react';
-import { clsx } from 'clsx';
-import { XMarkIcon } from '@heroicons/react/24/outline';
-import { ModalProps, ModalHeaderProps, ModalBodyProps, ModalFooterProps } from './Modal.types';
+// src/components/common/Modal/Modal.types.ts
+export type ModalSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'full';
 
-const Modal: React.FC<ModalProps> = ({
-  isOpen,
-  onClose,
-  title,
-  size = 'md',
-  closable = true,
-  centered = true,
-  overlayClosable = true,
-  className,
-  children,
-}) => {
-  // Handle escape key
-  useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => {
+export interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title?: string;
+  size?: ModalSize;
+  closable?: boolean;
+  centered?: boolean;
+  overlayClosable?: boolean;
+  className?: string;
+  children: React.ReactNode;
+}
+
+export interface ModalHeaderProps {
+  title?: string;
+  onClose?: () => void;
+  closable?: boolean;
+  className?: string;
+  children?: React.ReactNode;
+}
+
+export interface ModalBodyProps {
+  className?: string;
+  children: React.ReactNode;
+}
+
+export interface ModalFooterProps {
+  className?: string;
+  children: React.ReactNode;
+}
