@@ -1,12 +1,9 @@
-import { render, screen } from '@testing-library/react';
 import React from 'react';
+import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom'; // Import jest-dom matchers
+import App from './App';
 
-// Sample React Component
-function App() {
-    return <h1>Hello, World!</h1>;
-}
-
-// Test for the React Component
+// Sample test case
 test('renders Hello, World!', () => {
     render(<App />);
     const headingElement = screen.getByText(/Hello, World!/i);
