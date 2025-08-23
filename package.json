@@ -2,7 +2,7 @@
   "name": "my-app",
   "version": "1.0.0",
   "private": true,
-  "homepage": "https://<your-username>.github.io/<your-repo-name>",
+  "homepage": "https://sachiv1984.github.io/Football-App-1.1",
   "dependencies": {
     "@heroicons/react": "^2.2.0",
     "axios": "^1.11.0",
