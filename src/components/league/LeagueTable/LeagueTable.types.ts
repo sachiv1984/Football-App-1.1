@@ -38,38 +38,3 @@ export interface LeagueTableProps {
   loading?: boolean;
   viewMode?: 'table' | 'cards' | 'auto';
 }
-
-export interface LeagueTableHeaderProps {
-  league?: League;
-  title?: string;
-  totalTeams: number;
-}
-
-export interface TeamFormIndicatorProps {
-  form: ('W' | 'D' | 'L')[];
-  maxItems?: number;
-  size?: 'sm' | 'md';
-}
-
-export interface PositionIndicatorProps {
-  position: number;
-  totalTeams: number;
-}
-
-export type SortField = 
-  | 'position' 
-  | 'points' 
-  | 'goalsFor' 
-  | 'goalsAgainst' 
-  | 'goalDifference' 
-  | 'won' 
-  | 'drawn' 
-  | 'lost' 
-  | 'played';
-
-export type SortDirection = 'asc' | 'desc';
-
-export interface SortConfig {
-  field: SortField;
-  direction: SortDirection;
-}
