@@ -13,7 +13,7 @@ export { default as FixtureCard } from './fixtures/FixtureCard/FixtureCard';
 export { default as FixturesList } from './fixtures/FixturesList/FixturesList';
 
 // League Components
-// export { default as LeagueTable } from './league/LeagueTable/LeagueTable';
+export { default as LeagueTable } from './league/LeagueTable/LeagueTable';
 
 // Stats Components  
 // export { default as StatsTable } from './stats/StatsTable/StatsTable';
@@ -52,7 +52,16 @@ export type {
 } from './fixtures/FixturesList/FixturesList.types';
 
 // Type Exports - League
-// export type { LeagueTableProps, LeagueTableRow } from './league/LeagueTable/LeagueTable.types';
+export type { 
+  LeagueTableProps, 
+  LeagueTableRow, 
+  League,
+  TeamFormIndicatorProps,
+  PositionIndicatorProps,
+  SortConfig,
+  SortField,
+  SortDirection
+} from './league/LeagueTable/LeagueTable.types';
 
 // Type Exports - Stats
 // export type { StatsTableProps, StatRow } from './stats/StatsTable/StatsTable.types';
