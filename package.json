@@ -27,6 +27,7 @@
     "tailwindcss": "^4.1.12"
   },
   "scripts": {
+<<<<<<< HEAD
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
@@ -37,6 +38,17 @@
     "deploy": "gh-pages -d build",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,md}\"",
     "type-check": "tsc --noEmit"
+=======
+  "start": "react-scripts start",
+  "build": "react-scripts build",
+  "test": "react-scripts test",
+  "lint": "eslint src --ext .ts,.tsx",
+  "lint:fix": "eslint src --ext .ts,.tsx --fix",
+  "predeploy": "npm run build",
+  "deploy": "gh-pages -d build",
+  "format": "prettier --write \"src/**/*.{ts,tsx,css,md}\"",
+  "type-check": "tsc --noEmit"
+>>>>>>> 163238a7965c03d72114fa1316180b1261e036d9
   },
   "browserslist": {
     "production": [
