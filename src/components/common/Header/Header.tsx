@@ -1,189 +1,125 @@
-/* Footer.module.css */
+import React, { useState } from 'react';
+import { Menu, X } from 'lucide-react';
+import './Header.module.css';
 
-/* Main footer container */
-.footer {
-  @apply bg-slate-900 text-gray-300 border-t-2 border-yellow-400;
+interface HeaderProps {
+  currentPath?: string;
+  onNavigate?: (path: string) => void;
 }
 
-.footerContainer {
-  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+interface NavigationItem {
+  label: string;
+  path: string;
+  isResponsibleBetting?: boolean;
 }
 
-/* Brand section */
-.brandSection {
-  @apply lg:col-span-1;
-}
+const Header: React.FC<HeaderProps> = ({ 
+  currentPath = '/', 
+  onNavigate = (path) => console.log(`Navigate to ${path}`) 
+}) => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-.brandLogo {
-  @apply flex items-center mb-4;
-}
+  const navigationItems: NavigationItem[] = [
+    { label: 'Fixtures', path: '/fixtures' },
+    { label: 'Table', path: '/table' },
+    { label: 'Stats', path: '/stats' },
+    { label: 'Insights', path: '/insights' },
+    { label: 'Responsible Betting', path: '/responsible-betting', isResponsibleBetting: true }
+  ];
 
-.logoIcon {
-  @apply w-10 h-10 bg-gradient-to-br from-yellow-400 to-green-400 rounded-lg flex items-center justify-center font-bold text-slate-900 text-xl;
-}
+  const toggleMenu = (): void => {
+    setIsMenuOpen(!isMenuOpen);
+  };
 
-.logoText {
-  @apply ml-3 text-xl font-bold text-white;
-}
+  const handleNavigation = (path: string): void => {
+    onNavigate(path);
+    setIsMenuOpen(false);
+  };
 
-.brandDescription {
-  @apply text-gray-400 text-sm leading-relaxed mb-4;
-}
+  const isActive = (path: string): boolean => currentPath === path;
 
-/* Social links */
-.socialLinks {
-  @apply flex space-x-4;
-}
+  return (
+    <header className="sticky top-0 z-50 bg-gradient-secondary shadow-lg border-b-2 border-yellow-400">
+      <div className="container">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo Section */}
+          <div className="flex-shrink-0">
+            <button 
+              onClick={() => handleNavigation('/')}
+              className="flex items-center hover-lift focus:outline-none focus:ring-2 focus:ring-electric-yellow rounded-md"
+              aria-label="Home"
+            >
+              <div className="team-logo w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center font-bold text-gray-900 text-xl">
+                FS
+              </div>
+              <div className="ml-3 text-xl font-bold text-white">
+                Football<span className="text-gradient">Stats</span>
+              </div>
+            </button>
+          </div>
 
-.socialButton {
-  @apply p-2 rounded-md bg-slate-800 text-gray-400 hover:bg-yellow-400 hover:text-slate-900 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-400;
-}
+          {/* Desktop Navigation */}
+          <nav className="hidden md:block" role="navigation" aria-label="Main navigation">
+            <div className="ml-10 flex items-baseline space-x-1">
+              {navigationItems.map((item) => (
+                <button
+                  key={item.path}
+                  onClick={() => handleNavigation(item.path)}
+                  className={`btn btn-sm transition-all duration-200 ${
+                    isActive(item.path)
+                      ? 'btn-primary shadow-md'
+                      : 'nav-link text-gray-200 hover:text-yellow-400 hover:bg-blue-800'
+                  } ${item.isResponsibleBetting ? 'border border-yellow-400/30' : ''}`}
+                  aria-current={isActive(item.path) ? 'page' : undefined}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </nav>
 
-/* Footer sections */
-.footerSection {
-  /* Applied to each column div */
-}
+          {/* Mobile Menu Button */}
+          <div className="md:hidden">
+            <button
+              onClick={toggleMenu}
+              className="inline-flex items-center justify-center p-2 rounded-md text-gray-200 hover:text-yellow-400 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-colors duration-200"
+              aria-expanded={isMenuOpen}
+              aria-controls="mobile-menu"
+              aria-label="Toggle navigation menu"
+            >
+              {isMenuOpen ? (
+                <X className="block h-6 w-6" aria-hidden="true" />
+              ) : (
+                <Menu className="block h-6 w-6" aria-hidden="true" />
+              )}
+            </button>
+          </div>
+        </div>
 
-.sectionTitle {
-  @apply text-white font-semibold mb-4;
-}
+        {/* Mobile Navigation Menu */}
+        {isMenuOpen && (
+          <div className="md:hidden" id="mobile-menu">
+            <div className="card-hover px-2 pt-2 pb-3 space-y-1 bg-slate-800 rounded-lg mt-2 border-t-2 border-yellow-400">
+              {navigationItems.map((item) => (
+                <button
+                  key={item.path}
+                  onClick={() => handleNavigation(item.path)}
+                  className={`block w-full text-left px-3 py-2 rounded-md text-base font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-400 ${
+                    isActive(item.path)
+                      ? 'btn-primary text-slate-900'
+                      : 'text-gray-200 hover:text-yellow-400 hover:bg-slate-700'
+                  } ${item.isResponsibleBetting ? 'border border-yellow-400/30 mt-2' : ''}`}
+                  aria-current={isActive(item.path) ? 'page' : undefined}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </header>
+  );
+};
 
-.sectionTitleWithIcon {
-  @apply text-white font-semibold mb-4 flex items-center;
-}
-
-.sectionIcon {
-  @apply w-4 h-4 mr-2 text-yellow-400;
-}
-
-/* Link lists */
-.linkList {
-  @apply space-y-2;
-}
-
-.linkButton {
-  @apply text-gray-400 hover:text-yellow-400 transition-colors duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 rounded;
-}
-
-.externalLinkButton {
-  @apply text-gray-400 hover:text-yellow-400 transition-colors duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 rounded flex items-center;
-}
-
-.externalIcon {
-  @apply w-3 h-3 ml-1;
-}
-
-/* Responsible gambling banner */
-.responsibleGamblingBanner {
-  @apply border-t border-slate-800 py-6;
-}
-
-.responsibleGamblingCard {
-  @apply bg-slate-800 rounded-lg p-4 border border-yellow-400/20;
-}
-
-.responsibleGamblingContent {
-  @apply flex items-start space-x-3;
-}
-
-.responsibleGamblingIcon {
-  @apply flex-shrink-0;
-}
-
-.responsibleGamblingText {
-  @apply flex-1;
-}
-
-.responsibleGamblingTitle {
-  @apply text-yellow-400 font-semibold text-sm mb-1;
-}
-
-.responsibleGamblingDescription {
-  @apply text-gray-400 text-xs leading-relaxed;
-}
-
-.responsibleGamblingLinks {
-  @apply mt-2 flex flex-wrap gap-2 text-xs;
-}
-
-.responsibleGamblingLink {
-  @apply text-yellow-400 hover:text-yellow-300 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-400 rounded;
-}
-
-.linkSeparator {
-  @apply text-gray-500;
-}
-
-/* Copyright section */
-.copyrightSection {
-  @apply border-t border-slate-800 py-6;
-}
-
-.copyrightContent {
-  @apply flex flex-col md:flex-row justify-between items-center text-sm text-gray-500;
-}
-
-.copyrightText {
-  @apply mb-2 md:mb-0;
-}
-
-.featuresList {
-  @apply flex items-center space-x-4 text-xs;
-}
-
-.featureSeparator {
-  @apply hidden md:inline;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .brandLogo {
-    @apply justify-center md:justify-start;
-  }
-  
-  .socialLinks {
-    @apply justify-center md:justify-start;
-  }
-  
-  .sectionTitle,
-  .sectionTitleWithIcon {
-    @apply text-center md:text-left;
-  }
-  
-  .linkList {
-    @apply text-center md:text-left;
-  }
-  
-  .responsibleGamblingContent {
-    @apply flex-col space-x-0 space-y-3 md:flex-row md:space-x-3 md:space-y-0;
-  }
-  
-  .responsibleGamblingIcon {
-    @apply flex justify-center md:justify-start;
-  }
-  
-  .responsibleGamblingLinks {
-    @apply justify-center md:justify-start;
-  }
-}
-
-/* Hover animations */
-.linkButton:hover,
-.externalLinkButton:hover,
-.responsibleGamblingLink:hover {
-  transform: translateX(2px);
-}
-
-.socialButton:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(255, 255, 0, 0.3);
-}
-
-/* Focus states for accessibility */
-.linkButton:focus,
-.externalLinkButton:focus,
-.socialButton:focus,
-.responsibleGamblingLink:focus {
-  outline: 2px solid #facc15;
-  outline-offset: 2px;
-}
+export default Header;
