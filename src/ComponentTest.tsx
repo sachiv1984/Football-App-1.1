@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, Card, Badge, Table, Modal } from './components';
+import { Button, Card, Badge, Modal } from './components';
 
 const ComponentTest = () => {
   const [showModal, setShowModal] = React.useState(false);
