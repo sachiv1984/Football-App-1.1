@@ -1,22 +1,18 @@
 // src/components/fixtures/HeroSection/HeroSection.types.ts
-
 export interface Team {
   id: string;
   name: string;
   shortName: string;
   logo: string;
-  colors: {
-    primary: string;
-    secondary: string;
-  };
+  colors: { primary: string; secondary: string };
   form: ('W' | 'D' | 'L')[];
   position: number;
 }
 
 export interface Competition {
+  id: string;
   name: string;
   logo: string;
-  id: string;
 }
 
 export interface AIInsight {
