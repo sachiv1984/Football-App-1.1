@@ -1,4 +1,4 @@
-import DesignSystemVerification from './DesignSystemVerification';
+import DesignSystemVerification from './DesignSystemVerification.tsx';
 
 function App() {
   return <DesignSystemVerification />;

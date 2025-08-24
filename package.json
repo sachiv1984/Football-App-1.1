@@ -5,6 +5,7 @@
   "homepage": "https://sachiv1984.github.io/Football-App-1.1",
   "dependencies": {
     "@heroicons/react": "^2.2.0",
+    "@tailwindcss/postcss": "^4.1.12",
     "axios": "^1.11.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
@@ -34,7 +35,7 @@
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d build",
-    "format": "prettier --write \"src/**/*.{ts,tsx,css,md}\""
+    "format": "prettier --write \"src/**/*.{ts,tsx,css,md}\"",
     "type-check": "tsc --noEmit"
   },
   "browserslist": {
