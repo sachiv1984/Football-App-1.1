@@ -6,8 +6,8 @@ export type BadgeVariant =
   | 'warning'
   | 'error'
   | 'info'
-  | 'danger'
-  | 'neutral';
+  | 'neutral'
+  | 'danger'; // added danger to fix TS7053
 
 export type BadgeSize = 'sm' | 'md' | 'lg';
 
@@ -18,7 +18,6 @@ export interface BadgeProps {
   outline?: boolean;
   removable?: boolean;
   className?: string;
-  children?: React.ReactNode; // ✅ Made optional for dot-only usage
+  children?: React.ReactNode;
   onRemove?: () => void;
-  title?: string; // ✅ Optional tooltip for dot badges
 }
