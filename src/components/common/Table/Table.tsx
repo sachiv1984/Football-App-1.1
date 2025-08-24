@@ -216,7 +216,7 @@ const Table = <T extends Record<string, unknown>>({
                       index
                     )
                   ) : (
-                    column.dataIndex ? record[column.dataIndex as keyof T] : null
+                    column.dataIndex ? String(record[column.dataIndex as keyof T] ?? '') : null
                   )}
                 </td>
               ))}
