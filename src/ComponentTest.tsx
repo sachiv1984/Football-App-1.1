@@ -4,18 +4,6 @@ import { Button, Card, Badge, Modal } from './components';
 const ComponentTest = () => {
   const [showModal, setShowModal] = React.useState(false);
   
-  // Sample data for table
-  const sampleData = [
-    { name: 'Arsenal', points: 50, wins: 15 },
-    { name: 'Man City', points: 48, wins: 14 },
-  ];
-  
-  const columns = [
-    { key: 'name', title: 'Team', dataIndex: 'name' },
-    { key: 'points', title: 'Points', dataIndex: 'points' },
-    { key: 'wins', title: 'Wins', dataIndex: 'wins' },
-  ];
-
   return (
     <div className="container mx-auto p-8 space-y-6">
       <h1 className="text-3xl font-bold text-gray-900">Design System Test</h1>
