@@ -1,14 +1,20 @@
-// src/hooks/useDesignSystem.ts - Hook for accessing design system values
-import { designTokens } from '../styles/designTokens';
+import React from 'react';
 
+// Custom hook for accessing design system tokens
 export function useDesignSystem() {
   return {
-    colors: designTokens.colors,
-    typography: designTokens.typography,
-    spacing: designTokens.spacing,
-    borderRadius: designTokens.borderRadius,
-    shadows: designTokens.shadows,
-    breakpoints: designTokens.breakpoints,
+    colors: {
+      primary: {
+        yellow: '#FFFF00',
+        blue: '#003366',
+      },
+      semantic: {
+        success: '#22c55e',
+        warning: '#f59e0b',
+        error: '#ef4444',
+        info: '#3b82f6',
+      },
+    },
   };
 }
 
