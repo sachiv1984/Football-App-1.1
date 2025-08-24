@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/Football-App-1.1/static/css/main.31f118fe.css",
+    "main.js": "/Football-App-1.1/static/js/main.0199375f.js",
+    "index.html": "/Football-App-1.1/index.html",
+    "main.31f118fe.css.map": "/Football-App-1.1/static/css/main.31f118fe.css.map",
+    "main.0199375f.js.map": "/Football-App-1.1/static/js/main.0199375f.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.31f118fe.css",
+    "static/js/main.0199375f.js"
+  ]
+}
