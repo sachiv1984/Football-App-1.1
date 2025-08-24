@@ -1,11 +1,13 @@
 // src/components/index.ts - Central Export File
 
 // Common Components
+// Common Components
 export { default as Button } from './common/Button/Button';
 export { default as Badge } from './common/Badge/Badge';
 export { default as Card } from './common/Card/Card';
 export { default as Header } from './common/Header/Header';
 export { default as Footer } from './common/Footer/Footer';
+export { default as Modal } from './common/Modal/Modal'; // add this if missing
 
 // Fixtures Components
 export { default as HeroSection } from './fixtures/HeroSection/HeroSection';
