@@ -12,12 +12,12 @@ import {
   LeagueTable
 } from './components';
 
-// Mock data for testing Phase 3 components
+// --- Mock data ---
 const mockFixtures = [
   {
     id: '1',
-    homeTeam: { id: 'ht1', name: 'Arsenal', shortName: 'ARS', logo: '🔴', colors: { primary: '#EF0107', secondary: '#ffffff' }, form: ['W','D','L','W','W'], position: 1 },
-    awayTeam: { id: 'at1', name: 'Chelsea', shortName: 'CHE', logo: '🔵', colors: { primary: '#034694', secondary: '#ffffff' }, form: ['W','W','L','D','L'], position: 2 },
+    homeTeam: { id: '1', name: 'Arsenal', logo: '🔴', shortName: 'ARS', colors: { primary: '#EF0107', secondary: '#ffffff' }, form: ['W','D','L','W','W'] as ('W'|'D'|'L')[], position: 1 },
+    awayTeam: { id: '2', name: 'Chelsea', logo: '🔵', shortName: 'CHE', colors: { primary: '#034694', secondary: '#ffffff' }, form: ['W','W','L','D','L'] as ('W'|'D'|'L')[], position: 2 },
     competition: { id: 'pl', name: 'Premier League', logo: '🏆' },
     dateTime: '2024-01-15T15:00:00',
     status: 'scheduled' as const,
@@ -25,8 +25,8 @@ const mockFixtures = [
   },
   {
     id: '2',
-    homeTeam: { id: 'ht2', name: 'Manchester City', shortName: 'MCI', logo: '🩵', colors: { primary: '#6CABDD', secondary: '#ffffff' }, form: ['W','L','W','D','W'], position: 1 },
-    awayTeam: { id: 'at2', name: 'Liverpool', shortName: 'LIV', logo: '🔴', colors: { primary: '#C8102E', secondary: '#ffffff' }, form: ['L','W','D','W','W'], position: 2 },
+    homeTeam: { id: '3', name: 'Manchester City', logo: '🩵', shortName: 'MCI', colors: { primary: '#6CABDD', secondary: '#ffffff' }, form: ['W','L','W','D','W'] as ('W'|'D'|'L')[], position: 3 },
+    awayTeam: { id: '4', name: 'Liverpool', logo: '🔴', shortName: 'LIV', colors: { primary: '#C8102E', secondary: '#ffffff' }, form: ['L','W','D','W','W'] as ('W'|'D'|'L')[], position: 4 },
     competition: { id: 'pl', name: 'Premier League', logo: '🏆' },
     dateTime: '2024-01-16T17:30:00',
     status: 'finished' as const,
@@ -36,8 +36,8 @@ const mockFixtures = [
   },
   {
     id: '3',
-    homeTeam: { id: 'ht3', name: 'Tottenham', shortName: 'TOT', logo: '⚪', colors: { primary: '#132257', secondary: '#ffffff' }, form: ['W','W','D','L','W'], position: 1 },
-    awayTeam: { id: 'at3', name: 'Newcastle', shortName: 'NEW', logo: '⚫', colors: { primary: '#241F20', secondary: '#ffffff' }, form: ['L','D','W','L','D'], position: 2 },
+    homeTeam: { id: '5', name: 'Tottenham', logo: '⚪', shortName: 'TOT', colors: { primary: '#132257', secondary: '#ffffff' }, form: ['W','W','D','L','W'] as ('W'|'D'|'L')[], position: 5 },
+    awayTeam: { id: '6', name: 'Newcastle', logo: '⚫', shortName: 'NEW', colors: { primary: '#241F20', secondary: '#ffffff' }, form: ['L','D','W','L','D'] as ('W'|'D'|'L')[], position: 6 },
     competition: { id: 'pl', name: 'Premier League', logo: '🏆' },
     dateTime: '2024-01-17T20:00:00',
     status: 'live' as const,
@@ -50,7 +50,7 @@ const mockFixtures = [
 const mockLeagueData = [
   {
     position: 1,
-    team: { id: 'ht1', name: 'Arsenal', shortName: 'ARS', logo: '🔴', colors: { primary: '#EF0107', secondary: '#ffffff' }, form: ['W','W','D','W','W'], position: 1 },
+    team: { id: '1', name: 'Arsenal', logo: '🔴', shortName: 'ARS', colors: { primary: '#EF0107', secondary: '#ffffff' }, form: ['W','W','D','W','W'] as ('W'|'D'|'L')[] },
     played: 20,
     won: 15,
     drawn: 3,
@@ -59,11 +59,11 @@ const mockLeagueData = [
     goalsAgainst: 18,
     goalDifference: 24,
     points: 48,
-    form: ['W', 'W', 'D', 'W', 'W'] as const
+    form: ['W', 'W', 'D', 'W', 'W'] as ('W'|'D'|'L')[]
   },
   {
     position: 2,
-    team: { id: 'ht2', name: 'Manchester City', shortName: 'MCI', logo: '🩵', colors: { primary: '#6CABDD', secondary: '#ffffff' }, form: ['W','L','W','D','W'], position: 2 },
+    team: { id: '2', name: 'Manchester City', logo: '🩵', shortName: 'MCI', colors: { primary: '#6CABDD', secondary: '#ffffff' }, form: ['W','L','W','D','W'] as ('W'|'D'|'L')[] },
     played: 20,
     won: 14,
     drawn: 4,
@@ -72,11 +72,24 @@ const mockLeagueData = [
     goalsAgainst: 20,
     goalDifference: 25,
     points: 46,
-    form: ['W', 'L', 'W', 'W', 'D'] as const
+    form: ['W', 'L', 'W', 'W', 'D'] as ('W'|'D'|'L')[]
   },
-  // ... Add other teams similarly with `id` and `position`
+  {
+    position: 3,
+    team: { id: '3', name: 'Liverpool', logo: '🔴', shortName: 'LIV', colors: { primary: '#C8102E', secondary: '#ffffff' }, form: ['L','W','D','W','W'] as ('W'|'D'|'L')[] },
+    played: 20,
+    won: 13,
+    drawn: 5,
+    lost: 2,
+    goalsFor: 40,
+    goalsAgainst: 22,
+    goalDifference: 18,
+    points: 44,
+    form: ['D', 'W', 'W', 'L', 'W'] as ('W'|'D'|'L')[]
+  }
 ];
 
+// --- Phase3VerificationTest Component ---
 const Phase3VerificationTest: React.FC = () => {
   const [activeTest, setActiveTest] = useState<string>('overview');
   const [testResults, setTestResults] = useState<Record<string, boolean>>({});
@@ -102,6 +115,21 @@ const Phase3VerificationTest: React.FC = () => {
       />
       <Card.Body>{children}</Card.Body>
     </Card>
+  );
+
+  // --- Render functions ---
+  const renderOverview = () => (
+    <div className="space-y-6">
+      <Card className="bg-gradient-to-r from-yellow-50 to-blue-50 border-2 border-yellow-200">
+        <Card.Header title="🎯 Phase 3 Verification Test Suite" />
+        <Card.Body>
+          <p className="text-gray-700">
+            This comprehensive test suite verifies all Phase 3 components are working correctly.
+            Navigate through each test section to verify functionality.
+          </p>
+        </Card.Body>
+      </Card>
+    </div>
   );
 
   const renderHeroTest = () => (
@@ -132,6 +160,7 @@ const Phase3VerificationTest: React.FC = () => {
     <TestSection title="📅 Fixtures List Component Test" testKey="fixturesList">
       <FixturesList 
         fixtures={mockFixtures}
+        title="Today's Fixtures"
         onFixtureClick={f => runTest(`fixturesList${f.id}`, true)}
       />
       <Button variant="outline" className="mt-4" onClick={() => runTest('fixturesList', true)}>
@@ -142,27 +171,11 @@ const Phase3VerificationTest: React.FC = () => {
 
   const renderLeagueTableTest = () => (
     <TestSection title="🏆 League Table Component Test" testKey="leagueTable">
-      <LeagueTable teams={mockLeagueData} />
+      <LeagueTable teams={mockLeagueData} title="Premier League Table" />
       <Button variant="primary" className="mt-4" onClick={() => runTest('leagueTable', true)}>
         Mark League Table Test as Complete
       </Button>
     </TestSection>
-  );
-
-  const renderOverview = () => (
-    <div className="space-y-6">
-      <Card className="bg-gradient-to-r from-yellow-50 to-blue-50 border-2 border-yellow-200">
-        <Card.Header title="🎯 Phase 3 Verification Test Suite" />
-        <Card.Body>
-          <div className="space-y-4">
-            <p className="text-gray-700">
-              This comprehensive test suite verifies all Phase 3 components are working correctly.
-              Navigate through each test section to verify functionality.
-            </p>
-          </div>
-        </Card.Body>
-      </Card>
-    </div>
   );
 
   const renderIntegrationTest = () => (
