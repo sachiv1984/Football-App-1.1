@@ -1,8 +1,8 @@
-import React from 'react';
-import ComponentTest from './ComponentTest';
+// src/App.tsx
+import HeaderFooterTest from './HeaderFooterTest';
 
 function App() {
-  return <ComponentTest />;
+  return <HeaderFooterTest />;
 }
 
 export default App;
