@@ -7,6 +7,7 @@ export { default as Card } from './common/Card/Card';
 export { default as Header } from './common/Header/Header';
 export { default as Footer } from './common/Footer/Footer';
 export { default as Modal } from './common/Modal/Modal'; // add this if missing
+export { default as Table } from './common/Table/Table';
 
 // Fixtures Components
 export { default as HeroSection } from './fixtures/HeroSection/HeroSection';
