@@ -17,5 +17,14 @@ export type { BadgeProps } from './common/Badge/Badge.types';
 export type { TableProps } from './common/Table/Table.types';
 export type { ModalProps } from './common/Modal/Modal.types';
 
+// Type exports - Fixtures
+export type { 
+  HeroSectionProps, 
+  FeaturedFixture, 
+  Team, 
+  Competition, 
+  AIInsight 
+} from './fixtures/HeroSection/HeroSection.types';
+
 // Re-export design tokens for convenience
 export { designTokens } from '../styles/designTokens';
