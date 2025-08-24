@@ -141,8 +141,7 @@ const LeagueTable: React.FC<LeagueTableProps> = ({
   sortable = true,
   onTeamClick,
   className = '',
-  loading = false,
-  viewMode = 'auto'
+  loading = false
 }) => {
   const [sortConfig, setSortConfig] = useState<SortConfig>({ field: 'position', direction: 'asc' });
   const displayRows = maxRows ? rows.slice(0, maxRows) : rows;
@@ -199,8 +198,6 @@ const LeagueTable: React.FC<LeagueTableProps> = ({
     );
   }
 
-  const isMobile = viewMode === 'cards' || (viewMode === 'auto' && window.innerWidth < 768);
-
   return (
     <div className={className}>
       <LeagueTableHeader league={league} title={title} totalTeams={rows.length} />
@@ -239,19 +236,17 @@ const LeagueTable: React.FC<LeagueTableProps> = ({
               <th className={`text-center ${sortable ? 'cursor-pointer hover:bg-gray-100' : ''}`} onClick={() => handleSort('lost')}>
                 <div className="flex items-center justify-center space-x-1"><span>L</span>{sortable && <span className="text-xs">{getSortIcon('lost')}</span>}</div>
               </th>
-              {showGoals && (
-                <>
-                  <th className="text-center hidden lg:table-cell cursor-pointer hover:bg-gray-100" onClick={() => handleSort('goalsFor')}>
-                    <div className="flex items-center justify-center space-x-1"><span>GF</span>{sortable && <span className="text-xs">{getSortIcon('goalsFor')}</span>}</div>
-                  </th>
-                  <th className="text-center hidden lg:table-cell cursor-pointer hover:bg-gray-100" onClick={() => handleSort('goalsAgainst')}>
-                    <div className="flex items-center justify-center space-x-1"><span>GA</span>{sortable && <span className="text-xs">{getSortIcon('goalsAgainst')}</span>}</div>
-                  </th>
-                  <th className="text-center hidden lg:table-cell cursor-pointer hover:bg-gray-100" onClick={() => handleSort('goalDifference')}>
-                    <div className="flex items-center justify-center space-x-1"><span>GD</span>{sortable && <span className="text-xs">{getSortIcon('goalDifference')}</span>}</div>
-                  </th>
-                </>
-              )}
+              {showGoals && <>
+                <th className="text-center hidden lg:table-cell cursor-pointer hover:bg-gray-100" onClick={() => handleSort('goalsFor')}>
+                  <div className="flex items-center justify-center space-x-1"><span>GF</span>{sortable && <span className="text-xs">{getSortIcon('goalsFor')}</span>}</div>
+                </th>
+                <th className="text-center hidden lg:table-cell cursor-pointer hover:bg-gray-100" onClick={() => handleSort('goalsAgainst')}>
+                  <div className="flex items-center justify-center space-x-1"><span>GA</span>{sortable && <span className="text-xs">{getSortIcon('goalsAgainst')}</span>}</div>
+                </th>
+                <th className="text-center hidden lg:table-cell cursor-pointer hover:bg-gray-100" onClick={() => handleSort('goalDifference')}>
+                  <div className="flex items-center justify-center space-x-1"><span>GD</span>{sortable && <span className="text-xs">{getSortIcon('goalDifference')}</span>}</div>
+                </th>
+              </>}
               <th className={`text-center ${sortable ? 'cursor-pointer hover:bg-gray-100' : ''}`} onClick={() => handleSort('points')}>
                 <div className="flex items-center justify-center space-x-1"><span className="font-semibold">Pts</span>{sortable && <span className="text-xs">{getSortIcon('points')}</span>}</div>
               </th>
