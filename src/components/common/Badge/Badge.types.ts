@@ -6,6 +6,7 @@ export type BadgeVariant =
   | 'warning'
   | 'error'
   | 'info'
+  | 'danger'
   | 'neutral';
 
 export type BadgeSize = 'sm' | 'md' | 'lg';
