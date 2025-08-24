@@ -1,0 +1,103 @@
+/* Header container styling */
+.header {
+  @apply sticky top-0 z-50 bg-slate-900 shadow-lg border-b-2 border-yellow-400;
+}
+
+/* Logo container */
+.logoContainer {
+  @apply flex-shrink-0;
+}
+
+.logoButton {
+  @apply flex items-center hover:opacity-80 transition-opacity duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-400 rounded-md;
+}
+
+.logoIcon {
+  @apply w-10 h-10 bg-gradient-to-br from-yellow-400 to-green-400 rounded-lg flex items-center justify-center font-bold text-slate-900 text-xl;
+}
+
+.logoText {
+  @apply ml-3 text-xl font-bold text-white;
+}
+
+/* Desktop navigation */
+.desktopNav {
+  @apply hidden md:block;
+}
+
+.navList {
+  @apply ml-10 flex items-baseline space-x-1;
+}
+
+.navButton {
+  @apply px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 hover:bg-slate-800 hover:text-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-400;
+}
+
+.navButtonActive {
+  @apply text-slate-900 shadow-md;
+}
+
+.navButtonInactive {
+  @apply text-gray-200 hover:shadow-md;
+}
+
+.responsibleBettingButton {
+  @apply border border-yellow-400/30;
+}
+
+/* Mobile menu button */
+.mobileMenuButton {
+  @apply md:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-200 hover:text-yellow-400 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-colors duration-200;
+}
+
+/* Mobile navigation menu */
+.mobileMenu {
+  @apply md:hidden;
+}
+
+.mobileMenuContainer {
+  @apply px-2 pt-2 pb-3 space-y-1 bg-slate-800 rounded-lg mt-2 border-t-2 border-yellow-400;
+}
+
+.mobileNavButton {
+  @apply block w-full text-left px-3 py-2 rounded-md text-base font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-400;
+}
+
+.mobileNavButtonActive {
+  @apply text-slate-900;
+}
+
+.mobileNavButtonInactive {
+  @apply text-gray-200 hover:text-yellow-400 hover:bg-slate-700;
+}
+
+.mobileResponsibleBettingButton {
+  @apply border border-yellow-400/30 mt-2;
+}
+
+/* Animation for mobile menu */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mobileMenu {
+  animation: slideDown 0.2s ease-out;
+}
+
+/* Responsive breakpoints */
+@media (max-width: 768px) {
+  .logoText {
+    @apply text-lg;
+  }
+  
+  .logoIcon {
+    @apply w-8 h-8 text-lg;
+  }
+}
