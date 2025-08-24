@@ -1,7 +1,8 @@
-import DesignSystemVerification from './DesignSystemVerification';
+import React from 'react';
+import ComponentTest from './ComponentTest';
 
 function App() {
-  return <DesignSystemVerification />;
+  return <ComponentTest />;
 }
 
 export default App;
