@@ -14,8 +14,9 @@ const Badge: React.FC<BadgeProps> = ({
   children,
   onRemove,
 }) => {
-  const baseClasses = 'inline-flex items-center font-medium rounded-full transition-colors duration-200';
-  
+  const baseClasses =
+    'inline-flex items-center font-medium rounded-full transition-colors duration-200';
+
   const sizeClasses = {
     sm: dot ? 'w-2 h-2' : 'px-2 py-0.5 text-xs',
     md: dot ? 'w-2.5 h-2.5' : 'px-2.5 py-1 text-sm',
@@ -26,7 +27,7 @@ const Badge: React.FC<BadgeProps> = ({
     primary: 'bg-electric-yellow text-gray-900',
     secondary: 'bg-deep-blue text-white',
     success: 'bg-green-500 text-white',
-    warning: 'bg-yellow-500 text-white', 
+    warning: 'bg-yellow-500 text-white',
     error: 'bg-red-500 text-white',
     info: 'bg-blue-500 text-white',
     neutral: 'bg-gray-500 text-white',
@@ -42,7 +43,9 @@ const Badge: React.FC<BadgeProps> = ({
     neutral: 'border border-gray-500 text-gray-700 bg-gray-50',
   };
 
-  const variantClasses = outline ? outlineVariantClasses[variant] : solidVariantClasses[variant];
+  const variantClasses = outline
+    ? outlineVariantClasses[variant]
+    : solidVariantClasses[variant];
 
   const badgeClasses = clsx(
     baseClasses,
@@ -56,10 +59,11 @@ const Badge: React.FC<BadgeProps> = ({
 
   const iconSizes = {
     sm: 'w-3 h-3',
-    md: 'w-4 h-4', 
+    md: 'w-4 h-4',
     lg: 'w-5 h-5',
   };
 
+  // ✅ Dot mode: return a self-closing badge without children or remove button
   if (dot) {
     return <span className={badgeClasses} />;
   }
