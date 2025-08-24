@@ -1,8 +1,8 @@
 // src/App.tsx
-import HeaderFooterTest from './HeaderFooterTest';
+import Phase3VerificationTest from './Phase3VerificationTest';
 
 function App() {
-  return <HeaderFooterTest />;
+  return <Phase3VerificationTest />;
 }
 
 export default App;
