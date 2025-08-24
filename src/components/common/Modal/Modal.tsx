@@ -76,7 +76,7 @@ const Modal: React.FC<ModalProps> = ({
           onClick={(e) => e.stopPropagation()}
         >
           {title && (
-            <Modal.Header title={title} onClose={closable ? onClose : undefined} closable={closable} />
+            <ModalHeader title={title} onClose={closable ? onClose : undefined} closable={closable} />
           )}
           {children}
         </div>
@@ -131,9 +131,19 @@ const ModalFooter: React.FC<ModalFooterProps> = ({ className, children }) => {
   );
 };
 
-// Compound component pattern
-Modal.Header = ModalHeader;
-Modal.Body = ModalBody;
-Modal.Footer = ModalFooter;
+// Define the compound component interface
+interface ModalComponent extends React.FC<ModalProps> {
+  Header: typeof ModalHeader;
+  Body: typeof ModalBody;
+  Footer: typeof ModalFooter;
+}
 
-export default Modal;
+// Create the compound component with proper typing
+const ModalWithCompounds = Modal as ModalComponent;
+
+// Attach sub-components
+ModalWithCompounds.Header = ModalHeader;
+ModalWithCompounds.Body = ModalBody;
+ModalWithCompounds.Footer = ModalFooter;
+
+export default ModalWithCompounds;

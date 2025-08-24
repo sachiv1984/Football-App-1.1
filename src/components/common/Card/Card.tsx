@@ -99,9 +99,19 @@ const CardFooter: React.FC<CardFooterProps> = ({ className, children }) => {
   );
 };
 
-// Compound component pattern
-Card.Header = CardHeader;
-Card.Body = CardBody;
-Card.Footer = CardFooter;
+// Define the compound component interface
+interface CardComponent extends React.FC<CardProps> {
+  Header: typeof CardHeader;
+  Body: typeof CardBody;
+  Footer: typeof CardFooter;
+}
 
-export default Card;
+// Create the compound component with proper typing
+const CardWithCompounds = Card as CardComponent;
+
+// Attach sub-components
+CardWithCompounds.Header = CardHeader;
+CardWithCompounds.Body = CardBody;
+CardWithCompounds.Footer = CardFooter;
+
+export default CardWithCompounds;

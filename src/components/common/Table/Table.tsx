@@ -21,7 +21,7 @@ const Table = <T extends Record<string, unknown>>({
   rowClassName,
   onRowClick,
 }: TableProps<T>) => {
-  const [sortKey, setSortKey] = useState<string | null>(defaultSortKey || null);
+  const [sortKey, setSortKey] = useState<keyof T | string | null>(defaultSortKey || null);
   const [sortOrder, setSortOrder] = useState<SortOrder>(defaultSortOrder);
 
   const sizeClasses = {
@@ -55,12 +55,24 @@ const Table = <T extends Record<string, unknown>>({
     if (!sortKey || !sortOrder) return data;
 
     return [...data].sort((a, b) => {
-      const aValue = a[sortKey];
-      const bValue = b[sortKey];
+      const aValue = a[sortKey as keyof T];
+      const bValue = b[sortKey as keyof T];
 
       if (aValue === bValue) return 0;
       
-      const comparison = aValue > bValue ? 1 : -1;
+      // Handle different types for comparison
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        const comparison = aValue.localeCompare(bValue);
+        return sortOrder === 'asc' ? comparison : -comparison;
+      }
+      
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        const comparison = aValue - bValue;
+        return sortOrder === 'asc' ? comparison : -comparison;
+      }
+      
+      // Fallback to string comparison
+      const comparison = String(aValue).localeCompare(String(bValue));
       return sortOrder === 'asc' ? comparison : -comparison;
     });
   }, [data, sortKey, sortOrder]);
@@ -155,7 +167,7 @@ const Table = <T extends Record<string, unknown>>({
           <tr>
             {columns.map((column) => (
               <th
-                key={column.key}
+                key={String(column.key)}
                 className={clsx(
                   headerClasses,
                   paddingClasses[size],
@@ -186,7 +198,7 @@ const Table = <T extends Record<string, unknown>>({
             >
               {columns.map((column) => (
                 <td
-                  key={`${index}-${column.key}`}
+                  key={`${index}-${String(column.key)}`}
                   className={clsx(
                     paddingClasses[size],
                     'text-gray-900',
@@ -197,10 +209,15 @@ const Table = <T extends Record<string, unknown>>({
                     column.className
                   )}
                 >
-                  {column.render
-                    ? column.render(record[column.dataIndex], record, index)
-                    : record[column.dataIndex]
-                  }
+                  {column.render ? (
+                    column.render(
+                      column.dataIndex ? record[column.dataIndex as keyof T] : undefined,
+                      record,
+                      index
+                    )
+                  ) : (
+                    column.dataIndex ? record[column.dataIndex as keyof T] : null
+                  )}
                 </td>
               ))}
             </tr>
