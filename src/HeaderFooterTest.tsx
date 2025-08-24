@@ -1,7 +1,7 @@
 // src/HeaderFooterTest.tsx
 import React from 'react';
-import { Header, Footer } from './components/common';
-import { Card, Button } from './components';
+// Fix: Import everything from the main components export
+import { Header, Footer, Card, Button } from './components';
 
 const HeaderFooterTest = () => {
   return (
