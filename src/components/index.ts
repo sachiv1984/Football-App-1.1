@@ -1,7 +1,6 @@
 // src/components/index.ts - Central Export File
 
 // Common Components
-// Common Components
 export { default as Button } from './common/Button/Button';
 export { default as Badge } from './common/Badge/Badge';
 export { default as Card } from './common/Card/Card';
