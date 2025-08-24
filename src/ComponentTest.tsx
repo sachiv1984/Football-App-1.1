@@ -56,20 +56,6 @@ const ComponentTest = () => {
         </Card.Body>
       </Card>
 
-      {/* Table Test */}
-      <Card className="p-6">
-        <Card.Header title="Table Component Test" />
-        <Card.Body>
-          <Table 
-            data={sampleData} 
-            columns={columns}
-            hover
-            striped
-            sortable
-          />
-        </Card.Body>
-      </Card>
-
       {/* Modal Test */}
       <Card className="p-6">
         <Card.Header title="Modal Component Test" />
