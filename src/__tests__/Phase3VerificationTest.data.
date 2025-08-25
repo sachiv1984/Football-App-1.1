@@ -1,0 +1,72 @@
+// src/__tests__/Phase3VerificationTest.data.ts
+import { FeaturedFixture, Fixture } from '../components/fixtures/HeroSection/HeroSection.types';
+import { LeagueTableRow } from '../components/league/LeagueTable/LeagueTable.types';
+
+export const featuredFixture: FeaturedFixture = {
+  id: 'fixture-001',
+  homeTeam: {
+    id: 'team-1',
+    name: 'Manchester United',
+    shortName: 'MUN',
+    logo: '/images/mun.png',
+    colors: { primary: '#DA291C', secondary: '#FBE122' },
+    form: ['W', 'D', 'L', 'W', 'W'],
+    position: 3
+  },
+  awayTeam: {
+    id: 'team-2',
+    name: 'Liverpool',
+    shortName: 'LIV',
+    logo: '/images/liv.png',
+    colors: { primary: '#C8102E', secondary: '#00A398' },
+    form: ['W', 'W', 'W', 'D', 'W'],
+    position: 1
+  },
+  competition: {
+    name: 'Premier League',
+    logo: '/images/premier-league.png',
+    id: 'premier-league'
+  },
+  dateTime: new Date().toISOString(),
+  venue: 'Old Trafford',
+  status: 'scheduled'
+};
+
+export const fixtures: Fixture[] = [
+  {
+    id: 'fixture-002',
+    homeTeam: { ...featuredFixture.homeTeam, name: 'Arsenal', shortName: 'ARS' },
+    awayTeam: { ...featuredFixture.awayTeam, name: 'Chelsea', shortName: 'CHE' },
+    dateTime: new Date(Date.now() + 86400000).toISOString(),
+    competition: featuredFixture.competition,
+    venue: 'Emirates Stadium',
+    status: 'scheduled'
+  }
+];
+
+export const leagueTableRows: LeagueTableRow[] = [
+  {
+    position: 1,
+    team: { id: 'team-2', name: 'Liverpool', shortName: 'LIV', logo: '/images/liv.png' },
+    played: 20,
+    won: 15,
+    drawn: 4,
+    lost: 1,
+    goalsFor: 45,
+    goalsAgainst: 12,
+    points: 49,
+    form: ['W', 'W', 'W', 'D', 'W']
+  },
+  {
+    position: 2,
+    team: { id: 'team-1', name: 'Manchester United', shortName: 'MUN', logo: '/images/mun.png' },
+    played: 20,
+    won: 14,
+    drawn: 3,
+    lost: 3,
+    goalsFor: 42,
+    goalsAgainst: 18,
+    points: 45,
+    form: ['W', 'D', 'W', 'L', 'W']
+  }
+];
