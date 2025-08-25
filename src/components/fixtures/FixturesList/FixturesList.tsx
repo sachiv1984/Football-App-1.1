@@ -3,6 +3,7 @@ import React from 'react';
 import { FixtureCard } from '@/components';
 import { 
   FixturesListProps, 
+  FixtureGroup,
   FixtureGroupProps 
 } from './FixturesList.types';
 import { Fixture } from '../FixtureCard/FixtureCard.types';
