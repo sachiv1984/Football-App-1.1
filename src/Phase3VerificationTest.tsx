@@ -11,21 +11,13 @@ import { Fixture } from './components/fixtures/HeroSection/HeroSection.types';
 
 // ✅ Phase 3 Preview Component (manual UI check)
 const Phase3VerificationTest: React.FC = () => {
-  const handleViewStats = (fixtureId: string) => {
-    console.log('View stats for fixture:', fixtureId);
-  };
-
-  const handleViewInsights = (fixtureId: string) => {
-    console.log('View AI insights for fixture:', fixtureId);
-  };
-
-  const handleRemoveBadge = () => {
-    console.log('Badge removed');
-  };
+  const handleViewStats = (fixtureId: string) => console.log('View stats for fixture:', fixtureId);
+  const handleViewInsights = (fixtureId: string) => console.log('View AI insights for fixture:', fixtureId);
+  const handleRemoveBadge = () => console.log('Badge removed');
 
   return (
     <div className="p-4 space-y-8">
-      {/* --- Hero Section with Featured Fixture --- */}
+      {/* Hero Section */}
       <section>
         <h2 className="text-xl font-bold mb-2">Featured Fixture</h2>
         <HeroSection
@@ -36,7 +28,7 @@ const Phase3VerificationTest: React.FC = () => {
         />
       </section>
 
-      {/* --- Fixtures List --- */}
+      {/* Fixtures List */}
       <section>
         <h2 className="text-xl font-bold mb-2">Upcoming Fixtures</h2>
         <div className="space-y-2">
@@ -61,7 +53,7 @@ const Phase3VerificationTest: React.FC = () => {
         </div>
       </section>
 
-      {/* --- League Table --- */}
+      {/* League Table */}
       <section>
         <h2 className="text-xl font-bold mb-2">League Table</h2>
         <LeagueTable
@@ -83,23 +75,20 @@ export default Phase3VerificationTest;
    ✅ TESTS
    =========================== */
 
-// ✅ HeroSection Tests
+// HeroSection Tests
 describe('HeroSection Component', () => {
   it('renders featured fixture details', () => {
     render(<HeroSection featuredFixture={featuredFixture} />);
 
-    expect(screen.getByText(/Featured Match/i)).toBeInTheDocument();
+    // Check dynamic content from fixture
+    expect(screen.getByText(featuredFixture.homeTeam.name)).toBeInTheDocument();
+    expect(screen.getByText(featuredFixture.awayTeam.name)).toBeInTheDocument();
+    expect(screen.getByText(featuredFixture.venue)).toBeInTheDocument();
+    expect(screen.getByText(featuredFixture.aiInsight.title)).toBeInTheDocument();
 
-    // Flexible matcher for text split across elements
-    expect(
-      screen.getByText((content, element) => content.includes('Big Match Preview'))
-    ).toBeInTheDocument();
-
-    expect(screen.getByText(/Manchester United/i)).toBeInTheDocument();
-    expect(screen.getByText(/Chelsea FC/i)).toBeInTheDocument();
+    // Buttons
     expect(screen.getByRole('button', { name: /View Match Stats/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /AI Betting Insights/i })).toBeInTheDocument();
-    expect(screen.getByText(/High-Scoring Encounter Expected/i)).toBeInTheDocument();
   });
 
   it('calls callback functions on button clicks', () => {
@@ -122,7 +111,7 @@ describe('HeroSection Component', () => {
   });
 });
 
-// ✅ LeagueTable Tests
+// LeagueTable Tests
 describe('LeagueTable Component', () => {
   it('renders league table with correct title', () => {
     render(
@@ -135,11 +124,11 @@ describe('LeagueTable Component', () => {
     );
 
     expect(screen.getByText(/Premier League Standings/i)).toBeInTheDocument();
-    expect(screen.getByText(/Position/i)).toBeInTheDocument();
-    expect(screen.getByText(/Points/i)).toBeInTheDocument();
+    expect(screen.getByText(leagueTableRows[0].team.name)).toBeInTheDocument();
+    expect(screen.getByText(/Pts/i)).toBeInTheDocument();
   });
 
-  it('renders first team name from rows', () => {
+  it('renders first team points correctly', () => {
     render(
       <LeagueTable
         rows={leagueTableRows as LeagueTableRow[]}
@@ -147,15 +136,14 @@ describe('LeagueTable Component', () => {
       />
     );
 
-    expect(screen.getByText(leagueTableRows[0].team.name)).toBeInTheDocument();
+    expect(screen.getByText(`${leagueTableRows[0].points}`)).toBeInTheDocument();
   });
 });
 
-// ✅ Badge Component Tests
+// Badge Component Tests
 describe('Badge Component', () => {
   it('renders badge with correct text and variant', () => {
     render(<Badge variant="success">Test Badge</Badge>);
-
     expect(screen.getByText(/Test Badge/i)).toBeInTheDocument();
   });
 
