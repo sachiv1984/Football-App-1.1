@@ -1,78 +1,30 @@
-// src/Phase3VerificationTest.tsx
+// src/Phase3VerificationTest.test.tsx
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import Badge from './components/common/Badge/Badge';
-import HeroSection from './components/fixtures/HeroSection/HeroSection';
-import LeagueTable from './components/league/LeagueTable/LeagueTable';
-import { featuredFixture, fixtures, leagueTableRows } from './test-data/Phase3VerificationTest.data';
-import { LeagueTableRow } from './components/league/LeagueTable/LeagueTable.types';
-import { Fixture } from './components/fixtures/HeroSection/HeroSection.types';
+import Badge from '../components/common/Badge/Badge';
+import HeroSection from '../components/fixtures/HeroSection/HeroSection';
+import LeagueTable from '../components/league/LeagueTable/LeagueTable';
+import { featuredFixture, fixtures, leagueTableRows } from './test.data/Phase3VerificationTest.data';
 
-// ✅ Phase 3 Preview Component (manual UI check)
-const Phase3VerificationTest: React.FC = () => {
-  const handleViewStats = (fixtureId: string) => console.log('View stats for fixture:', fixtureId);
-  const handleViewInsights = (fixtureId: string) => console.log('View AI insights for fixture:', fixtureId);
-  const handleRemoveBadge = () => console.log('Badge removed');
-
-  return (
-    <div className="p-4 space-y-8">
-      <section>
-        <h2>Featured Fixture</h2>
-        <HeroSection
-          featuredFixture={featuredFixture}
-          onViewStats={handleViewStats}
-          onViewInsights={handleViewInsights}
-        />
-      </section>
-
-      <section>
-        <h2>Upcoming Fixtures</h2>
-        <div>
-          {fixtures.map((fixture: Fixture) => (
-            <div key={fixture.id}>
-              {fixture.homeTeam.name} vs {fixture.awayTeam.name}
-              <div>{new Date(fixture.dateTime).toLocaleString()}</div>
-              <Badge variant="success" removable onRemove={handleRemoveBadge}>
-                Home Form: {fixture.homeTeam.form.join(',')}
-              </Badge>
-              <Badge variant="error" removable onRemove={handleRemoveBadge}>
-                Away Form: {fixture.awayTeam.form.join(',')}
-              </Badge>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section>
-        <h2>League Table</h2>
-        <LeagueTable
-          rows={leagueTableRows as LeagueTableRow[]}
-          title="Premier League Standings"
-          showForm
-          showGoals
-          maxRows={5}
-          sortable
-        />
-      </section>
-    </div>
-  );
-};
-
-export default Phase3VerificationTest;
-
-/* ===========================
-   ✅ TESTS
-   =========================== */
-
+// ---------------------------
 // HeroSection Tests
+// ---------------------------
 describe('HeroSection Component', () => {
   it('renders featured fixture details', () => {
     render(<HeroSection featuredFixture={featuredFixture} />);
+
+    // Team names
     expect(screen.getByText(featuredFixture.homeTeam.name)).toBeInTheDocument();
     expect(screen.getByText(featuredFixture.awayTeam.name)).toBeInTheDocument();
+
+    // Venue
     expect(screen.getByText(featuredFixture.venue)).toBeInTheDocument();
+
+    // AI insight
     expect(screen.getByText(featuredFixture.aiInsight.title)).toBeInTheDocument();
+
+    // Buttons
     expect(screen.getByRole('button', { name: /View Match Stats/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /AI Betting Insights/i })).toBeInTheDocument();
   });
@@ -80,6 +32,7 @@ describe('HeroSection Component', () => {
   it('calls callback functions on button clicks', () => {
     const mockStats = jest.fn();
     const mockInsights = jest.fn();
+
     render(
       <HeroSection
         featuredFixture={featuredFixture}
@@ -87,38 +40,50 @@ describe('HeroSection Component', () => {
         onViewInsights={mockInsights}
       />
     );
+
     fireEvent.click(screen.getByRole('button', { name: /View Match Stats/i }));
     fireEvent.click(screen.getByRole('button', { name: /AI Betting Insights/i }));
+
     expect(mockStats).toHaveBeenCalledTimes(1);
     expect(mockInsights).toHaveBeenCalledTimes(1);
   });
 });
 
+// ---------------------------
 // LeagueTable Tests
+// ---------------------------
 describe('LeagueTable Component', () => {
-  it('renders league table with correct title', () => {
+  it('renders league table with correct title and headers', () => {
     render(
       <LeagueTable
-        rows={leagueTableRows as LeagueTableRow[]}
+        rows={leagueTableRows}
         title="Premier League Standings"
         showForm
         showGoals
       />
     );
+
+    // Title
     expect(screen.getByText(/Premier League Standings/i)).toBeInTheDocument();
-    // Match first team dynamically
-    expect(screen.getByText(leagueTableRows[0].team.name)).toBeInTheDocument();
-    // Match first team points dynamically
-    expect(screen.getByText(`${leagueTableRows[0].points}`)).toBeInTheDocument();
+
+    // Headers (match actual rendered text)
+    expect(screen.getByText(/^Pos$/)).toBeInTheDocument(); // matches "Pos"
+    expect(screen.getByText(/^Pts$/)).toBeInTheDocument(); // matches "Pts"
   });
 
-  it('renders all rows correctly', () => {
-    render(
-      <LeagueTable
-        rows={leagueTableRows as LeagueTableRow[]}
-        title="Premier League Standings"
-      />
-    );
+  it('renders first team name and points correctly', () => {
+    render(<LeagueTable rows={leagueTableRows} title="Premier League Standings" />);
+
+    const firstTeam = leagueTableRows[0];
+    expect(screen.getByText(firstTeam.team.name)).toBeInTheDocument();
+
+    // Points are wrapped in div
+    expect(screen.getByText(`${firstTeam.points}`)).toBeInTheDocument();
+  });
+
+  it('renders all rows', () => {
+    render(<LeagueTable rows={leagueTableRows} title="Premier League Standings" />);
+
     leagueTableRows.forEach(row => {
       expect(screen.getByText(row.team.name)).toBeInTheDocument();
       expect(screen.getByText(`${row.points}`)).toBeInTheDocument();
@@ -126,7 +91,9 @@ describe('LeagueTable Component', () => {
   });
 });
 
-// Badge Component Tests
+// ---------------------------
+// Badge Tests
+// ---------------------------
 describe('Badge Component', () => {
   it('renders badge with correct text and variant', () => {
     render(<Badge variant="success">Test Badge</Badge>);
@@ -135,11 +102,13 @@ describe('Badge Component', () => {
 
   it('calls onRemove when removable badge is clicked', () => {
     const mockRemove = jest.fn();
+
     render(
       <Badge variant="error" removable onRemove={mockRemove}>
         Removable Badge
       </Badge>
     );
+
     fireEvent.click(screen.getByRole('button'));
     expect(mockRemove).toHaveBeenCalledTimes(1);
   });
