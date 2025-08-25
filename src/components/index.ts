@@ -27,7 +27,9 @@ export { default as LeagueTable } from './league/LeagueTable/LeagueTable';
 export type { ButtonProps } from './common/Button/Button.types';
 export type { BadgeProps } from './common/Badge/Badge.types';
 export type { CardProps } from './common/Card/Card.types';
-// Removed HeaderProps and FooterProps exports
+// Header and Footer types are removed because the files no longer exist
+// export type { HeaderProps } from './common/Header/Header.types';
+// export type { FooterProps } from './common/Footer/Footer.types';
 
 // Type Exports - Fixtures
 export type { 
@@ -56,12 +58,7 @@ export type {
 export type { 
   LeagueTableProps, 
   LeagueTableRow, 
-  League,
-  TeamFormIndicatorProps,
-  PositionIndicatorProps,
-  SortConfig,
-  SortField,
-  SortDirection
+  League
 } from './league/LeagueTable/LeagueTable.types';
 
 // Type Exports - Stats
