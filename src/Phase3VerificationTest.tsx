@@ -132,7 +132,7 @@ const HeroSection: React.FC<{
 
 // Phase3VerificationTest Component
 const Phase3VerificationTest: React.FC = () => {
-  const [activeTest] = useState<string>('overview'); // removed unused setActiveTest
+
   const [heroResponsive, setHeroResponsive] = useState(false);
 
   const runTest = (testName: string, value: boolean) => {
