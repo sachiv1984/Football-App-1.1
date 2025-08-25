@@ -1,6 +1,4 @@
-// src/test-data/Phase3VerificationTest.tsx
-import { featuredFixture, fixtures, leagueTableRows } from './test-data/Phase3VerificationTest.data';
-
+// src/test-data/Phase3VerificationTest.data.ts
 import { Fixture, FeaturedFixture } from '../components/fixtures/HeroSection/HeroSection.types';
 import { LeagueTableRow } from '../components/league/LeagueTable/LeagueTable.types';
 
