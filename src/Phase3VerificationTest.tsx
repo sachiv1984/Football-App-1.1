@@ -4,12 +4,12 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import Badge from './components/common/Badge/Badge';
 import HeroSection from './components/fixtures/HeroSection/HeroSection';
-import LeagueTable from './components/league/LeagueTable/LeagueTable';
-import { featuredFixture, fixtures, leagueTableRows } from './test-data/Phase3VerificationTest.data';
+import { LeagueTable } from './components/league/LeagueTable/LeagueTable';
+import { featuredFixture, fixtures, leagueTableRows } from './__tests__/Phase3VerificationTest.data';
 import { LeagueTableRow } from './components/league/LeagueTable/LeagueTable.types';
 import { Fixture } from './components/fixtures/HeroSection/HeroSection.types';
 
-// ✅ Phase 3 Preview Component (manual UI check)
+// ✅ Phase 3 Preview Component
 const Phase3VerificationTest: React.FC = () => {
   const handleViewStats = (fixtureId: string) => {
     console.log('View stats for fixture:', fixtureId);
@@ -83,13 +83,17 @@ export default Phase3VerificationTest;
    ✅ TESTS
    =========================== */
 
-// ✅ HeroSection Tests
+// HeroSection Tests
 describe('HeroSection Component', () => {
   it('renders featured fixture details', () => {
     render(<HeroSection featuredFixture={featuredFixture} />);
 
     expect(screen.getByText(/Featured Match/i)).toBeInTheDocument();
-    expect(screen.getByText(/Big Match Preview/i)).toBeInTheDocument();
+    expect(
+      screen.getByText((content, element) =>
+        content.includes('Big Match') && element?.tagName === 'H1'
+      )
+    ).toBeInTheDocument();
     expect(screen.getByText(/Manchester United/i)).toBeInTheDocument();
     expect(screen.getByText(/Chelsea FC/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /View Match Stats/i })).toBeInTheDocument();
@@ -117,7 +121,7 @@ describe('HeroSection Component', () => {
   });
 });
 
-// ✅ LeagueTable Tests
+// LeagueTable Tests
 describe('LeagueTable Component', () => {
   it('renders league table with correct title', () => {
     render(
@@ -129,7 +133,12 @@ describe('LeagueTable Component', () => {
       />
     );
 
-    expect(screen.getByText(/Premier League Standings/i)).toBeInTheDocument();
+    expect(
+      screen.getByText((content, element) =>
+        element?.tagName === 'H2' && content.includes('Premier League Standings')
+      )
+    ).toBeInTheDocument();
+
     expect(screen.getByText(/Position/i)).toBeInTheDocument();
     expect(screen.getByText(/Points/i)).toBeInTheDocument();
   });
@@ -146,17 +155,15 @@ describe('LeagueTable Component', () => {
   });
 });
 
-// ✅ Badge Component Tests
+// Badge Tests
 describe('Badge Component', () => {
   it('renders badge with correct text and variant', () => {
     render(<Badge variant="success">Test Badge</Badge>);
-
     expect(screen.getByText(/Test Badge/i)).toBeInTheDocument();
   });
 
   it('calls onRemove when removable badge is clicked', () => {
     const mockRemove = jest.fn();
-
     render(
       <Badge variant="error" removable onRemove={mockRemove}>
         Removable Badge
@@ -165,5 +172,31 @@ describe('Badge Component', () => {
 
     fireEvent.click(screen.getByRole('button'));
     expect(mockRemove).toHaveBeenCalledTimes(1);
+  });
+});
+
+// Phase3VerificationTest Component Tests
+describe('Phase3VerificationTest', () => {
+  it('renders Phase 3: Verification Test heading', () => {
+    render(<Phase3VerificationTest />);
+    expect(
+      screen.getByText((content, element) =>
+        element?.tagName === 'H1' && content.includes('Phase 3: Verification Test')
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('renders all Phase 3 verification checklist items', () => {
+    render(<Phase3VerificationTest />);
+
+    const checklistItems = [
+      /Featured Fixture/i,
+      /Upcoming Fixtures/i,
+      /League Table/i
+    ];
+
+    checklistItems.forEach(item => {
+      expect(screen.getByText(item)).toBeInTheDocument();
+    });
   });
 });
