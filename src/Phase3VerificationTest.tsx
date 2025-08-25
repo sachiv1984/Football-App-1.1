@@ -17,45 +17,35 @@ const Phase3VerificationTest: React.FC = () => {
 
   return (
     <div className="p-4 space-y-8">
-      {/* Hero Section */}
       <section>
-        <h2 className="text-xl font-bold mb-2">Featured Fixture</h2>
+        <h2>Featured Fixture</h2>
         <HeroSection
           featuredFixture={featuredFixture}
           onViewStats={handleViewStats}
           onViewInsights={handleViewInsights}
-          className="w-full"
         />
       </section>
 
-      {/* Fixtures List */}
       <section>
-        <h2 className="text-xl font-bold mb-2">Upcoming Fixtures</h2>
-        <div className="space-y-2">
+        <h2>Upcoming Fixtures</h2>
+        <div>
           {fixtures.map((fixture: Fixture) => (
-            <div key={fixture.id} className="p-2 border rounded">
-              <div className="flex justify-between items-center">
-                <div>
-                  {fixture.homeTeam.name} vs {fixture.awayTeam.name}
-                </div>
-                <div>{new Date(fixture.dateTime).toLocaleString()}</div>
-              </div>
-              <div className="flex gap-2 mt-1">
-                <Badge variant="success" removable onRemove={handleRemoveBadge}>
-                  Home Form: {fixture.homeTeam.form.join(',')}
-                </Badge>
-                <Badge variant="error" removable onRemove={handleRemoveBadge}>
-                  Away Form: {fixture.awayTeam.form.join(',')}
-                </Badge>
-              </div>
+            <div key={fixture.id}>
+              {fixture.homeTeam.name} vs {fixture.awayTeam.name}
+              <div>{new Date(fixture.dateTime).toLocaleString()}</div>
+              <Badge variant="success" removable onRemove={handleRemoveBadge}>
+                Home Form: {fixture.homeTeam.form.join(',')}
+              </Badge>
+              <Badge variant="error" removable onRemove={handleRemoveBadge}>
+                Away Form: {fixture.awayTeam.form.join(',')}
+              </Badge>
             </div>
           ))}
         </div>
       </section>
 
-      {/* League Table */}
       <section>
-        <h2 className="text-xl font-bold mb-2">League Table</h2>
+        <h2>League Table</h2>
         <LeagueTable
           rows={leagueTableRows as LeagueTableRow[]}
           title="Premier League Standings"
@@ -79,14 +69,10 @@ export default Phase3VerificationTest;
 describe('HeroSection Component', () => {
   it('renders featured fixture details', () => {
     render(<HeroSection featuredFixture={featuredFixture} />);
-
-    // Check dynamic content from fixture
     expect(screen.getByText(featuredFixture.homeTeam.name)).toBeInTheDocument();
     expect(screen.getByText(featuredFixture.awayTeam.name)).toBeInTheDocument();
     expect(screen.getByText(featuredFixture.venue)).toBeInTheDocument();
     expect(screen.getByText(featuredFixture.aiInsight.title)).toBeInTheDocument();
-
-    // Buttons
     expect(screen.getByRole('button', { name: /View Match Stats/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /AI Betting Insights/i })).toBeInTheDocument();
   });
@@ -94,7 +80,6 @@ describe('HeroSection Component', () => {
   it('calls callback functions on button clicks', () => {
     const mockStats = jest.fn();
     const mockInsights = jest.fn();
-
     render(
       <HeroSection
         featuredFixture={featuredFixture}
@@ -102,10 +87,8 @@ describe('HeroSection Component', () => {
         onViewInsights={mockInsights}
       />
     );
-
     fireEvent.click(screen.getByRole('button', { name: /View Match Stats/i }));
     fireEvent.click(screen.getByRole('button', { name: /AI Betting Insights/i }));
-
     expect(mockStats).toHaveBeenCalledTimes(1);
     expect(mockInsights).toHaveBeenCalledTimes(1);
   });
@@ -122,21 +105,24 @@ describe('LeagueTable Component', () => {
         showGoals
       />
     );
-
     expect(screen.getByText(/Premier League Standings/i)).toBeInTheDocument();
+    // Match first team dynamically
     expect(screen.getByText(leagueTableRows[0].team.name)).toBeInTheDocument();
-    expect(screen.getByText(/Pts/i)).toBeInTheDocument();
+    // Match first team points dynamically
+    expect(screen.getByText(`${leagueTableRows[0].points}`)).toBeInTheDocument();
   });
 
-  it('renders first team points correctly', () => {
+  it('renders all rows correctly', () => {
     render(
       <LeagueTable
         rows={leagueTableRows as LeagueTableRow[]}
         title="Premier League Standings"
       />
     );
-
-    expect(screen.getByText(`${leagueTableRows[0].points}`)).toBeInTheDocument();
+    leagueTableRows.forEach(row => {
+      expect(screen.getByText(row.team.name)).toBeInTheDocument();
+      expect(screen.getByText(`${row.points}`)).toBeInTheDocument();
+    });
   });
 });
 
@@ -149,13 +135,11 @@ describe('Badge Component', () => {
 
   it('calls onRemove when removable badge is clicked', () => {
     const mockRemove = jest.fn();
-
     render(
       <Badge variant="error" removable onRemove={mockRemove}>
         Removable Badge
       </Badge>
     );
-
     fireEvent.click(screen.getByRole('button'));
     expect(mockRemove).toHaveBeenCalledTimes(1);
   });
