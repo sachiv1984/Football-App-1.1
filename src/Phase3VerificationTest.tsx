@@ -4,7 +4,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import Badge from './components/common/Badge/Badge';
 import HeroSection from './components/fixtures/HeroSection/HeroSection';
-import { LeagueTable } from './components/league/LeagueTable/LeagueTable';
+import { LeagueTable } from './components/league/LeagueTable/// src/Phase3VerificationTest.tsx
 import { featuredFixture, fixtures, leagueTableRows } from './test-data/Phase3VerificationTest.data';
 import { LeagueTableRow } from './components/league/LeagueTable/LeagueTable.types';
 import { Fixture } from './components/fixtures/HeroSection/HeroSection.types';
