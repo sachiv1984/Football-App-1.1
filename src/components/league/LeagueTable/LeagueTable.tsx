@@ -1,6 +1,6 @@
 // src/components/league/LeagueTable/LeagueTable.tsx
 import React, { useState, useMemo } from 'react';
-import { LeagueTableProps, LeagueTableRow } from './LeagueTable.types';
+import { LeagueTableProps, LeagueTableRow, League } from './LeagueTable.types';
 
 // Local types for sorting
 type SortField = keyof LeagueTableRow;
@@ -46,7 +46,7 @@ const PositionIndicator: React.FC<{ position: number; totalTeams: number }> = ({
 };
 
 // Header
-const LeagueTableHeader: React.FC<{ league?: any; title?: string; totalTeams: number }> = ({ league, title, totalTeams }) => {
+const LeagueTableHeader: React.FC<{ league?: League; title?: string; totalTeams: number }> = ({ league, title, totalTeams }) => {
   const displayTitle = title || league?.name || 'League Table';
   return (
     <div className="flex items-center justify-between mb-6">
