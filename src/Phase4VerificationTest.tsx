@@ -109,9 +109,6 @@ const Button: React.FC<{
     </button>
 );
 
-export default Phase4VerificationTest;
-};
-
 const Badge: React.FC<{
   variant?: 'success' | 'danger' | 'secondary' | 'warning' | 'primary';
   className?: string;
