@@ -1,7 +1,7 @@
 // src/pages/FixtureDetail/FixtureDetail.tsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Users, BarChart3, Brain, Target } from 'lucide-react';
+import { ArrowLeft, Users, BarChart3 } from 'lucide-react';
 import { 
   MatchHeader, 
   TabNavigation, 
