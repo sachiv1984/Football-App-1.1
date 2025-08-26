@@ -132,6 +132,8 @@ const Badge: React.FC<{
   );
 };
 
+export default Phase4VerificationTest;
+
 const Card = ({ className = '', children }: { className?: string; children: React.ReactNode }) => (
   <div className={`bg-white rounded-lg shadow-md border ${className}`}>{children}</div>
 );
