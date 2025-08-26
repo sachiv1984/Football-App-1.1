@@ -1,5 +1,9 @@
 // src/components/index.ts - Central Export File
 
+// ============================================================================
+// COMPONENT EXPORTS
+// ============================================================================
+
 // Common Components
 export { default as Button } from './common/Button/Button';
 export { default as Badge } from './common/Badge/Badge';
@@ -8,30 +12,53 @@ export { default as Header } from './common/Header/Header';
 export { default as Footer } from './common/Footer/Footer';
 export { default as Modal } from './common/Modal/Modal';
 export { default as Table } from './common/Table/Table';
+export { default as TabNavigation } from './common/TabNavigation/TabNavigation';
 
 // Fixtures Components
 export { default as HeroSection } from './fixtures/HeroSection/HeroSection';
 export { default as FixtureCard } from './fixtures/FixtureCard/FixtureCard';
 export { default as FixturesList } from './fixtures/FixturesList/FixturesList';
+export { default as MatchHeader } from './fixtures/MatchHeader/MatchHeader';
 
 // League Components
 export { default as LeagueTable } from './league/LeagueTable/LeagueTable';
 
 // Stats Components  
-// export { default as StatsTable } from './stats/StatsTable/StatsTable';
+export { default as StatsTable } from './stats/StatsTable/StatsTable';
+export { default as StatRow } from './stats/StatsTable/StatRow';
 
-// Insights Components
-// export { default as AIInsightCard } from './insights/AIInsightCard/AIInsightCard';
+// AI Insights Components
+export { default as AIInsightCard } from './insights/AIInsightCard/AIInsightCard';
+export { default as InsightsContainer } from './insights/AIInsightCard/InsightsContainer';
+export { default as ConfidenceIndicator } from './insights/AIInsightCard/ConfidenceIndicator';
 
-// Type Exports - Common
+// ============================================================================
+// TYPE EXPORTS
+// ============================================================================
+
+// Global/Shared Types
+export type { 
+  Fixture, 
+  Team, 
+  LeagueTableRow, 
+  Competition, 
+  AIInsight, 
+  MatchStats, 
+  TeamStats 
+} from '../types';
+
+// Common Component Types
 export type { ButtonProps } from './common/Button/Button.types';
 export type { BadgeProps } from './common/Badge/Badge.types';
 export type { CardProps } from './common/Card/Card.types';
-// Header and Footer types are removed because the files no longer exist
-// export type { HeaderProps } from './common/Header/Header.types';
-// export type { FooterProps } from './common/Footer/Footer.types';
+export type { ModalProps } from './common/Modal/Modal.types';
+export type { TableProps } from './common/Table/Table.types';
+export type { 
+  Tab, 
+  TabNavigationProps 
+} from './common/TabNavigation/TabNavigation.types';
 
-// Type Exports - Fixtures
+// Fixtures Types
 export type { 
   HeroSectionProps, 
   FeaturedFixture 
@@ -39,10 +66,6 @@ export type {
 
 export type { 
   FixtureCardProps,
-  Fixture,
-  Team,
-  Competition,
-  AIInsight,
   FixtureStatusProps,
   TeamFormProps
 } from './fixtures/FixtureCard/FixtureCard.types';
@@ -54,15 +77,25 @@ export type {
   FixtureGroupProps
 } from './fixtures/FixturesList/FixturesList.types';
 
-// Type Exports - League
+export type {
+  MatchHeaderProps
+} from './fixtures/MatchHeader/MatchHeader.types';
+
+// League Types
 export type { 
   LeagueTableProps, 
-  LeagueTableRow, 
   League
 } from './league/LeagueTable/LeagueTable.types';
 
-// Type Exports - Stats
-// export type { StatsTableProps, StatRow } from './stats/StatsTable/StatsTable.types';
+// Stats Types
+export type { 
+  StatsTableProps, 
+  StatRowProps
+} from './stats/StatsTable/StatsTable.types';
 
-// Type Exports - Insights
-// export type { AIInsightCardProps, InsightData } from './insights/AIInsightCard/AIInsightCard.types';
+// AI Insights Types
+export type { 
+  AIInsightCardProps, 
+  InsightsContainerProps,
+  ConfidenceIndicatorProps
+} from './insights/AIInsightCard/AIInsightCard.types';
