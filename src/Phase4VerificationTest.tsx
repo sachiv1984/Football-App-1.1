@@ -107,7 +107,7 @@ const Button: React.FC<{
     >
       {children}
     </button>
-};
+}
 
 export default Phase4VerificationTest;
 };
