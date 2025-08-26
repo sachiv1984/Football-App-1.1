@@ -979,6 +979,6 @@ const Phase4VerificationTest: React.FC = () => {
         </div>
       </footer>
     </div>
-  };
+  )
 
 export default Phase4VerificationTest;
