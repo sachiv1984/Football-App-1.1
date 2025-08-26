@@ -158,28 +158,29 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({ fixture, className = '' }) =>
   const FormIndicators: React.FC<{ form: readonly FormChar[] }> = ({ form }) => (
     <div className="flex space-x-1">
       {form.slice(-5).map((result, index) => (
- <Card>
-  <span>
-    <Badge
-      key={index}
-      className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ${
-        testResults[testKey] === true
-          ? 'bg-green-500'
+ return (
+  <Card>
+    <span>
+      <Badge
+        key={index}
+        className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ${
+          testResults[testKey] === true
+            ? 'bg-green-500'
+            : testResults[testKey] === false
+            ? 'bg-red-500'
+            : 'bg-yellow-500'
+        }`}
+      >
+        {testResults[testKey] === true
+          ? '✅ PASS'
           : testResults[testKey] === false
-          ? 'bg-red-500'
-          : 'bg-yellow-500'
-      }`}
-    >
-      {testResults[testKey] === true
-        ? '✅ PASS'
-        : testResults[testKey] === false
-        ? '❌ FAIL'
-        : '⏳ PENDING'}
-    </Badge>
-  </span>
-  <Card.Body>{children}</Card.Body>
-</Card>
-  );
+          ? '❌ FAIL'
+          : '⏳ PENDING'}
+      </Badge>
+    </span>
+    <Card.Body>{children}</Card.Body>
+  </Card>
+);
 
   const tabs: Tab[] = [
     {
