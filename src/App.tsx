@@ -1,8 +1,8 @@
 // src/App.tsx
-import Phase4VerificationTest from './Phase4VerificationTest';
+import HomePage from './Pages/HomePage';
 
 function App() {
-  return <Phase4VerificationTest />;
+  return <HomePage />;
 }
 
 export default App;
