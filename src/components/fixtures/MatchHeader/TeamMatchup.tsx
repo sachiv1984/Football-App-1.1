@@ -13,6 +13,9 @@ const TeamMatchup: React.FC<TeamMatchupProps> = ({
     backgroundColor: `${team.colors.primary}10`
   };
 
+  // Ensure form array is typed correctly
+  const recentForm: Array<'W' | 'D' | 'L'> = team.form.slice(-5) as Array<'W' | 'D' | 'L'>;
+
   return (
     <div
       className={`flex flex-col items-center p-4 rounded-lg border-2 ${className}`}
@@ -36,7 +39,7 @@ const TeamMatchup: React.FC<TeamMatchupProps> = ({
 
       {/* Form Indicators */}
       <div className="flex space-x-1">
-        {team.form.slice(-5).map((result: 'W' | 'D' | 'L', index: number) => (
+        {recentForm.map((result, index) => (
           <span
             key={index}
             className={`form-indicator form-${result.toLowerCase()}`}
