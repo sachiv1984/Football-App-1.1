@@ -2,11 +2,11 @@
 import React from 'react';
 import { TeamMatchupProps } from './MatchHeader.types';
 
-const TeamMatchup: React.FC<TeamMatchupProps> = ({ 
-  team, 
-  score, 
-  isHome = false, 
-  className = '' 
+const TeamMatchup: React.FC<TeamMatchupProps> = ({
+  team,
+  score,
+  isHome = false,
+  className = ''
 }) => {
   const teamStyle = {
     borderColor: team.colors.primary,
@@ -14,14 +14,14 @@ const TeamMatchup: React.FC<TeamMatchupProps> = ({
   };
 
   return (
-    <div 
+    <div
       className={`flex flex-col items-center p-4 rounded-lg border-2 ${className}`}
       style={teamStyle}
     >
       {/* Team Logo and Name */}
       <div className="flex flex-col items-center mb-3">
-        <img 
-          src={team.logo} 
+        <img
+          src={team.logo}
           alt={`${team.name} logo`}
           className="team-logo-lg mb-2"
         />
@@ -31,16 +31,14 @@ const TeamMatchup: React.FC<TeamMatchupProps> = ({
 
       {/* Score Display */}
       {typeof score !== 'undefined' && (
-        <div className="match-score mb-3">
-          {score}
-        </div>
+        <div className="match-score mb-3">{score}</div>
       )}
 
       {/* Form Indicators */}
       <div className="flex space-x-1">
         {team.form.slice(-5).map((result: 'W' | 'D' | 'L', index: number) => (
-          <span 
-            key={index} 
+          <span
+            key={index}
             className={`form-indicator form-${result.toLowerCase()}`}
             title={result === 'W' ? 'Win' : result === 'D' ? 'Draw' : 'Loss'}
           >
@@ -51,7 +49,9 @@ const TeamMatchup: React.FC<TeamMatchupProps> = ({
 
       {/* League Position */}
       <div className="mt-2 text-xs text-gray-500">
-        {team.position ? `${team.position}${getOrdinalSuffix(team.position)} place` : ''}
+        {team.position
+          ? `${team.position}${getOrdinalSuffix(team.position)} place`
+          : ''}
       </div>
     </div>
   );
