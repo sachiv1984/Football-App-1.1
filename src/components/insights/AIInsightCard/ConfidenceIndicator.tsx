@@ -1,4 +1,4 @@
-src/components/insights/AIInsightCard/ConfidenceIndicator.tsx
+// src/components/insights/AIInsightCard/ConfidenceIndicator.tsxame={getClasses()}>
 import React from 'react';
 import { TrendingUp, AlertTriangle, AlertCircle } from 'lucide-react';
 import { ConfidenceIndicatorProps } from './AIInsightCard.types';
@@ -16,6 +16,8 @@ const ConfidenceIndicator: React.FC<ConfidenceIndicatorProps> = ({
         return <AlertTriangle className={`${size === 'sm' ? 'w-3 h-3' : size === 'lg' ? 'w-6 h-6' : 'w-4 h-4'}`} />;
       case 'low':
         return <AlertCircle className={`${size === 'sm' ? 'w-3 h-3' : size === 'lg' ? 'w-6 h-6' : 'w-4 h-4'}`} />;
+      default:
+        return null; // ensures switch always returns
     }
   };
 
@@ -28,6 +30,8 @@ const ConfidenceIndicator: React.FC<ConfidenceIndicatorProps> = ({
         return `${baseClasses} text-yellow-600`;
       case 'low':
         return `${baseClasses} text-red-600`;
+      default:
+        return baseClasses;
     }
   };
 
