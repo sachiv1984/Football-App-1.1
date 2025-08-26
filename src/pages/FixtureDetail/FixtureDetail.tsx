@@ -10,6 +10,8 @@ import {
   Button 
 } from '@/components';
 import { Tab } from '@/components/common/TabNavigation/TabNavigation.types';
+import { Fixture, MatchStats, AIInsight } from '@/types';
+
 
 // Mock data - will be replaced with API calls in Phase 5
 const mockFixture: Fixture = {
