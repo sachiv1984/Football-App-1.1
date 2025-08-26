@@ -2,26 +2,29 @@
 import React from 'react';
 import { TeamMatchupProps } from './MatchHeader.types';
 
-const TeamMatchup: React.FC<TeamMatchupProps> = ({ 
-  team, 
-  score, 
-  isHome = false, 
-  className = '' 
+const TeamMatchup: React.FC<TeamMatchupProps> = ({
+  team,
+  score,
+  isHome = false,
+  className = ''
 }) => {
   const teamStyle = {
     borderColor: team.colors.primary,
     backgroundColor: `${team.colors.primary}10`
   };
 
+  // Ensure form array is typed correctly
+  const recentForm: Array<'W' | 'D' | 'L'> = team.form.slice(-5) as Array<'W' | 'D' | 'L'>;
+
   return (
-    <div 
+    <div
       className={`flex flex-col items-center p-4 rounded-lg border-2 ${className}`}
       style={teamStyle}
     >
       {/* Team Logo and Name */}
       <div className="flex flex-col items-center mb-3">
-        <img 
-          src={team.logo} 
+        <img
+          src={team.logo}
           alt={`${team.name} logo`}
           className="team-logo-lg mb-2"
         />
@@ -31,18 +34,16 @@ const TeamMatchup: React.FC<TeamMatchupProps> = ({
 
       {/* Score Display */}
       {typeof score !== 'undefined' && (
-        <div className="match-score mb-3">
-          {score}
-        </div>
+        <div className="match-score mb-3">{score}</div>
       )}
 
       {/* Form Indicators */}
       <div className="flex space-x-1">
-        {team.form.slice(-5).map((result, index) => (
-          <span 
-            key={index} 
+        {recentForm.map((result, index) => (
+          <span
+            key={index}
             className={`form-indicator form-${result.toLowerCase()}`}
-            title={`${result === 'W' ? 'Win' : result === 'D' ? 'Draw' : 'Loss'}`}
+            title={result === 'W' ? 'Win' : result === 'D' ? 'Draw' : 'Loss'}
           >
             {result}
           </span>
@@ -51,7 +52,9 @@ const TeamMatchup: React.FC<TeamMatchupProps> = ({
 
       {/* League Position */}
       <div className="mt-2 text-xs text-gray-500">
-        {team.position ? `${team.position}${getOrdinalSuffix(team.position)} place` : ''}
+        {team.position
+          ? `${team.position}${getOrdinalSuffix(team.position)} place`
+          : ''}
       </div>
     </div>
   );

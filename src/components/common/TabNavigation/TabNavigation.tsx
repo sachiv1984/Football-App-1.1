@@ -1,6 +1,7 @@
 // src/components/common/TabNavigation/TabNavigation.tsx
 import React, { useRef, useEffect } from 'react';
-import { TabNavigationProps } from './TabNavigation.types';
+import { TabNavigationProps, Tab } from './TabNavigation.types';
+
 
 const TabNavigation: React.FC<TabNavigationProps> = ({
   tabs,

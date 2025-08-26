@@ -1,4 +1,6 @@
 // src/components/stats/StatsTable/StatsTable.types.ts
+import type { Team, TeamStats, MatchStats } from '@/types'; // ✅ Add this import
+
 export interface StatRowProps {
   statName: string;
   homeValue: number;

@@ -10,7 +10,7 @@ describe('Phase4VerificationTest', () => {
         const headingElement = screen.getByText((content, element) => {
             return (
                 element.tagName.toLowerCase().startsWith('h') &&
-                content.toLowerCase().includes('phase 3')
+                content.toLowerCase().includes('phase 4')
             );
         });
 
@@ -21,7 +21,7 @@ describe('Phase4VerificationTest', () => {
         render(<App />);
         
         // Find the container holding your checklist items
-        const checklistContainer = screen.getByRole('main'); // or a more specific selector if needed
+        const checklistContainer = screen.getByRole('main'); // Adjust if your structure differs
         const buttons = within(checklistContainer).getAllByRole('button');
 
         // Ensure at least one button exists (sanity check)

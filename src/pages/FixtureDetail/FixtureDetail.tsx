@@ -1,7 +1,7 @@
 // src/pages/FixtureDetail/FixtureDetail.tsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Users, BarChart3, Brain, Target } from 'lucide-react';
+import { ArrowLeft, Users, BarChart3 } from 'lucide-react';
 import { 
   MatchHeader, 
   TabNavigation, 
@@ -10,6 +10,8 @@ import {
   Button 
 } from '@/components';
 import { Tab } from '@/components/common/TabNavigation/TabNavigation.types';
+import { Fixture, MatchStats, AIInsight } from '@/types';
+
 
 // Mock data - will be replaced with API calls in Phase 5
 const mockFixture: Fixture = {
