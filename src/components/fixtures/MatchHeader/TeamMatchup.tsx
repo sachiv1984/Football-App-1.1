@@ -38,11 +38,11 @@ const TeamMatchup: React.FC<TeamMatchupProps> = ({
 
       {/* Form Indicators */}
       <div className="flex space-x-1">
-        {team.form.slice(-5).map((result, index) => (
+        {team.form.slice(-5).map((result: 'W' | 'D' | 'L', index: number) => (
           <span 
             key={index} 
             className={`form-indicator form-${result.toLowerCase()}`}
-            title={`${result === 'W' ? 'Win' : result === 'D' ? 'Draw' : 'Loss'}`}
+            title={result === 'W' ? 'Win' : result === 'D' ? 'Draw' : 'Loss'}
           >
             {result}
           </span>
