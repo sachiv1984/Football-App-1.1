@@ -3,8 +3,8 @@ import { render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import App from './App';
 
-describe('Phase3VerificationTest', () => {
-    test('renders Phase 3: Verification Test heading', () => {
+describe('Phase4VerificationTest', () => {
+    test('renders Phase 4: Verification Test heading', () => {
         render(<App />);
         
         const headingElement = screen.getByText((content, element) => {
@@ -17,7 +17,7 @@ describe('Phase3VerificationTest', () => {
         expect(headingElement).toBeInTheDocument();
     });
 
-    test('renders all Phase 3 verification checklist items', () => {
+    test('renders all Phase 4 verification checklist items', () => {
         render(<App />);
         
         // Find the container holding your checklist items
