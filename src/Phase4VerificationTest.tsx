@@ -154,30 +154,20 @@ interface MatchHeaderProps {
   className?: string;
 }
 
-const MatchHeader: React.FC<MatchHeaderProps> = ({ fixture, className = '' }) => {
-  const FormIndicators: React.FC<{ form: readonly FormChar[] }> = ({ form }) => (
-    <div className="flex space-x-1">
-      {form.slice(-5).map((result, index) => (
- return (
-  <Card>
-    <span>
-      <Badge
-        key={index}
-        className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ${
-          testResults[testKey] === true
-            ? 'bg-green-500'
+const TestSection: React.FC<{ title: string; children: React.ReactNode; testKey: string }> = ({ title, children, testKey }) => (
+  <Card className="mb-6">
+    <Card.Header 
+      title={title}
+      action={
+        <Badge variant={testResults[testKey] === true ? 'success' : testResults[testKey] === false ? 'danger' : 'secondary'}>
+          {testResults[testKey] === true
+            ? '✅ PASS'
             : testResults[testKey] === false
-            ? 'bg-red-500'
-            : 'bg-yellow-500'
-        }`}
-      >
-        {testResults[testKey] === true
-          ? '✅ PASS'
-          : testResults[testKey] === false
-          ? '❌ FAIL'
-          : '⏳ PENDING'}
-      </Badge>
-    </span>
+            ? '❌ FAIL'
+            : '⏳ PENDING'}
+        </Badge>
+      }
+    />
     <Card.Body>{children}</Card.Body>
   </Card>
 );
