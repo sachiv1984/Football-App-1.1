@@ -1,4 +1,6 @@
 // src/components/insights/AIInsightCard/AIInsightCard.types.ts
+import type { AIInsight } from '@/types';  // ✅ Add this import
+
 export interface AIInsightCardProps {
   insight: AIInsight;
   className?: string;
