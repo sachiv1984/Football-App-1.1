@@ -159,10 +159,22 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({ fixture, className = '' }) =>
     <div className="flex space-x-1">
       {form.slice(-5).map((result, index) => (
         <span
-          key={index}
-          className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ${
-            {testResults[testKey] === true ? '✅ PASS' : testResults[testKey] === false ? '❌ FAIL' : '⏳ PENDING'}
-          </Badge>
+            <Badge
+  key={index}
+  className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ${
+    testResults[testKey] === true
+      ? 'bg-green-500'
+      : testResults[testKey] === false
+      ? 'bg-red-500'
+      : 'bg-yellow-500'
+  }`}
+>
+  {testResults[testKey] === true
+    ? '✅ PASS'
+    : testResults[testKey] === false
+    ? '❌ FAIL'
+    : '⏳ PENDING'}
+</Badge>
         }
       />
       <Card.Body>{children}</Card.Body>
