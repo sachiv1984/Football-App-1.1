@@ -1,6 +1,6 @@
 import React from 'react';
 import { Calendar, Clock, Trophy, TrendingUp, Users, MapPin } from 'lucide-react';
-import { Team, FeaturedFixture } from '../../../types';
+import { FeaturedFixture } from '../../../types';
 
 interface HeroSectionProps {
   featuredFixture?: FeaturedFixture;
