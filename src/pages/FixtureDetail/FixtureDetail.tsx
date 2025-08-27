@@ -2,11 +2,22 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Users, BarChart3 } from 'lucide-react';
-import MatchHeader from '@/components/fixtures/MatchHeader/MatchHeader';;
+
+// Safe/common components
+import { Button, TabNavigation } from '@/components'; // safe exports
+
+// Feature-specific components (import directly)
+import MatchHeader from '@/components/fixtures/MatchHeader/MatchHeader';
+import StatsTable from '@/components/stats/StatsTable/StatsTable';
+import InsightsContainer from '@/components/insights/AIInsightCard/InsightsContainer';
+
+// Types
 import { Tab } from '@/components/common/TabNavigation/TabNavigation.types';
 import { Fixture, MatchStats, AIInsight } from '@/types';
 
-// Mock data
+// --------------------
+// Mock Data
+// --------------------
 const mockFixture: Fixture = {
   id: '1',
   homeTeam: {
@@ -30,7 +41,7 @@ const mockFixture: Fixture = {
   competition: {
     id: 'pl',
     name: 'Premier League',
-    shortName: 'EPL', // <-- Added shortName
+    shortName: 'EPL',
     logo: '/api/placeholder/32/32',
     country: 'England'
   },
@@ -46,7 +57,7 @@ const mockFixture: Fixture = {
     confidence: 'high',
     market: 'Total Goals Over 2.5',
     odds: '1.85',
-    probability: 0.65, // <-- Added
+    probability: 0.65,
     supportingData: 'Man Utd: 12 goals in last 5 home games, Leicester: 8 goals conceded in last 5 away games'
   }
 };
@@ -97,7 +108,7 @@ const mockAIInsights: AIInsight[] = [
     confidence: 'high',
     market: 'Both Teams to Score - Yes',
     odds: '1.75',
-    probability: 0.7, // <-- Added
+    probability: 0.7,
     supportingData: 'Home team: 24 goals scored, 8 conceded at home. Away team: 18 goals scored, 22 conceded away.'
   },
   {
@@ -107,7 +118,7 @@ const mockAIInsights: AIInsight[] = [
     confidence: 'medium',
     market: 'Total Corners Over 9.5',
     odds: '2.10',
-    probability: 0.55, // <-- Added
+    probability: 0.55,
     supportingData: 'Last 3 meetings averaged 11.3 corners per game'
   },
   {
@@ -117,12 +128,14 @@ const mockAIInsights: AIInsight[] = [
     confidence: 'medium',
     market: 'Player Shots on Target',
     odds: '2.25',
-    probability: 0.6, // <-- Added
+    probability: 0.6,
     supportingData: 'Player averages 2.8 shots on target per home game this season'
   }
 ];
 
-// Tab components
+// --------------------
+// Tab Components
+// --------------------
 const MatchStatsTab: React.FC<{ fixture: Fixture; stats: MatchStats }> = ({ fixture, stats }) => (
   <div className="space-y-6">
     <StatsTable homeTeam={fixture.homeTeam} awayTeam={fixture.awayTeam} stats={stats} />
@@ -153,6 +166,9 @@ const PredictionsTab: React.FC<{ insights: AIInsight[] }> = ({ insights }) => (
   </div>
 );
 
+// --------------------
+// Main Component
+// --------------------
 const FixtureDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -236,7 +252,7 @@ const FixtureDetail: React.FC = () => {
         <TabNavigation
           tabs={tabs}
           activeTab={activeTab}
-          onTabChange={(tabId: string) => setActiveTab(tabId)} // <-- Fixed type
+          onTabChange={(tabId: string) => setActiveTab(tabId)}
         />
       </div>
     </div>
