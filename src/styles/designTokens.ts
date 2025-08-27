@@ -25,6 +25,7 @@ export const designTokens = {
     },
     // Neutral Base
     neutral: {
+      background: '#FFFFFF',
       white: '#FFFFFF',
       lightGrey: '#F5F5F5',
       mediumGrey: '#9CA3AF',
