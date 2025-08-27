@@ -19,7 +19,7 @@ const HomePage: React.FC = () => {
     shortName: 'MUN',
     logo: '/images/man-utd.png',
     colors: { primary: '#DC143C', secondary: '#FFD700' },
-    form: ['W', 'D', 'L', 'W', 'W'],
+    form: ['W', 'D', 'L', 'W', 'W'] as ('W' | 'D' | 'L')[]
     position: 3,
   };
 
@@ -29,7 +29,7 @@ const HomePage: React.FC = () => {
     shortName: 'CHE',
     logo: '/images/chelsea.png',
     colors: { primary: '#034694', secondary: '#FFFFFF' },
-    form: ['L', 'W', 'D', 'W', 'L'],
+    form: ['W', 'D', 'L', 'W', 'W'] as ('W' | 'D' | 'L')[]
     position: 5,
   };
 
