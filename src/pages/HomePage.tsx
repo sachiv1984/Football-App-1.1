@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import Header from '../components/common/Header/Header';
 import Footer from '../components/common/Footer/Footer';
 import HeroSection from '../components/fixtures/HeroSection/HeroSection';
@@ -8,7 +8,6 @@ import LeagueTable from '../components/league/LeagueTable/LeagueTable';
 import InsightsContainer from '../components/insights/AIInsightCard/InsightsContainer';
 import { designTokens } from '../styles/designTokens';
 import { AIInsight, Fixture, Team, LeagueTableRow } from '../types';
-import { FixtureCard as CardFixture} from'../components/fixtures/FixtureCard'
 ;
 
 // Placeholder teams
