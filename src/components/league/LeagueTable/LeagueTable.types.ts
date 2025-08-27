@@ -1,20 +1,8 @@
 // src/components/league/LeagueTable/LeagueTable.types.ts
-import { Team } from '../../fixtures/FixtureCard/FixtureCard.types';
+import { Team, LeagueTableRow } from '../../../types';
 
-export interface LeagueTableRow {
-  position: number;
-  team: Team;
-  played: number;
-  won: number;
-  drawn: number;
-  lost: number;
-  goalsFor: number;
-  goalsAgainst: number;
-  goalDifference: number;
-  points: number;
-  form: ('W' | 'D' | 'L')[];
-  lastUpdated: string;
-}
+// Re-export for convenience
+export { Team, LeagueTableRow };
 
 export interface League {
   id: string;
