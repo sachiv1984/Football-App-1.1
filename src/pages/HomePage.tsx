@@ -1,4 +1,5 @@
-import React, {useState} from 'react';
+// src/pages/HomePage.tsx
+import React, { useState } from 'react';
 import Header from '../components/common/Header/Header';
 import Footer from '../components/common/Footer/Footer';
 import HeroSection from '../components/fixtures/HeroSection/HeroSection';
@@ -8,9 +9,8 @@ import LeagueTable from '../components/league/LeagueTable/LeagueTable';
 import InsightsContainer from '../components/insights/AIInsightCard/InsightsContainer';
 import { designTokens } from '../styles/designTokens';
 import { AIInsight, Fixture, Team, LeagueTableRow } from '../types';
-;
 
-// Placeholder teams
+// Placeholder Teams
 const arsenal: Team = {
   id: 'arsenal',
   name: 'Arsenal',
@@ -62,7 +62,7 @@ const manUtd: Team = {
 };
 
 // Fixtures
-const fixtures: CardFixture[] = [
+const fixtures: Fixture[] = [
   {
     id: 'fixture-1',
     homeTeam: manUtd,
@@ -87,7 +87,7 @@ const fixtures: CardFixture[] = [
   },
 ];
 
-// Featured Fixture for Hero
+// Featured Fixture
 const featuredFixture = fixtures[0];
 
 // AI Insights
@@ -121,11 +121,11 @@ const insights: AIInsight[] = [
 
 // League Standings
 const standings: LeagueTableRow[] = [
-  { position: 1, team: arsenal, played: 3, won: 3, drawn: 0, lost: 0, goalsFor: 7, goalsAgainst: 2, goalDifference: 5, points: 9 },
-  { position: 2, team: liverpool, played: 3, won: 2, drawn: 1, lost: 0, goalsFor: 6, goalsAgainst: 3, goalDifference: 3, points: 7 },
-  { position: 3, team: chelsea, played: 3, won: 2, drawn: 0, lost: 1, goalsFor: 5, goalsAgainst: 3, goalDifference: 2, points: 6 },
-  { position: 4, team: manCity, played: 3, won: 2, drawn: 0, lost: 1, goalsFor: 4, goalsAgainst: 3, goalDifference: 1, points: 6 },
-  { position: 5, team: manUtd, played: 3, won: 1, drawn: 1, lost: 1, goalsFor: 3, goalsAgainst: 4, goalDifference: -1, points: 4 },
+  { position: 1, team: arsenal, played: 3, won: 3, drawn: 0, lost: 0, goalsFor: 7, goalsAgainst: 2, goalDifference: 5, points: 9, form: arsenal.form, lastUpdated: '2025-08-27' },
+  { position: 2, team: liverpool, played: 3, won: 2, drawn: 1, lost: 0, goalsFor: 6, goalsAgainst: 3, goalDifference: 3, points: 7, form: liverpool.form, lastUpdated: '2025-08-27' },
+  { position: 3, team: chelsea, played: 3, won: 2, drawn: 0, lost: 1, goalsFor: 5, goalsAgainst: 3, goalDifference: 2, points: 6, form: chelsea.form, lastUpdated: '2025-08-27' },
+  { position: 4, team: manCity, played: 3, won: 2, drawn: 0, lost: 1, goalsFor: 4, goalsAgainst: 3, goalDifference: 1, points: 6, form: manCity.form, lastUpdated: '2025-08-27' },
+  { position: 5, team: manUtd, played: 3, won: 1, drawn: 1, lost: 1, goalsFor: 3, goalsAgainst: 4, goalDifference: -1, points: 4, form: manUtd.form, lastUpdated: '2025-08-27' },
 ];
 
 const HomePage: React.FC = () => {
@@ -141,36 +141,13 @@ const HomePage: React.FC = () => {
       {/* Tab Navigation */}
       <TabNavigation
         activeId={activeTab}
-        onChange={setActiveTab} // lets the TabNavigation component control active tab
+        onChange={setActiveTab}
         tabs={[
-          { label: 'Fixtures', id: 'fixtures' },
-          { label: 'Standings', id: 'standings' },
-          { label: 'Insights', id: 'insights' },
+          { label: 'Fixtures', id: 'fixtures', content: <FixturesList fixtures={fixtures} /> },
+          { label: 'Standings', id: 'standings', content: <LeagueTable rows={standings} /> },
+          { label: 'Insights', id: 'insights', content: <InsightsContainer insights={insights} /> },
         ]}
       />
-
-      <main style={{ padding: '1rem', maxWidth: '1200px', margin: '0 auto' }}>
-        {activeTab === 'fixtures' && (
-          <section id="fixtures" style={{ marginBottom: '3rem' }}>
-            <h2>Upcoming Fixtures</h2>
-            <FixturesList fixtures={fixtures} />
-          </section>
-        )}
-
-        {activeTab === 'standings' && (
-          <section id="standings" style={{ marginBottom: '3rem' }}>
-            <h2>League Standings</h2>
-            <LeagueTable standings={standings} />
-          </section>
-        )}
-
-        {activeTab === 'insights' && (
-          <section id="insights" style={{ marginBottom: '3rem' }}>
-            <h2>AI Betting Insights</h2>
-            <InsightsContainer insights={insights} />
-          </section>
-        )}
-      </main>
 
       <Footer />
     </div>
@@ -178,4 +155,3 @@ const HomePage: React.FC = () => {
 };
 
 export default HomePage;
-
