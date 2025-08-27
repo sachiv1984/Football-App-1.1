@@ -108,13 +108,14 @@ const HomePage: React.FC = () => {
 
       {/* Tab Navigation */}
      <TabNavigation
-  tabs={[
-    { label: 'Fixtures', id: 'fixtures' },
-    { label: 'Standings', id: 'standings' },
-    { label: 'Insights', id: 'insights' },
+      tabs={[
+    { label: 'Fixtures', id: 'fixtures', content: <FixturesList fixtures={fixtures} /> },
+    { label: 'Standings', id: 'standings', content: <LeagueTable standings={standings} /> },
+    { label: 'Insights', id: 'insights', content: <InsightsContainer insights={insights} /> },
   ]}
   defaultActive="fixtures"
 />
+
 
 
       <main style={{ padding: '1rem', maxWidth: '1200px', margin: '0 auto' }}>
