@@ -8,6 +8,8 @@ import LeagueTable from '../components/league/LeagueTable/LeagueTable';
 import InsightsContainer from '../components/insights/AIInsightCard/InsightsContainer';
 import { designTokens } from '../styles/designTokens';
 import { AIInsight, Fixture, Team, LeagueTableRow } from '../types';
+import { FixtureCard as CardFixture} from'../components/fixtures/FixtureCard'
+;
 
 // Placeholder teams
 const arsenal: Team = {
@@ -16,7 +18,7 @@ const arsenal: Team = {
   shortName: 'ARS',
   logo: '',
   colors: { primary: '#EF0000', secondary: '#FFFF00' },
-  form: ['W', 'W', 'W', 'D', 'W'],
+  form: ['W', 'W', 'W', 'D', 'W'] as ('W' | 'D' | 'L')[],
   position: 1,
 };
 
@@ -26,7 +28,7 @@ const liverpool: Team = {
   shortName: 'LIV',
   logo: '',
   colors: { primary: '#C8102E', secondary: '#00B2A9' },
-  form: ['W', 'D', 'W', 'L', 'W'],
+  form: ['W', 'D', 'W', 'L', 'W'] as ('W' | 'D' | 'L')[],
   position: 2,
 };
 
@@ -36,7 +38,7 @@ const chelsea: Team = {
   shortName: 'CHE',
   logo: '',
   colors: { primary: '#034694', secondary: '#FFFFFF' },
-  form: ['L', 'W', 'D', 'W', 'L'],
+  form: ['L', 'W', 'D', 'W', 'L'] as ('W' | 'D' | 'L')[],
   position: 3,
 };
 
@@ -46,7 +48,7 @@ const manCity: Team = {
   shortName: 'MCI',
   logo: '',
   colors: { primary: '#6CABDD', secondary: '#FFFFFF' },
-  form: ['W', 'W', 'L', 'D', 'W'],
+  form: ['W', 'W', 'L', 'D', 'W'] as ('W' | 'D' | 'L')[],
   position: 4,
 };
 
@@ -56,12 +58,12 @@ const manUtd: Team = {
   shortName: 'MUN',
   logo: '',
   colors: { primary: '#DC143C', secondary: '#FFD700' },
-  form: ['W', 'D', 'L', 'W', 'W'],
+  form: ['W', 'D', 'L', 'W', 'W'] as ('W' | 'D' | 'L')[],
   position: 5,
 };
 
 // Fixtures
-const fixtures: Fixture[] = [
+const fixtures: CardFixture[] = [
   {
     id: 'fixture-1',
     homeTeam: manUtd,
@@ -137,12 +139,12 @@ const HomePage: React.FC = () => {
 
       {/* Tab Navigation */}
       <TabNavigation
+      activeId="fixtures"
         tabs={[
           { label: 'Fixtures', id: 'fixtures', content: <FixturesList fixtures={fixtures} /> },
           { label: 'Standings', id: 'standings', content: <LeagueTable standings={standings} /> },
           { label: 'Insights', id: 'insights', content: <InsightsContainer insights={insights} /> },
         ]}
-        defaultActive="fixtures"
       />
     </div>
   );
