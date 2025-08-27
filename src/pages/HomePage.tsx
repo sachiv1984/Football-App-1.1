@@ -59,30 +59,6 @@ const HomePage: React.FC = () => {
   }
 ];
 
-
-  // Fixtures List
-  const fixtures: FeaturedFixture[] = [
-    featuredFixture,
-    {
-      id: 'fixture-2',
-      homeTeam: { ...manUtd, id: 'arsenal', name: 'Arsenal', shortName: 'ARS' },
-      awayTeam: { ...chelsea, id: 'liverpool', name: 'Liverpool', shortName: 'LIV' },
-      competition: { id: 'pl', name: 'Premier League', logo: '/images/pl.png' },
-      dateTime: '2025-08-27T18:00:00Z',
-      venue: 'Emirates Stadium',
-      status: 'scheduled',
-    },
-    {
-      id: 'fixture-3',
-      homeTeam: { ...manUtd, id: 'tottenham', name: 'Tottenham', shortName: 'TOT' },
-      awayTeam: { ...chelsea, id: 'man-city', name: 'Manchester City', shortName: 'MCI' },
-      competition: { id: 'pl', name: 'Premier League', logo: '/images/pl.png' },
-      dateTime: '2025-08-28T17:30:00Z',
-      venue: 'Tottenham Hotspur Stadium',
-      status: 'scheduled',
-    },
-  ];
-
   // AI Insights
   const insights: import('../types').AIInsight[] = [
   {
