@@ -34,22 +34,31 @@ const HomePage: React.FC = () => {
   };
 
   // Featured Fixture
-  const featuredFixture: FeaturedFixture = {
+  const fixtures: import('../types').Fixture[] = [
+  {
     id: 'fixture-1',
     homeTeam: manUtd,
     awayTeam: chelsea,
-    competition: { id: 'pl', name: 'Premier League', logo: '/images/pl.png' },
+    competition: { id: 'pl', name: 'Premier League', logo: '/images/pl.png', country: 'England' },
     dateTime: '2025-08-26T20:00:00Z',
     venue: 'Old Trafford',
     status: 'scheduled',
-    aiInsight: {
-      title: 'Over 2.5 Goals Likely',
-      description: 'Both teams average 3+ goals combined in last 5 matches.',
-      confidence: 'high',
-      probability: 78,
-      category: 'goals',
-    },
-  };
+    homeScore: 0,
+    awayScore: 0
+  },
+  {
+    id: 'fixture-2',
+    homeTeam: { ...manUtd, id: 'arsenal', name: 'Arsenal', shortName: 'ARS' },
+    awayTeam: { ...chelsea, id: 'liverpool', name: 'Liverpool', shortName: 'LIV' },
+    competition: { id: 'pl', name: 'Premier League', logo: '/images/pl.png', country: 'England' },
+    dateTime: '2025-08-27T18:00:00Z',
+    venue: 'Emirates Stadium',
+    status: 'scheduled',
+    homeScore: 0,
+    awayScore: 0
+  }
+];
+
 
   // Fixtures List
   const fixtures: FeaturedFixture[] = [
