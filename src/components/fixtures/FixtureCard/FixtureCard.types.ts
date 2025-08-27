@@ -1,8 +1,8 @@
 // src/components/fixtures/FixtureCard/FixtureCard.types.ts
-import { Team, Competition, AIInsight, Fixture } from '../../../types';
+import type { Team, Competition, AIInsight, Fixture } from '../../../types';
 
-// Re-export the main types for convenience
-export { Team, Competition, AIInsight, Fixture };
+// Re-export the main types for convenience using `export type`
+export type { Team, Competition, AIInsight, Fixture };
 
 // Component-specific props and interfaces
 export interface FixtureCardProps {
