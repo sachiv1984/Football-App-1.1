@@ -130,6 +130,8 @@ const standings: LeagueTableRow[] = [
 ];
 
 const HomePage: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'fixtures' | 'standings' | 'insights'>('fixtures');
+
   return (
     <div style={{ background: designTokens.colors.neutral.background, color: designTokens.colors.neutral.darkGrey, minHeight: '100vh' }}>
       <Header />
@@ -139,15 +141,42 @@ const HomePage: React.FC = () => {
 
       {/* Tab Navigation */}
       <TabNavigation
-      activeId="fixtures"
+        activeId={activeTab}
+        onChange={setActiveTab} // lets the TabNavigation component control active tab
         tabs={[
-          { label: 'Fixtures', id: 'fixtures', content: <FixturesList fixtures={fixtures} /> },
-          { label: 'Standings', id: 'standings', content: <LeagueTable standings={standings} /> },
-          { label: 'Insights', id: 'insights', content: <InsightsContainer insights={insights} /> },
+          { label: 'Fixtures', id: 'fixtures' },
+          { label: 'Standings', id: 'standings' },
+          { label: 'Insights', id: 'insights' },
         ]}
       />
+
+      <main style={{ padding: '1rem', maxWidth: '1200px', margin: '0 auto' }}>
+        {activeTab === 'fixtures' && (
+          <section id="fixtures" style={{ marginBottom: '3rem' }}>
+            <h2>Upcoming Fixtures</h2>
+            <FixturesList fixtures={fixtures} />
+          </section>
+        )}
+
+        {activeTab === 'standings' && (
+          <section id="standings" style={{ marginBottom: '3rem' }}>
+            <h2>League Standings</h2>
+            <LeagueTable standings={standings} />
+          </section>
+        )}
+
+        {activeTab === 'insights' && (
+          <section id="insights" style={{ marginBottom: '3rem' }}>
+            <h2>AI Betting Insights</h2>
+            <InsightsContainer insights={insights} />
+          </section>
+        )}
+      </main>
+
+      <Footer />
     </div>
   );
 };
 
 export default HomePage;
+
