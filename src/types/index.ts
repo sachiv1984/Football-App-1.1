@@ -1,5 +1,4 @@
 // src/types/index.ts
-
 export interface Team {
   id: string;
   name: string;
@@ -10,17 +9,54 @@ export interface Team {
   position: number;
 }
 
+export interface Competition {
+  id: string;
+  name: string;
+  shortName: string; // Added this missing property
+  logo: string;
+  country: string;
+}
+
+export interface AIInsight {
+  id: string;
+  title: string;
+  description: string;
+  confidence: 'high' | 'medium' | 'low';
+  probability: number; // Added this missing property
+  market: string;
+  odds: string;
+  supportingData?: string;
+}
+
 export interface Fixture {
   id: string;
   homeTeam: Team;
   awayTeam: Team;
-  competition: { id: string; name: string; logo: string; country: string };
+  competition: Competition; // Now uses the full Competition interface
   dateTime: string;
   venue: string;
   status: string;
   homeScore: number;
   awayScore: number;
   aiInsight?: AIInsight;
+}
+
+export interface FeaturedFixture {
+  id: string;
+  homeTeam: Team;
+  awayTeam: Team;
+  competition: Competition;
+  dateTime: string;
+  venue: string;
+  status: string;
+  homeScore: number;
+  awayScore: number;
+  aiInsight?: {
+    title: string;
+    description: string;
+    confidence: 'high' | 'medium' | 'low';
+    probability: number;
+  };
 }
 
 export interface TeamStats {
@@ -43,24 +79,6 @@ export interface MatchStats {
   lastUpdated: string;
 }
 
-export interface AIInsight {
-  id: string;
-  title: string;
-  description: string;
-  confidence: 'high' | 'medium' | 'low';
-  market: string;
-  odds: string;
-  supportingData?: string;
-}
-
-// Optional: other shared types like LeagueTableRow, Competition, etc.
-export interface Competition {
-  id: string;
-  name: string;
-  logo: string;
-  country: string;
-}
-
 export interface LeagueTableRow {
   position: number;
   team: Team;
@@ -72,4 +90,6 @@ export interface LeagueTableRow {
   goalsAgainst: number;
   goalDifference: number;
   points: number;
+  form: ('W' | 'D' | 'L')[]; // Added missing property
+  lastUpdated: string; // Added missing property
 }
