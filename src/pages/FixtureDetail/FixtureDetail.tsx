@@ -2,13 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Users, BarChart3 } from 'lucide-react';
-import { 
-  MatchHeader, 
-  TabNavigation, 
-  StatsTable, 
-  InsightsContainer,
-  Button 
-} from '@/components';
+import MatchHeader from '@/components/fixtures/MatchHeader/MatchHeader';;
 import { Tab } from '@/components/common/TabNavigation/TabNavigation.types';
 import { Fixture, MatchStats, AIInsight } from '@/types';
 

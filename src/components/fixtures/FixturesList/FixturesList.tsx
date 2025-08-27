@@ -1,6 +1,6 @@
 // src/components/fixtures/FixturesList/FixturesList.tsx
 import React from 'react';
-import { FixtureCard } from '@/components';
+import FixtureCard from '@/components/fixtures/FixtureCard/FixtureCard';;
 import { 
   FixturesListProps, 
   FixtureGroup,

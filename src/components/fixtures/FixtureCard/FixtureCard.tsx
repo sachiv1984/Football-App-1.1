@@ -1,6 +1,6 @@
 // src/components/fixtures/FixtureCard/FixtureCard.tsx
 import React from 'react';
-import { Badge } from '@/components';
+import { Badge } from '@/components';;
 import { 
   FixtureCardProps, 
   FixtureStatusProps, 
