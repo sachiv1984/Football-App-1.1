@@ -116,7 +116,7 @@ const HomePage: React.FC = () => {
   ];
 
   return (
-    <div style={{ background: designTokens.colors.primary.background, color: designTokens.colors.neutral.darkGrey, minHeight: '100vh' }}>
+   <div style={{ background: designTokens.colors.neutral.background, color: designTokens.colors.neutral.darkGrey, minHeight: '100vh' }}>
       <Header />
 
       {/* Hero Section */}
