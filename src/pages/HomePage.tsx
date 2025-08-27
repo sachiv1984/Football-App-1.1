@@ -6,7 +6,7 @@ import TabNavigation from '../components/common/TabNavigation/TabNavigation';
 import FixturesList from '../components/fixtures/FixturesList/FixturesList';
 import LeagueTable from '../components/league/LeagueTable/LeagueTable';
 import InsightsContainer from '../components/insights/AIInsightCard/InsightsContainer';
-import designTokens from '../styles/designTokens';
+import { designTokens } from '../styles/designTokens';
 
 const HomePage: React.FC = () => {
   // Dummy data for fixtures
