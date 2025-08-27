@@ -1,8 +1,10 @@
 // src/components/common/TabNavigation/TabNavigation.types.ts
+import { ReactNode } from 'react';
+
 export interface Tab {
   id: string;
   label: string;
-  content: React.ReactNode;
+  content: ReactNode;
   disabled?: boolean;
   badge?: string | number;
 }
