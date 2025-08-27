@@ -1,37 +1,6 @@
 import React from 'react';
 import { Calendar, Clock, Trophy, TrendingUp, Users, MapPin } from 'lucide-react';
-
-interface Team {
-  id: string;
-  name: string;
-  shortName: string;
-  logo: string;
-  colors: {
-    primary: string;
-    secondary: string;
-  };
-  form: ('W' | 'D' | 'L')[];
-  position: number;
-}
-
-interface FeaturedFixture {
-  id: string;
-  homeTeam: Team;
-  awayTeam: Team;
-  competition: {
-    name: string;
-    logo: string;
-  };
-  dateTime: string;
-  venue: string;
-  isLive?: boolean;
-  aiInsight?: {
-    title: string;
-    description: string;
-    confidence: 'high' | 'medium' | 'low';
-    probability: number;
-  };
-}
+import { Team, FeaturedFixture } from '../../../types';
 
 interface HeroSectionProps {
   featuredFixture?: FeaturedFixture;
@@ -44,7 +13,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({
   onViewStats = (id) => console.log(`View stats for ${id}`),
   onViewInsights = (id) => console.log(`View insights for ${id}`)
 }) => {
-  // Mock data for demonstration
+  // Mock data for demonstration - updated to match your main types
   const defaultFixture: FeaturedFixture = {
     id: 'fixture-1',
     homeTeam: {
@@ -66,16 +35,22 @@ const HeroSection: React.FC<HeroSectionProps> = ({
       position: 5
     },
     competition: {
+      id: 'pl',
       name: 'Premier League',
-      logo: 'https://via.placeholder.com/32x32/37003C/FFFFFF?text=PL'
+      shortName: 'PL',
+      logo: 'https://via.placeholder.com/32x32/37003C/FFFFFF?text=PL',
+      country: 'England'
     },
     dateTime: '2024-03-10T15:00:00Z',
     venue: 'Old Trafford',
+    status: 'scheduled',
+    homeScore: 0,
+    awayScore: 0,
     aiInsight: {
       title: 'High-Scoring Encounter Expected',
       description: 'Both teams average 2.3 goals per game. Over 2.5 goals has hit in 4/5 recent meetings.',
       confidence: 'high',
-      probability: 78
+      probability: 0.78
     }
   };
 
@@ -113,6 +88,9 @@ const HeroSection: React.FC<HeroSectionProps> = ({
       ))}
     </div>
   );
+
+  // Check if fixture is live based on status
+  const isLive = fixture.status === 'live';
 
   return (
     <section className="bg-gradient-hero text-white py-16 lg:py-24">
@@ -196,7 +174,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({
                     <span className="text-2xl font-bold text-gray-900">VS</span>
                   </div>
                   <div className="absolute -top-2 -right-2">
-                    {fixture.isLive && (
+                    {isLive && (
                       <span className="badge badge-error animate-pulse">LIVE</span>
                     )}
                   </div>
@@ -269,7 +247,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({
                       fixture.aiInsight.confidence === 'medium' ? 'badge-warning' :
                       'badge-error'
                     }`}>
-                      {fixture.aiInsight.probability}% Confidence
+                      {Math.round(fixture.aiInsight.probability * 100)}% Confidence
                     </span>
                   </div>
                   <p className="text-gray-700 mb-3">
