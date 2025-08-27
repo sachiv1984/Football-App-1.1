@@ -171,15 +171,16 @@ const HomePage: React.FC = () => {
       <HeroSection featuredFixture={featuredFixture} />
 
       {/* Tab Navigation */}
-      <TabNavigation
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        tabs={[
-          { label: 'Fixtures', id: 'fixtures', content: <FixturesList fixtures={fixtures} /> },
-          { label: 'Standings', id: 'standings', content: <LeagueTable rows={standings} /> },
-          { label: 'Insights', id: 'insights', content: <InsightsContainer insights={insights} /> },
-        ]}
-      />
+    <TabNavigation
+  activeTab={activeTab}
+  onTabChange={(tabId: string) => setActiveTab(tabId as 'fixtures' | 'standings' | 'insights')}
+  tabs={[
+    { label: 'Fixtures', id: 'fixtures', content: <FixturesList fixtures={fixtures} /> },
+    { label: 'Standings', id: 'standings', content: <LeagueTable rows={standings} /> },
+    { label: 'AI Insights', id: 'insights', content: <InsightsList insights={insights} /> },
+  ]}
+/>
+
 
       <Footer />
     </div>
