@@ -1,3 +1,4 @@
+// src/pages/HomePage.tsx
 import React from 'react';
 import Header from '../components/common/Header/Header';
 import Footer from '../components/common/Footer/Footer';
@@ -7,75 +8,115 @@ import FixturesList from '../components/fixtures/FixturesList/FixturesList';
 import LeagueTable from '../components/league/LeagueTable/LeagueTable';
 import InsightsContainer from '../components/insights/AIInsightCard/InsightsContainer';
 import { designTokens } from '../styles/designTokens';
+import { Team, FeaturedFixture, AIInsight } from '../components/fixtures/HeroSection/HeroSection.types';
 
 const HomePage: React.FC = () => {
-  // Dummy data for fixtures
-  const fixtures = [
-    {
-      id: 1,
-      homeTeam: 'Manchester United',
-      awayTeam: 'Chelsea',
-      date: '26 Aug 2025',
-      time: '20:00',
-      venue: 'Old Trafford',
-    },
-    {
-      id: 2,
-      homeTeam: 'Arsenal',
-      awayTeam: 'Liverpool',
-      date: '27 Aug 2025',
-      time: '18:00',
-      venue: 'Emirates Stadium',
-    },
-    {
-      id: 3,
-      homeTeam: 'Tottenham',
-      awayTeam: 'Manchester City',
-      date: '28 Aug 2025',
-      time: '17:30',
-      venue: 'Tottenham Hotspur Stadium',
-    },
-  ];
 
-  // Dummy data for AI insights
-  const insights = [
-    {
+  // Teams
+  const manUtd: Team = {
+    id: 'man-utd',
+    name: 'Manchester United',
+    shortName: 'MUN',
+    logo: '/images/man-utd.png',
+    colors: { primary: '#DC143C', secondary: '#FFD700' },
+    form: ['W', 'D', 'L', 'W', 'W'],
+    position: 3,
+  };
+
+  const chelsea: Team = {
+    id: 'chelsea',
+    name: 'Chelsea',
+    shortName: 'CHE',
+    logo: '/images/chelsea.png',
+    colors: { primary: '#034694', secondary: '#FFFFFF' },
+    form: ['L', 'W', 'D', 'W', 'L'],
+    position: 5,
+  };
+
+  // Featured Fixture
+  const featuredFixture: FeaturedFixture = {
+    id: 'fixture-1',
+    homeTeam: manUtd,
+    awayTeam: chelsea,
+    competition: { id: 'pl', name: 'Premier League', logo: '/images/pl.png' },
+    dateTime: '2025-08-26T20:00:00Z',
+    venue: 'Old Trafford',
+    status: 'scheduled',
+    aiInsight: {
       title: 'Over 2.5 Goals Likely',
-      confidence: 'High',
-      detail: 'Both teams average 3+ goals combined in last 5 matches.',
+      description: 'Both teams average 3+ goals combined in last 5 matches.',
+      confidence: 'high',
+      probability: 78,
+      category: 'goals',
+    },
+  };
+
+  // Fixtures List
+  const fixtures: FeaturedFixture[] = [
+    featuredFixture,
+    {
+      id: 'fixture-2',
+      homeTeam: { ...manUtd, id: 'arsenal', name: 'Arsenal', shortName: 'ARS' },
+      awayTeam: { ...chelsea, id: 'liverpool', name: 'Liverpool', shortName: 'LIV' },
+      competition: { id: 'pl', name: 'Premier League', logo: '/images/pl.png' },
+      dateTime: '2025-08-27T18:00:00Z',
+      venue: 'Emirates Stadium',
+      status: 'scheduled',
     },
     {
-      title: 'High Corner Count',
-      confidence: 'Medium',
-      detail: 'Home team averages 6 corners per game.',
-    },
-    {
-      title: 'Clean Sheet Possible',
-      confidence: 'Low',
-      detail: 'Away team has kept a clean sheet in 2 of last 5 matches.',
+      id: 'fixture-3',
+      homeTeam: { ...manUtd, id: 'tottenham', name: 'Tottenham', shortName: 'TOT' },
+      awayTeam: { ...chelsea, id: 'man-city', name: 'Manchester City', shortName: 'MCI' },
+      competition: { id: 'pl', name: 'Premier League', logo: '/images/pl.png' },
+      dateTime: '2025-08-28T17:30:00Z',
+      venue: 'Tottenham Hotspur Stadium',
+      status: 'scheduled',
     },
   ];
 
-  // Dummy data for league standings
+  // AI Insights
+  const insights: AIInsight[] = [
+    {
+      id: 'insight-1',
+      title: 'Over 2.5 Goals Likely',
+      description: 'Both teams average 3+ goals combined in last 5 matches.',
+      confidence: 'high',
+      probability: 75,
+      category: 'goals',
+    },
+    {
+      id: 'insight-2',
+      title: 'High Corner Count',
+      description: 'Home team averages 6 corners per game.',
+      confidence: 'medium',
+      probability: 60,
+      category: 'corners',
+    },
+    {
+      id: 'insight-3',
+      title: 'Clean Sheet Possible',
+      description: 'Away team has kept a clean sheet in 2 of last 5 matches.',
+      confidence: 'low',
+      probability: 40,
+      category: 'goals',
+    },
+  ];
+
+  // League Standings
   const standings = [
-    { position: 1, team: 'Arsenal', points: 9 },
-    { position: 2, team: 'Liverpool', points: 7 },
-    { position: 3, team: 'Chelsea', points: 6 },
-    { position: 4, team: 'Manchester City', points: 6 },
-    { position: 5, team: 'Manchester United', points: 4 },
+    { position: 1, team: 'Arsenal', points: 9, played: 3, won: 3, drawn: 0, lost: 0, goalsFor: 7, goalsAgainst: 2, goalDifference: 5 },
+    { position: 2, team: 'Liverpool', points: 7, played: 3, won: 2, drawn: 1, lost: 0, goalsFor: 6, goalsAgainst: 3, goalDifference: 3 },
+    { position: 3, team: 'Chelsea', points: 6, played: 3, won: 2, drawn: 0, lost: 1, goalsFor: 5, goalsAgainst: 3, goalDifference: 2 },
+    { position: 4, team: 'Manchester City', points: 6, played: 3, won: 2, drawn: 0, lost: 1, goalsFor: 4, goalsAgainst: 3, goalDifference: 1 },
+    { position: 5, team: 'Manchester United', points: 4, played: 3, won: 1, drawn: 1, lost: 1, goalsFor: 3, goalsAgainst: 4, goalDifference: -1 },
   ];
 
   return (
-    <div style={{ background: designTokens.colors.background, color: designTokens.colors.text, minHeight: '100vh' }}>
-      {/* Header */}
+    <div style={{ background: designTokens.colors.primary.background, color: designTokens.colors.neutral.darkGrey, minHeight: '100vh' }}>
       <Header />
 
       {/* Hero Section */}
-      <HeroSection
-        title="Premier League"
-        subtitle="Matchday 3"
-        backgroundImage="/images/premier-league-banner.jpg"
-      />
+      <HeroSection featuredFixture={featuredFixture} />
 
       {/* Tab Navigation */}
       <TabNavigation
@@ -87,28 +128,23 @@ const HomePage: React.FC = () => {
         defaultActive="fixtures"
       />
 
-      {/* Main Content */}
       <main style={{ padding: '1rem', maxWidth: '1200px', margin: '0 auto' }}>
-        {/* Fixtures List */}
         <section id="fixtures" style={{ marginBottom: '3rem' }}>
           <h2>Upcoming Fixtures</h2>
           <FixturesList fixtures={fixtures} />
         </section>
 
-        {/* AI Insights */}
         <section id="insights" style={{ marginBottom: '3rem' }}>
           <h2>AI Betting Insights</h2>
           <InsightsContainer insights={insights} />
         </section>
 
-        {/* League Standings */}
         <section id="standings" style={{ marginBottom: '3rem' }}>
           <h2>League Standings</h2>
           <LeagueTable standings={standings} />
         </section>
       </main>
 
-      {/* Footer */}
       <Footer />
     </div>
   );
