@@ -76,31 +76,35 @@ const HomePage: React.FC = () => {
 
   // AI Insights
   const insights: AIInsight[] = [
-    {
-      id: 'insight-1',
-      title: 'Over 2.5 Goals Likely',
-      description: 'Both teams average 3+ goals combined in last 5 matches.',
-      confidence: 'high',
-      probability: 75,
-      category: 'goals',
-    },
-    {
-      id: 'insight-2',
-      title: 'High Corner Count',
-      description: 'Home team averages 6 corners per game.',
-      confidence: 'medium',
-      probability: 60,
-      category: 'corners',
-    },
-    {
-      id: 'insight-3',
-      title: 'Clean Sheet Possible',
-      description: 'Away team has kept a clean sheet in 2 of last 5 matches.',
-      confidence: 'low',
-      probability: 40,
-      category: 'goals',
-    },
-  ];
+  {
+    id: 'insight-1',
+    title: 'Over 2.5 Goals Likely',
+    description: 'Both teams average 3+ goals combined in last 5 matches.',
+    confidence: 'high',
+    probability: 75,
+    market: 'total_goals',
+    odds: 1.8
+  },
+  {
+    id: 'insight-2',
+    title: 'High Corner Count',
+    description: 'Home team averages 6 corners per game.',
+    confidence: 'medium',
+    probability: 60,
+    market: 'corners',
+    odds: 2.0
+  },
+  {
+    id: 'insight-3',
+    title: 'Clean Sheet Possible',
+    description: 'Away team has kept a clean sheet in 2 of last 5 matches.',
+    confidence: 'low',
+    probability: 40,
+    market: 'clean_sheet',
+    odds: 2.5
+  },
+];
+
 
   // League Standings
   const standings = [
