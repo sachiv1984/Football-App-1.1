@@ -1,6 +1,6 @@
 // src/components/fixtures/FixturesList/FixturesList.tsx
 import React from 'react';
-import FixtureCard from '@/components/fixtures/FixtureCard/FixtureCard';;
+import FixtureCard from '@/components/fixtures/FixtureCard/FixtureCard';
 import { 
   FixturesListProps, 
   FixtureGroup,
@@ -36,13 +36,9 @@ const FixtureGroupSection: React.FC<FixtureGroupProps> = ({
 }) => (
   <div className="mb-8">
     <div className="flex items-center mb-4">
-      <h3 className="text-lg font-semibold text-gray-900">
-        {group.label}
-      </h3>
+      <h3 className="text-lg font-semibold text-gray-900">{group.label}</h3>
       <div className="ml-3 px-2 py-1 bg-gray-100 rounded-full">
-        <span className="text-xs font-medium text-gray-600">
-          {group.fixtures.length}
-        </span>
+        <span className="text-xs font-medium text-gray-600">{group.fixtures.length}</span>
       </div>
     </div>
     
@@ -188,9 +184,7 @@ const FixturesList: React.FC<FixturesListProps> = ({
           <div className="max-w-md mx-auto">
             <div className="text-6xl mb-4">⚽</div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">{emptyMessage}</h3>
-            <p className="text-gray-600">
-              Check back later for upcoming fixtures and matches.
-            </p>
+            <p className="text-gray-600">Check back later for upcoming fixtures and matches.</p>
           </div>
         </div>
       </div>
