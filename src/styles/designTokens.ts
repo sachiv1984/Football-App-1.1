@@ -1,9 +1,10 @@
 // src/styles/designTokens.ts
 export const designTokens = {
   colors: {
+    background: '#FFFFFF',
+    text: '#374151',
     // Primary Accent Colors (Energy)
     primary: {
-      background: '#FFFFFF',
       electricYellow: '#FFFF00',
       neonGreen: '#39FF14',
       50: '#FFFBEB',
