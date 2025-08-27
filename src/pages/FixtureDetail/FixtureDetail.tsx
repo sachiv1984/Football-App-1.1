@@ -1,4 +1,4 @@
-l// src/pages/FixtureDetail/FixtureDetail.tsx
+// src/pages/FixtureDetail/FixtureDetail.tsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Users, BarChart3 } from 'lucide-react';
@@ -12,7 +12,7 @@ import {
 import { Tab } from '@/components/common/TabNavigation/TabNavigation.types';
 import { Fixture, MatchStats, AIInsight } from '@/types';
 
-// Mock data - will be replaced with API calls in Phase 5
+// Mock data
 const mockFixture: Fixture = {
   id: '1',
   homeTeam: {
@@ -36,7 +36,7 @@ const mockFixture: Fixture = {
   competition: {
     id: 'pl',
     name: 'Premier League',
-    shortName: 'EPL', // Added to fix TS error
+    shortName: 'EPL', // <-- Added shortName
     logo: '/api/placeholder/32/32',
     country: 'England'
   },
@@ -52,6 +52,7 @@ const mockFixture: Fixture = {
     confidence: 'high',
     market: 'Total Goals Over 2.5',
     odds: '1.85',
+    probability: 0.65, // <-- Added
     supportingData: 'Man Utd: 12 goals in last 5 home games, Leicester: 8 goals conceded in last 5 away games'
   }
 };
@@ -102,6 +103,7 @@ const mockAIInsights: AIInsight[] = [
     confidence: 'high',
     market: 'Both Teams to Score - Yes',
     odds: '1.75',
+    probability: 0.7, // <-- Added
     supportingData: 'Home team: 24 goals scored, 8 conceded at home. Away team: 18 goals scored, 22 conceded away.'
   },
   {
@@ -111,6 +113,7 @@ const mockAIInsights: AIInsight[] = [
     confidence: 'medium',
     market: 'Total Corners Over 9.5',
     odds: '2.10',
+    probability: 0.55, // <-- Added
     supportingData: 'Last 3 meetings averaged 11.3 corners per game'
   },
   {
@@ -120,18 +123,15 @@ const mockAIInsights: AIInsight[] = [
     confidence: 'medium',
     market: 'Player Shots on Target',
     odds: '2.25',
+    probability: 0.6, // <-- Added
     supportingData: 'Player averages 2.8 shots on target per home game this season'
   }
 ];
 
-// Tab content components
+// Tab components
 const MatchStatsTab: React.FC<{ fixture: Fixture; stats: MatchStats }> = ({ fixture, stats }) => (
   <div className="space-y-6">
-    <StatsTable
-      homeTeam={fixture.homeTeam}
-      awayTeam={fixture.awayTeam}
-      stats={stats}
-    />
+    <StatsTable homeTeam={fixture.homeTeam} awayTeam={fixture.awayTeam} stats={stats} />
   </div>
 );
 
@@ -139,12 +139,8 @@ const BetBuilderTab: React.FC = () => (
   <div className="card p-6 text-center">
     <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
     <h3 className="text-lg font-semibold mb-2">Bet Builder Stats</h3>
-    <p className="text-gray-600 mb-4">
-      Advanced statistical combinations for building custom bets
-    </p>
-    <p className="text-sm text-gray-500">
-      Coming in Phase 5 - Data Integration
-    </p>
+    <p className="text-gray-600 mb-4">Advanced statistical combinations for building custom bets</p>
+    <p className="text-sm text-gray-500">Coming in Phase 5 - Data Integration</p>
   </div>
 );
 
@@ -152,21 +148,14 @@ const PlayerStatsTab: React.FC = () => (
   <div className="card p-6 text-center">
     <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
     <h3 className="text-lg font-semibold mb-2">Player Statistics</h3>
-    <p className="text-gray-600 mb-4">
-      Individual player performance metrics and betting markets
-    </p>
-    <p className="text-sm text-gray-500">
-      Coming in Phase 5 - Data Integration
-    </p>
+    <p className="text-gray-600 mb-4">Individual player performance metrics and betting markets</p>
+    <p className="text-sm text-gray-500">Coming in Phase 5 - Data Integration</p>
   </div>
 );
 
 const PredictionsTab: React.FC<{ insights: AIInsight[] }> = ({ insights }) => (
   <div className="space-y-6">
-    <InsightsContainer 
-      insights={insights}
-      title="Match Predictions & AI Insights"
-    />
+    <InsightsContainer insights={insights} title="Match Predictions & AI Insights" />
   </div>
 );
 
@@ -214,16 +203,13 @@ const FixtureDetail: React.FC = () => {
     return (
       <div className="container py-8">
         <Button onClick={() => navigate('/')} className="mb-6 btn-outline">
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Fixtures
+          <ArrowLeft className="w-4 h-4 mr-2" /> Back to Fixtures
         </Button>
         <div className="card p-8 text-center">
           <div className="text-red-500 text-4xl mb-4">⚠️</div>
           <h2 className="text-xl font-bold mb-2">Fixture Not Found</h2>
           <p className="text-gray-600 mb-4">{error || 'The requested fixture could not be found.'}</p>
-          <Button onClick={() => navigate('/')} className="btn-primary">
-            Return Home
-          </Button>
+          <Button onClick={() => navigate('/')} className="btn-primary">Return Home</Button>
         </div>
       </div>
     );
@@ -233,7 +219,8 @@ const FixtureDetail: React.FC = () => {
     {
       id: 'match-stats',
       label: 'Match Stats',
-      content: matchStats ? <MatchStatsTab fixture={fixture} stats={matchStats} /> : <div className="card p-6 text-center text-gray-500">No statistics available</div>
+      content: matchStats ? <MatchStatsTab fixture={fixture} stats={matchStats} /> :
+        <div className="card p-6 text-center text-gray-500">No statistics available</div>
     },
     { id: 'bet-builder', label: 'Bet Builder', content: <BetBuilderTab />, badge: 'Soon' },
     { id: 'player-stats', label: 'Player Stats', content: <PlayerStatsTab />, badge: 'Soon' },
@@ -245,15 +232,18 @@ const FixtureDetail: React.FC = () => {
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="container py-4">
           <Button onClick={() => navigate('/')} className="btn-ghost mb-4">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Fixtures
+            <ArrowLeft className="w-4 h-4 mr-2" /> Back to Fixtures
           </Button>
         </div>
       </div>
 
       <div className="container py-6">
         <MatchHeader fixture={fixture} className="mb-6" />
-        <TabNavigation tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
+        <TabNavigation
+          tabs={tabs}
+          activeTab={activeTab}
+          onTabChange={(tabId: string) => setActiveTab(tabId)} // <-- Fixed type
+        />
       </div>
     </div>
   );
