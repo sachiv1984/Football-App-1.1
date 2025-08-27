@@ -65,7 +65,7 @@ const FixtureStatus: React.FC<FixtureStatusProps> = ({
       return (
         <div className="text-center">
           <div className="text-sm font-semibold text-gray-600">
-            {kickoffTime || 'TBD'}
+            {kickoffTime ? new Date(kickoffTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : 'TBD'}
           </div>
         </div>
       );
@@ -85,19 +85,16 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
     homeTeam,
     awayTeam,
     competition,
-    dateTime,
+    dateTime, // keep dateTime
     venue,
     status,
     homeScore,
     awayScore,
-    aiInsight,
-    kickoffTime
+    aiInsight
   } = fixture;
 
   const handleClick = () => {
-    if (onClick) {
-      onClick(fixture);
-    }
+    if (onClick) onClick(fixture);
   };
 
   const cardClasses = `
@@ -147,16 +144,14 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
           <h4 className={`font-semibold ${textSize} text-gray-900 mb-1`}>
             {size === 'sm' ? homeTeam.shortName : homeTeam.name}
           </h4>
-          {size !== 'sm' && (
-            <TeamForm form={homeTeam.form} maxItems={3} />
-          )}
+          {size !== 'sm' && <TeamForm form={homeTeam.form} maxItems={3} />}
         </div>
 
         {/* Match Status/Score */}
         <div className="col-span-1 flex justify-center">
           <FixtureStatus
             status={status}
-            kickoffTime={kickoffTime}
+            kickoffTime={dateTime} // use dateTime here
             homeScore={homeScore}
             awayScore={awayScore}
           />
@@ -172,9 +167,7 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
           <h4 className={`font-semibold ${textSize} text-gray-900 mb-1`}>
             {size === 'sm' ? awayTeam.shortName : awayTeam.name}
           </h4>
-          {size !== 'sm' && (
-            <TeamForm form={awayTeam.form} maxItems={3} />
-          )}
+          {size !== 'sm' && <TeamForm form={awayTeam.form} maxItems={3} />}
         </div>
       </div>
 
