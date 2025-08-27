@@ -4,6 +4,7 @@
   "private": true,
   "homepage": "https://sachiv1984.github.io/Football-App-1.1",
   "dependencies": {
+    "@craco/craco": "^7.1.0",
     "@heroicons/react": "^2.2.0",
     "axios": "^1.11.0",
     "clsx": "^2.1.1",
@@ -13,6 +14,7 @@
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.8.2",
     "react-scripts": "5.0.1",
+    "save-dev": "^0.0.1-security",
     "tailwindcss": "^3.4.17"
   },
   "devDependencies": {
