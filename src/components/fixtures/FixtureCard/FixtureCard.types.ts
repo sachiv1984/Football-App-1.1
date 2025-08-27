@@ -1,5 +1,4 @@
 // src/components/fixtures/FixtureCard/FixtureCard.types.ts
-
 export interface Team {
   id: string;
   name: string;
@@ -26,8 +25,10 @@ export interface AIInsight {
   title: string;
   description: string;
   confidence: 'high' | 'medium' | 'low';
+  probability: number; // Added missing probability field
   market: string;
   odds?: string;
+  supportingData?: string; // Added to match main types
 }
 
 export interface Fixture {
