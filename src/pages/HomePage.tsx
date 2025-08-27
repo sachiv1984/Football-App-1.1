@@ -131,14 +131,15 @@ const HomePage: React.FC = () => {
       <HeroSection featuredFixture={featuredFixture} />
 
       {/* Tab Navigation */}
-      <TabNavigation
-        tabs={[
-          { label: 'Fixtures', value: 'fixtures' },
-          { label: 'Standings', value: 'standings' },
-          { label: 'Insights', value: 'insights' },
-        ]}
-        defaultActive="fixtures"
-      />
+     <TabNavigation
+  tabs={[
+    { label: 'Fixtures', id: 'fixtures' },
+    { label: 'Standings', id: 'standings' },
+    { label: 'Insights', id: 'insights' },
+  ]}
+  defaultActive="fixtures"
+/>
+
 
       <main style={{ padding: '1rem', maxWidth: '1200px', margin: '0 auto' }}>
         <section id="fixtures" style={{ marginBottom: '3rem' }}>
