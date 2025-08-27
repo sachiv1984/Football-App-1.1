@@ -8,7 +8,7 @@ import FixturesList from '../components/fixtures/FixturesList/FixturesList';
 import LeagueTable from '../components/league/LeagueTable/LeagueTable';
 import InsightsContainer from '../components/insights/AIInsightCard/InsightsContainer';
 import { designTokens } from '../styles/designTokens';
-import { Team, FeaturedFixture, AIInsight } from '../components/fixtures/HeroSection/HeroSection.types';
+import { AIInsight, Fixture, Team } from '../types';
 
 const HomePage: React.FC = () => {
 
