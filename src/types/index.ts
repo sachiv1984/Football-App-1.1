@@ -6,7 +6,7 @@ export interface Team {
   shortName: string;
   logo: string;
   colors: { primary: string; secondary: string };
-  form: string[];
+  form: ('W' | 'D' | 'L')[];
   position: number;
 }
 
