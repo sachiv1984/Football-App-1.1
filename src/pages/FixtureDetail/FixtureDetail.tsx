@@ -1,4 +1,4 @@
-// src/pages/FixtureDetail/FixtureDetail.tsx
+l// src/pages/FixtureDetail/FixtureDetail.tsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Users, BarChart3 } from 'lucide-react';
@@ -11,7 +11,6 @@ import {
 } from '@/components';
 import { Tab } from '@/components/common/TabNavigation/TabNavigation.types';
 import { Fixture, MatchStats, AIInsight } from '@/types';
-
 
 // Mock data - will be replaced with API calls in Phase 5
 const mockFixture: Fixture = {
@@ -37,6 +36,7 @@ const mockFixture: Fixture = {
   competition: {
     id: 'pl',
     name: 'Premier League',
+    shortName: 'EPL', // Added to fix TS error
     logo: '/api/placeholder/32/32',
     country: 'England'
   },
@@ -181,9 +181,7 @@ const FixtureDetail: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Simulate API loading
     setLoading(true);
-    
     setTimeout(() => {
       if (id === '1') {
         setFixture(mockFixture);
@@ -215,19 +213,14 @@ const FixtureDetail: React.FC = () => {
   if (error || !fixture) {
     return (
       <div className="container py-8">
-        <Button
-          onClick={() => navigate('/')}
-          className="mb-6 btn-outline"
-        >
+        <Button onClick={() => navigate('/')} className="mb-6 btn-outline">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Fixtures
         </Button>
         <div className="card p-8 text-center">
           <div className="text-red-500 text-4xl mb-4">⚠️</div>
           <h2 className="text-xl font-bold mb-2">Fixture Not Found</h2>
-          <p className="text-gray-600 mb-4">
-            {error || 'The requested fixture could not be found.'}
-          </p>
+          <p className="text-gray-600 mb-4">{error || 'The requested fixture could not be found.'}</p>
           <Button onClick={() => navigate('/')} className="btn-primary">
             Return Home
           </Button>
@@ -240,60 +233,27 @@ const FixtureDetail: React.FC = () => {
     {
       id: 'match-stats',
       label: 'Match Stats',
-      content: matchStats ? (
-        <MatchStatsTab fixture={fixture} stats={matchStats} />
-      ) : (
-        <div className="card p-6 text-center text-gray-500">
-          No statistics available
-        </div>
-      )
+      content: matchStats ? <MatchStatsTab fixture={fixture} stats={matchStats} /> : <div className="card p-6 text-center text-gray-500">No statistics available</div>
     },
-    {
-      id: 'bet-builder',
-      label: 'Bet Builder',
-      content: <BetBuilderTab />,
-      badge: 'Soon'
-    },
-    {
-      id: 'player-stats',
-      label: 'Player Stats',
-      content: <PlayerStatsTab />,
-      badge: 'Soon'
-    },
-    {
-      id: 'predictions',
-      label: 'AI Predictions',
-      content: <PredictionsTab insights={aiInsights} />,
-      badge: aiInsights.length
-    }
+    { id: 'bet-builder', label: 'Bet Builder', content: <BetBuilderTab />, badge: 'Soon' },
+    { id: 'player-stats', label: 'Player Stats', content: <PlayerStatsTab />, badge: 'Soon' },
+    { id: 'predictions', label: 'AI Predictions', content: <PredictionsTab insights={aiInsights} />, badge: aiInsights.length }
   ];
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="container py-4">
-          <Button
-            onClick={() => navigate('/')}
-            className="btn-ghost mb-4"
-          >
+          <Button onClick={() => navigate('/')} className="btn-ghost mb-4">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Fixtures
           </Button>
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="container py-6">
-        {/* Match Header */}
         <MatchHeader fixture={fixture} className="mb-6" />
-
-        {/* Tab Navigation */}
-        <TabNavigation
-          tabs={tabs}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-        />
+        <TabNavigation tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
       </div>
     </div>
   );
