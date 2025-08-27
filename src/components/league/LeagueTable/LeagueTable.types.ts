@@ -2,7 +2,7 @@
 import { Team, LeagueTableRow } from '../../../types';
 
 // Re-export for convenience
-export { Team, LeagueTableRow };
+export type { Team, LeagueTableRow };
 
 export interface League {
   id: string;
