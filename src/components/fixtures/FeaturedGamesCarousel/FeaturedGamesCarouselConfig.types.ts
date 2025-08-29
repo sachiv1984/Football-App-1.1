@@ -1,5 +1,5 @@
 // src/components/fixtures/FeaturedGamesCarousel/FeaturedGamesCarouselConfig.types.ts
-import { FeaturedFixture } from '../../../types';
+import type { FeaturedFixture, AIInsight } from '../../../types';
 import { GameSelectionConfig } from './FeaturedGamesCarousel.types';
 
 export interface ScrollConfig {
@@ -21,7 +21,11 @@ export interface CarouselAnalytics {
   onGameCardView?: (fixture: FeaturedFixture, index: number) => void;
   onGameCardClick?: (fixture: FeaturedFixture, index: number) => void;
   onCarouselInteraction?: (action: CarouselInteraction) => void;
-  onAIInsightView?: (fixture: FeaturedFixture, insight: any) => void;
+
+  /**
+   * Track AI insight interactions
+   */
+  onAIInsightView?: (fixture: FeaturedFixture, insight: AIInsight) => void;
 }
 
 export interface CarouselInteraction {
