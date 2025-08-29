@@ -2,14 +2,13 @@
 import React, { useState } from 'react';
 import Header from '../components/common/Header/Header';
 import Footer from '../components/common/Footer/Footer';
-// import HeroSection from '../components/fixtures/HeroSection/HeroSection';
 import TabNavigation from '../components/common/TabNavigation/TabNavigation';
 import FixturesList from '../components/fixtures/FixturesList/FixturesList';
 import LeagueTable from '../components/league/LeagueTable/LeagueTable';
 import InsightsContainer from '../components/insights/AIInsightCard/InsightsContainer';
 import { designTokens } from '../styles/designTokens';
-import { AIInsight, Fixture, Team, LeagueTableRow, FeaturedFixture } from '../types';
-import OptimizedFeaturedGamesCarousel from './components/fixtures/FeaturedGamesCarousel/OptimizedFeaturedGamesCarousel';
+import { AIInsight, Fixture, Team, LeagueTableRow } from '../types';
+import OptimizedFeaturedGamesCarousel from '../components/fixtures/FeaturedGamesCarousel/OptimizedFeaturedGamesCarousel';
 
 // Placeholder Teams
 const arsenal: Team = {
@@ -109,17 +108,6 @@ const fixtures: Fixture[] = [
   },
 ];
 
-// Featured Fixture - explicitly typed as FeaturedFixture
-//const featuredFixture: FeaturedFixture = {
-  //...fixtures[0],
-  //aiInsight: fixtures[0].aiInsight ? {
-    //title: fixtures[0].aiInsight.title,
-    //description: fixtures[0].aiInsight.description,
-    //confidence: fixtures[0].aiInsight.confidence,
-    //probability: fixtures[0].aiInsight.probability,
-  //} : undefined
-//};
-
 // AI Insights
 const insights: AIInsight[] = [
   {
@@ -163,49 +151,57 @@ const standings: LeagueTableRow[] = [
 
 const HomePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'fixtures' | 'standings' | 'insights'>('fixtures');
-   const [isDarkMode, setIsDarkMode] = useState(false); 
+  const [isDarkMode, setIsDarkMode] = useState(false); 
 
   const handleToggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
   };
 
+  const handleGameSelect = (fixture: any) => {
+    console.log('Selected fixture:', fixture.id);
+    // Replace with your router logic: router.push(`/fixtures/${fixture.id}`)
+  };
+
+  const handleViewStats = (id: string) => {
+    console.log('View stats for:', id);
+    // Replace with your router logic: router.push(`/stats/${id}`)
+  };
+
   return (
     <div style={{ background: designTokens.colors.neutral.background, color: designTokens.colors.neutral.darkGrey, minHeight: '100vh' }}>
       <Header 
-  isDarkMode={isDarkMode}
-  onToggleDarkMode={handleToggleDarkMode}
-     />
+        isDarkMode={isDarkMode}
+        onToggleDarkMode={handleToggleDarkMode}
+      />
 
       {/* Hero Section */}
-     <OptimizedFeaturedGamesCarousel
-  fixtures={yourFixtures} // Optional - uses auto-selection if empty
-  onGameSelect={(fixture) => router.push(`/fixtures/${fixture.id}`)}
-  onViewStats={(id) => router.push(`/stats/${id}`)}
-  autoRotate={true}
-  maxFeaturedGames={4}
-  selectionConfig={{
-    prioritizeLiveGames: true,
-    boostBigSixTeams: true,
-    topTeamIds: ['liverpool', 'man-city', 'arsenal', 'chelsea', 'man-utd', 'tottenham']
-  }}
-/>
+      <OptimizedFeaturedGamesCarousel
+        fixtures={fixtures} // Using the fixtures array from above
+        onGameSelect={handleGameSelect}
+        onViewStats={handleViewStats}
+        autoRotate={true}
+        maxFeaturedGames={4}
+        selectionConfig={{
+          prioritizeLiveGames: true,
+          boostBigSixTeams: true,
+          topTeamIds: ['liverpool', 'man-city', 'arsenal', 'chelsea', 'man-utd', 'tottenham']
+        }}
+      />
 
       {/* Tab Navigation */}
-   <TabNavigation
-  activeTab={activeTab}
-  onTabChange={(tabId: string) => setActiveTab(tabId as 'fixtures' | 'standings' | 'insights')}
-  tabs={[
-    { label: 'Fixtures', id: 'fixtures', content: <FixturesList fixtures={fixtures} /> },
-    { label: 'Standings', id: 'standings', content: <LeagueTable rows={standings} /> },
-    { 
-      label: 'AI Insights', 
-      id: 'insights', 
-      content: <InsightsContainer insights={insights} title="AI Insights" /> 
-    },
-  ]}
-/>
-
-
+      <TabNavigation
+        activeTab={activeTab}
+        onTabChange={(tabId: string) => setActiveTab(tabId as 'fixtures' | 'standings' | 'insights')}
+        tabs={[
+          { label: 'Fixtures', id: 'fixtures', content: <FixturesList fixtures={fixtures} /> },
+          { label: 'Standings', id: 'standings', content: <LeagueTable rows={standings} /> },
+          { 
+            label: 'AI Insights', 
+            id: 'insights', 
+            content: <InsightsContainer insights={insights} title="AI Insights" /> 
+          },
+        ]}
+      />
 
       <Footer />
     </div>
