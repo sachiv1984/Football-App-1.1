@@ -1,5 +1,3 @@
-// src/types/index.ts
-
 // -------------------------
 // Team & Competition
 // -------------------------
@@ -38,6 +36,7 @@ export interface Game {
   homeScore?: number;
   awayScore?: number;
   status?: 'scheduled' | 'live' | 'finished' | 'postponed';
+  aiInsight?: AIInsight; // add AI insight to Game
 }
 
 // Alias for existing components
@@ -45,6 +44,10 @@ export type Fixture = Game;
 
 export interface FeaturedFixtureWithImportance extends Game {
   importance: number; // force importance to exist
+  importanceScore?: number; // used in hook for calculation
+  tags?: string[];
+  matchWeek?: number;
+  isBigMatch?: boolean;
 }
 
 export type FeaturedFixture = FeaturedFixtureWithImportance;
@@ -109,7 +112,7 @@ export interface GameSelectionConfig {
   includeNextWeekIfFew?: boolean;
   minImportanceScore?: number;
   maxGames?: number;
-  topTeamIds?: number[];
+  topTeamIds?: number[]; // should match team IDs
   boostBigSixTeams?: boolean;
 }
 
@@ -120,7 +123,10 @@ export interface DataFetchConfig {
 
 export interface CarouselState {
   currentIndex?: number;
+  canScrollLeft?: boolean;
+  canScrollRight?: boolean;
   isAutoRotating?: boolean;
+  isDragging?: boolean;
 }
 
 export interface UseCarouselReturn {
@@ -133,3 +139,8 @@ export interface UseCarouselReturn {
   scrollRight: () => void;
   refreshData: () => void;
 }
+
+// -------------------------
+// Match Tags
+// -------------------------
+export type MatchTag = 'top-six' | 'derby' | 'title-race' | 'european-qualification' | 'relegation-battle';
