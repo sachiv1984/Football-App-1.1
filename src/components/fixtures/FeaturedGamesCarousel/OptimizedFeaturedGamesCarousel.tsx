@@ -1,17 +1,23 @@
 // src/components/fixtures/FeaturedGamesCarousel/OptimizedFeaturedGamesCarousel.tsx
 import React from 'react';
-import { FeaturedGamesCarouselProps } from './FeaturedGamesCarousel.types';
+import { FeaturedGamesCarouselConfig } from './FeaturedGamesCarouselConfig.types';
 import { useFeaturedGamesCarousel } from '../../../hooks/useFeaturedGamesCarousel';
-import './OptimizedFeaturedGamesCarousel.css'; // optional CSS file
+import { FeaturedFixtureWithImportance } from './FeaturedGamesCarousel.types';
 
-export const OptimizedFeaturedGamesCarousel: React.FC<FeaturedGamesCarouselProps> = ({
-  fixtures,
-  onGameSelect,
-  onViewStats,
-  autoRotate = false,
+interface OptimizedFeaturedGamesCarouselProps {
+  fixtures?: FeaturedFixtureWithImportance[];
+  config?: FeaturedGamesCarouselConfig;
+  autoRefresh?: boolean;
+  rotateInterval?: number;
+  className?: string;
+}
+
+const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselProps> = ({
+  fixtures = [],
+  config,
+  autoRefresh = false,
   rotateInterval = 5000,
-  maxFeaturedGames = 4,
-  selectionConfig
+  className = ''
 }) => {
   const {
     featuredGames,
@@ -26,78 +32,48 @@ export const OptimizedFeaturedGamesCarousel: React.FC<FeaturedGamesCarouselProps
     scrollRef
   } = useFeaturedGamesCarousel({
     fixtures,
-    config: { selection: selectionConfig },
-    autoRefresh: true,
+    config: { selection: config?.selection },
+    autoRefresh,
     rotateInterval
   });
 
-  if (isLoading) return <div>Loading featured games...</div>;
-  if (error) return <div>Error loading featured games: {error}</div>;
-  if (!featuredGames.length) return <div>No featured games available</div>;
+  if (isLoading) return <div className={`carousel-loading ${className}`}>Loading...</div>;
+  if (error) return <div className={`carousel-error ${className}`}>Error: {error}</div>;
+  if (!featuredGames.length) return <div className={`carousel-empty ${className}`}>No featured games</div>;
 
   return (
-    <div className="featured-carousel-container">
-      {/* Navigation */}
-      <button
-        onClick={scrollLeft}
-        disabled={!carouselState.canScrollLeft}
-        aria-label="Scroll left"
-        className="carousel-nav left"
-      >
+    <div className={`featured-games-carousel ${className}`}>
+      {/* Navigation Buttons */}
+      <button disabled={!carouselState.canScrollLeft} onClick={scrollLeft}>
         ◀
       </button>
+      <button disabled={!carouselState.canScrollRight} onClick={scrollRight}>
+        ▶
+      </button>
 
-      <div className="carousel-wrapper" ref={scrollRef}>
-        {featuredGames.slice(0, maxFeaturedGames).map((fixture, index) => (
+      {/* Scrollable Container */}
+      <div ref={scrollRef} className="carousel-container overflow-x-auto flex gap-4">
+        {featuredGames.map((fixture, index) => (
           <div
             key={fixture.id}
-            className={`carousel-card ${fixture.status === 'live' ? 'live' : ''}`}
-            onClick={() => onGameSelect?.(fixture)}
-            aria-label={`Game: ${fixture.homeTeam?.name} vs ${fixture.awayTeam?.name}`}
+            className={`carousel-card ${carouselState.currentIndex === index ? 'active' : ''}`}
+            onClick={() => scrollToIndex(index)}
           >
-            <div className="teams">
-              <span>{fixture.homeTeam?.name}</span> vs <span>{fixture.awayTeam?.name}</span>
-            </div>
-            <div className="kickoff">{new Date(fixture.dateTime).toLocaleString()}</div>
-            <button
-              className="view-stats-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                onViewStats?.(fixture.id);
-              }}
-            >
-              View Stats
-            </button>
-
-            {/* Optional AI Insight */}
-            {fixture.aiInsight && (
-              <div className="ai-insight">
-                <strong>AI Insight:</strong> {fixture.aiInsight.text}
-              </div>
-            )}
+            <p>{fixture.homeTeam?.name} vs {fixture.awayTeam?.name}</p>
+            <p>Importance: {fixture.importanceScore}</p>
           </div>
         ))}
       </div>
 
-      <button
-        onClick={scrollRight}
-        disabled={!carouselState.canScrollRight}
-        aria-label="Scroll right"
-        className="carousel-nav right"
-      >
-        ▶
+      {/* Auto-Rotate Toggle */}
+      <button onClick={toggleAutoRotate}>
+        {carouselState.isAutoRotating ? 'Stop Auto-Rotate' : 'Start Auto-Rotate'}
       </button>
 
-      {/* Auto-rotate toggle */}
-      {featuredGames.length > 1 && (
-        <button
-          onClick={toggleAutoRotate}
-          className="auto-rotate-toggle"
-          aria-pressed={carouselState.isAutoRotating}
-        >
-          {carouselState.isAutoRotating ? 'Pause Rotation' : 'Auto-Rotate'}
-        </button>
-      )}
+      {/* Manual Refresh */}
+      <button onClick={refreshData}>Refresh Games</button>
     </div>
   );
 };
+
+export default OptimizedFeaturedGamesCarousel;
