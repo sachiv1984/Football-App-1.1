@@ -162,10 +162,18 @@ const standings: LeagueTableRow[] = [
 
 const HomePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'fixtures' | 'standings' | 'insights'>('fixtures');
+   const [isDarkMode, setIsDarkMode] = useState(false); 
+
+  const handleToggleDarkMode = () => {
+    setIsDarkMode(!isDarkMode);
+  };
 
   return (
     <div style={{ background: designTokens.colors.neutral.background, color: designTokens.colors.neutral.darkGrey, minHeight: '100vh' }}>
-      <Header />
+      <Header 
+  isDarkMode={isDarkMode}
+  onToggleDarkMode={handleToggleDarkMode}
+     />
 
       {/* Hero Section */}
       <HeroSection featuredFixture={featuredFixture} />
