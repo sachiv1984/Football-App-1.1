@@ -1,133 +1,114 @@
-// OptimizedFeaturedGamesCarousel.tsx
-import React from 'react';
-import { useFeaturedGamesCarousel } from '../hooks/useFeaturedGamesCarousel';
-import { FeaturedFixtureWithImportance } from '../types';
+l// src/components/fixtures/FeaturedGamesCarousel/OptimizedFeaturedGamesCarousel.tsx
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import type { FeaturedGamesCarouselProps, FeaturedFixtureWithImportance, CarouselState } from './FeaturedGamesCarousel.types';
+import type { FeaturedGamesCarouselConfig } from './FeaturedGamesCarouselConfig.types';
+import './FeaturedGamesCarousel.css'; // assuming you have a CSS file
 
-interface OptimizedFeaturedGamesCarouselProps {
-  fixtures?: FeaturedFixtureWithImportance[];
-  autoRefresh?: boolean;
-  rotateInterval?: number;
-  className?: string;
-}
-
-export const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselProps> = ({
-  fixtures = [],
-  autoRefresh = false,
+export const OptimizedFeaturedGamesCarousel: React.FC<FeaturedGamesCarouselProps> = ({
+  fixtures,
+  onGameSelect,
+  onViewStats,
+  autoRotate = false,
   rotateInterval = 5000,
   className = '',
+  maxFeaturedGames = 4,
+  selectionConfig,
 }) => {
-  const {
-    featuredGames,
-    isLoading,
-    error,
-    carouselState,
-    scrollLeft,
-    scrollRight,
-    toggleAutoRotate,
-    scrollRef,
-  } = useFeaturedGamesCarousel({ fixtures, autoRefresh, rotateInterval });
+  const [featuredGames, setFeaturedGames] = useState<FeaturedFixtureWithImportance[]>([]);
+  const [carouselState, setCarouselState] = useState<CarouselState>({
+    currentIndex: 0,
+    canScrollLeft: false,
+    canScrollRight: false,
+    isAutoRotating: autoRotate,
+    isDragging: false,
+  });
+  const carouselRef = useRef<HTMLDivElement>(null);
+  const intervalRef = useRef<NodeJS.Timer | null>(null);
 
-  // --- Render states ---
-  if (isLoading) {
-    return <div className="p-4 text-center">Loading featured games…</div>;
-  }
+  // Initialize featured games
+  useEffect(() => {
+    if (fixtures && fixtures.length > 0) {
+      setFeaturedGames(fixtures.slice(0, maxFeaturedGames));
+    } else {
+      // Auto-selection logic could go here
+      setFeaturedGames([]);
+    }
+  }, [fixtures, maxFeaturedGames]);
 
-  if (error) {
-    return <div className="p-4 text-center text-red-500">Error: {error}</div>;
-  }
+  // Auto-rotate logic
+  useEffect(() => {
+    if (carouselState.isAutoRotating) {
+      intervalRef.current = setInterval(() => {
+        scrollRight();
+      }, rotateInterval);
+    }
 
-  if (!featuredGames.length) {
-    return <div className="p-4 text-center">No featured games available</div>;
-  }
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [carouselState.isAutoRotating, rotateInterval, featuredGames]);
 
-  // --- Render carousel ---
+  const scrollToIndex = useCallback(
+    (index: number) => {
+      if (!carouselRef.current) return;
+      const clampedIndex = Math.max(0, Math.min(index, featuredGames.length - 1));
+      const card = carouselRef.current.children[clampedIndex] as HTMLElement;
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', inline: 'center' });
+        setCarouselState((prev) => ({
+          ...prev,
+          currentIndex: clampedIndex,
+          canScrollLeft: clampedIndex > 0,
+          canScrollRight: clampedIndex < featuredGames.length - 1,
+        }));
+      }
+    },
+    [featuredGames.length]
+  );
+
+  const scrollLeft = () => scrollToIndex(carouselState.currentIndex - 1);
+  const scrollRight = () => scrollToIndex(carouselState.currentIndex + 1);
+  const toggleAutoRotate = () => setCarouselState((prev) => ({ ...prev, isAutoRotating: !prev.isAutoRotating }));
+
+  const handleGameClick = (fixture: FeaturedFixtureWithImportance) => {
+    onGameSelect?.(fixture);
+  };
+
+  const handleViewStats = (fixtureId: string) => {
+    onViewStats?.(fixtureId);
+  };
+
   return (
-    <div className={`relative w-full overflow-hidden ${className}`}>
-      {/* Scrollable container */}
-      <div
-        ref={scrollRef}
-        className="flex gap-4 overflow-x-auto scroll-smooth no-scrollbar"
-      >
-        {featuredGames.map((game, idx) => (
+    <div className={`featured-games-carousel ${className}`}>
+      <div className="carousel-controls">
+        <button onClick={scrollLeft} disabled={!carouselState.canScrollLeft}>
+          ‹
+        </button>
+        <button onClick={scrollRight} disabled={!carouselState.canScrollRight}>
+          ›
+        </button>
+        <button onClick={toggleAutoRotate}>
+          {carouselState.isAutoRotating ? 'Pause' : 'Play'}
+        </button>
+      </div>
+
+      <div className="carousel-container" ref={carouselRef}>
+        {featuredGames.map((game, index) => (
           <div
-            key={idx}
-            className="min-w-[280px] max-w-[300px] flex-shrink-0 rounded-lg bg-white shadow-md p-4"
+            key={game.id}
+            className={`game-card ${index === carouselState.currentIndex ? 'active' : ''}`}
+            onClick={() => handleGameClick(game)}
           >
-            {/* Competition + status */}
-            <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
-              <span>{game.competition?.name ?? 'Premier League'}</span>
-              <span className="capitalize">{game.status ?? 'scheduled'}</span>
+            <div className="teams">
+              <span>{game.homeTeam.name}</span> vs <span>{game.awayTeam.name}</span>
             </div>
-
-            {/* Teams */}
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex flex-col items-center">
-                <img
-                  src={game.homeTeam.badge}
-                  alt={game.homeTeam.name}
-                  className="h-10 w-10 object-contain mb-1"
-                />
-                <span className="text-xs text-gray-700">{game.homeTeam.shortName}</span>
-              </div>
-              <span className="text-lg font-bold">vs</span>
-              <div className="flex flex-col items-center">
-                <img
-                  src={game.awayTeam.badge}
-                  alt={game.awayTeam.name}
-                  className="h-10 w-10 object-contain mb-1"
-                />
-                <span className="text-xs text-gray-700">{game.awayTeam.shortName}</span>
-              </div>
+            <div className="info">
+              {game.isBigMatch && <span className="big-match">Big Match</span>}
+              <button onClick={() => handleViewStats(game.id)}>View Stats</button>
             </div>
-
-            {/* Match info */}
-            <div className="text-center text-sm text-gray-500">
-              {new Date(game.dateTime).toLocaleDateString()} —{' '}
-              {new Date(game.dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </div>
-
-            {/* Tags */}
-            {game.tags?.length > 0 && (
-              <div className="flex flex-wrap justify-center gap-1 mt-2">
-                {game.tags.map((tag, tIdx) => (
-                  <span
-                    key={tIdx}
-                    className="px-2 py-0.5 rounded-full bg-gray-200 text-xs text-gray-700"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            )}
           </div>
         ))}
       </div>
-
-      {/* Controls */}
-      {carouselState.canScrollLeft && (
-        <button
-          onClick={scrollLeft}
-          className="absolute top-1/2 left-2 -translate-y-1/2 bg-gray-800 text-white rounded-full p-2"
-        >
-          ◀
-        </button>
-      )}
-      {carouselState.canScrollRight && (
-        <button
-          onClick={scrollRight}
-          className="absolute top-1/2 right-2 -translate-y-1/2 bg-gray-800 text-white rounded-full p-2"
-        >
-          ▶
-        </button>
-      )}
-
-      {/* Auto-rotate toggle */}
-      <button
-        onClick={toggleAutoRotate}
-        className="absolute bottom-2 right-2 bg-gray-200 text-gray-700 px-3 py-1 rounded-md text-xs"
-      >
-        {carouselState.isAutoRotating ? 'Pause' : 'Auto'}
-      </button>
     </div>
   );
 };
