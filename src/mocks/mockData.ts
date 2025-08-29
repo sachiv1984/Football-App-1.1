@@ -1,25 +1,96 @@
 import { FeaturedFixtureWithImportance } from '../components/fixtures/FeaturedGamesCarousel/FeaturedGamesCarousel.types';
 
-export const mockFeaturedFixture: FeaturedFixtureWithImportance = {
-  id: 1,
-  homeTeam: {
-    id: 101,
-    name: "Team A",
-    position: 2,
-    form: ["W", "D", "W", "L", "W"],
+export const mockData: FeaturedFixtureWithImportance[] = [
+  {
+    id: 1,
+    competition: "Premier League",
+    homeTeam: {
+      id: 101,
+      name: "Manchester United",
+      position: 2,
+      form: ["W", "D", "W", "L", "W"],
+    },
+    awayTeam: {
+      id: 102,
+      name: "Liverpool",
+      position: 5,
+      form: ["L", "W", "D", "D", "W"],
+    },
+    dateTime: "2025-08-30T18:00:00Z",
+    venue: "Old Trafford",
+    importance: 3,
+    importanceScore: 5,
+    matchWeek: 5,
+    isBigMatch: true,
+    tags: ["derby", "top-six"],
   },
-  awayTeam: {
-    id: 102,
-    name: "Team B",
-    position: 5,
-    form: ["L", "W", "D", "D", "W"],
+  {
+    id: 2,
+    competition: "Premier League",
+    homeTeam: {
+      id: 103,
+      name: "Chelsea",
+      position: 3,
+      form: ["D", "W", "W", "L", "D"],
+    },
+    awayTeam: {
+      id: 104,
+      name: "Arsenal",
+      position: 1,
+      form: ["W", "W", "D", "W", "L"],
+    },
+    dateTime: "2025-08-31T15:00:00Z",
+    venue: "Stamford Bridge",
+    importance: 2,
+    importanceScore: 4,
+    matchWeek: 5,
+    isBigMatch: true,
+    tags: ["top-six", "title-race"],
   },
-  dateTime: "2025-08-30T18:00:00Z",
-  venue: "Stadium Name",
-  importance: 3,
-  importanceScore: 5, // required
-  matchWeek: 5,
-  isBigMatch: true,
-  tags: ["derby", "top-six"],
-  competition: "Premier League", // required
-};
+  {
+    id: 3,
+    competition: "Premier League",
+    homeTeam: {
+      id: 105,
+      name: "Tottenham",
+      position: 6,
+      form: ["L", "D", "W", "W", "D"],
+    },
+    awayTeam: {
+      id: 106,
+      name: "Leeds United",
+      position: 15,
+      form: ["D", "L", "L", "W", "D"],
+    },
+    dateTime: "2025-09-01T17:30:00Z",
+    venue: "Tottenham Hotspur Stadium",
+    importance: 1,
+    importanceScore: 2,
+    matchWeek: 5,
+    isBigMatch: false,
+    tags: ["relegation-battle"],
+  },
+  {
+    id: 4,
+    competition: "Premier League",
+    homeTeam: {
+      id: 107,
+      name: "Everton",
+      position: 12,
+      form: ["D", "L", "W", "L", "D"],
+    },
+    awayTeam: {
+      id: 108,
+      name: "West Ham",
+      position: 8,
+      form: ["W", "D", "L", "D", "W"],
+    },
+    dateTime: "2025-09-02T14:00:00Z",
+    venue: "Goodison Park",
+    importance: 1,
+    importanceScore: 1,
+    matchWeek: 5,
+    isBigMatch: false,
+    tags: [],
+  }
+];
