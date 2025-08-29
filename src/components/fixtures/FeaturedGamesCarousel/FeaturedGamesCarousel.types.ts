@@ -27,6 +27,7 @@ export interface FeaturedFixtureWithImportance extends FeaturedFixture {
   matchWeek?: number;
   isBigMatch?: boolean;
   tags?: string[];
+  aiInsight?: AIInsight;
 }
 
 export interface CarouselState {
