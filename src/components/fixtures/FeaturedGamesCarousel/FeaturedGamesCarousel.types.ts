@@ -54,11 +54,11 @@ export interface GameSelectionConfig {
   minImportanceScore?: number;
   maxGames?: number;
   boostBigSixTeams?: boolean;
-  topTeamIds?: string[];
+  topTeamIds?: number[]; // <-- updated to number[]
 }
 
 export interface FeaturedFixtureWithImportance extends FeaturedFixture {
-  importanceScore?: number;
+  importanceScore: number; // <-- required, not optional
   matchWeek?: number;
   isBigMatch?: boolean;
   tags?: MatchTag[];
