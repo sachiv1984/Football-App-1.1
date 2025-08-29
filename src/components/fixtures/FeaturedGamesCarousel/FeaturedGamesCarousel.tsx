@@ -1,7 +1,7 @@
 // src/components/fixtures/FeaturedGamesCarousel/FeaturedGamesCarousel.tsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Calendar, Clock, MapPin, ChevronLeft, ChevronRight, Trophy } from 'lucide-react';
-import { FeaturedFixture } from '../../../types';
+
 
 interface FeaturedGamesCarouselProps {
   fixtures?: FeaturedFixture[];
