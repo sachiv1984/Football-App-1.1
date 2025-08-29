@@ -1,11 +1,11 @@
 // src/mocks/mockData.ts
 import { FeaturedFixtureWithImportance, Team, Competition, AIInsight } from "../types";
 
-// Example competitions
+// Competitions
 export const premierLeague: Competition = { id: 1, name: "Premier League" };
 export const championsLeague: Competition = { id: 2, name: "Champions League" };
 
-// Example teams
+// Teams
 export const teamA: Team = {
   id: 101,
   name: "Manchester United",
@@ -24,25 +24,7 @@ export const teamB: Team = {
   form: ["W", "W", "D", "L", "W"],
 };
 
-export const teamC: Team = {
-  id: 103,
-  name: "Chelsea",
-  shortName: "CHE",
-  colors: { primary: "#034694", secondary: "#FFFFFF" },
-  position: 3,
-  form: ["L", "D", "W", "W", "L"],
-};
-
-export const teamD: Team = {
-  id: 104,
-  name: "Arsenal",
-  shortName: "ARS",
-  colors: { primary: "#EF0107", secondary: "#FFCD00" },
-  position: 4,
-  form: ["W", "W", "W", "D", "L"],
-};
-
-// Example AI insights
+// AI Insights
 export const exampleAIInsight1: AIInsight = {
   id: 1,
   title: "Team A likely to win",
@@ -59,7 +41,7 @@ export const exampleAIInsight2: AIInsight = {
   probability: 0.65,
 };
 
-// Mock featured fixtures
+// Featured fixtures
 export const featuredFixtures: FeaturedFixtureWithImportance[] = [
   {
     id: 1001,
@@ -69,19 +51,19 @@ export const featuredFixtures: FeaturedFixtureWithImportance[] = [
     dateTime: "2025-09-01T15:00:00Z",
     venue: "Old Trafford",
     importance: 10,
-    importanceScore: 9,
+    importanceScore: 9, // required
     matchWeek: 5,
     isBigMatch: true,
-    tags: ["top-of-the-table", "rivalry"],
+    tags: ["top-of-the-table", "rivalry"], // string[]
     aiInsight: exampleAIInsight1,
   },
   {
     id: 1002,
     competition: premierLeague,
-    homeTeam: teamC,
-    awayTeam: teamD,
+    homeTeam: teamB,
+    awayTeam: teamA,
     dateTime: "2025-09-02T17:00:00Z",
-    venue: "Stamford Bridge",
+    venue: "Anfield",
     importance: 8,
     importanceScore: 7,
     matchWeek: 5,
