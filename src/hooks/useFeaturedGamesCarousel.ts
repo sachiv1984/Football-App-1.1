@@ -6,7 +6,8 @@ import {
   CarouselState,
   UseCarouselReturn,
   MatchTag,
-  DataFetchConfig 
+  DataFetchConfig,
+  Competition
 } from '../types';
 
 interface UseFeaturedGamesCarouselProps {
@@ -29,6 +30,7 @@ export const useFeaturedGamesCarousel = ({
   const [featuredGames, setFeaturedGames] = useState<FeaturedFixtureWithImportance[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
   const [carouselState, setCarouselState] = useState<CarouselState>({
     currentIndex: 0,
     canScrollLeft: false,
@@ -38,8 +40,8 @@ export const useFeaturedGamesCarousel = ({
   });
 
   const scrollRef = useRef<HTMLDivElement>(null);
-  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const autoRotateRef = useRef<NodeJS.Timeout | null>(null);
+  const refreshIntervalRef = useRef<ReturnType<typeof setInterval>>();
+  const autoRotateRef = useRef<ReturnType<typeof setInterval>>();
 
   // --- Configuration ---
   const selectionConfig: GameSelectionConfig = useMemo(() => ({
@@ -48,7 +50,7 @@ export const useFeaturedGamesCarousel = ({
     minImportanceScore: 0,
     maxGames: 4,
     boostBigSixTeams: true,
-    topTeamIds: ['liverpool', 'man-city', 'arsenal', 'chelsea', 'man-utd', 'tottenham'],
+    topTeamIds: [1, 2, 3, 4, 5, 6], // numbers only; convert strings to numbers before passing
     ...config.selection
   }), [config.selection]);
 
@@ -59,7 +61,17 @@ export const useFeaturedGamesCarousel = ({
     ...config.data
   }), [config.data]);
 
-  // --- Utility Functions ---
+  // --- Utility functions for competition fields ---
+  const getCompetitionName = (comp?: Competition | string): string =>
+    typeof comp !== 'string' && comp?.name ? comp.name : '';
+
+  const getCompetitionLogo = (comp?: Competition | string): string =>
+    typeof comp !== 'string' && comp?.logo ? comp.logo : '';
+
+  const getCompetitionShortName = (comp?: Competition | string): string =>
+    typeof comp !== 'string' && comp?.shortName ? comp.shortName : '';
+
+  // --- Match helpers ---
   const getMatchWeek = useCallback((dateString: string): number => {
     const matchDate = new Date(dateString);
     const startOfSeason = new Date('2024-08-01T00:00:00Z');
@@ -76,8 +88,10 @@ export const useFeaturedGamesCarousel = ({
 
     if (!homeTeam || !awayTeam) return tags;
 
+    // Top six clash
     if (topTeams.includes(homeTeam.id) && topTeams.includes(awayTeam.id)) tags.push('top-six');
 
+    // Derby logic
     const londonTeams = ['arsenal', 'chelsea', 'tottenham', 'west-ham', 'fulham', 'brentford', 'crystal-palace'];
     const manchesterTeams = ['man-city', 'man-utd'];
     const liverpoolTeams = ['liverpool', 'everton'];
@@ -86,9 +100,11 @@ export const useFeaturedGamesCarousel = ({
     else if (manchesterTeams.includes(homeTeam.id) && manchesterTeams.includes(awayTeam.id)) tags.push('derby');
     else if (liverpoolTeams.includes(homeTeam.id) && liverpoolTeams.includes(awayTeam.id)) tags.push('derby');
 
-    if (homeTeam.position <= 4 && awayTeam.position <= 4) tags.push('title-race');
-    if ((homeTeam.position >= 5 && homeTeam.position <= 7) || (awayTeam.position >= 5 && awayTeam.position <= 7)) tags.push('european-qualification');
-    if (homeTeam.position >= 15 && awayTeam.position >= 15) tags.push('relegation-battle');
+    // Title race / European / Relegation
+    if ((homeTeam.position ?? 99) <= 4 && (awayTeam.position ?? 99) <= 4) tags.push('title-race');
+    if (((homeTeam.position ?? 99) >= 5 && (homeTeam.position ?? 99) <= 7) || 
+        ((awayTeam.position ?? 99) >= 5 && (awayTeam.position ?? 99) <= 7)) tags.push('european-qualification');
+    if ((homeTeam.position ?? 0) >= 15 && (awayTeam.position ?? 0) >= 15) tags.push('relegation-battle');
 
     return tags;
   }, [selectionConfig.topTeamIds]);
@@ -110,20 +126,20 @@ export const useFeaturedGamesCarousel = ({
       if (fixture.awayTeam && topTeams.includes(fixture.awayTeam.id)) importance += 2;
     }
 
-    const avgPosition = ((fixture.homeTeam?.position || 10) + (fixture.awayTeam?.position || 10)) / 2;
+    const avgPosition = (((fixture.homeTeam?.position ?? 10) + (fixture.awayTeam?.position ?? 10)) / 2);
     if (avgPosition <= 3) importance += 3;
     else if (avgPosition <= 6) importance += 2;
     else if (avgPosition <= 10) importance += 1;
 
-    const homeForm = fixture.homeTeam?.form?.slice(-3).filter(r => r === 'W').length || 0;
-    const awayForm = fixture.awayTeam?.form?.slice(-3).filter(r => r === 'W').length || 0;
+    const homeForm = (fixture.homeTeam?.form ?? []).slice(-3).filter(r => r === 'W').length;
+    const awayForm = (fixture.awayTeam?.form ?? []).slice(-3).filter(r => r === 'W').length;
     if (homeForm >= 2 || awayForm >= 2) importance += 1;
 
     if (fixture.aiInsight?.confidence === 'high') importance += 1;
     if (fixture.aiInsight?.probability && fixture.aiInsight.probability > 0.8) importance += 1;
 
     const matchDate = new Date(fixture.dateTime);
-    const daysUntilMatch = Math.ceil((matchDate.getTime() - new Date().getTime()) / (24 * 60 * 60 * 1000));
+    const daysUntilMatch = Math.ceil((matchDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
     if (daysUntilMatch <= 1) importance += 2;
     else if (daysUntilMatch <= 3) importance += 1;
 
@@ -134,7 +150,7 @@ export const useFeaturedGamesCarousel = ({
     if (!allFixtures.length) return [];
     const fixturesWithImportance = allFixtures.map(f => ({
       ...f,
-      importanceScore: calculateImportance(f),
+      importance: calculateImportance(f),
       matchWeek: getMatchWeek(f.dateTime),
       isBigMatch: getMatchTags(f).length > 0,
       tags: getMatchTags(f)
@@ -145,22 +161,23 @@ export const useFeaturedGamesCarousel = ({
     let selected: FeaturedFixtureWithImportance[] = [];
 
     if (selectionConfig.prioritizeLiveGames && liveGames.length) {
-      selected.push(...liveGames.sort((a,b) => (b.importanceScore||0)-(a.importanceScore||0)));
+      selected.push(...liveGames.sort((a,b) => (b.importance ?? 0) - (a.importance ?? 0)));
     }
 
     const currentWeekGames = fixturesWithImportance.filter(f => f.matchWeek === currentWeek && !selected.includes(f));
     const remainingSlots = selectionConfig.maxGames - selected.length;
-    selected.push(...currentWeekGames.sort((a,b) => (b.importanceScore||0)-(a.importanceScore||0)).slice(0, remainingSlots));
+    selected.push(...currentWeekGames.sort((a,b) => (b.importance ?? 0) - (a.importance ?? 0)).slice(0, remainingSlots));
 
+    // Fill remaining slots
     while (selected.length < selectionConfig.maxGames) {
       const remaining = fixturesWithImportance.filter(f => !selected.includes(f))
-        .sort((a,b) => (b.importanceScore||0)-(a.importanceScore||0));
+        .sort((a,b) => (b.importance ?? 0) - (a.importance ?? 0));
       if (!remaining.length) break;
       selected.push(remaining[0]);
     }
 
     return selected.slice(0, selectionConfig.maxGames)
-      .sort((a,b) => (a.status === 'live' ? -1 : 0) - (b.status === 'live' ? -1 : 0) || (b.importanceScore||0)-(a.importanceScore||0));
+      .sort((a,b) => (a.status === 'live' ? -1 : 0) - (b.status === 'live' ? -1 : 0) || (b.importance ?? 0) - (a.importance ?? 0));
   }, [calculateImportance, getMatchWeek, getCurrentMatchWeek, getMatchTags, selectionConfig]);
 
   const refreshData = useCallback(async () => {
@@ -204,17 +221,9 @@ export const useFeaturedGamesCarousel = ({
   // --- Auto-rotation ---
   useEffect(() => {
     if (!carouselState.isAutoRotating || featuredGames.length <= 1) return;
-
     autoRotateRef.current = setInterval(() => scrollRight(), rotateInterval);
     return () => { if (autoRotateRef.current) clearInterval(autoRotateRef.current); };
   }, [carouselState.isAutoRotating, featuredGames.length, scrollRight, rotateInterval]);
-
-  // --- Pause auto-rotation on drag ---
-  useEffect(() => {
-    if (carouselState.isDragging && autoRotateRef.current) {
-      clearInterval(autoRotateRef.current);
-    }
-  }, [carouselState.isDragging]);
 
   // --- Initial load ---
   useEffect(() => { refreshData(); }, [refreshData]);
