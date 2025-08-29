@@ -1,6 +1,6 @@
-// /src/components/common/Header
 import React, { useState } from 'react';
 import { Menu, X, Search, Sun, Moon } from 'lucide-react';
+import styles from './Header.module.css';
 
 interface HeaderProps {
   currentPath?: string;
@@ -40,7 +40,7 @@ const Header: React.FC<HeaderProps> = ({
     setIsMenuOpen(false);
   };
 
-  const handleSearchSubmit = (e: React.FormEvent): void => {
+  const handleSearchSubmit = (e: React.FormEvent | React.KeyboardEvent): void => {
     e.preventDefault();
     if (searchQuery.trim()) {
       console.log('Search for:', searchQuery);
@@ -58,45 +58,43 @@ const Header: React.FC<HeaderProps> = ({
   const isActive = (path: string): boolean => currentPath === path;
 
   return (
-    <header className="sticky top-0 z-50 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 shadow-lg border-b-2 border-yellow-400">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <header className={styles.header}>
+      <div className="container">
         <div className="flex items-center justify-between h-16">
           
           {/* Logo Section */}
-          <div className="flex-shrink-0">
+          <div className={styles.logoContainer}>
             <button 
               onClick={() => handleNavigation('/')}
-              className="flex items-center hover:opacity-80 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-400 rounded-md p-1"
+              className={styles.logoButton}
               aria-label="Home"
             >
-              <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-green-400 rounded-lg flex items-center justify-center font-bold text-slate-900 text-xl shadow-md">
+              <div className={styles.logoIcon}>
                 FS
               </div>
-              <div className="ml-3 text-xl font-bold text-white">
-                Football<span className="bg-gradient-to-r from-yellow-400 to-green-400 bg-clip-text text-transparent">Stats</span>
+              <div className={styles.logoText}>
+                Football<span className="text-gradient">Stats</span>
               </div>
             </button>
           </div>
 
           {/* Desktop Navigation - Center */}
-          <nav className="hidden lg:block flex-1" role="navigation" aria-label="Main navigation">
-            <div className="flex justify-center">
-              <div className="flex items-center space-x-1 bg-slate-800/50 rounded-full px-2 py-1 border border-slate-700">
-                {navigationItems.map((item) => (
-                  <button
-                    key={item.path}
-                    onClick={() => handleNavigation(item.path)}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-400 ${
-                      isActive(item.path)
-                        ? 'bg-yellow-400 text-slate-900 shadow-md'
-                        : 'text-gray-200 hover:text-yellow-400 hover:bg-slate-700'
-                    }`}
-                    aria-current={isActive(item.path) ? 'page' : undefined}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
+          <nav className={styles.desktopNav} role="navigation" aria-label="Main navigation">
+            <div className={styles.navList}>
+              {navigationItems.map((item) => (
+                <button
+                  key={item.path}
+                  onClick={() => handleNavigation(item.path)}
+                  className={`${styles.navButton} ${
+                    isActive(item.path)
+                      ? styles.navButtonActive
+                      : styles.navButtonInactive
+                  }`}
+                  aria-current={isActive(item.path) ? 'page' : undefined}
+                >
+                  {item.label}
+                </button>
+              ))}
             </div>
           </nav>
 
@@ -159,7 +157,7 @@ const Header: React.FC<HeaderProps> = ({
             {/* Mobile Menu Button */}
             <button
               onClick={toggleMenu}
-              className="lg:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-200 hover:text-yellow-400 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-colors duration-200"
+              className={styles.mobileMenuButton}
               aria-expanded={isMenuOpen}
               aria-controls="mobile-menu"
               aria-label="Toggle navigation menu"
@@ -175,8 +173,8 @@ const Header: React.FC<HeaderProps> = ({
 
         {/* Mobile Navigation Menu */}
         {isMenuOpen && (
-          <div className="lg:hidden animate-slide-up" id="mobile-menu">
-            <div className="px-2 pt-2 pb-3 space-y-1 bg-slate-800/95 backdrop-blur-sm rounded-lg mt-2 border border-slate-700">
+          <div className={styles.mobileMenu} id="mobile-menu">
+            <div className={styles.mobileMenuContainer}>
               
               {/* Mobile Search */}
               <div className="md:hidden mb-3">
@@ -204,10 +202,10 @@ const Header: React.FC<HeaderProps> = ({
                 <button
                   key={item.path}
                   onClick={() => handleNavigation(item.path)}
-                  className={`block w-full text-left px-3 py-2 rounded-md text-base font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-400 ${
+                  className={`${styles.mobileNavButton} ${
                     isActive(item.path)
-                      ? 'bg-yellow-400 text-slate-900'
-                      : 'text-gray-200 hover:text-yellow-400 hover:bg-slate-700'
+                      ? styles.mobileNavButtonActive
+                      : styles.mobileNavButtonInactive
                   }`}
                   aria-current={isActive(item.path) ? 'page' : undefined}
                 >
