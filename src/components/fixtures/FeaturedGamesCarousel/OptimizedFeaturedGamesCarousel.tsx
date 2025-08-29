@@ -1,13 +1,10 @@
 // src/components/fixtures/FeaturedGamesCarousel/OptimizedFeaturedGamesCarousel.tsx
-import React, { useEffect, useState, useCallback } from 'react';
-import { FeaturedGamesCarouselProps, FeaturedFixtureWithImportance, UseCarouselReturn } from './FeaturedGamesCarousel.types';
+import React, { useEffect, useCallback } from 'react';
+import { FeaturedGamesCarouselProps, FeaturedFixtureWithImportance } from './FeaturedGamesCarousel.types';
 import { FeaturedGamesCarouselConfig } from './FeaturedGamesCarouselConfig.types';
+import useCarousel from './useCarousel'; // assuming your hook file
 
-interface OptimizedFeaturedGamesCarouselProps extends FeaturedGamesCarouselProps {
-  config?: FeaturedGamesCarouselConfig;
-}
-
-const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselProps> = ({
+const OptimizedFeaturedGamesCarousel: React.FC<FeaturedGamesCarouselProps> = ({
   fixtures = [],
   onGameSelect,
   onViewStats,
@@ -16,99 +13,8 @@ const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselPro
   className,
   maxFeaturedGames = 4,
   selectionConfig,
-  config,
 }) => {
-  const [featuredGames, setFeaturedGames] = useState<FeaturedFixtureWithImportance[]>(fixtures);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isAutoRotating, setIsAutoRotating] = useState(autoRotate);
-
-  // Scroll functions
-  const scrollLeft = useCallback(() => {
-    setCurrentIndex(prev => Math.max(prev - 1, 0));
-  }, []);
-
-  const scrollRight = useCallback(() => {
-    setCurrentIndex(prev => Math.min(prev + 1, featuredGames.length - 1));
-  }, [featuredGames.length]);
-
-  const scrollToIndex = (index: number) => {
-    if (index >= 0 && index < featuredGames.length) setCurrentIndex(index);
-  };
-
-  const toggleAutoRotate = () => setIsAutoRotating(prev => !prev);
-
-  // Auto-rotate effect
-  useEffect(() => {
-    if (!isAutoRotating) return;
-    const interval = setInterval(() => {
-      scrollRight();
-    }, rotateInterval);
-
-    return () => clearInterval(interval);
-  }, [isAutoRotating, rotateInterval, scrollRight]);
-
-  // Refresh data placeholder
-  const refreshData = async () => {
-    // Implement your data fetching logic here if needed
-  };
-
-  return (
-    <div className={className}>
-      {/* Carousel UI goes here */}
-      {/* Example: */}
-      {featuredGames.map((game, index) => (
-        <div key={game.id} onClick={() => onGameSelect?.(game)}>
-          <div>{game.homeTeam.name} vs {game.awayTeam.name}</div>
-          <button onClick={() => onViewStats?.(game.id)}>View Stats</button>
-        </div>
-      ))}
-    </div>
-  );
-};
-
-export default OptimizedFeaturedGamesCarousel;
-
-// Hook return type
-export const useCarousel = (): UseCarouselReturn => {
-  const [featuredGames, setFeaturedGames] = useState<FeaturedFixtureWithImportance[]>([]);
-  const [carouselState, setCarouselState] = useState({
-    currentIndex: 0,
-    canScrollLeft: false,
-    canScrollRight: false,
-    isAutoRotating: false,
-    isDragging: false,
-  });
-
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const scrollToIndex = (index: number) => {
-    setCarouselState(prev => ({ ...prev, currentIndex: index }));
-  };
-
-  const scrollLeft = () => {
-    setCarouselState(prev => ({
-      ...prev,
-      currentIndex: Math.max(prev.currentIndex - 1, 0),
-    }));
-  };
-
-  const scrollRight = () => {
-    setCarouselState(prev => ({
-      ...prev,
-      currentIndex: Math.min(prev.currentIndex + 1, featuredGames.length - 1),
-    }));
-  };
-
-  const toggleAutoRotate = () => {
-    setCarouselState(prev => ({ ...prev, isAutoRotating: !prev.isAutoRotating }));
-  };
-
-  const refreshData = async () => {
-    // Fetch and update featuredGames here
-  };
-
-  return {
+  const {
     featuredGames,
     isLoading,
     error,
@@ -118,6 +24,76 @@ export const useCarousel = (): UseCarouselReturn => {
     scrollRight,
     toggleAutoRotate,
     refreshData,
-  };
+  } = useCarousel({
+    fixtures,
+    autoRotate,
+    rotateInterval,
+    maxFeaturedGames,
+    selectionConfig,
+  });
+
+  // Auto-refresh when component mounts
+  useEffect(() => {
+    refreshData();
+  }, [refreshData]);
+
+  // Auto-rotation effect
+  useEffect(() => {
+    if (!autoRotate) return;
+    const interval = setInterval(() => {
+      scrollRight();
+    }, rotateInterval);
+    return () => clearInterval(interval);
+  }, [autoRotate, scrollRight, rotateInterval]);
+
+  if (isLoading) return <div>Loading featured games...</div>;
+  if (error) return <div>Error loading games: {error}</div>;
+
+  return (
+    <div className={className}>
+      <button
+        onClick={scrollLeft}
+        disabled={!carouselState.canScrollLeft}
+        aria-label="Scroll Left"
+      >
+        ◀
+      </button>
+
+      {featuredGames.map((game: FeaturedFixtureWithImportance, index: number) => (
+        <div
+          key={game.id}
+          onClick={() => onGameSelect?.(game)}
+          aria-label={`Game card: ${game.homeTeam.name} vs ${game.awayTeam.name}`}
+          style={{
+            display: 'inline-block',
+            margin: '0 8px',
+            opacity: game.isBigMatch ? 1 : 0.8,
+            border: carouselState.currentIndex === index ? '2px solid blue' : '1px solid gray',
+            borderRadius: '8px',
+            padding: '8px',
+          }}
+        >
+          <div>{game.homeTeam.name} vs {game.awayTeam.name}</div>
+          <div>Importance: {game.importanceScore ?? '-'}</div>
+          <button onClick={() => onViewStats?.(game.id)}>View Stats</button>
+        </div>
+      ))}
+
+      <button
+        onClick={scrollRight}
+        disabled={!carouselState.canScrollRight}
+        aria-label="Scroll Right"
+      >
+        ▶
+      </button>
+
+      <div style={{ marginTop: '8px' }}>
+        <button onClick={toggleAutoRotate}>
+          {carouselState.isAutoRotating ? 'Stop' : 'Start'} Auto-Rotate
+        </button>
+      </div>
+    </div>
+  );
 };
 
+export default OptimizedFeaturedGamesCarousel;
