@@ -1,96 +1,92 @@
-import { FeaturedFixtureWithImportance } from '../components/fixtures/FeaturedGamesCarousel/FeaturedGamesCarousel.types';
+// src/mocks/mockData.ts
+import { FeaturedFixtureWithImportance, Team, Competition, AIInsight } from "../types";
 
-export const mockData: FeaturedFixtureWithImportance[] = [
+// Example competitions
+export const premierLeague: Competition = { id: 1, name: "Premier League" };
+export const championsLeague: Competition = { id: 2, name: "Champions League" };
+
+// Example teams
+export const teamA: Team = {
+  id: 101,
+  name: "Manchester United",
+  shortName: "Man Utd",
+  colors: { primary: "#DA291C", secondary: "#FBE122" },
+  position: 1,
+  form: ["W", "D", "L", "W", "W"],
+};
+
+export const teamB: Team = {
+  id: 102,
+  name: "Liverpool",
+  shortName: "LIV",
+  colors: { primary: "#C8102E", secondary: "#00B2A9" },
+  position: 2,
+  form: ["W", "W", "D", "L", "W"],
+};
+
+export const teamC: Team = {
+  id: 103,
+  name: "Chelsea",
+  shortName: "CHE",
+  colors: { primary: "#034694", secondary: "#FFFFFF" },
+  position: 3,
+  form: ["L", "D", "W", "W", "L"],
+};
+
+export const teamD: Team = {
+  id: 104,
+  name: "Arsenal",
+  shortName: "ARS",
+  colors: { primary: "#EF0107", secondary: "#FFCD00" },
+  position: 4,
+  form: ["W", "W", "W", "D", "L"],
+};
+
+// Example AI insights
+export const exampleAIInsight1: AIInsight = {
+  id: 1,
+  title: "Team A likely to win",
+  description: "Based on recent form and position.",
+  confidence: "high",
+  probability: 0.85,
+};
+
+export const exampleAIInsight2: AIInsight = {
+  id: 2,
+  title: "Team B underperforming",
+  description: "Has lost two away games recently.",
+  confidence: "medium",
+  probability: 0.65,
+};
+
+// Mock featured fixtures
+export const featuredFixtures: FeaturedFixtureWithImportance[] = [
   {
-    id: 1,
-    competition: "Premier League",
-    homeTeam: {
-      id: 101,
-      name: "Manchester United",
-      position: 2,
-      form: ["W", "D", "W", "L", "W"],
-    },
-    awayTeam: {
-      id: 102,
-      name: "Liverpool",
-      position: 5,
-      form: ["L", "W", "D", "D", "W"],
-    },
-    dateTime: "2025-08-30T18:00:00Z",
+    id: 1001,
+    competition: premierLeague,
+    homeTeam: teamA,
+    awayTeam: teamB,
+    dateTime: "2025-09-01T15:00:00Z",
     venue: "Old Trafford",
-    importance: 3,
-    importanceScore: 5,
+    importance: 10,
+    importanceScore: 9,
     matchWeek: 5,
     isBigMatch: true,
-    tags: ["derby", "top-six"],
+    tags: ["top-of-the-table", "rivalry"],
+    aiInsight: exampleAIInsight1,
   },
   {
-    id: 2,
-    competition: "Premier League",
-    homeTeam: {
-      id: 103,
-      name: "Chelsea",
-      position: 3,
-      form: ["D", "W", "W", "L", "D"],
-    },
-    awayTeam: {
-      id: 104,
-      name: "Arsenal",
-      position: 1,
-      form: ["W", "W", "D", "W", "L"],
-    },
-    dateTime: "2025-08-31T15:00:00Z",
+    id: 1002,
+    competition: premierLeague,
+    homeTeam: teamC,
+    awayTeam: teamD,
+    dateTime: "2025-09-02T17:00:00Z",
     venue: "Stamford Bridge",
-    importance: 2,
-    importanceScore: 4,
-    matchWeek: 5,
-    isBigMatch: true,
-    tags: ["top-six", "title-race"],
-  },
-  {
-    id: 3,
-    competition: "Premier League",
-    homeTeam: {
-      id: 105,
-      name: "Tottenham",
-      position: 6,
-      form: ["L", "D", "W", "W", "D"],
-    },
-    awayTeam: {
-      id: 106,
-      name: "Leeds United",
-      position: 15,
-      form: ["D", "L", "L", "W", "D"],
-    },
-    dateTime: "2025-09-01T17:30:00Z",
-    venue: "Tottenham Hotspur Stadium",
-    importance: 1,
-    importanceScore: 2,
+    importance: 8,
+    importanceScore: 7,
     matchWeek: 5,
     isBigMatch: false,
-    tags: ["relegation-battle"],
+    tags: ["weekend-fixture"],
+    aiInsight: exampleAIInsight2,
   },
-  {
-    id: 4,
-    competition: "Premier League",
-    homeTeam: {
-      id: 107,
-      name: "Everton",
-      position: 12,
-      form: ["D", "L", "W", "L", "D"],
-    },
-    awayTeam: {
-      id: 108,
-      name: "West Ham",
-      position: 8,
-      form: ["W", "D", "L", "D", "W"],
-    },
-    dateTime: "2025-09-02T14:00:00Z",
-    venue: "Goodison Park",
-    importance: 1,
-    importanceScore: 1,
-    matchWeek: 5,
-    isBigMatch: false,
-    tags: [],
-  }
 ];
