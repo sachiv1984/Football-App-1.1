@@ -7,7 +7,7 @@ import {
   TeamFormProps 
 } from './FixtureCard.types';
 
-const TeamForm: React.FC<TeamFormProps> = ({ form, maxItems = 5 }) => {
+const TeamForm: React.FC<TeamFormProps> = ({ form = [], maxItems = 5 }) => {
   const recentForm = form.slice(-maxItems);
 
   return (
@@ -105,7 +105,7 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
   return (
     <div className={cardClasses} onClick={handleClick}>
       {/* Competition Header */}
-      {showCompetition && (
+      {showCompetition && competition && (
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center space-x-2">
             <img src={competition.logo} alt={competition.name} className="w-4 h-4 object-contain" />
@@ -114,7 +114,7 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
             </span>
           </div>
           <div className="text-xs text-gray-500">
-            {new Date(dateTime).toLocaleDateString('en-GB', {
+            {dateTime && new Date(dateTime).toLocaleDateString('en-GB', {
               weekday: 'short',
               day: 'numeric',
               month: 'short'
@@ -127,7 +127,7 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
       <div className="grid grid-cols-5 items-center gap-4">
         {/* Home Team */}
         <div className="col-span-2 flex flex-col items-center text-center">
-          <img src={homeTeam.logo} alt={homeTeam.name} className={`${logoSize} mb-2`} />
+          {homeTeam.logo && <img src={homeTeam.logo} alt={homeTeam.name} className={`${logoSize} mb-2`} />}
           <h4 className={`font-semibold ${textSize} text-gray-900 mb-1`}>
             {size === 'sm' ? homeTeam.shortName : homeTeam.name}
           </h4>
@@ -146,7 +146,7 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
 
         {/* Away Team */}
         <div className="col-span-2 flex flex-col items-center text-center">
-          <img src={awayTeam.logo} alt={awayTeam.name} className={`${logoSize} mb-2`} />
+          {awayTeam.logo && <img src={awayTeam.logo} alt={awayTeam.name} className={`${logoSize} mb-2`} />}
           <h4 className={`font-semibold ${textSize} text-gray-900 mb-1`}>
             {size === 'sm' ? awayTeam.shortName : awayTeam.name}
           </h4>
