@@ -56,11 +56,16 @@ export interface GameSelectionConfig {
   topTeamIds?: number[];
 }
 
+/**
+ * Updated interface to match main FeaturedFixtureWithImportance
+ * - matchWeek is required
+ * - tags is required
+ */
 export interface FeaturedFixtureWithImportance extends FeaturedFixture {
-  importanceScore: number; // required now
-  matchWeek?: number;
+  importanceScore: number;
+  matchWeek: number; // now required
   isBigMatch?: boolean;
-  tags: string[]; // <-- changed from MatchTag[] | undefined to string[]
+  tags: string[]; // required to match main interface
 }
 
 export type MatchTag = 
