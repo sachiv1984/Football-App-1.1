@@ -1,50 +1,14 @@
-// src/components/fixtures/FeaturedGamesCarousel/FeaturedGamesCarousel.types.ts
-import { FeaturedFixture } from '../../../types';
+import { FeaturedFixture, AIInsight } from '../../../types';
 import type { FeaturedGamesCarouselConfig } from './FeaturedGamesCarouselConfig.types';
 
 export interface FeaturedGamesCarouselProps {
-  /**
-   * Array of fixture data to display
-   * If empty, component will use auto-selection logic
-   */
   fixtures?: FeaturedFixture[];
-  
-  /**
-   * Callback when a game card is clicked/selected
-   */
   onGameSelect?: (fixture: FeaturedFixture) => void;
-  
-  /**
-   * Callback when "View Stats" button is clicked
-   */
   onViewStats?: (fixtureId: string) => void;
-  
-  /**
-   * Enable automatic rotation of featured games
-   * @default false
-   */
   autoRotate?: boolean;
-  
-  /**
-   * Interval for auto-rotation in milliseconds
-   * @default 5000
-   */
   rotateInterval?: number;
-  
-  /**
-   * Additional CSS classes
-   */
   className?: string;
-  
-  /**
-   * Maximum number of featured games to show
-   * @default 4
-   */
   maxFeaturedGames?: number;
-  
-  /**
-   * Configuration for game selection logic
-   */
   selectionConfig?: FeaturedGamesCarouselConfig['selection'];
 }
 
@@ -54,25 +18,16 @@ export interface GameSelectionConfig {
   minImportanceScore?: number;
   maxGames?: number;
   boostBigSixTeams?: boolean;
-  topTeamIds?: number[]; // <-- updated to number[]
+  topTeamIds?: number[];
 }
 
 export interface FeaturedFixtureWithImportance extends FeaturedFixture {
-  importanceScore: number; // <-- required, not optional
+  importance: number; // required
+  importanceScore?: number;
   matchWeek?: number;
   isBigMatch?: boolean;
-  tags?: MatchTag[];
+  tags?: string[];
 }
-
-export type MatchTag = 
-  | 'derby' 
-  | 'top-six' 
-  | 'title-race' 
-  | 'relegation-battle' 
-  | 'european-qualification' 
-  | 'cup-final' 
-  | 'season-opener' 
-  | 'season-finale';
 
 export interface CarouselState {
   currentIndex: number;
@@ -101,3 +56,13 @@ export interface DataFetchConfig {
   websocketEndpoint?: string;
   cacheDuration?: number;
 }
+
+export type MatchTag =
+  | 'derby'
+  | 'top-six'
+  | 'title-race'
+  | 'relegation-battle'
+  | 'european-qualification'
+  | 'cup-final'
+  | 'season-opener'
+  | 'season-finale';
