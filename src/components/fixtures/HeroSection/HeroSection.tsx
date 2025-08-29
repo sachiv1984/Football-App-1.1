@@ -47,6 +47,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({
     homeScore: 0,
     awayScore: 0,
     aiInsight: {
+      id: 'ai-1',
       title: 'High-Scoring Encounter Expected',
       description: 'Both teams average 2.3 goals per game. Over 2.5 goals has hit in 4/5 recent meetings.',
       confidence: 'high',
@@ -73,7 +74,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({
 
   const { date, time } = formatDate(fixture.dateTime);
 
-  const renderFormIndicators = (form: ('W' | 'D' | 'L')[]) => (
+  const renderFormIndicators = (form: ('W' | 'D' | 'L')[] = []) => (
     <div className="flex space-x-1">
       {form.map((result, index) => (
         <span
@@ -89,7 +90,6 @@ const HeroSection: React.FC<HeroSectionProps> = ({
     </div>
   );
 
-  // Check if fixture is live based on status
   const isLive = fixture.status === 'live';
 
   return (
@@ -156,13 +156,13 @@ const HeroSection: React.FC<HeroSectionProps> = ({
                   </h2>
                   <div className="flex items-center space-x-4 mb-3">
                     <span className="badge badge-secondary">
-                      #{fixture.homeTeam.position}
+                      #{fixture.homeTeam.position?.toString() ?? '-'}
                     </span>
                     <span className="text-blue-100">League Position</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <span className="text-blue-200 text-sm">Recent Form:</span>
-                    {renderFormIndicators(fixture.homeTeam.form)}
+                    {renderFormIndicators(fixture.homeTeam.form ?? [])}
                   </div>
                 </div>
               </div>
@@ -197,13 +197,13 @@ const HeroSection: React.FC<HeroSectionProps> = ({
                   </h2>
                   <div className="flex items-center space-x-4 mb-3">
                     <span className="badge badge-secondary">
-                      #{fixture.awayTeam.position}
+                      #{fixture.awayTeam.position?.toString() ?? '-'}
                     </span>
                     <span className="text-blue-100">League Position</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <span className="text-blue-200 text-sm">Recent Form:</span>
-                    {renderFormIndicators(fixture.awayTeam.form)}
+                    {renderFormIndicators(fixture.awayTeam.form ?? [])}
                   </div>
                 </div>
               </div>
