@@ -1,4 +1,3 @@
-// src/hooks/useFeaturedGamesCarousel.ts
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { 
   FeaturedFixture, 
@@ -17,18 +16,16 @@ interface UseFeaturedGamesCarouselProps {
     data?: DataFetchConfig;
   };
   autoRefresh?: boolean;
+  rotateInterval?: number;
 }
 
-/**
- * Custom hook for managing featured games carousel logic
- */
 export const useFeaturedGamesCarousel = ({
   fixtures = [],
   config = {},
-  autoRefresh = false
-}: UseFeaturedGamesCarouselProps): UseCarouselReturn => {
-  
-  // State management
+  autoRefresh = false,
+  rotateInterval = 5000
+}: UseFeaturedGamesCarouselProps): UseCarouselReturn & { scrollRef: React.RefObject<HTMLDivElement> } => {
+
   const [featuredGames, setFeaturedGames] = useState<FeaturedFixtureWithImportance[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -39,12 +36,12 @@ export const useFeaturedGamesCarousel = ({
     isAutoRotating: false,
     isDragging: false
   });
-  
-  // Refs
+
+  const scrollRef = useRef<HTMLDivElement>(null);
   const refreshIntervalRef = useRef<NodeJS.Timeout>();
-  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
-  
-  // Configuration with defaults - wrapped in useMemo to prevent re-creation
+  const autoRotateRef = useRef<NodeJS.Timeout>();
+
+  // --- Configuration ---
   const selectionConfig: GameSelectionConfig = useMemo(() => ({
     prioritizeLiveGames: true,
     includeNextWeekIfFew: true,
@@ -54,7 +51,7 @@ export const useFeaturedGamesCarousel = ({
     topTeamIds: ['liverpool', 'man-city', 'arsenal', 'chelsea', 'man-utd', 'tottenham'],
     ...config.selection
   }), [config.selection]);
-  
+
   const dataConfig: DataFetchConfig = useMemo(() => ({
     refreshInterval: 30000,
     realTimeUpdates: false,
@@ -62,9 +59,7 @@ export const useFeaturedGamesCarousel = ({
     ...config.data
   }), [config.data]);
 
-  /**
-   * Calculate match week from date
-   */
+  // --- Utility Functions ---
   const getMatchWeek = useCallback((dateString: string): number => {
     const matchDate = new Date(dateString);
     const startOfSeason = new Date('2024-08-01T00:00:00Z');
@@ -72,299 +67,160 @@ export const useFeaturedGamesCarousel = ({
     return Math.max(1, Math.min(38, weeksSinceStart + 1));
   }, []);
 
-  /**
-   * Get current match week
-   */
-  const getCurrentMatchWeek = useCallback((): number => {
-    return getMatchWeek(new Date().toISOString());
-  }, [getMatchWeek]);
+  const getCurrentMatchWeek = useCallback(() => getMatchWeek(new Date().toISOString()), [getMatchWeek]);
 
-  /**
-   * Determine match tags based on teams and context
-   */
   const getMatchTags = useCallback((fixture: FeaturedFixture): MatchTag[] => {
     const tags: MatchTag[] = [];
     const { homeTeam, awayTeam } = fixture;
     const topTeams = selectionConfig.topTeamIds || [];
-    
+
+    if (!homeTeam || !awayTeam) return tags;
+
     // Top six clash
-    if (topTeams.includes(homeTeam.id) && topTeams.includes(awayTeam.id)) {
-      tags.push('top-six');
-    }
-    
-    // Derby matches (simplified logic - you can expand this)
+    if (topTeams.includes(homeTeam.id) && topTeams.includes(awayTeam.id)) tags.push('top-six');
+
+    // Derby logic
     const londonTeams = ['arsenal', 'chelsea', 'tottenham', 'west-ham', 'fulham', 'brentford', 'crystal-palace'];
     const manchesterTeams = ['man-city', 'man-utd'];
     const liverpoolTeams = ['liverpool', 'everton'];
-    
-    if (londonTeams.includes(homeTeam.id) && londonTeams.includes(awayTeam.id)) {
-      tags.push('derby');
-    } else if (manchesterTeams.includes(homeTeam.id) && manchesterTeams.includes(awayTeam.id)) {
-      tags.push('derby');
-    } else if (liverpoolTeams.includes(homeTeam.id) && liverpoolTeams.includes(awayTeam.id)) {
-      tags.push('derby');
-    }
-    
-    // Title race relevance (top 4 teams)
-    if (homeTeam.position <= 4 && awayTeam.position <= 4) {
-      tags.push('title-race');
-    }
-    
-    // European qualification (positions 5-7)
-    if ((homeTeam.position >= 5 && homeTeam.position <= 7) || 
-        (awayTeam.position >= 5 && awayTeam.position <= 7)) {
-      tags.push('european-qualification');
-    }
-    
-    // Relegation battle (bottom 6)
-    if (homeTeam.position >= 15 && awayTeam.position >= 15) {
-      tags.push('relegation-battle');
-    }
-    
+
+    if (londonTeams.includes(homeTeam.id) && londonTeams.includes(awayTeam.id)) tags.push('derby');
+    else if (manchesterTeams.includes(homeTeam.id) && manchesterTeams.includes(awayTeam.id)) tags.push('derby');
+    else if (liverpoolTeams.includes(homeTeam.id) && liverpoolTeams.includes(awayTeam.id)) tags.push('derby');
+
+    // Title race / European / Relegation
+    if (homeTeam.position <= 4 && awayTeam.position <= 4) tags.push('title-race');
+    if ((homeTeam.position >= 5 && homeTeam.position <= 7) || (awayTeam.position >= 5 && awayTeam.position <= 7)) tags.push('european-qualification');
+    if (homeTeam.position >= 15 && awayTeam.position >= 15) tags.push('relegation-battle');
+
     return tags;
   }, [selectionConfig.topTeamIds]);
 
-  /**
-   * Calculate importance score for a fixture
-   */
   const calculateImportance = useCallback((fixture: FeaturedFixture): number => {
-    let importance = 5; // Base importance
-    
-    // Live games get highest priority
-    if (fixture.status === 'live') importance += 5;
-    
+    let importance = 5;
     const tags = getMatchTags(fixture);
     const topTeams = selectionConfig.topTeamIds || [];
-    
-    // Tag-based scoring
+
+    if (fixture.status === 'live') importance += 5;
     if (tags.includes('derby')) importance += 4;
     if (tags.includes('top-six')) importance += 4;
     if (tags.includes('title-race')) importance += 3;
     if (tags.includes('european-qualification')) importance += 2;
     if (tags.includes('relegation-battle')) importance += 2;
-    
-    // Individual team importance
+
     if (selectionConfig.boostBigSixTeams) {
-      if (topTeams.includes(fixture.homeTeam.id)) importance += 2;
-      if (topTeams.includes(fixture.awayTeam.id)) importance += 2;
+      if (fixture.homeTeam && topTeams.includes(fixture.homeTeam.id)) importance += 2;
+      if (fixture.awayTeam && topTeams.includes(fixture.awayTeam.id)) importance += 2;
     }
-    
-    // Position-based importance (closer positions = more important)
-    const avgPosition = (fixture.homeTeam.position + fixture.awayTeam.position) / 2;
+
+    const avgPosition = ((fixture.homeTeam?.position || 10) + (fixture.awayTeam?.position || 10)) / 2;
     if (avgPosition <= 3) importance += 3;
     else if (avgPosition <= 6) importance += 2;
     else if (avgPosition <= 10) importance += 1;
-    
-    // Form-based importance (teams in good form)
-    const homeForm = fixture.homeTeam.form.slice(-3).filter(result => result === 'W').length;
-    const awayForm = fixture.awayTeam.form.slice(-3).filter(result => result === 'W').length;
+
+    const homeForm = fixture.homeTeam?.form?.slice(-3).filter(r => r === 'W').length || 0;
+    const awayForm = fixture.awayTeam?.form?.slice(-3).filter(r => r === 'W').length || 0;
     if (homeForm >= 2 || awayForm >= 2) importance += 1;
-    
-    // AI insight confidence bonus
+
     if (fixture.aiInsight?.confidence === 'high') importance += 1;
     if (fixture.aiInsight?.probability && fixture.aiInsight.probability > 0.8) importance += 1;
-    
-    // Time-based importance (upcoming games more important)
+
     const matchDate = new Date(fixture.dateTime);
-    const now = new Date();
-    const daysUntilMatch = Math.ceil((matchDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
-    
-    if (daysUntilMatch <= 1) importance += 2; // Today/tomorrow
-    else if (daysUntilMatch <= 3) importance += 1; // This week
-    
-    return Math.min(10, Math.max(1, importance)); // Clamp between 1-10
+    const daysUntilMatch = Math.ceil((matchDate.getTime() - new Date().getTime()) / (24 * 60 * 60 * 1000));
+    if (daysUntilMatch <= 1) importance += 2;
+    else if (daysUntilMatch <= 3) importance += 1;
+
+    return Math.min(10, Math.max(1, importance));
   }, [getMatchTags, selectionConfig]);
 
-  /**
-   * Select featured games based on configured logic
-   */
   const selectFeaturedGames = useCallback((allFixtures: FeaturedFixture[]): FeaturedFixtureWithImportance[] => {
     if (!allFixtures.length) return [];
-    
-    // Add importance scores and additional metadata
-    const fixturesWithImportance: FeaturedFixtureWithImportance[] = allFixtures.map(fixture => ({
-      ...fixture,
-      importanceScore: calculateImportance(fixture),
-      matchWeek: getMatchWeek(fixture.dateTime),
-      isBigMatch: getMatchTags(fixture).length > 0,
-      tags: getMatchTags(fixture)
+    const fixturesWithImportance = allFixtures.map(f => ({
+      ...f,
+      importanceScore: calculateImportance(f),
+      matchWeek: getMatchWeek(f.dateTime),
+      isBigMatch: getMatchTags(f).length > 0,
+      tags: getMatchTags(f)
     }));
-    
+
     const currentWeek = getCurrentMatchWeek();
-    const currentWeekGames = fixturesWithImportance.filter(game => game.matchWeek === currentWeek);
-    const nextWeekGames = fixturesWithImportance.filter(game => game.matchWeek === currentWeek + 1);
-    const liveGames = fixturesWithImportance.filter(game => game.status === 'live');
-    
+    const liveGames = fixturesWithImportance.filter(f => f.status === 'live');
     let selected: FeaturedFixtureWithImportance[] = [];
 
-    // Step 1: Prioritize live games
-    if (selectionConfig.prioritizeLiveGames && liveGames.length > 0) {
-      selected.push(...liveGames.sort((a, b) => (b.importanceScore || 0) - (a.importanceScore || 0)));
+    if (selectionConfig.prioritizeLiveGames && liveGames.length) {
+      selected.push(...liveGames.sort((a,b) => (b.importanceScore||0)-(a.importanceScore||0)));
     }
 
-    // Step 2: Handle current week games
-    if (currentWeekGames.length === 1 && selectionConfig.includeNextWeekIfFew) {
-      // Single current week game - add it and fill with next week
-      const currentGame = currentWeekGames[0];
-      if (!selected.find(g => g.id === currentGame.id)) {
-        selected.unshift(currentGame);
-      }
-      
-      const remainingSlots = selectionConfig.maxGames - selected.length;
-      const nextWeekSorted = nextWeekGames
-        .filter(g => !selected.find(s => s.id === g.id))
-        .sort((a, b) => (b.importanceScore || 0) - (a.importanceScore || 0))
-        .slice(0, remainingSlots);
-      
-      selected.push(...nextWeekSorted);
-    } else if (currentWeekGames.length > 1) {
-      // Multiple current week games - select by importance
-      const currentWeekSorted = currentWeekGames
-        .filter(g => !selected.find(s => s.id === g.id))
-        .filter(g => (g.importanceScore || 0) >= selectionConfig.minImportanceScore)
-        .sort((a, b) => (b.importanceScore || 0) - (a.importanceScore || 0));
-      
-      const remainingSlots = selectionConfig.maxGames - selected.length;
-      selected.push(...currentWeekSorted.slice(0, remainingSlots));
-    }
+    const currentWeekGames = fixturesWithImportance.filter(f => f.matchWeek === currentWeek && !selected.includes(f));
+    const remainingSlots = selectionConfig.maxGames - selected.length;
+    selected.push(...currentWeekGames.sort((a,b) => (b.importanceScore||0)-(a.importanceScore||0)).slice(0, remainingSlots));
 
-    // Step 3: Fill remaining slots with highest importance games
+    // Fill remaining slots
     while (selected.length < selectionConfig.maxGames) {
-      const remaining = fixturesWithImportance
-        .filter(game => !selected.find(s => s.id === game.id))
-        .filter(game => (game.importanceScore || 0) >= selectionConfig.minImportanceScore)
-        .sort((a, b) => (b.importanceScore || 0) - (a.importanceScore || 0));
-      
-      if (remaining.length === 0) break;
+      const remaining = fixturesWithImportance.filter(f => !selected.includes(f))
+        .sort((a,b) => (b.importanceScore||0)-(a.importanceScore||0));
+      if (!remaining.length) break;
       selected.push(remaining[0]);
     }
 
-    // Final sort by importance and live status
-    return selected
-      .sort((a, b) => {
-        if (a.status === 'live' && b.status !== 'live') return -1;
-        if (b.status === 'live' && a.status !== 'live') return 1;
-        return (b.importanceScore || 0) - (a.importanceScore || 0);
-      })
-      .slice(0, selectionConfig.maxGames);
+    return selected.slice(0, selectionConfig.maxGames)
+      .sort((a,b) => (a.status === 'live' ? -1 : 0) - (b.status === 'live' ? -1 : 0) || (b.importanceScore||0)-(a.importanceScore||0));
   }, [calculateImportance, getMatchWeek, getCurrentMatchWeek, getMatchTags, selectionConfig]);
 
-  /**
-   * Fetch and process fixture data
-   */
-  const refreshData = useCallback(async (): Promise<void> => {
+  const refreshData = useCallback(async () => {
     try {
       setError(null);
       setIsLoading(true);
+      let data = fixtures;
 
-      // If fixtures are provided as props, use them
-      let fixtureData = fixtures;
-
-      // Otherwise fetch from API (if configured)
       if (!fixtures.length && dataConfig.fixturesEndpoint) {
-        const response = await fetch(dataConfig.fixturesEndpoint);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch fixtures: ${response.statusText}`);
-        }
-        fixtureData = await response.json();
+        const res = await fetch(dataConfig.fixturesEndpoint);
+        if (!res.ok) throw new Error(`Failed to fetch fixtures: ${res.statusText}`);
+        data = await res.json();
       }
 
-      // Select and set featured games
-      const selected = selectFeaturedGames(fixtureData);
-      setFeaturedGames(selected);
-
+      setFeaturedGames(selectFeaturedGames(data));
     } catch (err) {
-      console.error('Error refreshing fixture data:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error occurred');
-    } finally {
-      setIsLoading(false);
-    }
+      console.error(err);
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally { setIsLoading(false); }
   }, [fixtures, dataConfig.fixturesEndpoint, selectFeaturedGames]);
 
-  /**
-   * Scroll to specific index
-   */
+  // --- Scrolling ---
   const scrollToIndex = useCallback((index: number) => {
-    if (!scrollContainerRef.current) return;
-    
-    const cardWidth = 300; // Should match your card width + gap
-    const targetScroll = index * cardWidth;
-    
-    scrollContainerRef.current.scrollTo({
-      left: targetScroll,
-      behavior: 'smooth'
-    });
-    
+    if (!scrollRef.current) return;
+    const card = scrollRef.current.children[0] as HTMLElement;
+    const gap = 16;
+    const width = card?.offsetWidth + gap || 300;
+    scrollRef.current.scrollTo({ left: index * width, behavior: 'smooth' });
     setCarouselState(prev => ({
       ...prev,
-      currentIndex: index
+      currentIndex: index,
+      canScrollLeft: index > 0,
+      canScrollRight: index < (featuredGames.length - 1)
     }));
-  }, []);
+  }, [featuredGames.length]);
 
-  /**
-   * Scroll left
-   */
-  const scrollLeft = useCallback(() => {
-    const newIndex = Math.max(0, carouselState.currentIndex - 1);
-    scrollToIndex(newIndex);
-  }, [carouselState.currentIndex, scrollToIndex]);
+  const scrollLeft = useCallback(() => scrollToIndex(Math.max(0, carouselState.currentIndex - 1)), [carouselState.currentIndex, scrollToIndex]);
+  const scrollRight = useCallback(() => scrollToIndex(Math.min(featuredGames.length - 1, carouselState.currentIndex + 1)), [carouselState.currentIndex, featuredGames.length, scrollToIndex]);
+  const toggleAutoRotate = useCallback(() => setCarouselState(prev => ({ ...prev, isAutoRotating: !prev.isAutoRotating })), []);
 
-  /**
-   * Scroll right
-   */
-  const scrollRight = useCallback(() => {
-    const newIndex = Math.min(featuredGames.length - 1, carouselState.currentIndex + 1);
-    scrollToIndex(newIndex);
-  }, [carouselState.currentIndex, featuredGames.length, scrollToIndex]);
-
-  /**
-   * Toggle auto-rotation
-   */
-  const toggleAutoRotate = useCallback(() => {
-    setCarouselState(prev => ({
-      ...prev,
-      isAutoRotating: !prev.isAutoRotating
-    }));
-  }, []);
-
-  // Initial data loading
+  // --- Auto-rotation ---
   useEffect(() => {
-    refreshData();
-  }, [refreshData]);
+    if (!carouselState.isAutoRotating || featuredGames.length <= 1) return;
+    autoRotateRef.current = setInterval(() => scrollRight(), rotateInterval);
+    return () => clearInterval(autoRotateRef.current);
+  }, [carouselState.isAutoRotating, featuredGames.length, scrollRight, rotateInterval]);
 
-  // Auto-refresh setup
+  // --- Initial load ---
+  useEffect(() => { refreshData(); }, [refreshData]);
+
+  // --- Auto-refresh ---
   useEffect(() => {
-    if (!autoRefresh || !dataConfig.refreshInterval) return;
-
-    refreshIntervalRef.current = setInterval(() => {
-      refreshData();
-    }, dataConfig.refreshInterval);
-
-    return () => {
-      if (refreshIntervalRef.current) {
-        clearInterval(refreshIntervalRef.current);
-      }
-    };
+    if (!autoRefresh) return;
+    refreshIntervalRef.current = setInterval(refreshData, dataConfig.refreshInterval || 30000);
+    return () => { if (refreshIntervalRef.current) clearInterval(refreshIntervalRef.current); };
   }, [autoRefresh, dataConfig.refreshInterval, refreshData]);
 
-  // Cleanup
-  useEffect(() => {
-    return () => {
-      if (refreshIntervalRef.current) {
-        clearInterval(refreshIntervalRef.current);
-      }
-    };
-  }, []);
-
-  return {
-    featuredGames,
-    isLoading,
-    error,
-    carouselState,
-    scrollToIndex,
-    scrollLeft,
-    scrollRight,
-    toggleAutoRotate,
-    refreshData
-  };
+  return { featuredGames, isLoading, error, carouselState, scrollToIndex, scrollLeft, scrollRight, toggleAutoRotate, refreshData, scrollRef };
 };
