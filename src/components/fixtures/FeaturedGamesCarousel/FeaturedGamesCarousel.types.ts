@@ -60,7 +60,7 @@ export interface FeaturedFixtureWithImportance extends FeaturedFixture {
   importanceScore: number; // required now
   matchWeek?: number;
   isBigMatch?: boolean;
-  tags?: MatchTag[];
+  tags: string[]; // <-- changed from MatchTag[] | undefined to string[]
 }
 
 export type MatchTag = 
