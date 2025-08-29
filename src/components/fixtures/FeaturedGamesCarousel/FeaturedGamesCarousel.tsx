@@ -2,6 +2,45 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Calendar, Clock, MapPin, ChevronLeft, ChevronRight, Trophy } from 'lucide-react';
 
+interface FeaturedFixture {
+  id: string;
+  homeTeam: {
+    id: string;
+    name: string;
+    shortName: string;
+    logo: string;
+    colors: { primary: string; secondary: string };
+    form: ('W' | 'D' | 'L')[];
+    position: number;
+  };
+  awayTeam: {
+    id: string;
+    name: string;
+    shortName: string;
+    logo: string;
+    colors: { primary: string; secondary: string };
+    form: ('W' | 'D' | 'L')[];
+    position: number;
+  };
+  competition: {
+    id: string;
+    name: string;
+    shortName: string;
+    logo: string;
+    country: string;
+  };
+  dateTime: string;
+  venue: string;
+  status: 'scheduled' | 'live' | 'finished';
+  homeScore: number;
+  awayScore: number;
+  aiInsight?: {
+    title: string;
+    description: string;
+    confidence: 'high' | 'medium' | 'low';
+    probability: number;
+  };
+}
 
 interface FeaturedGamesCarouselProps {
   fixtures?: FeaturedFixture[];
@@ -216,7 +255,7 @@ const FeaturedGamesCarousel: React.FC<FeaturedGamesCarouselProps> = ({
     }
 
     return selected.slice(0, config.maxGames);
-  }, []);
+  }, [mockFixtures]);
 
   const getCurrentMatchWeek = (): number => {
     // Simple week calculation - replace with your actual logic
