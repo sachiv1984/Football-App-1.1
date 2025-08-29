@@ -2,15 +2,15 @@
 import React, { useRef, useEffect } from 'react';
 import { Calendar, Clock, MapPin, ChevronLeft, ChevronRight, Trophy, TrendingUp } from 'lucide-react';
 import { useFeaturedGamesCarousel } from '../../../hooks/useFeaturedGamesCarousel';
-import { FeaturedGamesCarouselProps } from './FeaturedGamesCarousel.types';
+import { FeaturedGamesCarouselProps, FeaturedGame } from './FeaturedGamesCarousel.types';
 
 /**
  * Optimized Featured Games Carousel with your existing design system
  */
 const OptimizedFeaturedGamesCarousel: React.FC<FeaturedGamesCarouselProps> = ({
   fixtures = [],
-  onGameSelect = (fixture) => console.log('Selected fixture:', fixture.id),
-  onViewStats = (id) => console.log('View stats for:', id),
+  onGameSelect = (fixture: FeaturedGame) => console.log('Selected fixture:', fixture.id),
+  onViewStats = (id: string | number) => console.log('View stats for:', id),
   autoRotate = false,
   rotateInterval = 5000,
   maxFeaturedGames = 4,
@@ -40,9 +40,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<FeaturedGamesCarouselProps> = ({
     autoRefresh: true
   });
 
-  /**
-   * Format date using your existing pattern
-   */
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return {
@@ -58,47 +55,36 @@ const OptimizedFeaturedGamesCarousel: React.FC<FeaturedGamesCarouselProps> = ({
     };
   };
 
-  /**
-   * Render form indicators using your existing CSS classes
-   */
-  const renderFormIndicators = (form: ('W' | 'D' | 'L')[]) => (
-    <div className="flex space-x-1">
-      {form.slice(-3).map((result, index) => (
-        <span
-          key={index}
-          className={`form-indicator ${
-            result === 'W' ? 'form-w' : 
-            result === 'D' ? 'form-d' : 'form-l'
-          }`}
-        >
-          {result}
-        </span>
-      ))}
-    </div>
-  );
-
-  /**
-   * Handle scroll with custom logic
-   */
-  const handleScroll = (direction: 'left' | 'right') => {
-    if (direction === 'left') {
-      scrollLeftHook();
-    } else {
-      scrollRightHook();
-    }
+  const renderFormIndicators = (form?: ('W' | 'D' | 'L')[]) => {
+    if (!form) return null;
+    return (
+      <div className="flex space-x-1">
+        {form.slice(-3).map((result, index) => (
+          <span
+            key={index}
+            className={`form-indicator ${
+              result === 'W' ? 'form-w' : 
+              result === 'D' ? 'form-d' : 'form-l'
+            }`}
+          >
+            {result}
+          </span>
+        ))}
+      </div>
+    );
   };
 
-  /**
-   * Update scroll container ref
-   */
+  const handleScroll = (direction: 'left' | 'right') => {
+    if (direction === 'left') scrollLeftHook();
+    else scrollRightHook();
+  };
+
   useEffect(() => {
-    // This allows the hook to access the scroll container if needed
     if (scrollRef.current) {
-      // You can extend this to pass the ref to the hook if needed
+      // Extendable for ref usage in hook
     }
   }, []);
 
-  // Loading state using your design system
   if (isLoading) {
     return (
       <section className={`bg-gradient-hero text-white section-sm ${className}`}>
@@ -123,7 +109,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<FeaturedGamesCarouselProps> = ({
     );
   }
 
-  // Error state
   if (error) {
     return (
       <section className={`bg-gradient-hero text-white section-sm ${className}`}>
@@ -134,12 +119,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<FeaturedGamesCarouselProps> = ({
             </div>
             <h3 className="text-xl font-semibold text-white mb-2">Unable to load featured games</h3>
             <p className="text-white/70 mb-4">{error}</p>
-            <button
-              onClick={refreshData}
-              className="btn btn-primary"
-            >
-              Try Again
-            </button>
+            <button onClick={refreshData} className="btn btn-primary">Try Again</button>
           </div>
         </div>
       </section>
@@ -149,7 +129,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<FeaturedGamesCarouselProps> = ({
   return (
     <section className={`bg-gradient-hero text-white section-sm ${className}`}>
       <div className="container">
-        {/* Header with navigation */}
         <div className="flex items-center justify-between mb-6 animate-fade-in">
           <div className="flex items-center">
             <Trophy className="w-6 h-6 text-electric-yellow mr-3" />
@@ -160,7 +139,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<FeaturedGamesCarouselProps> = ({
           </div>
           
           <div className="flex items-center gap-2">
-            {/* Mobile dot indicators */}
             <div className="flex gap-1 mr-4 lg:hidden">
               {featuredGames.map((_, index) => (
                 <button
@@ -174,14 +152,11 @@ const OptimizedFeaturedGamesCarousel: React.FC<FeaturedGamesCarouselProps> = ({
               ))}
             </div>
             
-            {/* Navigation arrows */}
             <button
               onClick={() => handleScroll('left')}
               disabled={!carouselState.canScrollLeft}
               className={`btn btn-sm rounded-full transition-all hover-lift ${
-                carouselState.canScrollLeft 
-                  ? 'bg-white/20 hover:bg-white/30 text-white' 
-                  : 'bg-white/5 text-white/30 cursor-not-allowed'
+                carouselState.canScrollLeft ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-white/5 text-white/30 cursor-not-allowed'
               }`}
               aria-label="Previous games"
             >
@@ -191,9 +166,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<FeaturedGamesCarouselProps> = ({
               onClick={() => handleScroll('right')}
               disabled={!carouselState.canScrollRight}
               className={`btn btn-sm rounded-full transition-all hover-lift ${
-                carouselState.canScrollRight 
-                  ? 'bg-white/20 hover:bg-white/30 text-white' 
-                  : 'bg-white/5 text-white/30 cursor-not-allowed'
+                carouselState.canScrollRight ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-white/5 text-white/30 cursor-not-allowed'
               }`}
               aria-label="Next games"
             >
@@ -202,22 +175,18 @@ const OptimizedFeaturedGamesCarousel: React.FC<FeaturedGamesCarouselProps> = ({
           </div>
         </div>
 
-        {/* Games carousel */}
         <div
           ref={scrollRef}
           className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth pb-4"
-          style={{ 
-            scrollSnapType: 'x mandatory',
-            WebkitOverflowScrolling: 'touch'
-          }}
+          style={{ scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}
           role="region"
           aria-label="Featured games carousel"
         >
-          {featuredGames.map((fixture, index) => {
-            const { date, time } = formatDate(fixture.dateTime);
+          {featuredGames.map((fixture) => {
+            const { date, time } = fixture.dateTime ? formatDate(fixture.dateTime) : { date: 'TBD', time: 'TBD' };
             const isLive = fixture.status === 'live';
             const isBigMatch = fixture.isBigMatch;
-            
+
             return (
               <div
                 key={fixture.id}
@@ -232,9 +201,8 @@ const OptimizedFeaturedGamesCarousel: React.FC<FeaturedGamesCarouselProps> = ({
                     onGameSelect(fixture);
                   }
                 }}
-                aria-label={`${fixture.homeTeam.name} vs ${fixture.awayTeam.name} on ${date} at ${time}`}
+                aria-label={`${fixture.homeTeam?.name ?? 'Team'} vs ${fixture.awayTeam?.name ?? 'Team'} on ${date} at ${time}`}
               >
-                {/* Live indicator or big match badge */}
                 <div className="relative">
                   {isLive ? (
                     <div className="bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-t-xl flex items-center">
@@ -248,66 +216,58 @@ const OptimizedFeaturedGamesCarousel: React.FC<FeaturedGamesCarouselProps> = ({
                     </div>
                   ) : null}
                 </div>
-                
+
                 <div className="p-5 text-gray-900">
-                  {/* Competition header */}
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center">
                       <img 
-                        src={fixture.competition.logo} 
-                        alt={fixture.competition.name}
+                        src={fixture.competition?.logo ?? ''} 
+                        alt={fixture.competition?.name ?? 'Competition'}
                         className="w-5 h-5 rounded mr-2"
                         loading="lazy"
                       />
                       <span className="text-sm font-medium text-gray-600">
-                        {fixture.competition.shortName}
+                        {fixture.competition?.shortName ?? 'Comp'}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="badge badge-sm badge-secondary">
-                        Week {fixture.matchWeek || 'TBD'}
+                        Week {fixture.matchWeek ?? 'TBD'}
                       </span>
                       {fixture.importanceScore && fixture.importanceScore >= 8 && (
-                        <span className="badge badge-sm badge-warning">
-                          🔥 Hot
-                        </span>
+                        <span className="badge badge-sm badge-warning">🔥 Hot</span>
                       )}
                     </div>
                   </div>
 
-                  {/* Teams section */}
                   <div className="mb-4">
-                    {/* Home team */}
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center flex-1">
                         <img 
-                          src={fixture.homeTeam.logo} 
-                          alt={fixture.homeTeam.name}
+                          src={fixture.homeTeam?.logo ?? ''} 
+                          alt={fixture.homeTeam?.name ?? 'Home Team'}
                           className="team-logo mr-3"
                           loading="lazy"
                         />
                         <div className="flex-1 min-w-0">
                           <div className="font-semibold text-sm truncate">
-                            {fixture.homeTeam.shortName}
+                            {fixture.homeTeam?.shortName ?? 'Home'}
                           </div>
                           <div className="text-xs text-gray-500">
-                            #{fixture.homeTeam.position}
+                            #{fixture.homeTeam?.position ?? '-'}
                           </div>
                         </div>
                       </div>
-                      {renderFormIndicators(fixture.homeTeam.form)}
+                      {renderFormIndicators(fixture.homeTeam?.form)}
                     </div>
 
-                    {/* Score or VS indicator */}
                     <div className="flex items-center justify-center py-2">
                       {isLive ? (
                         <div className="text-center">
                           <div className="text-2xl font-bold text-gray-900 font-mono">
-                            {fixture.homeScore} - {fixture.awayScore}
+                            {fixture.homeScore ?? 0} - {fixture.awayScore ?? 0}
                           </div>
-                          <div className="text-xs text-red-500 font-medium">
-                            {time}
-                          </div>
+                          <div className="text-xs text-red-500 font-medium">{time}</div>
                         </div>
                       ) : (
                         <div className="px-3 py-1 bg-gradient-primary rounded-full">
@@ -316,29 +276,27 @@ const OptimizedFeaturedGamesCarousel: React.FC<FeaturedGamesCarouselProps> = ({
                       )}
                     </div>
 
-                    {/* Away team */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center flex-1">
                         <img 
-                          src={fixture.awayTeam.logo} 
-                          alt={fixture.awayTeam.name}
+                          src={fixture.awayTeam?.logo ?? ''} 
+                          alt={fixture.awayTeam?.name ?? 'Away Team'}
                           className="team-logo mr-3"
                           loading="lazy"
                         />
                         <div className="flex-1 min-w-0">
                           <div className="font-semibold text-sm truncate">
-                            {fixture.awayTeam.shortName}
+                            {fixture.awayTeam?.shortName ?? 'Away'}
                           </div>
                           <div className="text-xs text-gray-500">
-                            #{fixture.awayTeam.position}
+                            #{fixture.awayTeam?.position ?? '-'}
                           </div>
                         </div>
                       </div>
-                      {renderFormIndicators(fixture.awayTeam.form)}
+                      {renderFormIndicators(fixture.awayTeam?.form)}
                     </div>
                   </div>
 
-                  {/* Match details */}
                   <div className="space-y-2 text-xs text-gray-600 mb-4">
                     <div className="flex items-center">
                       <Calendar className="w-3 h-3 mr-2 flex-shrink-0" />
@@ -352,15 +310,14 @@ const OptimizedFeaturedGamesCarousel: React.FC<FeaturedGamesCarouselProps> = ({
                     )}
                     <div className="flex items-center">
                       <MapPin className="w-3 h-3 mr-2 flex-shrink-0" />
-                      <span className="truncate">{fixture.venue}</span>
+                      <span className="truncate">{fixture.venue ?? ''}</span>
                     </div>
-                    
-                    {/* Match tags */}
-                    {fixture.tags && fixture.tags.length > 0 && (
+
+                    {fixture.tags?.length > 0 && (
                       <div className="flex flex-wrap gap-1 pt-1">
-                        {fixture.tags.slice(0, 2).map((tag, tagIndex) => (
+                        {fixture.tags.slice(0, 2).map((tag, i) => (
                           <span
-                            key={tagIndex}
+                            key={i}
                             className="inline-block bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs font-medium"
                           >
                             {tag.replace('-', ' ')}
@@ -370,7 +327,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<FeaturedGamesCarouselProps> = ({
                     )}
                   </div>
 
-                  {/* AI Insight */}
                   {fixture.aiInsight && (
                     <div className="ai-insight-card border-teal-400 bg-gradient-to-r from-teal-50 to-transparent">
                       <div className="flex items-start space-x-3">
@@ -395,8 +351,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<FeaturedGamesCarouselProps> = ({
                           <p className="text-xs text-teal-800 leading-relaxed">
                             {fixture.aiInsight.description}
                           </p>
-                          
-                          {/* Action button */}
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -411,7 +365,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<FeaturedGamesCarouselProps> = ({
                     </div>
                   )}
 
-                  {/* Importance indicator for development */}
                   {process.env.NODE_ENV === 'development' && fixture.importanceScore && (
                     <div className="mt-2 text-xs text-gray-400">
                       Importance: {fixture.importanceScore}/10
@@ -423,7 +376,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<FeaturedGamesCarouselProps> = ({
           })}
         </div>
 
-        {/* Empty state */}
         {featuredGames.length === 0 && !isLoading && (
           <div className="text-center py-12 animate-fade-in">
             <div className="text-white/60 mb-4">
@@ -433,16 +385,10 @@ const OptimizedFeaturedGamesCarousel: React.FC<FeaturedGamesCarouselProps> = ({
             <p className="text-white/70 mb-6">
               Check back later for upcoming matches and live games.
             </p>
-            <button
-              onClick={refreshData}
-              className="btn btn-primary"
-            >
-              Refresh Games
-            </button>
+            <button onClick={refreshData} className="btn btn-primary">Refresh Games</button>
           </div>
         )}
 
-        {/* Accessibility info for screen readers */}
         <div className="sr-only" aria-live="polite" aria-atomic="true">
           {featuredGames.length > 0 && (
             `Showing ${featuredGames.length} featured games. 
