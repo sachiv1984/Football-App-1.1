@@ -1,96 +1,54 @@
-// src/mocks/mockData.ts
+import { Team, FeaturedFixtureWithImportance, AIInsight } from '../types';
 
-import {
-  Team,
-  Competition,
-  Game,
-  FeaturedFixtureWithImportance,
-  AIInsight,
-} from '../types';
-
-// -------------------------
-// Teams
-// -------------------------
-export const teams: Team[] = [
-  {
-    id: 1,
-    name: 'Manchester United',
-    shortName: 'MANU',
-    logo: undefined,
-    colors: { primary: '#DA291C', secondary: '#FBE122' },
-    form: ['W', 'D', 'L'],
-    position: 1,
-  },
-  {
-    id: 2,
-    name: 'Liverpool',
-    shortName: 'LIV',
-    logo: undefined,
-    colors: { primary: '#C8102E', secondary: '#00B2A9' },
-    form: ['L', 'W', 'W'],
-    position: 2,
-  },
+export const mockTeams: Team[] = [
+  { id: 1, name: 'Team A', shortName: 'A', colors: { primary: '#ff0000' } },
+  { id: 2, name: 'Team B', shortName: 'B', colors: { primary: '#0000ff' } },
+  { id: 3, name: 'Team C', shortName: 'C', colors: { primary: '#00ff00' } },
+  { id: 4, name: 'Team D', shortName: 'D', colors: { primary: '#ffff00' } },
 ];
 
-// -------------------------
-// Competitions
-// -------------------------
-export const competitions: Competition[] = [
-  {
-    id: 'premier-league',
-    name: 'Premier League',
-    shortName: 'EPL',
-    country: 'England',
-    logo: undefined,
-  },
-];
+export const mockAIInsight: AIInsight = {
+  id: 'insight-1',
+  title: 'High Press Expected',
+  description: 'Team A tends to press high against Team B.',
+  confidence: 'high',
+  probability: 0.75,
+  market: 'Over/Under 2.5 Goals',
+  odds: '1.85',
+  supportingData: 'Team A has scored in 4/5 matches against Team B.',
+};
 
-// -------------------------
-// AI Insights
-// -------------------------
-export const aiInsights: AIInsight[] = [
+export const mockFeaturedGames: FeaturedFixtureWithImportance[] = [
   {
-    id: '1',
-    title: 'High Possession',
-    description: 'Home team has consistently dominated possession in last 5 matches.',
-    confidence: 'high',
-    probability: 0.85,
-    market: 'possession',
-    odds: '1.5',
-    supportingData: 'Average possession: 63%',
-  },
-];
-
-// -------------------------
-// Games / Fixtures
-// -------------------------
-export const games: Game[] = [
-  {
-    id: 1,
-    homeTeam: teams[0],
-    awayTeam: teams[1],
-    dateTime: new Date().toISOString(),
-    venue: 'Old Trafford',
-    matchWeek: 1,
-    isLive: false,
+    id: 101,
+    homeTeam: mockTeams[0],
+    awayTeam: mockTeams[1],
+    dateTime: '2025-08-30T18:00:00Z',
+    venue: 'Stadium X',
     importance: 5,
-    competition: competitions[0],
-    homeScore: 2,
-    awayScore: 1,
-    status: 'finished',
-    aiInsight: aiInsights[0],
-  },
-];
-
-// -------------------------
-// Featured Fixtures
-// -------------------------
-export const featuredFixtures: FeaturedFixtureWithImportance[] = [
-  {
-    ...games[0],
-    importanceScore: 5, // required
-    tags: ['top-six', 'derby'],
-    matchWeek: games[0].matchWeek ?? 1,
+    importanceScore: 80,
+    matchWeek: 3,
     isBigMatch: true,
+    tags: ['top-six', 'derby'],
+    aiInsight: mockAIInsight,
+  },
+  {
+    id: 102,
+    homeTeam: mockTeams[2],
+    awayTeam: mockTeams[3],
+    dateTime: '2025-08-31T20:00:00Z',
+    venue: 'Stadium Y',
+    importance: 4,
+    importanceScore: 65,
+    matchWeek: 3,
+    isBigMatch: false,
+    tags: ['relegation-battle'],
+    aiInsight: {
+      id: 'insight-2',
+      title: 'Low Scoring Game Expected',
+      description: 'Both teams have weak attacking records.',
+      confidence: 'medium',
+      probability: 0.6,
+    },
   },
 ];
