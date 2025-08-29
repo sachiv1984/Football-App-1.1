@@ -1,75 +1,79 @@
 // src/components/fixtures/FeaturedGamesCarousel/FeaturedGamesCarousel.types.ts
 import { FeaturedFixture } from '../../../types';
+import type { FeaturedGamesCarouselConfig } from './FeaturedGamesCarouselConfig.types';
 
-/**
- * Props for the FeaturedGamesCarousel component
- */
 export interface FeaturedGamesCarouselProps {
-  /** Array of fixture data to display; auto-selection used if empty */
-  fixtures?: FeaturedFixtureWithImportance[];
+  /**
+   * Array of fixture data to display
+   * If empty, component will use auto-selection logic
+   */
+  fixtures?: FeaturedFixture[];
   
-  /** Callback when a game card is clicked */
-  onGameSelect?: (fixture: FeaturedFixtureWithImportance) => void;
+  /**
+   * Callback when a game card is clicked/selected
+   */
+  onGameSelect?: (fixture: FeaturedFixture) => void;
   
-  /** Callback when "View Stats" is clicked */
-  onViewStats?: (fixture: FeaturedFixtureWithImportance) => void;
+  /**
+   * Callback when "View Stats" button is clicked
+   */
+  onViewStats?: (fixtureId: string) => void;
   
-  /** Enable automatic rotation of featured games */
+  /**
+   * Enable automatic rotation of featured games
+   * @default false
+   */
   autoRotate?: boolean;
   
-  /** Interval for auto-rotation in ms */
+  /**
+   * Interval for auto-rotation in milliseconds
+   * @default 5000
+   */
   rotateInterval?: number;
   
-  /** Additional CSS classes */
+  /**
+   * Additional CSS classes
+   */
   className?: string;
   
-  /** Maximum number of featured games to show */
+  /**
+   * Maximum number of featured games to show
+   * @default 4
+   */
   maxFeaturedGames?: number;
   
-  /** Configuration for automatic game selection logic */
-  selectionConfig?: GameSelectionConfig;
+  /**
+   * Configuration for game selection logic
+   */
+  selectionConfig?: FeaturedGamesCarouselConfig['selection'];
 }
 
-/**
- * Rules for selecting featured games
- */
 export interface GameSelectionConfig {
-  prioritizeLiveGames?: boolean;  // show live games first
-  includeNextWeekIfFew?: boolean; // pull next week's games if current week is light
-  minImportanceScore?: number;    // minimum importance score to feature
-  maxGames?: number;              // maximum games to feature
-  boostBigSixTeams?: boolean;     // boost matches with top teams
-  topTeamIds?: string[];          // IDs of "big" teams
+  prioritizeLiveGames?: boolean;
+  includeNextWeekIfFew?: boolean;
+  minImportanceScore?: number;
+  maxGames?: number;
+  boostBigSixTeams?: boolean;
+  topTeamIds?: string[];
 }
 
-/**
- * Extended fixture data for carousel, including app-specific info
- */
 export interface FeaturedFixtureWithImportance extends FeaturedFixture {
   importanceScore?: number;
   matchWeek?: number;
   isBigMatch?: boolean;
   tags?: MatchTag[];
-
-  // App-specific extras
-  kickoffTimeLocal?: string;
-  broadcastChannel?: string;
-  odds?: { home: number; draw: number; away: number };
-  referee?: string;
 }
 
-/** Types of special matches */
-export type MatchTag =
-  | 'derby'
-  | 'top-six'
-  | 'title-race'
-  | 'relegation-battle'
-  | 'european-qualification'
-  | 'cup-final'
-  | 'season-opener'
+export type MatchTag = 
+  | 'derby' 
+  | 'top-six' 
+  | 'title-race' 
+  | 'relegation-battle' 
+  | 'european-qualification' 
+  | 'cup-final' 
+  | 'season-opener' 
   | 'season-finale';
 
-/** Carousel state for UI */
 export interface CarouselState {
   currentIndex: number;
   canScrollLeft: boolean;
@@ -78,18 +82,9 @@ export interface CarouselState {
   isDragging: boolean;
 }
 
-/** Analytics callbacks */
-export interface CarouselAnalytics {
-  onGameCardView?: (fixture: FeaturedFixtureWithImportance, index: number) => void;
-  onGameCardClick?: (fixture: FeaturedFixtureWithImportance, index: number) => void;
-  onViewStatsClick?: (fixture: FeaturedFixtureWithImportance) => void;
-}
-
-/** Return type for the carousel hook */
 export interface UseCarouselReturn {
   featuredGames: FeaturedFixtureWithImportance[];
   isLoading: boolean;
-  isRefreshing: boolean;
   error: string | null;
   carouselState: CarouselState;
   scrollToIndex: (index: number) => void;
@@ -99,11 +94,10 @@ export interface UseCarouselReturn {
   refreshData: () => Promise<void>;
 }
 
-/** Configuration for data fetching */
 export interface DataFetchConfig {
   fixturesEndpoint?: string;
-  refreshInterval?: number; // ms
+  refreshInterval?: number;
   realTimeUpdates?: boolean;
   websocketEndpoint?: string;
-  cacheDuration?: number; // ms
+  cacheDuration?: number;
 }
