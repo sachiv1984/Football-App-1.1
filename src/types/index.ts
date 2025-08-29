@@ -2,21 +2,35 @@
 // Team & Competition
 // -------------------------
 export interface Team {
-  id?: number;
+  id: number; // required for selection and comparisons
   name: string;
   shortName: string;
-  logo?: string; // or badge
+  logo?: string;
   colors: { primary?: string; secondary?: string };
   form?: ('W' | 'D' | 'L')[];
   position?: number;
 }
 
 export interface Competition {
-  id?: string;
+  id: string; // required
   name: string;
   shortName?: string;
   logo?: string;
   country?: string;
+}
+
+// -------------------------
+// AI Insight
+// -------------------------
+export interface AIInsight {
+  id: string;
+  title: string;
+  description: string;
+  confidence: 'high' | 'medium' | 'low';
+  probability: number;
+  market?: string;
+  odds?: string;
+  supportingData?: string;
 }
 
 // -------------------------
@@ -31,23 +45,23 @@ export interface Game {
   matchWeek?: number;
   isLive?: boolean;
   isPostponed?: boolean;
-  importance?: number; // used for FeaturedFixture
-  competition?: Competition | string;
+  importance?: number; // for FeaturedFixture
+  competition: Competition; // always an object
   homeScore?: number;
   awayScore?: number;
   status?: 'scheduled' | 'live' | 'finished' | 'postponed';
-  aiInsight?: AIInsight; // add AI insight to Game
+  aiInsight?: AIInsight;
 }
 
-// Alias for existing components
+// Alias
 export type Fixture = Game;
 
 export interface FeaturedFixtureWithImportance extends Game {
-  importance: number; // force importance to exist
-  importanceScore?: number; // used in hook for calculation
-  tags?: string[];
-  matchWeek?: number;
-  isBigMatch?: boolean;
+  importance: number; // always exists
+  importanceScore: number; // used for calculations
+  tags: string[];
+  matchWeek: number;
+  isBigMatch: boolean;
 }
 
 export type FeaturedFixture = FeaturedFixtureWithImportance;
@@ -76,7 +90,7 @@ export interface MatchStats {
 }
 
 export interface LeagueTableRow {
-  position?: number;
+  position: number;
   team: Team;
   played?: number;
   won?: number;
@@ -86,22 +100,8 @@ export interface LeagueTableRow {
   goalsAgainst?: number;
   goalDifference?: number;
   points?: number;
-  form?: ('W' | 'D' | 'L')[];
+  form: ('W' | 'D' | 'L')[];
   lastUpdated?: string;
-}
-
-// -------------------------
-// AI Insight
-// -------------------------
-export interface AIInsight {
-  id: string;
-  title: string;
-  description: string;
-  confidence: 'high' | 'medium' | 'low';
-  probability: number;
-  market?: string;
-  odds?: string;
-  supportingData?: string;
 }
 
 // -------------------------
@@ -112,7 +112,7 @@ export interface GameSelectionConfig {
   includeNextWeekIfFew?: boolean;
   minImportanceScore?: number;
   maxGames?: number;
-  topTeamIds?: number[]; // should match team IDs
+  topTeamIds?: number[];
   boostBigSixTeams?: boolean;
 }
 
@@ -122,11 +122,11 @@ export interface DataFetchConfig {
 }
 
 export interface CarouselState {
-  currentIndex?: number;
-  canScrollLeft?: boolean;
-  canScrollRight?: boolean;
-  isAutoRotating?: boolean;
-  isDragging?: boolean;
+  currentIndex: number;
+  canScrollLeft: boolean;
+  canScrollRight: boolean;
+  isAutoRotating: boolean;
+  isDragging: boolean;
 }
 
 export interface UseCarouselReturn {
@@ -137,10 +137,16 @@ export interface UseCarouselReturn {
   scrollToIndex: (index: number) => void;
   scrollLeft: () => void;
   scrollRight: () => void;
+  toggleAutoRotate: () => void; // added
   refreshData: () => void;
 }
 
 // -------------------------
 // Match Tags
 // -------------------------
-export type MatchTag = 'top-six' | 'derby' | 'title-race' | 'european-qualification' | 'relegation-battle';
+export type MatchTag =
+  | 'top-six'
+  | 'derby'
+  | 'title-race'
+  | 'european-qualification'
+  | 'relegation-battle';
