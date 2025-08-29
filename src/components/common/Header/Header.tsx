@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Menu, X, Search, Sun, Moon } from 'lucide-react';
-import styles from './Header.module.css';
+import styles from './Header/Header.module.css';
 
 interface HeaderProps {
   currentPath?: string;
