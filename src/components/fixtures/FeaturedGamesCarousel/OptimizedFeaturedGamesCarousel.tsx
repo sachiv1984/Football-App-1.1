@@ -1,7 +1,6 @@
 // src/components/fixtures/FeaturedGamesCarousel/OptimizedFeaturedGamesCarousel.tsx
 import React, { useRef, useEffect } from 'react';
 import { Calendar, Clock, MapPin, ChevronLeft, ChevronRight, Trophy, TrendingUp } from 'lucide-react';
-import { FeaturedFixture } from '../../../types';
 import { useFeaturedGamesCarousel } from '../../../hooks/useFeaturedGamesCarousel';
 import { FeaturedGamesCarouselProps } from './FeaturedGamesCarousel.types';
 
