@@ -42,21 +42,21 @@ const StatsTable: React.FC<StatsTableProps> = ({
             </tr>
             <StatRow
               statName="Shots on Target"
-              homeValue={homeTeamStats.shotsOnTarget}
-              awayValue={awayTeamStats.shotsOnTarget}
-              leagueAverage={leagueAverages.shotsOnTarget}
+              homeValue={homeTeamStats.shotsOnTarget ?? 0}
+              awayValue={awayTeamStats.shotsOnTarget ?? 0}
+              leagueAverage={leagueAverages.shotsOnTarget ?? 0}
             />
             <StatRow
               statName="Total Shots"
-              homeValue={homeTeamStats.totalShots}
-              awayValue={awayTeamStats.totalShots}
-              leagueAverage={leagueAverages.totalShots}
+              homeValue={homeTeamStats.totalShots ?? 0}
+              awayValue={awayTeamStats.totalShots ?? 0}
+              leagueAverage={leagueAverages.totalShots ?? 0}
             />
             <StatRow
               statName="Corners"
-              homeValue={homeTeamStats.corners}
-              awayValue={awayTeamStats.corners}
-              leagueAverage={leagueAverages.corners}
+              homeValue={homeTeamStats.corners ?? 0}
+              awayValue={awayTeamStats.corners ?? 0}
+              leagueAverage={leagueAverages.corners ?? 0}
             />
 
             {/* Possession Stats */}
@@ -67,16 +67,16 @@ const StatsTable: React.FC<StatsTableProps> = ({
             </tr>
             <StatRow
               statName="Possession"
-              homeValue={homeTeamStats.possession}
-              awayValue={awayTeamStats.possession}
-              leagueAverage={leagueAverages.possession}
+              homeValue={homeTeamStats.possession ?? 0}
+              awayValue={awayTeamStats.possession ?? 0}
+              leagueAverage={leagueAverages.possession ?? 0}
               unit="%"
             />
             <StatRow
               statName="Pass Accuracy"
-              homeValue={homeTeamStats.passAccuracy}
-              awayValue={awayTeamStats.passAccuracy}
-              leagueAverage={leagueAverages.passAccuracy}
+              homeValue={homeTeamStats.passAccuracy ?? 0}
+              awayValue={awayTeamStats.passAccuracy ?? 0}
+              leagueAverage={leagueAverages.passAccuracy ?? 0}
               unit="%"
             />
 
@@ -88,30 +88,30 @@ const StatsTable: React.FC<StatsTableProps> = ({
             </tr>
             <StatRow
               statName="Fouls"
-              homeValue={homeTeamStats.fouls}
-              awayValue={awayTeamStats.fouls}
-              leagueAverage={leagueAverages.fouls}
+              homeValue={homeTeamStats.fouls ?? 0}
+              awayValue={awayTeamStats.fouls ?? 0}
+              leagueAverage={leagueAverages.fouls ?? 0}
               reverseComparison={true}
             />
             <StatRow
               statName="Yellow Cards"
-              homeValue={homeTeamStats.yellowCards}
-              awayValue={awayTeamStats.yellowCards}
-              leagueAverage={leagueAverages.yellowCards}
+              homeValue={homeTeamStats.yellowCards ?? 0}
+              awayValue={awayTeamStats.yellowCards ?? 0}
+              leagueAverage={leagueAverages.yellowCards ?? 0}
               reverseComparison={true}
             />
             <StatRow
               statName="Red Cards"
-              homeValue={homeTeamStats.redCards}
-              awayValue={awayTeamStats.redCards}
-              leagueAverage={leagueAverages.redCards}
+              homeValue={homeTeamStats.redCards ?? 0}
+              awayValue={awayTeamStats.redCards ?? 0}
+              leagueAverage={leagueAverages.redCards ?? 0}
               reverseComparison={true}
             />
             <StatRow
               statName="Offsides"
-              homeValue={homeTeamStats.offsides}
-              awayValue={awayTeamStats.offsides}
-              leagueAverage={leagueAverages.offsides}
+              homeValue={homeTeamStats.offsides ?? 0}
+              awayValue={awayTeamStats.offsides ?? 0}
+              leagueAverage={leagueAverages.offsides ?? 0}
               reverseComparison={true}
             />
           </tbody>
