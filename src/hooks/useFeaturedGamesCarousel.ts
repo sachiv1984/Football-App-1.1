@@ -1,5 +1,5 @@
 // src/hooks/useFeaturedGamesCarousel.ts
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { 
   FeaturedFixture, 
   FeaturedFixtureWithImportance,
@@ -44,8 +44,8 @@ export const useFeaturedGamesCarousel = ({
   const refreshIntervalRef = useRef<NodeJS.Timeout>();
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   
-  // Configuration with defaults
-  const selectionConfig: GameSelectionConfig = {
+  // Configuration with defaults - wrapped in useMemo to prevent re-creation
+  const selectionConfig: GameSelectionConfig = useMemo(() => ({
     prioritizeLiveGames: true,
     includeNextWeekIfFew: true,
     minImportanceScore: 0,
@@ -53,14 +53,14 @@ export const useFeaturedGamesCarousel = ({
     boostBigSixTeams: true,
     topTeamIds: ['liverpool', 'man-city', 'arsenal', 'chelsea', 'man-utd', 'tottenham'],
     ...config.selection
-  };
+  }), [config.selection]);
   
-  const dataConfig: DataFetchConfig = {
+  const dataConfig: DataFetchConfig = useMemo(() => ({
     refreshInterval: 30000,
     realTimeUpdates: false,
     cacheDuration: 300000,
     ...config.data
-  };
+  }), [config.data]);
 
   /**
    * Calculate match week from date
@@ -324,23 +324,6 @@ export const useFeaturedGamesCarousel = ({
     setCarouselState(prev => ({
       ...prev,
       isAutoRotating: !prev.isAutoRotating
-    }));
-  }, []);
-
-  /**
-   * Update scroll buttons state
-   */
-  const updateScrollState = useCallback(() => {
-    if (!scrollContainerRef.current) return;
-    
-    const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
-    const canScrollLeft = scrollLeft > 10;
-    const canScrollRight = scrollLeft < scrollWidth - clientWidth - 10;
-    
-    setCarouselState(prev => ({
-      ...prev,
-      canScrollLeft,
-      canScrollRight
     }));
   }, []);
 
