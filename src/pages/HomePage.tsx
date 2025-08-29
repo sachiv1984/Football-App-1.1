@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import Header from '../components/common/Header/Header';
 import Footer from '../components/common/Footer/Footer';
-import HeroSection from '../components/fixtures/HeroSection/HeroSection';
+// import HeroSection from '../components/fixtures/HeroSection/HeroSection';
 import TabNavigation from '../components/common/TabNavigation/TabNavigation';
 import FixturesList from '../components/fixtures/FixturesList/FixturesList';
 import LeagueTable from '../components/league/LeagueTable/LeagueTable';
@@ -110,15 +110,15 @@ const fixtures: Fixture[] = [
 ];
 
 // Featured Fixture - explicitly typed as FeaturedFixture
-const featuredFixture: FeaturedFixture = {
-  ...fixtures[0],
-  aiInsight: fixtures[0].aiInsight ? {
-    title: fixtures[0].aiInsight.title,
-    description: fixtures[0].aiInsight.description,
-    confidence: fixtures[0].aiInsight.confidence,
-    probability: fixtures[0].aiInsight.probability,
-  } : undefined
-};
+//const featuredFixture: FeaturedFixture = {
+  //...fixtures[0],
+  //aiInsight: fixtures[0].aiInsight ? {
+    //title: fixtures[0].aiInsight.title,
+    //description: fixtures[0].aiInsight.description,
+    //confidence: fixtures[0].aiInsight.confidence,
+    //probability: fixtures[0].aiInsight.probability,
+  //} : undefined
+//};
 
 // AI Insights
 const insights: AIInsight[] = [
