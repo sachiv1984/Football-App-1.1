@@ -1,114 +1,123 @@
-l// src/components/fixtures/FeaturedGamesCarousel/OptimizedFeaturedGamesCarousel.tsx
-import React, { useEffect, useRef, useState, useCallback } from 'react';
-import type { FeaturedGamesCarouselProps, FeaturedFixtureWithImportance, CarouselState } from './FeaturedGamesCarousel.types';
-import type { FeaturedGamesCarouselConfig } from './FeaturedGamesCarouselConfig.types';
-import './FeaturedGamesCarousel.css'; // assuming you have a CSS file
+// src/components/fixtures/FeaturedGamesCarousel/OptimizedFeaturedGamesCarousel.tsx
+import React, { useEffect, useState, useCallback } from 'react';
+import { FeaturedGamesCarouselProps, FeaturedFixtureWithImportance, UseCarouselReturn } from './FeaturedGamesCarousel.types';
+import { FeaturedGamesCarouselConfig } from './FeaturedGamesCarouselConfig.types';
 
-export const OptimizedFeaturedGamesCarousel: React.FC<FeaturedGamesCarouselProps> = ({
-  fixtures,
+interface OptimizedFeaturedGamesCarouselProps extends FeaturedGamesCarouselProps {
+  config?: FeaturedGamesCarouselConfig;
+}
+
+const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselProps> = ({
+  fixtures = [],
   onGameSelect,
   onViewStats,
   autoRotate = false,
   rotateInterval = 5000,
-  className = '',
+  className,
   maxFeaturedGames = 4,
   selectionConfig,
+  config,
 }) => {
-  const [featuredGames, setFeaturedGames] = useState<FeaturedFixtureWithImportance[]>([]);
-  const [carouselState, setCarouselState] = useState<CarouselState>({
-    currentIndex: 0,
-    canScrollLeft: false,
-    canScrollRight: false,
-    isAutoRotating: autoRotate,
-    isDragging: false,
-  });
-  const carouselRef = useRef<HTMLDivElement>(null);
-  const intervalRef = useRef<NodeJS.Timer | null>(null);
+  const [featuredGames, setFeaturedGames] = useState<FeaturedFixtureWithImportance[]>(fixtures);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isAutoRotating, setIsAutoRotating] = useState(autoRotate);
 
-  // Initialize featured games
-  useEffect(() => {
-    if (fixtures && fixtures.length > 0) {
-      setFeaturedGames(fixtures.slice(0, maxFeaturedGames));
-    } else {
-      // Auto-selection logic could go here
-      setFeaturedGames([]);
-    }
-  }, [fixtures, maxFeaturedGames]);
+  // Scroll functions
+  const scrollLeft = useCallback(() => {
+    setCurrentIndex(prev => Math.max(prev - 1, 0));
+  }, []);
 
-  // Auto-rotate logic
-  useEffect(() => {
-    if (carouselState.isAutoRotating) {
-      intervalRef.current = setInterval(() => {
-        scrollRight();
-      }, rotateInterval);
-    }
+  const scrollRight = useCallback(() => {
+    setCurrentIndex(prev => Math.min(prev + 1, featuredGames.length - 1));
+  }, [featuredGames.length]);
 
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [carouselState.isAutoRotating, rotateInterval, featuredGames]);
-
-  const scrollToIndex = useCallback(
-    (index: number) => {
-      if (!carouselRef.current) return;
-      const clampedIndex = Math.max(0, Math.min(index, featuredGames.length - 1));
-      const card = carouselRef.current.children[clampedIndex] as HTMLElement;
-      if (card) {
-        card.scrollIntoView({ behavior: 'smooth', inline: 'center' });
-        setCarouselState((prev) => ({
-          ...prev,
-          currentIndex: clampedIndex,
-          canScrollLeft: clampedIndex > 0,
-          canScrollRight: clampedIndex < featuredGames.length - 1,
-        }));
-      }
-    },
-    [featuredGames.length]
-  );
-
-  const scrollLeft = () => scrollToIndex(carouselState.currentIndex - 1);
-  const scrollRight = () => scrollToIndex(carouselState.currentIndex + 1);
-  const toggleAutoRotate = () => setCarouselState((prev) => ({ ...prev, isAutoRotating: !prev.isAutoRotating }));
-
-  const handleGameClick = (fixture: FeaturedFixtureWithImportance) => {
-    onGameSelect?.(fixture);
+  const scrollToIndex = (index: number) => {
+    if (index >= 0 && index < featuredGames.length) setCurrentIndex(index);
   };
 
-  const handleViewStats = (fixtureId: string) => {
-    onViewStats?.(fixtureId);
+  const toggleAutoRotate = () => setIsAutoRotating(prev => !prev);
+
+  // Auto-rotate effect
+  useEffect(() => {
+    if (!isAutoRotating) return;
+    const interval = setInterval(() => {
+      scrollRight();
+    }, rotateInterval);
+
+    return () => clearInterval(interval);
+  }, [isAutoRotating, rotateInterval, scrollRight]);
+
+  // Refresh data placeholder
+  const refreshData = async () => {
+    // Implement your data fetching logic here if needed
   };
 
   return (
-    <div className={`featured-games-carousel ${className}`}>
-      <div className="carousel-controls">
-        <button onClick={scrollLeft} disabled={!carouselState.canScrollLeft}>
-          ‹
-        </button>
-        <button onClick={scrollRight} disabled={!carouselState.canScrollRight}>
-          ›
-        </button>
-        <button onClick={toggleAutoRotate}>
-          {carouselState.isAutoRotating ? 'Pause' : 'Play'}
-        </button>
-      </div>
-
-      <div className="carousel-container" ref={carouselRef}>
-        {featuredGames.map((game, index) => (
-          <div
-            key={game.id}
-            className={`game-card ${index === carouselState.currentIndex ? 'active' : ''}`}
-            onClick={() => handleGameClick(game)}
-          >
-            <div className="teams">
-              <span>{game.homeTeam.name}</span> vs <span>{game.awayTeam.name}</span>
-            </div>
-            <div className="info">
-              {game.isBigMatch && <span className="big-match">Big Match</span>}
-              <button onClick={() => handleViewStats(game.id)}>View Stats</button>
-            </div>
-          </div>
-        ))}
-      </div>
+    <div className={className}>
+      {/* Carousel UI goes here */}
+      {/* Example: */}
+      {featuredGames.map((game, index) => (
+        <div key={game.id} onClick={() => onGameSelect?.(game)}>
+          <div>{game.homeTeam.name} vs {game.awayTeam.name}</div>
+          <button onClick={() => onViewStats?.(game.id)}>View Stats</button>
+        </div>
+      ))}
     </div>
   );
 };
+
+export default OptimizedFeaturedGamesCarousel;
+
+// Hook return type
+export const useCarousel = (): UseCarouselReturn => {
+  const [featuredGames, setFeaturedGames] = useState<FeaturedFixtureWithImportance[]>([]);
+  const [carouselState, setCarouselState] = useState({
+    currentIndex: 0,
+    canScrollLeft: false,
+    canScrollRight: false,
+    isAutoRotating: false,
+    isDragging: false,
+  });
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const scrollToIndex = (index: number) => {
+    setCarouselState(prev => ({ ...prev, currentIndex: index }));
+  };
+
+  const scrollLeft = () => {
+    setCarouselState(prev => ({
+      ...prev,
+      currentIndex: Math.max(prev.currentIndex - 1, 0),
+    }));
+  };
+
+  const scrollRight = () => {
+    setCarouselState(prev => ({
+      ...prev,
+      currentIndex: Math.min(prev.currentIndex + 1, featuredGames.length - 1),
+    }));
+  };
+
+  const toggleAutoRotate = () => {
+    setCarouselState(prev => ({ ...prev, isAutoRotating: !prev.isAutoRotating }));
+  };
+
+  const refreshData = async () => {
+    // Fetch and update featuredGames here
+  };
+
+  return {
+    featuredGames,
+    isLoading,
+    error,
+    carouselState,
+    scrollToIndex,
+    scrollLeft,
+    scrollRight,
+    toggleAutoRotate,
+    refreshData,
+  };
+};
+
