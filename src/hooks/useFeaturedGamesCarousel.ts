@@ -6,15 +6,13 @@ import {
   CarouselState,
   UseCarouselReturn,
   MatchTag,
-  DataFetchConfig 
+  DataFetchConfig
 } from '../types';
+import { FeaturedGamesCarouselConfig } from '../components/fixtures/FeaturedGamesCarousel/FeaturedGamesCarouselConfig.types';
 
 interface UseFeaturedGamesCarouselProps {
   fixtures?: FeaturedFixture[];
-  config?: {
-    selection?: GameSelectionConfig;
-    data?: DataFetchConfig;
-  };
+  config?: FeaturedGamesCarouselConfig;
   autoRefresh?: boolean;
   rotateInterval?: number;
 }
@@ -71,24 +69,20 @@ export const useFeaturedGamesCarousel = ({
 
   const getMatchTags = useCallback((fixture: FeaturedFixture): MatchTag[] => {
     const tags: MatchTag[] = [];
-    const { homeTeam, awayTeam } = fixture;
     const topTeams = selectionConfig.topTeamIds || [];
-
+    const { homeTeam, awayTeam } = fixture;
     if (!homeTeam || !awayTeam) return tags;
 
-    // Top six clash
     if (topTeams.includes(homeTeam.id) && topTeams.includes(awayTeam.id)) tags.push('top-six');
 
-    // Derby logic
-    const londonTeams = ['arsenal', 'chelsea', 'tottenham', 'west-ham', 'fulham', 'brentford', 'crystal-palace'];
-    const manchesterTeams = ['man-city', 'man-utd'];
-    const liverpoolTeams = ['liverpool', 'everton'];
+    const londonTeams = ['arsenal','chelsea','tottenham','west-ham','fulham','brentford','crystal-palace'];
+    const manchesterTeams = ['man-city','man-utd'];
+    const liverpoolTeams = ['liverpool','everton'];
 
     if (londonTeams.includes(homeTeam.id) && londonTeams.includes(awayTeam.id)) tags.push('derby');
     else if (manchesterTeams.includes(homeTeam.id) && manchesterTeams.includes(awayTeam.id)) tags.push('derby');
     else if (liverpoolTeams.includes(homeTeam.id) && liverpoolTeams.includes(awayTeam.id)) tags.push('derby');
 
-    // Title race / European / Relegation
     if (homeTeam.position <= 4 && awayTeam.position <= 4) tags.push('title-race');
     if ((homeTeam.position >= 5 && homeTeam.position <= 7) || (awayTeam.position >= 5 && awayTeam.position <= 7)) tags.push('european-qualification');
     if (homeTeam.position >= 15 && awayTeam.position >= 15) tags.push('relegation-battle');
@@ -125,8 +119,7 @@ export const useFeaturedGamesCarousel = ({
     if (fixture.aiInsight?.confidence === 'high') importance += 1;
     if (fixture.aiInsight?.probability && fixture.aiInsight.probability > 0.8) importance += 1;
 
-    const matchDate = new Date(fixture.dateTime);
-    const daysUntilMatch = Math.ceil((matchDate.getTime() - new Date().getTime()) / (24 * 60 * 60 * 1000));
+    const daysUntilMatch = Math.ceil((new Date(fixture.dateTime).getTime() - new Date().getTime()) / (24*60*60*1000));
     if (daysUntilMatch <= 1) importance += 2;
     else if (daysUntilMatch <= 3) importance += 1;
 
@@ -155,7 +148,6 @@ export const useFeaturedGamesCarousel = ({
     const remainingSlots = selectionConfig.maxGames - selected.length;
     selected.push(...currentWeekGames.sort((a,b) => (b.importanceScore||0)-(a.importanceScore||0)).slice(0, remainingSlots));
 
-    // Fill remaining slots
     while (selected.length < selectionConfig.maxGames) {
       const remaining = fixturesWithImportance.filter(f => !selected.includes(f))
         .sort((a,b) => (b.importanceScore||0)-(a.importanceScore||0));
