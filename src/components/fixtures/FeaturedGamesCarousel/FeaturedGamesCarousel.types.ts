@@ -2,48 +2,13 @@ import { FeaturedFixture } from '../../../types';
 import type { FeaturedGamesCarouselConfig } from './FeaturedGamesCarouselConfig.types';
 
 export interface FeaturedGamesCarouselProps {
-  /**
-   * Array of fixture data to display
-   * If empty, component will use auto-selection logic
-   */
   fixtures?: FeaturedFixture[];
-  
-  /**
-   * Callback when a game card is clicked/selected
-   */
   onGameSelect?: (fixture: FeaturedFixture) => void;
-  
-  /**
-   * Callback when "View Stats" button is clicked
-   */
   onViewStats?: (fixtureId: string) => void;
-  
-  /**
-   * Enable automatic rotation of featured games
-   * @default false
-   */
   autoRotate?: boolean;
-  
-  /**
-   * Interval for auto-rotation in milliseconds
-   * @default 5000
-   */
   rotateInterval?: number;
-  
-  /**
-   * Additional CSS classes
-   */
   className?: string;
-  
-  /**
-   * Maximum number of featured games to show
-   * @default 4
-   */
   maxFeaturedGames?: number;
-  
-  /**
-   * Configuration for game selection logic
-   */
   selectionConfig?: FeaturedGamesCarouselConfig['selection'];
 }
 
@@ -57,15 +22,14 @@ export interface GameSelectionConfig {
 }
 
 /**
- * Updated interface to match main FeaturedFixtureWithImportance
- * - matchWeek is required
- * - tags is required
+ * Fixed interface to exactly match main FeaturedFixtureWithImportance
+ * All required fields are now mandatory
  */
 export interface FeaturedFixtureWithImportance extends FeaturedFixture {
   importanceScore: number;
-  matchWeek: number; // now required
-  isBigMatch?: boolean;
-  tags: string[]; // required to match main interface
+  matchWeek: number; // required
+  isBigMatch: boolean; // required
+  tags: string[]; // required
 }
 
 export type MatchTag = 
