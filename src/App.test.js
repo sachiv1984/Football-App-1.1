@@ -1,38 +1,33 @@
 import React from 'react';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import App from './App';
+import HomePage from './pages/HomePage'; // Adjust path as needed
 
-describe('Phase4VerificationTest', () => {
-    test('renders Phase 4: Verification Test heading', () => {
-        render(<App />);
-        
-        const headingElement = screen.getByText((content, element) => {
-            return (
-                element.tagName.toLowerCase().startsWith('h') &&
-                content.toLowerCase().includes('phase 4')
-            );
-        });
+describe('HomePage Render Test', () => {
+  test('renders HomePage without errors', () => {
+    render(<HomePage />);
+    
+    // Basic smoke test - check if key elements are present
+    expect(screen.getByText('FootballStats')).toBeInTheDocument();
+  });
 
-        expect(headingElement).toBeInTheDocument();
-    });
+  test('renders header navigation', () => {
+    render(<HomePage />);
+    
+    // Check if main navigation items are present
+    expect(screen.getByText('Fixtures')).toBeInTheDocument();
+    expect(screen.getByText('Teams')).toBeInTheDocument();
+    expect(screen.getByText('Player Stats')).toBeInTheDocument();
+    expect(screen.getByText('AI Insights')).toBeInTheDocument();
+  });
 
-    test('renders all Phase 4 verification checklist items', () => {
-        render(<App />);
-        
-        // Find the container holding your checklist items
-        const checklistContainer = screen.getByRole('main'); // Adjust if your structure differs
-        const buttons = within(checklistContainer).getAllByRole('button');
-
-        // Ensure at least one button exists (sanity check)
-        expect(buttons.length).toBeGreaterThan(0);
-
-        // Optionally: log button text for debugging
-        buttons.forEach(btn => console.log(btn.textContent));
-
-        // Check that each button has visible text
-        buttons.forEach(btn => {
-            expect(btn).toBeVisible();
-        });
-    });
+  test('renders main content sections', () => {
+    render(<HomePage />);
+    
+    // Check if tab navigation renders
+    expect(screen.getByRole('tablist')).toBeInTheDocument();
+    
+    // Check if footer renders
+    expect(screen.getByRole('contentinfo')).toBeInTheDocument();
+  });
 });
