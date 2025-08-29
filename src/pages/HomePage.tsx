@@ -9,6 +9,7 @@ import LeagueTable from '../components/league/LeagueTable/LeagueTable';
 import InsightsContainer from '../components/insights/AIInsightCard/InsightsContainer';
 import { designTokens } from '../styles/designTokens';
 import { AIInsight, Fixture, Team, LeagueTableRow, FeaturedFixture } from '../types';
+import OptimizedFeaturedGamesCarousel from './components/fixtures/FeaturedGamesCarousel/OptimizedFeaturedGamesCarousel';
 
 // Placeholder Teams
 const arsenal: Team = {
@@ -176,7 +177,18 @@ const HomePage: React.FC = () => {
      />
 
       {/* Hero Section */}
-      <HeroSection featuredFixture={featuredFixture} />
+     <OptimizedFeaturedGamesCarousel
+  fixtures={yourFixtures} // Optional - uses auto-selection if empty
+  onGameSelect={(fixture) => router.push(`/fixtures/${fixture.id}`)}
+  onViewStats={(id) => router.push(`/stats/${id}`)}
+  autoRotate={true}
+  maxFeaturedGames={4}
+  selectionConfig={{
+    prioritizeLiveGames: true,
+    boostBigSixTeams: true,
+    topTeamIds: ['liverpool', 'man-city', 'arsenal', 'chelsea', 'man-utd', 'tottenham']
+  }}
+/>
 
       {/* Tab Navigation */}
    <TabNavigation
