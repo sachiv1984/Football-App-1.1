@@ -187,3 +187,194 @@ export interface CarouselTheme {
    * Border radius for cards
    */
   cardBorderRadius?: string;
+}
+
+/**
+ * Analytics tracking interface
+ */
+export interface CarouselAnalytics {
+  /**
+   * Track when a game card is viewed
+   */
+  onGameCardView?: (fixture: FeaturedFixture, index: number) => void;
+  
+  /**
+   * Track when a game is selected/clicked
+   */
+  onGameCardClick?: (fixture: FeaturedFixture, index: number) => void;
+  
+  /**
+   * Track carousel interactions (scroll, navigation)
+   */
+  onCarouselInteraction?: (action: CarouselInteraction) => void;
+  
+  /**
+   * Track AI insight interactions
+   */
+  onAIInsightView?: (fixture: FeaturedFixture, insight: any) => void;
+}
+
+export interface CarouselInteraction {
+  type: 'scroll' | 'navigate' | 'auto-rotate' | 'manual-rotate';
+  direction?: 'left' | 'right';
+  fromIndex: number;
+  toIndex: number;
+  timestamp: number;
+}
+
+/**
+ * Accessibility configuration
+ */
+export interface AccessibilityConfig {
+  /**
+   * Enable keyboard navigation
+   * @default true
+   */
+  keyboardNavigation?: boolean;
+  
+  /**
+   * Enable screen reader announcements
+   * @default true
+   */
+  screenReaderAnnouncements?: boolean;
+  
+  /**
+   * Custom ARIA labels
+   */
+  ariaLabels?: {
+    carousel?: string;
+    previousButton?: string;
+    nextButton?: string;
+    gameCard?: (fixture: FeaturedFixture) => string;
+    liveIndicator?: string;
+    aiInsight?: string;
+  };
+  
+  /**
+   * Respect user's motion preferences
+   * @default true
+   */
+  respectMotionPreferences?: boolean;
+}
+
+/**
+ * Performance optimization configuration
+ */
+export interface PerformanceConfig {
+  /**
+   * Enable lazy loading for team logos
+   * @default true
+   */
+  lazyLoadImages?: boolean;
+  
+  /**
+   * Debounce scroll events (ms)
+   * @default 16
+   */
+  scrollDebounce?: number;
+  
+  /**
+   * Enable virtual scrolling for large datasets
+   * @default false
+   */
+  virtualScrolling?: boolean;
+  
+  /**
+   * Preload adjacent cards
+   * @default 1
+   */
+  preloadCount?: number;
+}
+
+/**
+ * Responsive breakpoint configuration
+ */
+export interface ResponsiveConfig {
+  /**
+   * Card width at different breakpoints
+   */
+  cardWidth?: {
+    mobile: number;
+    tablet: number;
+    desktop: number;
+  };
+  
+  /**
+   * Visible cards at different breakpoints
+   */
+  visibleCards?: {
+    mobile: number;
+    tablet: number;
+    desktop: number;
+  };
+  
+  /**
+   * Gap between cards at different breakpoints
+   */
+  gap?: {
+    mobile: number;
+    tablet: number;
+    desktop: number;
+  };
+}
+
+/**
+ * Complete configuration interface
+ */
+export interface FeaturedGamesCarouselConfig {
+  selection?: GameSelectionConfig;
+  scroll?: ScrollConfig;
+  theme?: CarouselTheme;
+  analytics?: CarouselAnalytics;
+  accessibility?: AccessibilityConfig;
+  performance?: PerformanceConfig;
+  responsive?: ResponsiveConfig;
+}
+
+/**
+ * Hook return type for carousel logic
+ */
+export interface UseCarouselReturn {
+  featuredGames: FeaturedFixtureWithImportance[];
+  isLoading: boolean;
+  error: string | null;
+  carouselState: CarouselState;
+  scrollToIndex: (index: number) => void;
+  scrollLeft: () => void;
+  scrollRight: () => void;
+  toggleAutoRotate: () => void;
+  refreshData: () => Promise<void>;
+}
+
+/**
+ * Data fetching interface
+ */
+export interface DataFetchConfig {
+  /**
+   * API endpoint for fixtures
+   */
+  fixturesEndpoint?: string;
+  
+  /**
+   * Refresh interval for live data (ms)
+   * @default 30000
+   */
+  refreshInterval?: number;
+  
+  /**
+   * Enable real-time updates via WebSocket
+   * @default false
+   */
+  realTimeUpdates?: boolean;
+  
+  /**
+   * WebSocket endpoint for live updates
+   */
+  websocketEndpoint?: string;
+  
+  /**
+   * Cache duration for fixture data (ms)
+   * @default 300000
+   */
+  cacheDuration?: number;
+}
