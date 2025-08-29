@@ -1,95 +1,56 @@
 // src/types/index.ts
+
 export interface Team {
-  id: string;
+  id?: number;
   name: string;
   shortName: string;
-  logo: string;
-  colors: { primary: string; secondary: string };
-  form: ('W' | 'D' | 'L')[];
-  position: number;
+  logo?: string; // rename badge/logo consistently
+  colors?: { primary?: string; secondary?: string };
 }
 
-export interface Competition {
-  id: string;
-  name: string;
-  shortName: string; // Added this missing property
-  logo: string;
-  country: string;
+// Use this for the main Game type
+export interface Game {
+  id: number;
+  homeTeam: Team;
+  awayTeam: Team;
+  dateTime: string; // unify date + kickoffTime
+  venue: string;
+  matchWeek?: number;
+  isLive?: boolean;
+  isPostponed?: boolean;
+  importance?: number;
+  competition?: string;
+  homeScore?: number;
+  awayScore?: number;
+  status?: 'scheduled' | 'live' | 'finished' | 'postponed';
 }
 
+// Configs for carousel logic
+export interface GameSelectionConfig {
+  prioritizeLiveGames?: boolean;
+  includeNextWeekIfFew?: boolean;
+  minImportanceScore?: number;
+  maxGames?: number;
+}
+
+export interface FeaturedFixtureWithImportance extends Game {
+  importance: number; // force importance to exist
+}
+
+// Placeholder types to fix the rest of your imports
+export interface CarouselState { /* define as needed */ }
+export interface UseCarouselReturn { /* define as needed */ }
+export interface MatchTag { /* define as needed */ }
+export interface DataFetchConfig { /* define as needed */ }
+
+// Optional AI insights if needed
 export interface AIInsight {
   id: string;
   title: string;
   description: string;
   confidence: 'high' | 'medium' | 'low';
-  probability: number; // Added this missing property
-  market: string;
-  odds: string;
+  probability: number;
+  market?: string;
+  odds?: string;
   supportingData?: string;
-}
-
-export interface Fixture {
-  id: string;
-  homeTeam: Team;
-  awayTeam: Team;
-  competition: Competition; // Now uses the full Competition interface
-  dateTime: string;
-  venue: string;
-  status: string;
-  homeScore: number;
-  awayScore: number;
-  aiInsight?: AIInsight;
-}
-
-export interface FeaturedFixture {
-  id: string;
-  homeTeam: Team;
-  awayTeam: Team;
-  competition: Competition;
-  dateTime: string;
-  venue: string;
-  status: string;
-  homeScore: number;
-  awayScore: number;
-  aiInsight?: {
-    title: string;
-    description: string;
-    confidence: 'high' | 'medium' | 'low';
-    probability: number;
-  };
-}
-
-export interface TeamStats {
-  shotsOnTarget: number;
-  totalShots: number;
-  corners: number;
-  fouls: number;
-  yellowCards: number;
-  redCards: number;
-  possession: number;
-  passAccuracy: number;
-  offsides: number;
-}
-
-export interface MatchStats {
-  fixtureId: string;
-  homeTeamStats: TeamStats;
-  awayTeamStats: TeamStats;
-  leagueAverages: TeamStats;
-  lastUpdated: string;
-}
-
-export interface LeagueTableRow {
-  position: number;
-  team: Team;
-  played: number;
-  won: number;
-  drawn: number;
-  lost: number;
-  goalsFor: number;
-  goalsAgainst: number;
-  goalDifference: number;
-  points: number;
-  form: ('W' | 'D' | 'L')[]; // Added missing property
-  lastUpdated: string; // Added missing property
 }
