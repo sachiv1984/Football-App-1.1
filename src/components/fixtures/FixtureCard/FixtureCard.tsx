@@ -38,14 +38,14 @@ const FixtureStatus: React.FC<FixtureStatusProps> = ({
       return (
         <div className="text-center">
           <Badge className="badge-error mb-2">LIVE</Badge>
-          <div className="match-score">{homeScore} - {awayScore}</div>
+          <div className="match-score">{homeScore ?? '-'} - {awayScore ?? '-'}</div>
         </div>
       );
     case 'finished':
       return (
         <div className="text-center">
           <Badge className="badge-secondary mb-2">FT</Badge>
-          <div className="match-score">{homeScore} - {awayScore}</div>
+          <div className="match-score">{homeScore ?? '-'} - {awayScore ?? '-'}</div>
         </div>
       );
     case 'postponed':
@@ -127,11 +127,11 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
       <div className="grid grid-cols-5 items-center gap-4">
         {/* Home Team */}
         <div className="col-span-2 flex flex-col items-center text-center">
-          {homeTeam.logo && <img src={homeTeam.logo} alt={homeTeam.name} className={`${logoSize} mb-2`} />}
+          <img src={homeTeam.logo} alt={homeTeam.name} className={`${logoSize} mb-2`} />
           <h4 className={`font-semibold ${textSize} text-gray-900 mb-1`}>
             {size === 'sm' ? homeTeam.shortName : homeTeam.name}
           </h4>
-          {size !== 'sm' && <TeamForm form={homeTeam.form} maxItems={3} />}
+          {size !== 'sm' && <TeamForm form={homeTeam.form ?? []} maxItems={3} />}
         </div>
 
         {/* Match Status/Score */}
@@ -146,11 +146,11 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
 
         {/* Away Team */}
         <div className="col-span-2 flex flex-col items-center text-center">
-          {awayTeam.logo && <img src={awayTeam.logo} alt={awayTeam.name} className={`${logoSize} mb-2`} />}
+          <img src={awayTeam.logo} alt={awayTeam.name} className={`${logoSize} mb-2`} />
           <h4 className={`font-semibold ${textSize} text-gray-900 mb-1`}>
             {size === 'sm' ? awayTeam.shortName : awayTeam.name}
           </h4>
-          {size !== 'sm' && <TeamForm form={awayTeam.form} maxItems={3} />}
+          {size !== 'sm' && <TeamForm form={awayTeam.form ?? []} maxItems={3} />}
         </div>
       </div>
 
