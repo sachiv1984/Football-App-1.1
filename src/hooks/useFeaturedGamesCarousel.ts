@@ -38,8 +38,8 @@ export const useFeaturedGamesCarousel = ({
   });
 
   const scrollRef = useRef<HTMLDivElement>(null);
-  const refreshIntervalRef = useRef<NodeJS.Timeout>();
-  const autoRotateRef = useRef<NodeJS.Timeout>();
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const autoRotateRef = useRef<NodeJS.Timeout | null>(null);
 
   // --- Configuration ---
   const selectionConfig: GameSelectionConfig = useMemo(() => ({
@@ -76,10 +76,8 @@ export const useFeaturedGamesCarousel = ({
 
     if (!homeTeam || !awayTeam) return tags;
 
-    // Top six clash
     if (topTeams.includes(homeTeam.id) && topTeams.includes(awayTeam.id)) tags.push('top-six');
 
-    // Derby logic
     const londonTeams = ['arsenal', 'chelsea', 'tottenham', 'west-ham', 'fulham', 'brentford', 'crystal-palace'];
     const manchesterTeams = ['man-city', 'man-utd'];
     const liverpoolTeams = ['liverpool', 'everton'];
@@ -88,7 +86,6 @@ export const useFeaturedGamesCarousel = ({
     else if (manchesterTeams.includes(homeTeam.id) && manchesterTeams.includes(awayTeam.id)) tags.push('derby');
     else if (liverpoolTeams.includes(homeTeam.id) && liverpoolTeams.includes(awayTeam.id)) tags.push('derby');
 
-    // Title race / European / Relegation
     if (homeTeam.position <= 4 && awayTeam.position <= 4) tags.push('title-race');
     if ((homeTeam.position >= 5 && homeTeam.position <= 7) || (awayTeam.position >= 5 && awayTeam.position <= 7)) tags.push('european-qualification');
     if (homeTeam.position >= 15 && awayTeam.position >= 15) tags.push('relegation-battle');
@@ -155,7 +152,6 @@ export const useFeaturedGamesCarousel = ({
     const remainingSlots = selectionConfig.maxGames - selected.length;
     selected.push(...currentWeekGames.sort((a,b) => (b.importanceScore||0)-(a.importanceScore||0)).slice(0, remainingSlots));
 
-    // Fill remaining slots
     while (selected.length < selectionConfig.maxGames) {
       const remaining = fixturesWithImportance.filter(f => !selected.includes(f))
         .sort((a,b) => (b.importanceScore||0)-(a.importanceScore||0));
@@ -208,9 +204,17 @@ export const useFeaturedGamesCarousel = ({
   // --- Auto-rotation ---
   useEffect(() => {
     if (!carouselState.isAutoRotating || featuredGames.length <= 1) return;
+
     autoRotateRef.current = setInterval(() => scrollRight(), rotateInterval);
-    return () => clearInterval(autoRotateRef.current);
+    return () => { if (autoRotateRef.current) clearInterval(autoRotateRef.current); };
   }, [carouselState.isAutoRotating, featuredGames.length, scrollRight, rotateInterval]);
+
+  // --- Pause auto-rotation on drag ---
+  useEffect(() => {
+    if (carouselState.isDragging && autoRotateRef.current) {
+      clearInterval(autoRotateRef.current);
+    }
+  }, [carouselState.isDragging]);
 
   // --- Initial load ---
   useEffect(() => { refreshData(); }, [refreshData]);
@@ -222,5 +226,16 @@ export const useFeaturedGamesCarousel = ({
     return () => { if (refreshIntervalRef.current) clearInterval(refreshIntervalRef.current); };
   }, [autoRefresh, dataConfig.refreshInterval, refreshData]);
 
-  return { featuredGames, isLoading, error, carouselState, scrollToIndex, scrollLeft, scrollRight, toggleAutoRotate, refreshData, scrollRef };
+  return { 
+    featuredGames, 
+    isLoading, 
+    error, 
+    carouselState, 
+    scrollToIndex, 
+    scrollLeft, 
+    scrollRight, 
+    toggleAutoRotate, 
+    refreshData, 
+    scrollRef 
+  };
 };
