@@ -1,13 +1,12 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { FeaturedFixtureWithImportance } from '../components/fixtures/FeaturedGamesCarousel/FeaturedGamesCarousel.types';
 import { GameSelectionConfig } from '../types';
 
 interface UseFeaturedGamesCarouselProps {
-  fixtures?: FeaturedFixtureWithImportance[];
+  fixtures: FeaturedFixtureWithImportance[];
   config?: { selection?: GameSelectionConfig };
   autoRefresh?: boolean;
   rotateInterval?: number;
-  maxFeaturedGames?: number;
 }
 
 interface CarouselState {
@@ -15,73 +14,44 @@ interface CarouselState {
 }
 
 export const useFeaturedGamesCarousel = ({
-  fixtures = [],
+  fixtures,
   config,
   autoRefresh = false,
   rotateInterval = 5000,
-  maxFeaturedGames,
 }: UseFeaturedGamesCarouselProps) => {
-  const [featuredGames, setFeaturedGames] = useState<FeaturedFixtureWithImportance[]>(fixtures);
   const [carouselState, setCarouselState] = useState<CarouselState>({ currentIndex: 0 });
-  const [isAutoRotating, setIsAutoRotating] = useState<boolean>(autoRefresh);
-  const intervalRef = useRef<NodeJS.Timer | null>(null);
-  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const autoRotateTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const nextSlide = useCallback(() => {
-    setCarouselState((prev) => ({
-      currentIndex: (prev.currentIndex + 1) % featuredGames.length,
+    setCarouselState(prev => ({
+      currentIndex: (prev.currentIndex + 1) % fixtures.length,
     }));
-  }, [featuredGames.length]);
+  }, [fixtures.length]);
 
-  const scrollToIndex = useCallback(
-    (index: number) => {
-      setCarouselState({ currentIndex: index });
-      if (scrollRef.current) {
-        scrollRef.current.scrollTo({
-          left: scrollRef.current.clientWidth * index,
-          behavior: 'smooth',
-        });
-      }
-
-      // Reset auto-rotation after manual scroll
-      if (isAutoRotating) {
-        clearInterval(intervalRef.current!);
-        intervalRef.current = setInterval(nextSlide, rotateInterval);
-      }
-    },
-    [isAutoRotating, nextSlide, rotateInterval]
-  );
-
-  const toggleAutoRotate = useCallback(() => {
-    setIsAutoRotating((prev) => !prev);
-  }, []);
-
-  const refreshData = useCallback(() => {
-    setFeaturedGames([...fixtures]);
-    setCarouselState({ currentIndex: 0 });
-  }, [fixtures]);
-
-  // Auto-rotate effect
-  useEffect(() => {
-    if (isAutoRotating) {
-      intervalRef.current = setInterval(nextSlide, rotateInterval);
-    } else if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
+  const scrollToIndex = useCallback((index: number) => {
+    setCarouselState({ currentIndex: index });
+    if (scrollRef.current) {
+      const child = scrollRef.current.children[index] as HTMLElement;
+      child?.scrollIntoView({ behavior: 'smooth', inline: 'center' });
     }
+    if (autoRefresh) {
+      if (autoRotateTimeout.current) clearTimeout(autoRotateTimeout.current);
+      autoRotateTimeout.current = setTimeout(nextSlide, rotateInterval);
+    }
+  }, [fixtures.length, autoRefresh, nextSlide, rotateInterval]);
 
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [isAutoRotating, nextSlide, rotateInterval]);
+  useEffect(() => {
+    if (autoRefresh) {
+      autoRotateTimeout.current = setTimeout(nextSlide, rotateInterval);
+      return () => autoRotateTimeout.current && clearTimeout(autoRotateTimeout.current);
+    }
+  }, [nextSlide, autoRefresh, rotateInterval]);
 
   return {
-    featuredGames: maxFeaturedGames ? featuredGames.slice(0, maxFeaturedGames) : featuredGames,
+    featuredGames: fixtures,
     carouselState,
-    scrollRef,
     scrollToIndex,
-    toggleAutoRotate,
-    refreshData,
-    isAutoRotating,
+    scrollRef,
   };
 };
