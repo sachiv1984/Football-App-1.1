@@ -1,5 +1,4 @@
-// src/components/fixtures/FeaturedGamesCarousel/OptimizedFeaturedGamesCarousel.tsx
-import React, { useRef, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { FeaturedFixtureWithImportance } from './FeaturedGamesCarousel.types';
 import { useFeaturedGamesCarousel } from '../../../hooks/useFeaturedGamesCarousel';
 import FixtureCard from '../FixtureCard/FixtureCard';
@@ -20,10 +19,12 @@ const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselPro
   const {
     featuredGames,
     carouselState,
-    // scrollToIndex,  <-- removed because it’s unused
-  } = useFeaturedGamesCarousel({ fixtures, rotateInterval });
-
-  const scrollRef = useRef<HTMLDivElement>(null);
+    scrollRef, // ✅ from hook
+  } = useFeaturedGamesCarousel({ 
+    fixtures, 
+    rotateInterval, 
+    autoRefresh: true // ✅ enable auto-rotate
+  });
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -32,7 +33,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselPro
         behavior: 'smooth',
       });
     }
-  }, [carouselState.currentIndex]);
+  }, [carouselState.currentIndex, scrollRef]);
 
   return (
     <div
@@ -50,7 +51,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselPro
           style={{ flex: '0 0 100%', scrollSnapAlign: 'center', padding: '0 0.5rem' }}
           onClick={() => onGameSelect(fixture)}
         >
-          < FixtureCard fixture={fixture} />
+          <FixtureCard fixture={fixture} />
         </div>
       ))}
     </div>
@@ -58,4 +59,3 @@ const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselPro
 };
 
 export default OptimizedFeaturedGamesCarousel;
-
