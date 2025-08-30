@@ -50,7 +50,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselPro
           style={{ flex: '0 0 100%', scrollSnapAlign: 'center', padding: '0 0.5rem' }}
           onClick={() => onGameSelect(fixture)}
         >
-          <GameCard fixture={fixture} />
+          < FixtureCard fixture={fixture} />
         </div>
       ))}
     </div>
