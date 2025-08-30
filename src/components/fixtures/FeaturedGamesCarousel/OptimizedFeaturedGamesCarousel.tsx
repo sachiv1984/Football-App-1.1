@@ -1,15 +1,12 @@
 // src/components/fixtures/FeaturedGamesCarousel/OptimizedFeaturedGamesCarousel.tsx
 import React, { useRef } from 'react';
-import { FeaturedGamesCarouselConfig } from './FeaturedGamesCarouselConfig.types';
-import { useFeaturedGamesCarousel } from '../../../hooks/useFeaturedGamesCarousel';
 import { FeaturedFixtureWithImportance } from './FeaturedGamesCarousel.types';
-import { GameSelectionConfig } from '../../../types';
+import { useFeaturedGamesCarousel } from '../../../hooks/useFeaturedGamesCarousel';
 import FixtureCard from '../FixtureCard/FixtureCard';
+import { GameSelectionConfig } from '../../../types';
 
 interface OptimizedFeaturedGamesCarouselProps {
   fixtures?: FeaturedFixtureWithImportance[];
-  config?: FeaturedGamesCarouselConfig;
-  autoRefresh?: boolean;
   rotateInterval?: number;
   className?: string;
   onGameSelect?: (fixture: FeaturedFixtureWithImportance) => void;
@@ -19,37 +16,28 @@ interface OptimizedFeaturedGamesCarouselProps {
 
 const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselProps> = ({
   fixtures = [],
-  config,
-  autoRefresh = false,
   rotateInterval = 5000,
   className = '',
   selectionConfig,
   onGameSelect,
   maxFeaturedGames,
 }) => {
-  // Expose scrollRef so parent can access if needed
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const {
     featuredGames,
-    isLoading,
-    error,
     carouselState,
     scrollToIndex,
     toggleAutoRotate,
     refreshData,
   } = useFeaturedGamesCarousel({
     fixtures,
-    config: { selection: selectionConfig || config?.selection },
-    autoRefresh,
+    config: { selection: selectionConfig },
     rotateInterval,
   });
 
-  // Limit number of displayed games if maxFeaturedGames is set
   const displayedGames = maxFeaturedGames ? featuredGames.slice(0, maxFeaturedGames) : featuredGames;
 
-  if (isLoading) return <div className={`carousel-loading ${className}`}>Loading...</div>;
-  if (error) return <div className={`carousel-error ${className}`}>Error: {error}</div>;
   if (!displayedGames.length) return <div className={`carousel-empty ${className}`}>No featured games</div>;
 
   return (
@@ -102,7 +90,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselPro
           className="px-3 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300"
           onClick={toggleAutoRotate}
         >
-          {carouselState.isAutoRotating ? 'Stop Auto-Rotate' : 'Start Auto-Rotate'}
+          Toggle Auto-Rotate
         </button>
         <button
           className="px-3 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300"
