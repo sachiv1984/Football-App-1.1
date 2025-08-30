@@ -1,4 +1,4 @@
-import { FeaturedFixture, Team } from '../../../types';
+import { FeaturedFixture } from '../../../types';
 import type { FeaturedGamesCarouselConfig } from './FeaturedGamesCarouselConfig.types';
 
 export interface FeaturedGamesCarouselProps {
@@ -21,7 +21,6 @@ export interface GameSelectionConfig {
   topTeamIds?: string[];
 }
 
-// Fixed: extend the main FeaturedFixture instead of redefining Team
 export interface FeaturedFixtureWithImportance extends FeaturedFixture {
   importanceScore: number;
   matchWeek: number;
