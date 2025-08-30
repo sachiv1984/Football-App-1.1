@@ -1,13 +1,13 @@
 // src/mocks/mockData.ts
 import { FeaturedFixtureWithImportance, Team, Competition, AIInsight } from "../types";
 
-// Competitions
-export const premierLeague: Competition = { id: 1, name: "Premier League" };
-export const championsLeague: Competition = { id: 2, name: "Champions League" };
+// Competitions - using string IDs
+export const premierLeague: Competition = { id: "pl", name: "Premier League" };
+export const championsLeague: Competition = { id: "ucl", name: "Champions League" };
 
-// Teams
+// Teams - using string IDs
 export const teamA: Team = {
-  id: 101,
+  id: "man-utd",
   name: "Manchester United",
   shortName: "Man Utd",
   colors: { primary: "#DA291C", secondary: "#FBE122" },
@@ -16,7 +16,7 @@ export const teamA: Team = {
 };
 
 export const teamB: Team = {
-  id: 102,
+  id: "liverpool",
   name: "Liverpool",
   shortName: "LIV",
   colors: { primary: "#C8102E", secondary: "#00B2A9" },
@@ -24,9 +24,9 @@ export const teamB: Team = {
   form: ["W", "W", "D", "L", "W"],
 };
 
-// AI Insights
+// AI Insights - using string IDs
 export const exampleAIInsight1: AIInsight = {
-  id: 1,
+  id: "insight-1",
   title: "Team A likely to win",
   description: "Based on recent form and position.",
   confidence: "high",
@@ -34,31 +34,31 @@ export const exampleAIInsight1: AIInsight = {
 };
 
 export const exampleAIInsight2: AIInsight = {
-  id: 2,
+  id: "insight-2",
   title: "Team B underperforming",
   description: "Has lost two away games recently.",
   confidence: "medium",
   probability: 0.65,
 };
 
-// Featured fixtures
+// Featured fixtures - using string IDs
 export const featuredFixtures: FeaturedFixtureWithImportance[] = [
   {
-    id: 1001,
+    id: "fixture-1001",
     competition: premierLeague,
     homeTeam: teamA,
     awayTeam: teamB,
     dateTime: "2025-09-01T15:00:00Z",
     venue: "Old Trafford",
     importance: 10,
-    importanceScore: 9, // required
+    importanceScore: 9,
     matchWeek: 5,
     isBigMatch: true,
-    tags: ["top-of-the-table", "rivalry"], // string[]
+    tags: ["top-of-the-table", "rivalry"],
     aiInsight: exampleAIInsight1,
   },
   {
-    id: 1002,
+    id: "fixture-1002",
     competition: premierLeague,
     homeTeam: teamB,
     awayTeam: teamA,
