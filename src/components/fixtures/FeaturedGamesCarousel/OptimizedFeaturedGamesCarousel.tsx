@@ -5,7 +5,7 @@ import { useFeaturedGamesCarousel } from '../../../hooks/useFeaturedGamesCarouse
 import { FeaturedFixtureWithImportance } from './FeaturedGamesCarousel.types';
 import { GameSelectionConfig } from '../../../types';
 
-// ✅ Import your design system components
+// ✅ Import design system components
 import FixtureCard from '../FixtureCard/FixtureCard';
 import Button from '../../common/Button/Button';
 
@@ -85,15 +85,36 @@ const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselPro
         {featuredGames.map((fixture, index) => (
           <div
             key={fixture.id}
-            className={`carousel-card min-w-[280px] snap-start ${carouselState.currentIndex === index ? 'scale-105' : ''}`}
+            className={`relative carousel-card min-w-[280px] snap-start ${
+              carouselState.currentIndex === index ? 'scale-105' : ''
+            }`}
             onClick={() => scrollToIndex(index)}
           >
+            {/* ✅ Fixture Card */}
             <FixtureCard
               fixture={fixture}
-              importance={fixture.importanceScore}
-              onSelect={() => onGameSelect?.(fixture)}
-              onViewStats={() => onViewStats?.(fixture.id)}
+              size="md"
+              showAIInsight={true}
+              showCompetition={true}
+              showVenue={false}
+              onClick={() => onGameSelect?.(fixture)}
             />
+
+            {/* ✅ View Stats Overlay Button */}
+            {onViewStats && (
+              <div className="absolute bottom-2 right-2">
+                <Button
+                  size="sm"
+                  variant="primary"
+                  onClick={(e) => {
+                    e.stopPropagation(); // prevent triggering card click
+                    onViewStats(fixture.id);
+                  }}
+                >
+                  View Stats
+                </Button>
+              </div>
+            )}
           </div>
         ))}
       </div>
