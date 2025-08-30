@@ -4,79 +4,67 @@ import type { FeaturedFixtureWithImportance } from './FeaturedGamesCarousel.type
 
 interface OptimizedFeaturedGamesCarouselProps {
   fixtures: FeaturedFixtureWithImportance[];
+  onGameSelect?: (fixture: FeaturedFixtureWithImportance) => void;
   autoRotate?: boolean;
   rotateInterval?: number;
   className?: string;
-  onGameSelect?: (fixture: FeaturedFixtureWithImportance) => void;
 }
 
 export const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselProps> = ({
   fixtures,
+  onGameSelect,
   autoRotate = true,
   rotateInterval = 5000,
-  className,
-  onGameSelect,
+  className = '',
 }) => {
-  const { containerRef, slides, currentIndex, realCount, goToNext, goToPrev, goToIndex } =
-    useFeaturedGamesCarousel({ fixtures, autoRotate, rotateInterval });
+  const {
+    containerRef,
+    slides,
+    currentIndex,
+    goToNext,
+    goToPrev,
+    goToIndex,
+  } = useFeaturedGamesCarousel({ fixtures, autoRotate, rotateInterval });
+
+  const handleDotClick = (index: number) => {
+    goToIndex(index);
+  };
 
   return (
-    <div className={className}>
-      {/* Carousel Container */}
-      <div
-        ref={containerRef}
-        style={{
-          display: 'flex',
-          overflowX: 'hidden',
-          scrollSnapType: 'x mandatory',
-        }}
-      >
+    <div className={`carousel-container ${className}`}>
+      <div className="carousel-wrapper" ref={containerRef}>
         {slides.map((fixture, idx) => (
           <div
-            key={idx}
-            style={{
-              minWidth: '100%',
-              scrollSnapAlign: 'start',
-              flexShrink: 0,
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}
+            key={`${fixture.id}-${idx}`}
+            className="carousel-slide"
             onClick={() => onGameSelect?.(fixture)}
           >
-            <div style={{ textAlign: 'center' }}>
-              <h4>
-                {fixture.homeTeam} vs {fixture.awayTeam}
-              </h4>
-              <p>Importance: {fixture.importanceScore}</p>
+            <div className="fixture-details">
+              <span>{fixture.homeTeam}</span> vs <span>{fixture.awayTeam}</span>
+              <div>{fixture.kickoff}</div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Navigation Buttons */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px' }}>
-        <button onClick={goToPrev}>Prev</button>
-        <button onClick={goToNext}>Next</button>
-      </div>
-
       {/* Dots */}
-      <div style={{ display: 'flex', justifyContent: 'center', marginTop: '10px' }}>
+      <div className="carousel-dots">
         {fixtures.map((_, idx) => (
           <button
             key={idx}
-            style={{
-              width: '10px',
-              height: '10px',
-              borderRadius: '50%',
-              margin: '0 5px',
-              background: idx === currentIndex ? '#000' : '#ccc',
-              border: 'none',
-            }}
-            onClick={() => goToIndex(idx)}
+            className={`dot ${currentIndex === idx ? 'active' : ''}`}
+            onClick={() => handleDotClick(idx)}
           />
         ))}
       </div>
+
+      {/* Optional controls */}
+      <button className="carousel-prev" onClick={goToPrev}>
+        ‹
+      </button>
+      <button className="carousel-next" onClick={goToNext}>
+        ›
+      </button>
     </div>
   );
 };
