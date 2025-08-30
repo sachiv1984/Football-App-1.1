@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { FeaturedFixtureWithImportance } from './FeaturedGamesCarousel.types';
+import { FeaturedFixtureWithImportance } from '../components/fixtures/FeaturedGamesCarousel/FeaturedGamesCarousel.types';
 import { useFeaturedGamesCarousel } from '../../../hooks/useFeaturedGamesCarousel';
 import FixtureCard from '../FixtureCard/FixtureCard';
 
