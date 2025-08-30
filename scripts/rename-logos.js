@@ -4,7 +4,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const logosDir = path.join(__dirname, "../public/images/club-logos");
+const logosDir = path.join(__dirname, "../public/Images/Club Logos");
 const outputFile = path.join(__dirname, "../src/utils/logoUtils.ts");
 
 // Helper: slugify team names for filenames
