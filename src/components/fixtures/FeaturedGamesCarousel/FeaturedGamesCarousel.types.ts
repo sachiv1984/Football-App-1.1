@@ -1,9 +1,17 @@
-import { FeaturedFixture } from '../../../types';
+import { FeaturedFixture, Team as BaseTeam } from '../../../types';
 import type { FeaturedGamesCarouselConfig } from './FeaturedGamesCarouselConfig.types';
 
+// Extend Team to include logoUrl, shortName, and colors
+export interface Team extends BaseTeam {
+  logoUrl: string;
+  shortName: string;
+  colors?: string[];
+}
+
+// Carousel props
 export interface FeaturedGamesCarouselProps {
-  fixtures?: FeaturedFixture[];
-  onGameSelect?: (fixture: FeaturedFixture) => void;
+  fixtures?: FeaturedFixtureWithImportance[];
+  onGameSelect?: (fixture: FeaturedFixtureWithImportance) => void;
   onViewStats?: (fixtureId: string) => void;
   autoRotate?: boolean;
   rotateInterval?: number;
@@ -21,11 +29,16 @@ export interface GameSelectionConfig {
   topTeamIds?: string[];
 }
 
+// Fixed type for FeaturedFixture with extra fields
 export interface FeaturedFixtureWithImportance extends FeaturedFixture {
   importanceScore: number;
   matchWeek: number;
   isBigMatch: boolean;
   tags: string[];
+  kickoff: string; // ISO string
+  date: string;    // Display string or date
+  homeTeam: Team;
+  awayTeam: Team;
 }
 
 export type MatchTag =
