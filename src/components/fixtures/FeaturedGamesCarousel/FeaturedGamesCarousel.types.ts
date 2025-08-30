@@ -18,28 +18,24 @@ export interface GameSelectionConfig {
   minImportanceScore?: number;
   maxGames?: number;
   boostBigSixTeams?: boolean;
-  topTeamIds?: string[]; // Changed from number[] to string[] to match main types
+  topTeamIds?: string[];
 }
 
-/**
- * Fixed interface to exactly match main FeaturedFixtureWithImportance
- * All required fields are now mandatory
- */
 export interface FeaturedFixtureWithImportance extends FeaturedFixture {
   importanceScore: number;
-  matchWeek: number; // required
-  isBigMatch: boolean; // required
-  tags: string[]; // required
+  matchWeek: number;
+  isBigMatch: boolean;
+  tags: string[];
 }
 
-export type MatchTag = 
-  | 'derby' 
-  | 'top-six' 
-  | 'title-race' 
-  | 'relegation-battle' 
-  | 'european-qualification' 
-  | 'cup-final' 
-  | 'season-opener' 
+export type MatchTag =
+  | 'derby'
+  | 'top-six'
+  | 'title-race'
+  | 'relegation-battle'
+  | 'european-qualification'
+  | 'cup-final'
+  | 'season-opener'
   | 'season-finale';
 
 export interface CarouselState {
