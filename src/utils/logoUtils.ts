@@ -1,43 +1,52 @@
 // src/utils/logoUtils.ts
 
-// Team name to logo filename mapping
+// Team name to exact logo filename mapping (matching your file structure)
 const TEAM_LOGO_MAP: Record<string, string> = {
-  // Premier League
-  'Arsenal': 'arsenal',
-  'Chelsea': 'chelsea', 
-  'Liverpool': 'liverpool',
-  'Manchester City': 'manchester_city',
-  'Manchester United': 'manchester_united',
-  'Tottenham Hotspur': 'tottenham',
-  'Newcastle United': 'newcastle',
-  'Brighton & Hove Albion': 'brighton',
-  'Aston Villa': 'aston_villa',
-  'West Ham United': 'west_ham',
-  'Crystal Palace': 'crystal_palace',
-  'Fulham': 'fulham',
-  'Brentford': 'brentford',
-  'Nottingham Forest': 'nottingham_forest',
-  'Everton': 'everton',
-  'Leicester City': 'leicester',
-  'Wolverhampton Wanderers': 'wolves',
-  'Bournemouth': 'bournemouth',
-  'Sheffield United': 'sheffield_united',
-  'Burnley': 'burnley',
-  
-  // Add more teams as needed
-  // You can also add by team ID if you prefer
-};
-
-// Alternative mapping by team ID (if your IDs are consistent)
-const TEAM_ID_LOGO_MAP: Record<string, string> = {
-  '1': 'arsenal',
-  '2': 'chelsea',
-  '3': 'liverpool',
-  // Add your team IDs here
+  // Premier League - exact matches to your filenames
+  'AFC Bournemouth': 'AFC Bournemouth',
+  'Bournemouth': 'AFC Bournemouth',
+  'Arsenal': 'Arsenal FC',
+  'Arsenal FC': 'Arsenal FC',
+  'Aston Villa': 'Aston Villa',
+  'Brentford': 'Brentford FC',
+  'Brentford FC': 'Brentford FC',
+  'Brighton & Hove Albion': 'Brighton & Hove Albion',
+  'Brighton': 'Brighton & Hove Albion',
+  'Burnley': 'Burnley FC',
+  'Burnley FC': 'Burnley FC',
+  'Chelsea': 'Chelsea FC',
+  'Chelsea FC': 'Chelsea FC',
+  'Crystal Palace': 'Crystal Palace',
+  'Everton': 'Everton FC',
+  'Everton FC': 'Everton FC',
+  'Fulham': 'Fulham FC',
+  'Fulham FC': 'Fulham FC',
+  'Leeds United': 'Leeds United',
+  'Leeds': 'Leeds United',
+  'Liverpool': 'Liverpool FC',
+  'Liverpool FC': 'Liverpool FC',
+  'Manchester City': 'Manchester City',
+  'Man City': 'Manchester City',
+  'Manchester United': 'Manchester United',
+  'Man United': 'Manchester United',
+  'Man Utd': 'Manchester United',
+  'Newcastle United': 'Newcastle United',
+  'Newcastle': 'Newcastle United',
+  'Nottingham Forest': 'Nottingham Forest',
+  'Nott\'m Forest': 'Nottingham Forest',
+  'Sunderland': 'Sunderland AFC',
+  'Sunderland AFC': 'Sunderland AFC',
+  'Tottenham Hotspur': 'Tottenham Hotspur',
+  'Tottenham': 'Tottenham Hotspur',
+  'Spurs': 'Tottenham Hotspur',
+  'West Ham United': 'West Ham United',
+  'West Ham': 'West Ham United',
+  'Wolverhampton Wanderers': 'Wolverhampton Wanderers',
+  'Wolves': 'Wolverhampton Wanderers',
 };
 
 /**
- * Get the logo path for a team
+ * Get the logo path for a team based on your exact file structure
  * @param teamName - Full team name
  * @param teamId - Team ID (optional)
  * @param shortName - Team short name (optional)
@@ -49,68 +58,48 @@ export const getTeamLogoPath = (
   shortName?: string
 ): string | null => {
   // Try exact team name match first
-  let logoName = TEAM_LOGO_MAP[teamName];
-  
-  // Try team ID mapping
-  if (!logoName && teamId) {
-    logoName = TEAM_ID_LOGO_MAP[teamId];
-  }
+  let logoFileName = TEAM_LOGO_MAP[teamName];
   
   // Try short name
-  if (!logoName && shortName) {
-    logoName = TEAM_LOGO_MAP[shortName];
+  if (!logoFileName && shortName) {
+    logoFileName = TEAM_LOGO_MAP[shortName];
   }
   
-  // Try fuzzy matching (normalize names)
-  if (!logoName) {
-    const normalizedName = teamName.toLowerCase()
-      .replace(/fc$|f\.c\.$/, '') // Remove FC suffix
-      .replace(/united$/, 'utd') // Normalize United
-      .replace(/\s+/g, '_') // Replace spaces with underscores
+  // Try fuzzy matching - remove common suffixes and normalize
+  if (!logoFileName) {
+    const normalizedName = teamName
+      .replace(/\s+(FC|AFC)$/i, '') // Remove FC/AFC suffix
+      .replace(/\s+United$/i, '') // Try without United
       .trim();
     
-    // Check if any mapped name matches our normalized name
-    const foundKey = Object.keys(TEAM_LOGO_MAP).find(key => 
-      key.toLowerCase().replace(/\s+/g, '_') === normalizedName
-    );
+    // Check direct match
+    logoFileName = TEAM_LOGO_MAP[normalizedName];
     
-    if (foundKey) {
-      logoName = TEAM_LOGO_MAP[foundKey];
+    // Try adding FC
+    if (!logoFileName) {
+      logoFileName = TEAM_LOGO_MAP[`${normalizedName} FC`];
+    }
+    
+    // Try adding AFC
+    if (!logoFileName) {
+      logoFileName = TEAM_LOGO_MAP[`AFC ${normalizedName}`];
     }
   }
   
-  return logoName ? `/src/Images/Club Logos/${logoName}.png` : null;
+  return logoFileName ? `/src/Images/Club Logos/${logoFileName}.png` : null;
 };
 
 /**
- * Get fallback logo options to try multiple file extensions
+ * Get team logo with fallback to initials
+ * @param team - Team object
+ * @returns Object with logo path and fallback info
  */
-export const getTeamLogoWithFallbacks = (
-  teamName: string, 
-  teamId?: string, 
-  shortName?: string
-): string[] => {
-  const basePath = getTeamLogoPath(teamName, teamId, shortName);
-  if (!basePath) return [];
+export const getTeamLogo = (team: { name: string; shortName?: string; id?: string }) => {
+  const logoPath = getTeamLogoPath(team.name, team.id, team.shortName);
   
-  const baseNameWithoutExt = basePath.replace('.png', '');
-  
-  return [
-    `${baseNameWithoutExt}.png`,
-    `${baseNameWithoutExt}.svg`,
-    `${baseNameWithoutExt}.jpg`,
-    `${baseNameWithoutExt}.webp`,
-  ];
-};
-
-/**
- * Check if team logo exists (you can implement this if needed)
- */
-export const checkLogoExists = async (logoPath: string): Promise<boolean> => {
-  try {
-    const response = await fetch(logoPath, { method: 'HEAD' });
-    return response.ok;
-  } catch {
-    return false;
-  }
+  return {
+    logoPath,
+    fallbackInitial: team.shortName?.charAt(0) || team.name.charAt(0),
+    fallbackName: team.shortName || team.name
+  };
 };
