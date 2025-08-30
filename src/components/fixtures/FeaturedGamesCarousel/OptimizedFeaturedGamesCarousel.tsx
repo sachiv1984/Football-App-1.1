@@ -16,7 +16,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselPro
   maxFeaturedGames = 4,
   onGameSelect,
 }) => {
-  const { featuredGames, carouselState, scrollToIndex, scrollRef } =
+  const { featuredGames, carouselState, scrollToIndex } =
     useFeaturedGamesCarousel(fixtures, rotateInterval);
 
   if (!featuredGames.length) return <div className="carousel-empty">No featured games</div>;
@@ -24,10 +24,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselPro
   return (
     <div className="featured-games-carousel w-full">
       {/* Scrollable Container */}
-      <div
-        ref={scrollRef}
-        className="carousel-container flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2"
-      >
+      <div className="carousel-container flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2">
         {featuredGames.slice(0, maxFeaturedGames).map((fixture, index) => (
           <div
             key={fixture.id}
@@ -69,4 +66,3 @@ const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselPro
 };
 
 export default OptimizedFeaturedGamesCarousel;
-
