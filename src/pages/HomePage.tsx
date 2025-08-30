@@ -56,13 +56,17 @@ const HomePage: React.FC = () => {
       <Header isDarkMode={isDarkMode} onToggleDarkMode={handleToggleDarkMode} />
 
       <OptimizedFeaturedGamesCarousel
-        fixtures={carousel.featuredGames}
-        onGameSelect={handleGameSelect}
-        autoRefresh={true}
-        rotateInterval={5000}
-        maxFeaturedGames={4}
-        selectionConfig={{} as GameSelectionConfig}
-      />
+  fixtures={featuredFixtures} 
+  onGameSelect={handleGameSelect}
+  rotateInterval={5000} // sensible default
+  maxFeaturedGames={4}
+  selectionConfig={{
+    prioritizeLiveGames: true,
+    boostBigSixTeams: true,
+    topTeamIds: ['liverpool', 'man-city', 'arsenal', 'chelsea', 'man-utd', 'tottenham']
+  }}
+/>
+
 
       <TabNavigation
         activeTab={activeTab}
