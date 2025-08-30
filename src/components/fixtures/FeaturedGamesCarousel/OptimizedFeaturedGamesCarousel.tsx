@@ -21,7 +21,7 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     containerRef,
     slides,
     currentIndex,
-    scrollToIndex,
+    goToIndex, // renamed from scrollToIndex
   } = useFeaturedGamesCarousel({
     fixtures,
     autoRotate,
@@ -47,9 +47,9 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             }}
             onClick={() => onGameSelect?.(fixture)}
           >
-            {/* Render your fixture card here */}
+            {/* Replace kickoff with your actual date/time property */}
             <div>{fixture.homeTeam.name} vs {fixture.awayTeam.name}</div>
-            <div>{fixture.kickoff}</div>
+            <div>{fixture.date}</div>
           </div>
         ))}
       </div>
@@ -58,7 +58,7 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
         {fixtures.map((_, dotIndex) => (
           <button
             key={dotIndex}
-            onClick={() => scrollToIndex(dotIndex)}
+            onClick={() => goToIndex(dotIndex)}
             style={{
               width: 10,
               height: 10,
