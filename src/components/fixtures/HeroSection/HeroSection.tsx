@@ -44,8 +44,14 @@ const HeroSection: React.FC<HeroSectionProps> = ({
     status: 'scheduled',
     homeScore: 0,
     awayScore: 0,
+    // Required FeaturedFixture properties
+    importance: 85,
+    importanceScore: 85,
+    matchWeek: 28,
+    isBigMatch: true,
+    tags: ['top-six', 'title-race'],
     aiInsight: {
-      id: 'insight-1', // Added missing id property
+      id: 'insight-1',
       title: 'High-Scoring Encounter Expected',
       description: 'Both teams average 2.3 goals per game. Over 2.5 goals has hit in 4/5 recent meetings.',
       confidence: 'high',
