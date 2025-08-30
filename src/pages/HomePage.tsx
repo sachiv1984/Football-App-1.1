@@ -6,7 +6,7 @@ import TabNavigation from '../components/common/TabNavigation/TabNavigation';
 import FixturesList from '../components/fixtures/FixturesList/FixturesList';
 import LeagueTable from '../components/league/LeagueTable/LeagueTable';
 import { designTokens } from '../styles/designTokens';
-import { Fixture, Team, LeagueTableRow } from '../types';
+import { Fixture, Team, LeagueTableRow, GameSelectionConfig } from '../types';
 import OptimizedFeaturedGamesCarousel from '../components/fixtures/FeaturedGamesCarousel/OptimizedFeaturedGamesCarousel';
 import { FeaturedFixtureWithImportance } from '../components/fixtures/FeaturedGamesCarousel/FeaturedGamesCarousel.types';
 
@@ -99,11 +99,23 @@ const HomePage: React.FC = () => {
     console.log('Selected fixture:', fixture.id);
   };
 
+  // Carousel configuration
+  const carouselConfig: { selection?: GameSelectionConfig; visibleCards?: number } = {
+    selection: undefined,
+    visibleCards: window.innerWidth < 768 ? 1 : 4, // 1 card for mobile, 4 for desktop
+  };
+
   return (
-    <div style={{ background: designTokens.colors.neutral.background, color: designTokens.colors.neutral.darkGrey, minHeight: '100vh' }}>
+    <div
+      style={{
+        background: designTokens.colors.neutral.background,
+        color: designTokens.colors.neutral.darkGrey,
+        minHeight: '100vh',
+      }}
+    >
       <Header isDarkMode={isDarkMode} onToggleDarkMode={handleToggleDarkMode} />
 
-      {/* Add space below header */}
+      {/* Space below header */}
       <div style={{ marginTop: '2rem' }} />
 
       {/* Hero Section */}
@@ -111,7 +123,7 @@ const HomePage: React.FC = () => {
         fixtures={featuredFixtures}
         onGameSelect={handleGameSelect}
         rotateInterval={5000}
-        selectionConfig={undefined} // optional prop
+        config={carouselConfig}
         className="mb-8"
       />
 
