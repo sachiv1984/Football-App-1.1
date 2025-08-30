@@ -1,12 +1,13 @@
-import { FeaturedFixture, Team } from '../../../types';
+// src/components/fixtures/FeaturedGamesCarousel/FeaturedGamesCarousel.types.ts
+import { FeaturedFixture } from '../../../types';
 import type { FeaturedGamesCarouselConfig } from './FeaturedGamesCarouselConfig.types';
 
 /**
- * Props for the FeaturedGamesCarousel component
+ * Props for the carousel component
  */
 export interface FeaturedGamesCarouselProps {
-  fixtures?: FeaturedFixtureWithImportance[];
-  onGameSelect?: (fixture: FeaturedFixtureWithImportance) => void;
+  fixtures?: FeaturedFixture[];
+  onGameSelect?: (fixture: FeaturedFixture) => void;
   onViewStats?: (fixtureId: string) => void;
   autoRotate?: boolean;
   rotateInterval?: number;
@@ -16,7 +17,7 @@ export interface FeaturedGamesCarouselProps {
 }
 
 /**
- * Configuration for game selection logic
+ * Configuration for filtering/selecting games
  */
 export interface GameSelectionConfig {
   prioritizeLiveGames?: boolean;
@@ -28,25 +29,30 @@ export interface GameSelectionConfig {
 }
 
 /**
- * Extended fixture type with importance and extra fields used in carousel
+ * Team object
+ */
+export interface Team {
+  id: string;
+  name: string;
+  logoUrl: string; // Ensure your data provides this
+}
+
+/**
+ * Extended fixture object for carousel usage
  */
 export interface FeaturedFixtureWithImportance extends FeaturedFixture {
   importanceScore: number;
   matchWeek: number;
   isBigMatch: boolean;
   tags: string[];
-  date: string;        // required for display
-  kickoff: string;     // required for display
-  homeTeam: Team;      // required for display
-  awayTeam: Team;      // required for display
-  score?: {
-    home: number;
-    away: number;
-  };
+  kickoff: string; // time string (e.g., "19:45")
+  date: string;    // date string (e.g., "2025-09-01")
+  homeTeam: Team;
+  awayTeam: Team;
 }
 
 /**
- * Type for match tags
+ * Match type tags
  */
 export type MatchTag =
   | 'derby'
@@ -59,7 +65,7 @@ export type MatchTag =
   | 'season-finale';
 
 /**
- * Carousel state for internal logic
+ * State of the carousel
  */
 export interface CarouselState {
   currentIndex: number;
@@ -70,7 +76,7 @@ export interface CarouselState {
 }
 
 /**
- * Hook return interface
+ * Return type from carousel hook
  */
 export interface UseCarouselReturn {
   featuredGames: FeaturedFixtureWithImportance[];
@@ -85,7 +91,7 @@ export interface UseCarouselReturn {
 }
 
 /**
- * Data fetching configuration
+ * Data fetch configuration
  */
 export interface DataFetchConfig {
   fixturesEndpoint?: string;
