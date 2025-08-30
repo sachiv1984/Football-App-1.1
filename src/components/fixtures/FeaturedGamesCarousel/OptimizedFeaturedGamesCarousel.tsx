@@ -1,6 +1,6 @@
 // src/components/fixtures/FeaturedGamesCarousel/OptimizedFeaturedGamesCarousel.tsx
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import type { FeaturedFixtureWithImportance } from './FeaturedGamesCarousel.types';
+import type { FeaturedFixtureWithImportance } from '../../../types';
 
 interface Props {
   fixtures: FeaturedFixtureWithImportance[];
