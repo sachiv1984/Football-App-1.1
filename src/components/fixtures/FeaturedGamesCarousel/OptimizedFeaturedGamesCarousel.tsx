@@ -1,11 +1,8 @@
-// src/components/fixtures/FeaturedGamesCarousel/OptimizedFeaturedGamesCarousel.tsx
 import React from 'react';
 import { FeaturedGamesCarouselConfig } from './FeaturedGamesCarouselConfig.types';
 import { useFeaturedGamesCarousel } from '../../../hooks/useFeaturedGamesCarousel';
 import { FeaturedFixtureWithImportance } from './FeaturedGamesCarousel.types';
 import { GameSelectionConfig } from '../../../types';
-
-// ✅ Import design system components
 import FixtureCard from '../FixtureCard/FixtureCard';
 import Button from '../../common/Button/Button';
 
@@ -57,93 +54,43 @@ const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselPro
 
   return (
     <div className={`featured-games-carousel w-full ${className}`}>
-      {/* Navigation Buttons */}
       <div className="flex justify-between items-center mb-2">
-        <Button
-          variant="secondary"
-          size="sm"
-          disabled={!carouselState.canScrollLeft}
-          onClick={scrollLeft}
-        >
-          ◀
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          disabled={!carouselState.canScrollRight}
-          onClick={scrollRight}
-        >
-          ▶
-        </Button>
+        <Button variant="secondary" size="sm" disabled={!carouselState.canScrollLeft} onClick={scrollLeft}>◀</Button>
+        <Button variant="secondary" size="sm" disabled={!carouselState.canScrollRight} onClick={scrollRight}>▶</Button>
       </div>
 
-      {/* Scrollable Container */}
-      <div
-        ref={scrollRef}
-        className="carousel-container flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2"
-      >
+      <div ref={scrollRef} className="carousel-container flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2">
         {featuredGames.map((fixture, index) => (
           <div
             key={fixture.id}
-            className={`relative carousel-card min-w-[280px] snap-start ${
-              carouselState.currentIndex === index ? 'scale-105' : ''
-            }`}
+            className={`relative carousel-card min-w-[280px] snap-start ${carouselState.currentIndex === index ? 'scale-105' : ''}`}
             onClick={() => scrollToIndex(index)}
           >
-            {/* ✅ Fixture Card */}
-            <FixtureCard
-              fixture={fixture}
-              size="md"
-              showAIInsight={true}
-              showCompetition={true}
-              showVenue={false}
-              onClick={() => onGameSelect?.(fixture)}
-            />
-
-            {/* ✅ View Stats Overlay Button */}
+            <FixtureCard fixture={fixture} size="md" showAIInsight showCompetition showVenue={false} onClick={() => onGameSelect?.(fixture)} />
             {onViewStats && (
               <div className="absolute bottom-2 right-2">
-                <Button
-                  size="sm"
-                  variant="primary"
-                  onClick={(e) => {
-                    e.stopPropagation(); // prevent triggering card click
-                    onViewStats(fixture.id);
-                  }}
-                >
-                  View Stats
-                </Button>
+                <Button size="sm" variant="primary" onClick={e => { e.stopPropagation(); onViewStats(fixture.id); }}>View Stats</Button>
               </div>
             )}
           </div>
         ))}
       </div>
 
-      {/* ✅ Dot Indicators */}
       <div className="flex justify-center gap-2 mt-3">
         {featuredGames.map((_, index) => (
           <button
             key={index}
             onClick={() => scrollToIndex(index)}
             aria-label={`Go to game ${index + 1}`}
-            className={`w-3 h-3 rounded-full transition-all duration-300 ${
-              carouselState.currentIndex === index
-                ? 'bg-electric-yellow scale-110'
-                : 'bg-gray-300 hover:bg-gray-400'
-            }`}
-            style={{ minWidth: '12px', minHeight: '12px' }} // ✅ 44px touch guideline with padding from container
+            className={`w-3 h-3 rounded-full transition-all duration-300 ${carouselState.currentIndex === index ? 'bg-electric-yellow scale-110' : 'bg-gray-300 hover:bg-gray-400'}`}
+            style={{ minWidth: '12px', minHeight: '12px' }}
           />
         ))}
       </div>
 
-      {/* Controls */}
       <div className="flex justify-center gap-2 mt-4">
-        <Button size="sm" onClick={toggleAutoRotate}>
-          {carouselState.isAutoRotating ? 'Stop Auto-Rotate' : 'Start Auto-Rotate'}
-        </Button>
-        <Button size="sm" onClick={refreshData}>
-          Refresh Games
-        </Button>
+        <Button size="sm" onClick={toggleAutoRotate}>{carouselState.isAutoRotating ? 'Stop Auto-Rotate' : 'Start Auto-Rotate'}</Button>
+        <Button size="sm" onClick={refreshData}>Refresh Games</Button>
       </div>
     </div>
   );
