@@ -1,109 +1,97 @@
-import React, { useEffect } from 'react';
-import { FeaturedFixtureWithImportance, FeaturedGamesCarouselProps } from './FeaturedGamesCarousel.types';
+// src/components/fixtures/FeaturedGamesCarousel/OptimizedFeaturedGamesCarousel.tsx
+import React from 'react';
+import { FeaturedFixtureWithImportance } from './FeaturedGamesCarousel.types';
 import { useFeaturedGamesCarousel } from '../../../hooks/useFeaturedGamesCarousel';
 
-export const OptimizedFeaturedGamesCarousel: React.FC<FeaturedGamesCarouselProps> = ({
-  fixtures = [],
+interface Props {
+  fixtures: FeaturedFixtureWithImportance[];
+  onGameSelect?: (fixture: FeaturedFixtureWithImportance) => void;
+  autoRotate?: boolean;
+  rotateInterval?: number;
+  className?: string;
+}
+
+export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
+  fixtures,
+  onGameSelect,
   autoRotate = true,
   rotateInterval = 5000,
   className = '',
-  onGameSelect,
 }) => {
   const {
     containerRef,
     slides,
     currentIndex,
+    realCount,
     goToNext,
     goToPrev,
-    scrollToIndex,
-    setCurrentIndex,
-  } = useFeaturedGamesCarousel({
-    fixtures,
-    autoRotate,
-    rotateInterval,
-  });
-
-  // Reset to real first/last slide without animation
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const handleScroll = () => {
-      const slideWidth = container.clientWidth;
-      if (currentIndex >= fixtures.length) {
-        container.scrollLeft = slideWidth;
-        setCurrentIndex(0);
-      } else if (currentIndex < 0) {
-        container.scrollLeft = slideWidth * fixtures.length;
-        setCurrentIndex(fixtures.length - 1);
-      }
-    };
-
-    container.addEventListener('scroll', handleScroll);
-    return () => container.removeEventListener('scroll', handleScroll);
-  }, [currentIndex, containerRef, fixtures.length, setCurrentIndex]);
+  } = useFeaturedGamesCarousel({ fixtures, autoRotate, rotateInterval });
 
   return (
-    <div className={`relative overflow-hidden ${className}`}>
+    <div className={`relative ${className}`}>
       {/* Carousel container */}
       <div
         ref={containerRef}
-        className="flex overflow-x-hidden scroll-smooth touch-pan-x"
-        style={{ scrollSnapType: 'x mandatory' }}
+        className="flex overflow-x-hidden scroll-smooth"
       >
-        {slides.map((fixture: FeaturedFixtureWithImportance, index: number) => (
+        {slides.map((fixture, idx) => (
           <div
-            key={`${fixture.homeTeam.id}-${fixture.awayTeam.id}-${index}`}
-            className="flex-shrink-0 w-full p-4 scroll-snap-start"
+            key={idx}
+            className="flex-shrink-0 w-full px-2"
             onClick={() => onGameSelect?.(fixture)}
           >
-            <div className="fixture-card flex flex-col sm:flex-row items-center bg-white rounded-xl p-4 shadow-lg hover:shadow-xl transition-all duration-300">
-              {/* Teams */}
-              <div className="flex items-center space-x-4 mb-2 sm:mb-0">
-                <img
-                  src={fixture.homeTeam.logo}
-                  alt={fixture.homeTeam.name}
-                  className="team-logo-lg"
-                />
-                <span className="font-bold text-xl sm:text-2xl">{fixture.homeTeam.name}</span>
-                <span className="mx-2 text-gray-500">vs</span>
-                <span className="font-bold text-xl sm:text-2xl">{fixture.awayTeam.name}</span>
-                <img
-                  src={fixture.awayTeam.logo}
-                  alt={fixture.awayTeam.name}
-                  className="team-logo-lg"
-                />
+            <div className="fixture-card flex flex-col items-center p-4">
+              {/* Team Logos and Names */}
+              <div className="flex items-center justify-between w-full mb-2">
+                <div className="flex items-center gap-2">
+                  <img
+                    src={fixture.homeTeam.logoUrl}
+                    alt={fixture.homeTeam.name}
+                    className="team-logo"
+                  />
+                  <span className="font-medium">{fixture.homeTeam.name}</span>
+                </div>
+                <span className="match-score">vs</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">{fixture.awayTeam.name}</span>
+                  <img
+                    src={fixture.awayTeam.logoUrl}
+                    alt={fixture.awayTeam.name}
+                    className="team-logo"
+                  />
+                </div>
               </div>
 
-              {/* Score & info */}
-              <div className="ml-auto text-center sm:text-right mt-2 sm:mt-0">
-                {fixture.score ? (
-                  <div className="match-score">
-                    {fixture.score.home} - {fixture.score.away}
-                  </div>
-                ) : (
-                  <div className="text-gray-500">{fixture.kickoff}</div>
-                )}
-                <div className="text-sm text-gray-400 mt-1">Week {fixture.matchWeek}</div>
+              {/* Match info */}
+              <div className="text-sm text-gray-500">
+                Week {fixture.matchWeek} • {fixture.kickoff}
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Controls */}
+      {/* Navigation buttons */}
       <button
         onClick={goToPrev}
-        className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white p-2 rounded-full shadow hover:bg-gray-100"
+        className="absolute left-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-2 shadow-md hover:bg-gray-100"
       >
         ◀
       </button>
       <button
         onClick={goToNext}
-        className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white p-2 rounded-full shadow hover:bg-gray-100"
+        className="absolute right-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-2 shadow-md hover:bg-gray-100"
       >
         ▶
       </button>
+
+      {/* Progress bar */}
+      <div className="absolute bottom-2 left-2 right-2 h-1 bg-gray-200 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-electric-yellow transition-all duration-500"
+          style={{ width: `${((currentIndex % realCount) + 1) / realCount * 100}%` }}
+        />
+      </div>
     </div>
   );
 };
