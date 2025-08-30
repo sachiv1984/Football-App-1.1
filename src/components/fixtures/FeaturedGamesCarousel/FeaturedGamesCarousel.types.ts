@@ -1,12 +1,5 @@
-import type { FeaturedFixture } from '../../../types';
+import type { FeaturedFixture, FeaturedFixtureWithImportance } from '../../../types';
 import type { FeaturedGamesCarouselConfig } from './FeaturedGamesCarouselConfig.types';
-
-// Add this missing type that extends FeaturedFixture with importance scoring
-export interface FeaturedFixtureWithImportance extends FeaturedFixture {
-  importance: number;
-  matchTags?: MatchTag[];
-  isHighPriority?: boolean;
-}
 
 export interface FeaturedGamesCarouselProps {
   fixtures?: FeaturedFixture[];
