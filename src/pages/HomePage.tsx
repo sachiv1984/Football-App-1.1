@@ -158,7 +158,7 @@ const fixtures: Fixture[] = [
       title: 'Over 2.5 Goals Expected',
       description: 'Both teams have strong attacking records',
       confidence: 'high',
-      probability: 0.75, // Added missing probability
+      probability: 0.75,
       market: 'total_goals',
       odds: '1.8',
     }
@@ -193,7 +193,7 @@ const insights: AIInsight[] = [
     title: 'Over 2.5 Goals Likely',
     description: 'Both teams average 3+ goals combined in last 5 matches.',
     confidence: 'high',
-    probability: 0.72, // Added missing probability
+    probability: 0.72,
     market: 'total_goals',
     odds: '1.8',
     supportingData: 'Recent meetings: 4/5 matches over 2.5 goals',
@@ -201,4 +201,90 @@ const insights: AIInsight[] = [
   {
     id: 'insight-2',
     title: 'High Corner Count',
-    description: 'Home team averages 6 corners per game
+    description: 'Home team averages 6 corners per game.',
+    confidence: 'medium',
+    probability: 0.65,
+    market: 'corners',
+    odds: '2.0',
+  },
+  {
+    id: 'insight-3',
+    title: 'Clean Sheet Possible',
+    description: 'Away team has kept a clean sheet in 2 of last 5 matches.',
+    confidence: 'low',
+    probability: 0.45,
+    market: 'clean_sheet',
+    odds: '2.5',
+  },
+];
+
+// League Standings - now includes form and lastUpdated
+const standings: LeagueTableRow[] = [
+  { position: 1, team: arsenal, played: 3, won: 3, drawn: 0, lost: 0, goalsFor: 7, goalsAgainst: 2, goalDifference: 5, points: 9, form: arsenal.form, lastUpdated: '2025-08-27' },
+  { position: 2, team: liverpool, played: 3, won: 2, drawn: 1, lost: 0, goalsFor: 6, goalsAgainst: 3, goalDifference: 3, points: 7, form: liverpool.form, lastUpdated: '2025-08-27' },
+  { position: 3, team: chelsea, played: 3, won: 2, drawn: 0, lost: 1, goalsFor: 5, goalsAgainst: 3, goalDifference: 2, points: 6, form: chelsea.form, lastUpdated: '2025-08-27' },
+  { position: 4, team: manCity, played: 3, won: 2, drawn: 0, lost: 1, goalsFor: 4, goalsAgainst: 3, goalDifference: 1, points: 6, form: manCity.form, lastUpdated: '2025-08-27' },
+  { position: 5, team: manUtd, played: 3, won: 1, drawn: 1, lost: 1, goalsFor: 3, goalsAgainst: 4, goalDifference: -1, points: 4, form: manUtd.form, lastUpdated: '2025-08-27' },
+];
+
+const HomePage: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'fixtures' | 'standings' | 'insights'>('fixtures');
+  const [isDarkMode, setIsDarkMode] = useState(false); 
+
+  const handleToggleDarkMode = () => {
+    setIsDarkMode(!isDarkMode);
+  };
+
+  const handleGameSelect = (fixture: FeaturedFixtureWithImportance) => {
+    console.log('Selected fixture:', fixture.id);
+    // Replace with your router logic: router.push(`/fixtures/${fixture.id}`)
+  };
+
+  const handleViewStats = (id: string) => {
+    console.log('View stats for:', id);
+    // Replace with your router logic: router.push(`/stats/${id}`)
+  };
+
+  return (
+    <div style={{ background: designTokens.colors.neutral.background, color: designTokens.colors.neutral.darkGrey, minHeight: '100vh' }}>
+      <Header 
+        isDarkMode={isDarkMode}
+        onToggleDarkMode={handleToggleDarkMode}
+      />
+
+      {/* Hero Section */}
+      <OptimizedFeaturedGamesCarousel
+        fixtures={featuredFixtures} // Using the converted featured fixtures
+        onGameSelect={handleGameSelect}
+        onViewStats={handleViewStats}
+        autoRefresh={true}
+        rotateInterval={5000}
+        maxFeaturedGames={4}
+        selectionConfig={{
+          prioritizeLiveGames: true,
+          boostBigSixTeams: true,
+          topTeamIds: ['liverpool', 'man-city', 'arsenal', 'chelsea', 'man-utd', 'tottenham']
+        }}
+      />
+
+      {/* Tab Navigation */}
+      <TabNavigation
+        activeTab={activeTab}
+        onTabChange={(tabId: string) => setActiveTab(tabId as 'fixtures' | 'standings' | 'insights')}
+        tabs={[
+          { label: 'Fixtures', id: 'fixtures', content: <FixturesList fixtures={fixtures} /> },
+          { label: 'Standings', id: 'standings', content: <LeagueTable rows={standings} /> },
+          { 
+            label: 'AI Insights', 
+            id: 'insights', 
+            content: <InsightsContainer insights={insights} title="AI Insights" /> 
+          },
+        ]}
+      />
+
+      <Footer />
+    </div>
+  );
+};
+
+export default HomePage;
