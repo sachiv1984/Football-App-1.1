@@ -4,6 +4,8 @@ import { FeaturedGamesCarouselConfig } from './FeaturedGamesCarouselConfig.types
 import { useFeaturedGamesCarousel } from '../../../hooks/useFeaturedGamesCarousel';
 import { FeaturedFixtureWithImportance } from './FeaturedGamesCarousel.types';
 import { GameSelectionConfig } from '../../../types';
+
+// ✅ Import design system components
 import FixtureCard from '../FixtureCard/FixtureCard';
 
 interface OptimizedFeaturedGamesCarouselProps {
@@ -25,15 +27,18 @@ const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselPro
   className = '',
   selectionConfig,
   onGameSelect,
+  maxFeaturedGames,
 }) => {
+  // --- Hooks must come first ---
   const {
     featuredGames,
     isLoading,
     error,
     carouselState,
     scrollToIndex,
-    scrollRef,
     toggleAutoRotate,
+    refreshData,
+    scrollRef,
   } = useFeaturedGamesCarousel({
     fixtures,
     config: { selection: selectionConfig || config?.selection },
@@ -41,58 +46,46 @@ const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselPro
     rotateInterval,
   });
 
+  // Infinite loop: reset index to 0 after last
+  useEffect(() => {
+    if (carouselState.currentIndex >= featuredGames.length && featuredGames.length > 0) {
+      scrollToIndex(0, false);
+    }
+  }, [carouselState.currentIndex, featuredGames, scrollToIndex]);
+
+  // --- Early returns ---
   if (isLoading) return <div className={`carousel-loading ${className}`}>Loading...</div>;
   if (error) return <div className={`carousel-error ${className}`}>Error: {error}</div>;
   if (!featuredGames.length) return <div className={`carousel-empty ${className}`}>No featured games</div>;
 
-  // --- Clone first and last cards for infinite scroll ---
-  const displayGames = [
-    featuredGames[featuredGames.length - 1], // last card at start
-    ...featuredGames,
-    featuredGames[0], // first card at end
-  ];
-
-  // --- Sync currentIndex for dots ---
-  const realIndex = carouselState.currentIndex % featuredGames.length;
-
-  // --- Optional: reset scroll position when wrapping ---
-  useEffect(() => {
-    if (!scrollRef.current) return;
-    const cardWidth = (scrollRef.current.children[0] as HTMLElement)?.offsetWidth + 16 || 300;
-    if (carouselState.currentIndex === -1) {
-      scrollRef.current.scrollLeft = featuredGames.length * cardWidth;
-    } else if (carouselState.currentIndex === featuredGames.length) {
-      scrollRef.current.scrollLeft = cardWidth;
-    }
-  }, [carouselState.currentIndex, featuredGames.length, scrollRef]);
-
   return (
     <div className={`featured-games-carousel w-full ${className}`}>
+      {/* Scrollable Container */}
       <div
         ref={scrollRef}
         className="carousel-container flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2"
       >
-        {displayGames.map((fixture, index) => (
+        {featuredGames.map((fixture, index) => (
           <div
-            key={`${fixture.id}-${index}`}
-            className={`carousel-card min-w-[280px] snap-start ${
+            key={fixture.id}
+            className={`relative carousel-card min-w-[280px] snap-start ${
               carouselState.currentIndex === index ? 'scale-105' : ''
             }`}
-            onClick={() => scrollToIndex(index)}
+            onClick={() => onGameSelect?.(fixture)}
           >
+            {/* ✅ Fixture Card (clean, no overlay) */}
             <FixtureCard
               fixture={fixture}
               size="md"
               showAIInsight={false}
               showCompetition={true}
               showVenue={false}
-              onClick={() => onGameSelect?.(fixture)}
             />
           </div>
         ))}
       </div>
 
-      {/* Dot Indicators */}
+      {/* ✅ Dot Indicators */}
       <div className="flex justify-center gap-2 mt-3">
         {featuredGames.map((_, index) => (
           <button
@@ -100,7 +93,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselPro
             onClick={() => scrollToIndex(index)}
             aria-label={`Go to game ${index + 1}`}
             className={`w-3 h-3 rounded-full transition-all duration-300 ${
-              realIndex === index
+              carouselState.currentIndex === index
                 ? 'bg-electric-yellow scale-110'
                 : 'bg-gray-300 hover:bg-gray-400'
             }`}
@@ -109,13 +102,19 @@ const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselPro
         ))}
       </div>
 
-      {/* Auto-Rotate Toggle */}
+      {/* Controls (optional auto-rotate toggle & refresh) */}
       <div className="flex justify-center gap-2 mt-4">
         <button
-          className="px-3 py-1 border rounded text-sm bg-gray-200 hover:bg-gray-300"
+          className="btn btn-sm"
           onClick={toggleAutoRotate}
         >
           {carouselState.isAutoRotating ? 'Stop Auto-Rotate' : 'Start Auto-Rotate'}
+        </button>
+        <button
+          className="btn btn-sm"
+          onClick={refreshData}
+        >
+          Refresh Games
         </button>
       </div>
     </div>
