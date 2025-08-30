@@ -67,8 +67,6 @@ export const useFeaturedGamesCarousel = ({
     return Math.max(1, Math.min(38, weeksSinceStart + 1));
   }, []);
 
-  const getCurrentMatchWeek = useCallback(() => getMatchWeek(new Date().toISOString()), [getMatchWeek]);
-
   const getMatchTags = useCallback((fixture: FeaturedFixture) => {
     const tags: string[] = [];
     const topTeams = selectionConfig.topTeamIds || [];
@@ -106,7 +104,7 @@ export const useFeaturedGamesCarousel = ({
       isBigMatch: getMatchTags(f).length > 0,
       tags: getMatchTags(f),
     }));
-  }, [calculateImportance, getMatchWeek, getMatchTags, selectionConfig.maxGames]);
+  }, [calculateImportance, getMatchTags, getMatchWeek, selectionConfig.maxGames]);
 
   const refreshData = useCallback(async () => {
     try {
