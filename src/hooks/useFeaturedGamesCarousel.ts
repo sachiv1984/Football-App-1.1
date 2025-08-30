@@ -1,4 +1,3 @@
-// src/hooks/useFeaturedGamesCarousel.ts
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { FeaturedFixtureWithImportance } from '../components/fixtures/FeaturedGamesCarousel/FeaturedGamesCarousel.types';
 
@@ -6,83 +5,58 @@ export interface CarouselState {
   currentIndex: number;
 }
 
-export interface UseCarouselReturn {
+export interface UseFeaturedGamesCarouselReturn {
   featuredGames: FeaturedFixtureWithImportance[];
-  isLoading: boolean;
-  error?: string;
   carouselState: CarouselState;
   scrollToIndex: (index: number, smooth?: boolean) => void;
   toggleAutoRotate: () => void;
   refreshData: () => Promise<void>;
-  scrollRef: React.RefObject<HTMLDivElement>;
 }
 
 export const useFeaturedGamesCarousel = (
-  featuredGames: FeaturedFixtureWithImportance[],
-  rotateInterval = 5000
-): UseCarouselReturn => {
-  const scrollRef = useRef<HTMLDivElement>(null);
+  fixtures: FeaturedFixtureWithImportance[],
+  rotateInterval: number
+): UseFeaturedGamesCarouselReturn => {
   const [carouselState, setCarouselState] = useState<CarouselState>({ currentIndex: 0 });
-  const [isAutoRotate, setIsAutoRotate] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string>();
-  const autoRotateTimer = useRef<NodeJS.Timeout>();
+  const [autoRotate, setAutoRotate] = useState(true);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Scroll to index
   const scrollToIndex = useCallback((index: number, smooth = true) => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTo({
-        left: scrollRef.current.clientWidth * index,
-        behavior: smooth ? 'smooth' : 'auto',
-      });
-      setCarouselState({ currentIndex: index });
+    setCarouselState({ currentIndex: index });
+    // Reset auto-rotate when user manually changes index
+    if (autoRotate) {
+      clearTimeout(timeoutRef.current!);
+      timeoutRef.current = setTimeout(() => nextSlide(), rotateInterval);
     }
-  }, []);
+  }, [autoRotate, rotateInterval]);
 
-  // Auto-rotate handler
-  const startAutoRotate = useCallback(() => {
-    if (autoRotateTimer.current) clearTimeout(autoRotateTimer.current);
+  const nextSlide = useCallback(() => {
+    setCarouselState((prev) => ({
+      currentIndex: (prev.currentIndex + 1) % fixtures.length,
+    }));
+  }, [fixtures.length]);
 
-    autoRotateTimer.current = setTimeout(() => {
-      if (!isAutoRotate) return;
-      const nextIndex = (carouselState.currentIndex + 1) % featuredGames.length;
-      scrollToIndex(nextIndex);
-    }, rotateInterval);
-  }, [carouselState.currentIndex, isAutoRotate, featuredGames.length, rotateInterval, scrollToIndex]);
+  const toggleAutoRotate = () => setAutoRotate(!autoRotate);
 
-  // Toggle auto-rotate
-  const toggleAutoRotate = useCallback(() => setIsAutoRotate(prev => !prev), []);
+  const refreshData = async () => {
+    // Placeholder for actual data refresh logic
+    return Promise.resolve();
+  };
 
-  // Refresh data
-  const refreshData = useCallback(async (): Promise<void> => {
-    setIsLoading(true);
-    try {
-      // Simulate refresh
-      await new Promise<void>(resolve => setTimeout(resolve, 500));
-      setError(undefined);
-    } catch (err) {
-      setError((err as Error)?.message || 'Error refreshing data');
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Start auto-rotate effect
+  // Auto-rotate effect
   useEffect(() => {
-    startAutoRotate();
+    if (!autoRotate) return;
+    timeoutRef.current = setTimeout(() => nextSlide(), rotateInterval);
     return () => {
-      if (autoRotateTimer.current) clearTimeout(autoRotateTimer.current);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, [startAutoRotate]);
+  }, [carouselState.currentIndex, autoRotate, rotateInterval, nextSlide]);
 
   return {
-    featuredGames,
-    isLoading,
-    error,
+    featuredGames: fixtures,
     carouselState,
     scrollToIndex,
     toggleAutoRotate,
     refreshData,
-    scrollRef,
   };
 };
