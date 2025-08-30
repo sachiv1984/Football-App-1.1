@@ -4,7 +4,6 @@ import { useFeaturedGamesCarousel } from '../../../hooks/useFeaturedGamesCarouse
 import { FeaturedFixtureWithImportance } from './FeaturedGamesCarousel.types';
 import { GameSelectionConfig } from '../../../types';
 import FixtureCard from '../FixtureCard/FixtureCard';
-import Button from '../../common/Button/Button';
 
 interface OptimizedFeaturedGamesCarouselProps {
   fixtures?: FeaturedFixtureWithImportance[];
@@ -13,8 +12,6 @@ interface OptimizedFeaturedGamesCarouselProps {
   rotateInterval?: number;
   className?: string;
   onGameSelect?: (fixture: FeaturedFixtureWithImportance) => void;
-  onViewStats?: (fixtureId: string) => void;
-  maxFeaturedGames?: number;
   selectionConfig?: GameSelectionConfig;
 }
 
@@ -26,7 +23,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselPro
   className = '',
   selectionConfig,
   onGameSelect,
-  onViewStats,
 }) => {
   const {
     featuredGames,
@@ -34,10 +30,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselPro
     error,
     carouselState,
     scrollToIndex,
-    scrollLeft,
-    scrollRight,
-    toggleAutoRotate,
-    refreshData,
     scrollRef,
   } = useFeaturedGamesCarousel({
     fixtures,
@@ -54,28 +46,26 @@ const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselPro
 
   return (
     <div className={`featured-games-carousel w-full ${className}`}>
-      <div className="flex justify-between items-center mb-2">
-        <Button variant="secondary" size="sm" disabled={!carouselState.canScrollLeft} onClick={scrollLeft}>◀</Button>
-        <Button variant="secondary" size="sm" disabled={!carouselState.canScrollRight} onClick={scrollRight}>▶</Button>
-      </div>
-
       <div ref={scrollRef} className="carousel-container flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2">
         {featuredGames.map((fixture, index) => (
           <div
             key={fixture.id}
-            className={`relative carousel-card min-w-[280px] snap-start ${carouselState.currentIndex === index ? 'scale-105' : ''}`}
+            className={`carousel-card min-w-[280px] snap-start ${carouselState.currentIndex === index ? 'scale-105' : ''}`}
             onClick={() => scrollToIndex(index)}
           >
-            <FixtureCard fixture={fixture} size="md" showAIInsight showCompetition showVenue={false} onClick={() => onGameSelect?.(fixture)} />
-            {onViewStats && (
-              <div className="absolute bottom-2 right-2">
-                <Button size="sm" variant="primary" onClick={e => { e.stopPropagation(); onViewStats(fixture.id); }}>View Stats</Button>
-              </div>
-            )}
+            <FixtureCard
+              fixture={fixture}
+              size="md"
+              showAIInsight
+              showCompetition
+              showVenue={false}
+              onClick={() => onGameSelect?.(fixture)}
+            />
           </div>
         ))}
       </div>
 
+      {/* Dot indicators */}
       <div className="flex justify-center gap-2 mt-3">
         {featuredGames.map((_, index) => (
           <button
@@ -86,11 +76,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselPro
             style={{ minWidth: '12px', minHeight: '12px' }}
           />
         ))}
-      </div>
-
-      <div className="flex justify-center gap-2 mt-4">
-        <Button size="sm" onClick={toggleAutoRotate}>{carouselState.isAutoRotating ? 'Stop Auto-Rotate' : 'Start Auto-Rotate'}</Button>
-        <Button size="sm" onClick={refreshData}>Refresh Games</Button>
       </div>
     </div>
   );
