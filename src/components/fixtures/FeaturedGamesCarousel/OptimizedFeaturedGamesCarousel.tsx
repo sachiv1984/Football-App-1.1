@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import type { FeaturedFixtureWithImportance } from '../../../types';
+import { getTeamLogo } from '../../../utils/logoUtils';
 
 interface Props {
   fixtures: FeaturedFixtureWithImportance[];
@@ -198,6 +199,8 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
         {slides.map((fixture, idx) => {
           const importanceBadge = getImportanceBadge(fixture.importance);
           const timeUntil = getTimeUntilMatch(fixture.dateTime);
+          const homeLogo = getTeamLogo(fixture.homeTeam);
+          const awayLogo = getTeamLogo(fixture.awayTeam);
           
           return (
             <div
@@ -246,18 +249,25 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                     {/* Home Team */}
                     <div className="flex flex-col items-center space-y-2 flex-1">
                       <div className="w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center relative">
-                        <img
-                          src={fixture.homeTeam.logo || getTeamLogoPath(fixture.homeTeam.name, fixture.homeTeam.id)}
-                          alt={fixture.homeTeam.name}
-                          className="w-full h-full object-contain"
-                          onError={handleImageError}
-                        />
-                        <div 
-                          className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 rounded-full hidden items-center justify-center text-gray-500 font-bold text-sm sm:text-base"
-                          style={{ display: 'none' }}
-                        >
-                          {fixture.homeTeam.shortName?.charAt(0) || fixture.homeTeam.name.charAt(0)}
-                        </div>
+                        {homeLogo.logoPath ? (
+                          <>
+                            <img
+                              src={homeLogo.logoPath}
+                              alt={fixture.homeTeam.name}
+                              className="w-full h-full object-contain"
+                              onError={handleImageError}
+                            />
+                            <div 
+                              className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 rounded-full absolute inset-0 hidden items-center justify-center text-gray-500 font-bold text-sm sm:text-base"
+                            >
+                              {homeLogo.fallbackInitial}
+                            </div>
+                          </>
+                        ) : (
+                          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 font-bold text-sm sm:text-base">
+                            {homeLogo.fallbackInitial}
+                          </div>
+                        )}
                       </div>
                       <div className="text-center">
                         <div className="font-bold text-sm sm:text-lg">
@@ -314,18 +324,25 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                     {/* Away Team */}
                     <div className="flex flex-col items-center space-y-2 flex-1">
                       <div className="w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center relative">
-                        <img
-                          src={fixture.awayTeam.logo || getTeamLogoPath(fixture.awayTeam.name, fixture.awayTeam.id)}
-                          alt={fixture.awayTeam.name}
-                          className="w-full h-full object-contain"
-                          onError={handleImageError}
-                        />
-                        <div 
-                          className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 rounded-full hidden items-center justify-center text-gray-500 font-bold text-sm sm:text-base"
-                          style={{ display: 'none' }}
-                        >
-                          {fixture.awayTeam.shortName?.charAt(0) || fixture.awayTeam.name.charAt(0)}
-                        </div>
+                        {awayLogo.logoPath ? (
+                          <>
+                            <img
+                              src={awayLogo.logoPath}
+                              alt={fixture.awayTeam.name}
+                              className="w-full h-full object-contain"
+                              onError={handleImageError}
+                            />
+                            <div 
+                              className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 rounded-full absolute inset-0 hidden items-center justify-center text-gray-500 font-bold text-sm sm:text-base"
+                            >
+                              {awayLogo.fallbackInitial}
+                            </div>
+                          </>
+                        ) : (
+                          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 font-bold text-sm sm:text-base">
+                            {awayLogo.fallbackInitial}
+                          </div>
+                        )}
                       </div>
                       <div className="text-center">
                         <div className="font-bold text-sm sm:text-lg">
