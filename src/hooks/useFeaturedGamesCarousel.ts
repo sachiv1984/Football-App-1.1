@@ -1,12 +1,15 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { FeaturedFixtureWithImportance } from './FeaturedGamesCarousel.types';
+// src/hooks/useFeaturedGamesCarousel.ts
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { FeaturedFixtureWithImportance } from '../components/fixtures/FeaturedGamesCarousel/FeaturedGamesCarousel.types';
 
-export interface CarouselState {
+export type CarouselState = {
   currentIndex: number;
+  canScrollLeft: boolean;
+  canScrollRight: boolean;
   isAutoRotating: boolean;
-}
+};
 
-export interface UseCarouselReturn {
+export type UseCarouselReturn = {
   featuredGames: FeaturedFixtureWithImportance[];
   isLoading: boolean;
   error?: string;
@@ -15,78 +18,84 @@ export interface UseCarouselReturn {
   toggleAutoRotate: () => void;
   refreshData: () => Promise<void>;
   scrollRef: React.RefObject<HTMLDivElement>;
-}
+};
 
 export const useFeaturedGamesCarousel = (
   featuredGames: FeaturedFixtureWithImportance[],
-  rotateInterval = 5000
+  rotateInterval: number = 5000 // 5 seconds default, UX-friendly
 ): UseCarouselReturn => {
-  const scrollRef = useRef<HTMLDivElement>(null);
   const [carouselState, setCarouselState] = useState<CarouselState>({
     currentIndex: 0,
+    canScrollLeft: false,
+    canScrollRight: featuredGames.length > 1,
     isAutoRotating: true,
   });
 
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | undefined>(undefined);
-  const autoRotateTimeout = useRef<NodeJS.Timeout | null>(null);
-  const manualPauseTimeout = useRef<NodeJS.Timeout | null>(null);
+  const [error, setError] = useState<string | undefined>();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const autoRotateRef = useRef<NodeJS.Timer>();
+
+  const scrollRight = useCallback(() => {
+    setCarouselState(prev => {
+      const nextIndex = prev.currentIndex + 1 >= featuredGames.length ? 0 : prev.currentIndex + 1;
+      scrollToIndex(nextIndex);
+      return { ...prev, currentIndex: nextIndex };
+    });
+  }, [featuredGames.length]);
 
   const scrollToIndex = useCallback(
     (index: number, smooth = true) => {
       if (!scrollRef.current) return;
 
-      const cardWidth = scrollRef.current.clientWidth;
-      scrollRef.current.scrollTo({
-        left: index * cardWidth,
-        behavior: smooth ? 'smooth' : 'auto',
-      });
-      setCarouselState((prev) => ({ ...prev, currentIndex: index }));
+      const card = scrollRef.current.children[0] as HTMLElement;
+      const gap = 16;
+      const width = card?.offsetWidth + gap || 300;
+
+      scrollRef.current.scrollTo({ left: index * width, behavior: smooth ? 'smooth' : 'auto' });
+
+      setCarouselState(prev => ({
+        ...prev,
+        currentIndex: index,
+        canScrollLeft: true,
+        canScrollRight: true,
+      }));
+
+      resetAutoRotateAfterManual();
     },
-    []
+    [scrollRef]
   );
 
-  const handleAutoRotate = useCallback(() => {
+  const toggleAutoRotate = useCallback(() => {
+    setCarouselState(prev => ({ ...prev, isAutoRotating: !prev.isAutoRotating }));
+  }, []);
+
+  const resetAutoRotateAfterManual = useCallback(() => {
     if (!carouselState.isAutoRotating) return;
+    if (autoRotateRef.current) clearInterval(autoRotateRef.current);
+    autoRotateRef.current = setInterval(scrollRight, rotateInterval);
+  }, [carouselState.isAutoRotating, rotateInterval, scrollRight]);
 
-    const nextIndex = (carouselState.currentIndex + 1) % featuredGames.length;
-    scrollToIndex(nextIndex);
-    autoRotateTimeout.current = setTimeout(handleAutoRotate, rotateInterval);
-  }, [carouselState.currentIndex, carouselState.isAutoRotating, featuredGames.length, rotateInterval, scrollToIndex]);
-
-  const resetAutoRotateAfterManual = () => {
-    if (manualPauseTimeout.current) clearTimeout(manualPauseTimeout.current);
-    setCarouselState((prev) => ({ ...prev, isAutoRotating: false }));
-
-    manualPauseTimeout.current = setTimeout(() => {
-      setCarouselState((prev) => ({ ...prev, isAutoRotating: true }));
-    }, 10000); // pause for 10s after manual interaction
-  };
-
-  const toggleAutoRotate = () => {
-    setCarouselState((prev) => ({ ...prev, isAutoRotating: !prev.isAutoRotating }));
-  };
-
-  const refreshData = async () => {
-    setIsLoading(true);
+  const refreshData = useCallback(async () => {
     try {
-      // Placeholder: could call API to refresh featuredGames
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      setIsLoading(true);
+      setError(undefined);
+      // Placeholder for async refresh logic if needed
     } catch (err) {
-      setError('Failed to refresh');
+      setError('Failed to refresh featured games.');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (carouselState.isAutoRotating) {
-      autoRotateTimeout.current = setTimeout(handleAutoRotate, rotateInterval);
+      autoRotateRef.current = setInterval(scrollRight, rotateInterval);
+      return () => {
+        if (autoRotateRef.current) clearInterval(autoRotateRef.current);
+      };
     }
-    return () => {
-      if (autoRotateTimeout.current) clearTimeout(autoRotateTimeout.current);
-    };
-  }, [carouselState.isAutoRotating, carouselState.currentIndex, handleAutoRotate, rotateInterval]);
+  }, [carouselState.isAutoRotating, scrollRight, rotateInterval]);
 
   return {
     featuredGames,
