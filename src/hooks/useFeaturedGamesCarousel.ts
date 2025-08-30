@@ -1,3 +1,4 @@
+// src/hooks/useFeaturedGamesCarousel.ts
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { FeaturedFixtureWithImportance } from '../components/fixtures/FeaturedGamesCarousel/FeaturedGamesCarousel.types';
 
@@ -16,41 +17,29 @@ export const useFeaturedGamesCarousel = ({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
 
+  // Cloned slides for infinite looping
+  const slides = [
+    fixtures[realCount - 1], // clone last
+    ...fixtures,
+    fixtures[0], // clone first
+  ];
+
   const containerRef = useRef<HTMLDivElement>(null);
   const autoRotateRef = useRef<number | null>(null);
-
-  // Cloned slides for infinite loop
-  const slides = [fixtures[realCount - 1], ...fixtures, fixtures[0]];
-
-  const scrollToIndex = useCallback(
-    (index: number, smooth = true) => {
-      if (!containerRef.current) return;
-      const slideWidth = containerRef.current.clientWidth;
-      containerRef.current.scrollTo({
-        left: (index + 1) * slideWidth,
-        behavior: smooth ? 'smooth' : 'auto',
-      });
-    },
-    []
-  );
 
   const goToNext = useCallback(() => {
     if (isAnimating) return;
     setIsAnimating(true);
-    setCurrentIndex(prev => prev + 1);
+    setCurrentIndex((prev) => prev + 1);
   }, [isAnimating]);
 
   const goToPrev = useCallback(() => {
     if (isAnimating) return;
     setIsAnimating(true);
-    setCurrentIndex(prev => prev - 1);
+    setCurrentIndex((prev) => prev - 1);
   }, [isAnimating]);
 
-  const goToIndex = useCallback((index: number) => {
-    setCurrentIndex(index);
-  }, []);
-
-  // Auto-rotate
+  // Auto-rotate effect
   useEffect(() => {
     if (!autoRotate) return;
     autoRotateRef.current = window.setInterval(goToNext, rotateInterval);
@@ -59,10 +48,14 @@ export const useFeaturedGamesCarousel = ({
     };
   }, [goToNext, autoRotate, rotateInterval]);
 
-  // Scroll effect + loop reset
+  // Scroll effect
   useEffect(() => {
     if (!containerRef.current) return;
-    scrollToIndex(currentIndex);
+    const slideWidth = containerRef.current.clientWidth;
+    containerRef.current.scrollTo({
+      left: (currentIndex + 1) * slideWidth, // +1 due to cloned first slide
+      behavior: 'smooth',
+    });
 
     const handleTransitionEnd = () => {
       setIsAnimating(false);
@@ -72,10 +65,8 @@ export const useFeaturedGamesCarousel = ({
 
     const container = containerRef.current;
     container.addEventListener('scroll', handleTransitionEnd);
-    return () => {
-      container.removeEventListener('scroll', handleTransitionEnd);
-    };
-  }, [currentIndex, realCount, scrollToIndex]);
+    return () => container.removeEventListener('scroll', handleTransitionEnd);
+  }, [currentIndex, realCount]);
 
   return {
     containerRef,
@@ -84,7 +75,6 @@ export const useFeaturedGamesCarousel = ({
     realCount,
     goToNext,
     goToPrev,
-    goToIndex,
-    scrollToIndex,
+    setIndex: setCurrentIndex,
   };
 };
