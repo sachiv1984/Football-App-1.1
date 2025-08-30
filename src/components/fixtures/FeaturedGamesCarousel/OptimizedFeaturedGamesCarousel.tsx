@@ -27,8 +27,11 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGa
               className="fixture-card"
               onClick={() => onGameSelect?.(fixture)}
             >
-              <h3>{fixture.homeTeam} vs {fixture.awayTeam}</h3>
-              <p>{fixture.date}</p>
+              <div>
+                <h3>{fixture.homeTeam} vs {fixture.awayTeam}</h3>
+                {/* Replace fixture.date with the correct property from FeaturedFixture */}
+                <p>{fixture.kickoff || 'TBD'}</p>
+              </div>
             </div>
           </div>
         ))}
