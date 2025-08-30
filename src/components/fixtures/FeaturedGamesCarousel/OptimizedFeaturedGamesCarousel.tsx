@@ -1,55 +1,51 @@
-import React from "react";
-import { useFeaturedGamesCarousel } from "../../../hooks/useFeaturedGamesCarousel";
-import { Fixture } from "./FeaturedGamesCarousel.types";
+import React from 'react';
+import { useFeaturedGamesCarousel } from '../../../hooks/useFeaturedGamesCarousel';
+import type { FeaturedFixtureWithImportance } from './FeaturedGamesCarousel.types';
+import './OptimizedFeaturedGamesCarousel.css';
 
 interface Props {
-  fixtures: Fixture[];
-  rotateInterval?: number; // optional interval for auto-rotate
+  fixtures: FeaturedFixtureWithImportance[];
+  onGameSelect?: (fixture: FeaturedFixtureWithImportance) => void;
 }
 
-export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
-  fixtures,
-  rotateInterval = 5000,
-}) => {
+export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelect }) => {
   const {
     containerRef,
     slides,
     currentIndex,
-    realCount,
-    setCurrentIndex,
-    scrollToIndex,
-  } = useFeaturedGamesCarousel({ fixtures, rotateInterval });
-
-  const handleDotClick = (index: number) => {
-    scrollToIndex(index);
-    setCurrentIndex(index);
-  };
+    goToNext,
+    goToPrev,
+    goToIndex,
+  } = useFeaturedGamesCarousel({ fixtures, autoRotate: true });
 
   return (
     <div className="carousel-wrapper">
       <div className="carousel-container" ref={containerRef}>
-        {slides.map((fixture, i) => (
-          <div
-            key={i}
-            className={`carousel-slide ${
-              i === currentIndex ? "active" : ""
-            }`}
-          >
-            {/* Render your fixture card */}
-            <div>{fixture.homeTeam} vs {fixture.awayTeam}</div>
+        {slides.map((fixture, idx) => (
+          <div key={fixture.id + idx} className="carousel-slide">
+            <div
+              className="fixture-card"
+              onClick={() => onGameSelect?.(fixture)}
+            >
+              <h3>{fixture.homeTeam} vs {fixture.awayTeam}</h3>
+              <p>{fixture.date}</p>
+            </div>
           </div>
         ))}
       </div>
 
       <div className="carousel-dots">
-        {Array.from({ length: realCount }).map((_, i) => (
+        {fixtures.map((_, idx) => (
           <button
-            key={i}
-            className={`dot ${i === currentIndex ? "active" : ""}`}
-            onClick={() => handleDotClick(i)}
+            key={idx}
+            className={`dot ${currentIndex === idx ? 'active' : ''}`}
+            onClick={() => goToIndex(idx)}
           />
         ))}
       </div>
+
+      <button className="carousel-arrow prev" onClick={goToPrev}>{'<'}</button>
+      <button className="carousel-arrow next" onClick={goToNext}>{'>'}</button>
     </div>
   );
 };
