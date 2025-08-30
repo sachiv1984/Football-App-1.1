@@ -21,4 +21,9 @@
   .hide-scrollbar::-webkit-scrollbar {
     display: none;             /* Chrome, Safari, Opera */
   }
+  
+  /* Smooth backdrop blur for navigation elements */
+  .backdrop-blur-sm {
+    backdrop-filter: blur(4px);
+  }
 }
