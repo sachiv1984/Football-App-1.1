@@ -1,51 +1,34 @@
 import React from 'react';
-import { FeaturedGamesCarouselConfig } from './FeaturedGamesCarouselConfig.types';
 import { useFeaturedGamesCarousel } from '../../../hooks/useFeaturedGamesCarousel';
 import { FeaturedFixtureWithImportance } from './FeaturedGamesCarousel.types';
-import { GameSelectionConfig } from '../../../types';
 import FixtureCard from '../FixtureCard/FixtureCard';
 
 interface OptimizedFeaturedGamesCarouselProps {
-  fixtures?: FeaturedFixtureWithImportance[];
-  config?: FeaturedGamesCarouselConfig;
+  fixtures: FeaturedFixtureWithImportance[];
   rotateInterval?: number;
-  className?: string;
-  onGameSelect?: (fixture: FeaturedFixtureWithImportance) => void;
   maxFeaturedGames?: number;
-  selectionConfig?: GameSelectionConfig;
+  onGameSelect?: (fixture: FeaturedFixtureWithImportance) => void;
 }
 
 const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselProps> = ({
-  fixtures = [],
-  config,
+  fixtures,
   rotateInterval = 5000,
-  className = '',
-  selectionConfig,
-  onGameSelect,
   maxFeaturedGames = 4,
+  onGameSelect,
 }) => {
-  const {
-    featuredGames,
-    carouselState,
-    scrollToIndex,
-  } = useFeaturedGamesCarousel(
-    fixtures, // First argument: array
-    { 
-      selection: selectionConfig || config?.selection,
-      rotateInterval,
-      maxFeaturedGames,
-    } // Second argument: config object
-  );
+  const { featuredGames, carouselState, scrollToIndex, scrollRef } =
+    useFeaturedGamesCarousel(fixtures, rotateInterval);
 
-  if (!featuredGames.length) return <div className={`carousel-empty ${className}`}>No featured games</div>;
+  if (!featuredGames.length) return <div className="carousel-empty">No featured games</div>;
 
   return (
-    <div className={`featured-games-carousel w-full ${className}`}>
+    <div className="featured-games-carousel w-full">
       {/* Scrollable Container */}
       <div
+        ref={scrollRef}
         className="carousel-container flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2"
       >
-        {featuredGames.map((fixture, index) => (
+        {featuredGames.slice(0, maxFeaturedGames).map((fixture, index) => (
           <div
             key={fixture.id}
             className={`relative carousel-card min-w-[280px] snap-start ${
@@ -56,7 +39,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselPro
             <FixtureCard
               fixture={fixture}
               size="md"
-              showAIInsight={false} // removed AI insight
+              showAIInsight={false}
               showCompetition={true}
               showVenue={false}
               onClick={() => onGameSelect?.(fixture)}
@@ -67,7 +50,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselPro
 
       {/* Dot Indicators */}
       <div className="flex justify-center gap-2 mt-3">
-        {featuredGames.map((_, index) => (
+        {featuredGames.slice(0, maxFeaturedGames).map((_, index) => (
           <button
             key={index}
             onClick={() => scrollToIndex(index)}
@@ -86,3 +69,4 @@ const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselPro
 };
 
 export default OptimizedFeaturedGamesCarousel;
+
