@@ -25,7 +25,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselPro
     carouselState,
     scrollToIndex,
     toggleAutoRotate,
-    refreshData,
   } = useFeaturedGamesCarousel({
     fixtures,
     autoRefresh: true,
