@@ -10,14 +10,14 @@ import { Fixture, Team, LeagueTableRow } from '../types';
 import OptimizedFeaturedGamesCarousel from '../components/fixtures/FeaturedGamesCarousel/OptimizedFeaturedGamesCarousel';
 import { FeaturedFixtureWithImportance } from '../components/fixtures/FeaturedGamesCarousel/FeaturedGamesCarousel.types';
 
-// Helper function to convert Game to FeaturedFixtureWithImportance
+// Helper function to convert Fixture to FeaturedFixtureWithImportance
 const convertToFeaturedFixture = (fixture: Fixture): FeaturedFixtureWithImportance => ({
   ...fixture,
   importance: 50,
   importanceScore: calculateImportanceScore(fixture),
   tags: generateTags(fixture),
   matchWeek: fixture.matchWeek || 1,
-  isBigMatch: checkIfBigMatch(fixture)
+  isBigMatch: checkIfBigMatch(fixture),
 });
 
 // Calculate importance score based on teams and other factors
@@ -103,12 +103,16 @@ const HomePage: React.FC = () => {
     <div style={{ background: designTokens.colors.neutral.background, color: designTokens.colors.neutral.darkGrey, minHeight: '100vh' }}>
       <Header isDarkMode={isDarkMode} onToggleDarkMode={handleToggleDarkMode} />
 
+      {/* Add space below header */}
+      <div style={{ marginTop: '2rem' }} />
+
       {/* Hero Section */}
       <OptimizedFeaturedGamesCarousel
         fixtures={featuredFixtures}
         onGameSelect={handleGameSelect}
         rotateInterval={5000}
-        maxFeaturedGames={4}
+        selectionConfig={undefined} // optional prop
+        className="mb-8"
       />
 
       {/* Tab Navigation */}
