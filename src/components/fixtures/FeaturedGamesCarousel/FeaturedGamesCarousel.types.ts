@@ -18,7 +18,7 @@ export interface GameSelectionConfig {
   minImportanceScore?: number;
   maxGames?: number;
   boostBigSixTeams?: boolean;
-  topTeamIds?: number[];
+  topTeamIds?: string[]; // Changed from number[] to string[] to match main types
 }
 
 /**
