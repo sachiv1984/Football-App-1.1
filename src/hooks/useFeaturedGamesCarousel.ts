@@ -16,14 +16,11 @@ export const useFeaturedGamesCarousel = ({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
 
-  const slides = [
-    fixtures[realCount - 1], // clone last
-    ...fixtures,
-    fixtures[0], // clone first
-  ];
-
   const containerRef = useRef<HTMLDivElement>(null);
   const autoRotateRef = useRef<number | null>(null);
+
+  // Cloned slides for infinite loop
+  const slides = [fixtures[realCount - 1], ...fixtures, fixtures[0]];
 
   const scrollToIndex = useCallback(
     (index: number, smooth = true) => {
@@ -37,18 +34,23 @@ export const useFeaturedGamesCarousel = ({
     []
   );
 
-  const goToIndex = useCallback(
-    (index: number) => {
-      if (isAnimating) return;
-      setIsAnimating(true);
-      setCurrentIndex(index);
-    },
-    [isAnimating]
-  );
+  const goToNext = useCallback(() => {
+    if (isAnimating) return;
+    setIsAnimating(true);
+    setCurrentIndex(prev => prev + 1);
+  }, [isAnimating]);
 
-  const goToNext = useCallback(() => goToIndex(currentIndex + 1), [currentIndex, goToIndex]);
-  const goToPrev = useCallback(() => goToIndex(currentIndex - 1), [currentIndex, goToIndex]);
+  const goToPrev = useCallback(() => {
+    if (isAnimating) return;
+    setIsAnimating(true);
+    setCurrentIndex(prev => prev - 1);
+  }, [isAnimating]);
 
+  const goToIndex = useCallback((index: number) => {
+    setCurrentIndex(index);
+  }, []);
+
+  // Auto-rotate
   useEffect(() => {
     if (!autoRotate) return;
     autoRotateRef.current = window.setInterval(goToNext, rotateInterval);
@@ -57,36 +59,32 @@ export const useFeaturedGamesCarousel = ({
     };
   }, [goToNext, autoRotate, rotateInterval]);
 
+  // Scroll effect + loop reset
   useEffect(() => {
     if (!containerRef.current) return;
+    scrollToIndex(currentIndex);
 
-    const container = containerRef.current;
-
-    const handleScrollEnd = () => {
+    const handleTransitionEnd = () => {
       setIsAnimating(false);
       if (currentIndex >= realCount) setCurrentIndex(0);
       if (currentIndex < 0) setCurrentIndex(realCount - 1);
     };
 
-    scrollToIndex(currentIndex);
-    container.addEventListener('scroll', handleScrollEnd);
-    return () => container.removeEventListener('scroll', handleScrollEnd);
+    const container = containerRef.current;
+    container.addEventListener('scroll', handleTransitionEnd);
+    return () => {
+      container.removeEventListener('scroll', handleTransitionEnd);
+    };
   }, [currentIndex, realCount, scrollToIndex]);
-
-  const visibleIndex = currentIndex >= realCount
-    ? 0
-    : currentIndex < 0
-    ? realCount - 1
-    : currentIndex;
 
   return {
     containerRef,
     slides,
-    currentIndex: visibleIndex,
+    currentIndex,
     realCount,
     goToNext,
     goToPrev,
     goToIndex,
+    scrollToIndex,
   };
 };
-
