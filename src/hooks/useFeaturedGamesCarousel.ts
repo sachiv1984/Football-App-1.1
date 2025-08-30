@@ -1,10 +1,12 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { FeaturedFixtureWithImportance } from '../components/fixtures/FeaturedGamesCarousel/FeaturedGamesCarousel.types';
 import { GameSelectionConfig } from '../types';
 
-interface UseFeaturedGamesCarouselProps {
-  fixtures: FeaturedFixtureWithImportance[];
-  config?: { selection?: GameSelectionConfig };
+interface UseFeaturedGamesCarouselParams {
+  fixtures?: FeaturedFixtureWithImportance[];
+  config?: {
+    selection?: GameSelectionConfig;
+  };
   autoRefresh?: boolean;
   rotateInterval?: number;
 }
@@ -14,44 +16,56 @@ interface CarouselState {
 }
 
 export const useFeaturedGamesCarousel = ({
-  fixtures,
+  fixtures = [],
   config,
   autoRefresh = false,
   rotateInterval = 5000,
-}: UseFeaturedGamesCarouselProps) => {
+}: UseFeaturedGamesCarouselParams) => {
+  const [featuredGames, setFeaturedGames] = useState<FeaturedFixtureWithImportance[]>(fixtures);
   const [carouselState, setCarouselState] = useState<CarouselState>({ currentIndex: 0 });
-  const autoRotateTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const autoRotateTimeout = useRef<number | null>(null);
 
   const nextSlide = useCallback(() => {
-    setCarouselState(prev => ({
-      currentIndex: (prev.currentIndex + 1) % fixtures.length,
+    setCarouselState((prev) => ({
+      currentIndex: (prev.currentIndex + 1) % featuredGames.length,
     }));
-  }, [fixtures.length]);
+  }, [featuredGames.length]);
 
   const scrollToIndex = useCallback((index: number) => {
     setCarouselState({ currentIndex: index });
-    if (scrollRef.current) {
-      const child = scrollRef.current.children[index] as HTMLElement;
-      child?.scrollIntoView({ behavior: 'smooth', inline: 'center' });
+  }, []);
+
+  const toggleAutoRotate = useCallback(() => {
+    if (autoRotateTimeout.current) {
+      clearTimeout(autoRotateTimeout.current);
+      autoRotateTimeout.current = null;
+    } else {
+      autoRotateTimeout.current = window.setTimeout(nextSlide, rotateInterval);
     }
-    if (autoRefresh) {
-      if (autoRotateTimeout.current) clearTimeout(autoRotateTimeout.current);
-      autoRotateTimeout.current = setTimeout(nextSlide, rotateInterval);
-    }
-  }, [fixtures.length, autoRefresh, nextSlide, rotateInterval]);
+  }, [nextSlide, rotateInterval]);
+
+  const refreshData = useCallback(() => {
+    setFeaturedGames(fixtures);
+  }, [fixtures]);
 
   useEffect(() => {
-    if (autoRefresh) {
-      autoRotateTimeout.current = setTimeout(nextSlide, rotateInterval);
-      return () => autoRotateTimeout.current && clearTimeout(autoRotateTimeout.current);
-    }
+    if (!autoRefresh) return;
+
+    autoRotateTimeout.current = window.setTimeout(nextSlide, rotateInterval);
+
+    return () => {
+      if (autoRotateTimeout.current !== null) {
+        clearTimeout(autoRotateTimeout.current);
+        autoRotateTimeout.current = null;
+      }
+    };
   }, [nextSlide, autoRefresh, rotateInterval]);
 
   return {
-    featuredGames: fixtures,
+    featuredGames,
     carouselState,
     scrollToIndex,
-    scrollRef,
+    toggleAutoRotate,
+    refreshData,
   };
 };
