@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { FeaturedFixtureWithImportance } from '../components/GamesCarousel/FeaturedGamesCarousel/FeaturedGamesCarousel.types';
+import { FeaturedFixtureWithImportance } from '../components/fixtures/FeaturedGamesCarousel/FeaturedGamesCarousel.types';
 
 interface UseFeaturedGamesCarouselProps {
   fixtures: FeaturedFixtureWithImportance[];
