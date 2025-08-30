@@ -2,7 +2,7 @@
 // Team & Competition
 // -------------------------
 export interface Team {
-  id: number; // required for selection and comparisons
+  id: string; // Changed from number to string for consistency
   name: string;
   shortName: string;
   logo?: string;
@@ -12,7 +12,7 @@ export interface Team {
 }
 
 export interface Competition {
-  id: string; // required
+  id: string; // keeping as string
   name: string;
   shortName?: string;
   logo?: string;
@@ -23,7 +23,7 @@ export interface Competition {
 // AI Insight
 // -------------------------
 export interface AIInsight {
-  id: string;
+  id: string; // keeping as string
   title: string;
   description: string;
   confidence: 'high' | 'medium' | 'low';
@@ -37,7 +37,7 @@ export interface AIInsight {
 // Fixtures / Games
 // -------------------------
 export interface Game {
-  id: number;
+  id: string; // Changed from number to string for consistency
   homeTeam: Team;
   awayTeam: Team;
   dateTime: string; // ISO datetime
@@ -60,7 +60,7 @@ export interface FeaturedFixtureWithImportance extends Game {
   importance: number; // always exists
   importanceScore: number; // used for calculations
   tags: string[];
-  matchWeek: number;
+  matchWeek: number; // made required
   isBigMatch: boolean;
 }
 
@@ -100,7 +100,7 @@ export interface LeagueTableRow {
   goalsAgainst?: number;
   goalDifference?: number;
   points?: number;
-  form: ('W' | 'D' | 'L')[];
+  form?: ('W' | 'D' | 'L')[]; // Made optional to handle undefined
   lastUpdated?: string;
 }
 
@@ -112,13 +112,16 @@ export interface GameSelectionConfig {
   includeNextWeekIfFew?: boolean;
   minImportanceScore?: number;
   maxGames?: number;
-  topTeamIds?: number[];
+  topTeamIds?: string[]; // Changed from number[] to string[] to match Team.id
   boostBigSixTeams?: boolean;
 }
 
 export interface DataFetchConfig {
   fixturesEndpoint?: string;
   refreshInterval?: number;
+  realTimeUpdates?: boolean;
+  websocketEndpoint?: string;
+  cacheDuration?: number;
 }
 
 export interface CarouselState {
@@ -137,8 +140,8 @@ export interface UseCarouselReturn {
   scrollToIndex: (index: number) => void;
   scrollLeft: () => void;
   scrollRight: () => void;
-  toggleAutoRotate: () => void; // added
-  refreshData: () => void;
+  toggleAutoRotate: () => void;
+  refreshData: () => Promise<void>; // Made async to match expected usage
 }
 
 // -------------------------
@@ -149,4 +152,15 @@ export type MatchTag =
   | 'derby'
   | 'title-race'
   | 'european-qualification'
-  | 'relegation-battle';
+  | 'relegation-battle'
+  | 'cup-final'
+  | 'season-opener'
+  | 'season-finale';
+
+// -------------------------
+// Featured Games Carousel Config
+// -------------------------
+export interface FeaturedGamesCarouselConfig {
+  selection?: GameSelectionConfig;
+  data?: DataFetchConfig;
+}
