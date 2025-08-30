@@ -119,6 +119,23 @@ const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselPro
         ))}
       </div>
 
+      {/* ✅ Dot Indicators */}
+      <div className="flex justify-center gap-2 mt-3">
+        {featuredGames.map((_, index) => (
+          <button
+            key={index}
+            onClick={() => scrollToIndex(index)}
+            aria-label={`Go to game ${index + 1}`}
+            className={`w-3 h-3 rounded-full transition-all duration-300 ${
+              carouselState.currentIndex === index
+                ? 'bg-electric-yellow scale-110'
+                : 'bg-gray-300 hover:bg-gray-400'
+            }`}
+            style={{ minWidth: '12px', minHeight: '12px' }} // ✅ 44px touch guideline with padding from container
+          />
+        ))}
+      </div>
+
       {/* Controls */}
       <div className="flex justify-center gap-2 mt-4">
         <Button size="sm" onClick={toggleAutoRotate}>
