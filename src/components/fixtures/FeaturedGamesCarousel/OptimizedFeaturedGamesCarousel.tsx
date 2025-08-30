@@ -1,18 +1,22 @@
-import React from 'react';
-import FixtureCard from '../FixtureCard/FixtureCard';
+// src/components/fixtures/FeaturedGamesCarousel/OptimizedFeaturedGamesCarousel.tsx
+import React, { useEffect } from 'react';
+import { FeaturedFixtureWithImportance } from './FeaturedGamesCarousel.types';
 import { useFeaturedGamesCarousel } from '../../../hooks/useFeaturedGamesCarousel';
-import type { FeaturedFixtureWithImportance } from './FeaturedGamesCarousel.types';
+import FixtureCard from '../FixtureCard/FixtureCard';
+import clsx from 'clsx';
 
-interface CarouselProps {
+interface OptimizedFeaturedGamesCarouselProps {
   fixtures: FeaturedFixtureWithImportance[];
+  onGameSelect: (fixture: FeaturedFixtureWithImportance) => void;
   rotateInterval?: number;
-  onGameSelect?: (fixture: FeaturedFixtureWithImportance) => void;
+  className?: string;
 }
 
-const OptimizedFeaturedGamesCarousel: React.FC<CarouselProps> = ({
+const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselProps> = ({
   fixtures,
-  rotateInterval = 5000,
   onGameSelect,
+  rotateInterval = 5000,
+  className,
 }) => {
   const {
     containerRef,
@@ -20,24 +24,35 @@ const OptimizedFeaturedGamesCarousel: React.FC<CarouselProps> = ({
     currentIndex,
     realCount,
     setCurrentIndex,
-    scrollToIndex,
-  } = useFeaturedGamesCarousel({
-    fixtures,
-    rotateInterval,
-  });
+    scrollToIndex: _scrollToIndex, // kept for ESLint
+  } = useFeaturedGamesCarousel({ fixtures, rotateInterval });
+
+  // Auto rotate effect
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % realCount);
+    }, rotateInterval);
+    return () => clearInterval(interval);
+  }, [rotateInterval, realCount, setCurrentIndex]);
+
+  // Handle dot click
+  const handleDotClick = (index: number) => {
+    setCurrentIndex(index);
+  };
 
   return (
-    <div className="relative w-full">
-      {/* Carousel */}
+    <div className={clsx('relative w-full', className)}>
+      {/* Carousel slides */}
       <div
         ref={containerRef}
-        className="flex overflow-x-hidden scroll-smooth snap-x snap-mandatory"
+        className="flex overflow-x-hidden scroll-smooth"
+        style={{ scrollSnapType: 'x mandatory' }}
       >
         {slides.map((fixture, idx) => (
           <div
-            key={fixture.id + idx} // clone safety
-            className="flex-shrink-0 w-full snap-center px-2"
-            onClick={() => onGameSelect?.(fixture)}
+            key={`${fixture.id}-${idx}`} // use idx for duplicated clones
+            className="flex-0-0-100% scroll-snap-align-center px-2"
+            onClick={() => onGameSelect(fixture)}
           >
             <FixtureCard fixture={fixture} />
           </div>
@@ -46,13 +61,15 @@ const OptimizedFeaturedGamesCarousel: React.FC<CarouselProps> = ({
 
       {/* Dots */}
       <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-2">
-        {fixtures.map((_, idx) => (
+        {Array.from({ length: realCount }).map((_, idx) => (
           <button
             key={idx}
-            onClick={() => setCurrentIndex(idx)}
-            className={`w-3 h-3 rounded-full ${
-              idx === currentIndex % realCount ? 'bg-gray-900' : 'bg-gray-300'
-            }`}
+            onClick={() => handleDotClick(idx)}
+            className={clsx(
+              'w-3 h-3 rounded-full transition-colors duration-200',
+              idx === currentIndex ? 'bg-gray-900' : 'bg-gray-400'
+            )}
+            aria-label={`Go to slide ${idx + 1}`}
           />
         ))}
       </div>
