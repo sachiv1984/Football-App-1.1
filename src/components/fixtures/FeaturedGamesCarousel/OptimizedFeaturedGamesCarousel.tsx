@@ -5,68 +5,53 @@ import type { FeaturedFixtureWithImportance } from './FeaturedGamesCarousel.type
 interface Props {
   fixtures: FeaturedFixtureWithImportance[];
   onGameSelect?: (fixture: FeaturedFixtureWithImportance) => void;
+  className?: string;
   autoRotate?: boolean;
   rotateInterval?: number;
-  className?: string;
 }
 
 export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   fixtures,
   onGameSelect,
+  className = '',
   autoRotate = true,
   rotateInterval = 5000,
-  className,
 }) => {
-  const {
-    containerRef,
-    slides,
-    currentIndex,
-    goToIndex, // renamed from scrollToIndex
-  } = useFeaturedGamesCarousel({
+  const { containerRef, slides, currentIndex, goToIndex } = useFeaturedGamesCarousel({
     fixtures,
     autoRotate,
     rotateInterval,
   });
 
   return (
-    <div className={className}>
-      <div
-        ref={containerRef}
-        style={{
-          display: 'flex',
-          overflowX: 'hidden',
-          scrollSnapType: 'x mandatory',
-        }}
-      >
-        {slides.map((fixture, index) => (
+    <div className={`featured-games-carousel ${className}`}>
+      <div ref={containerRef} className="carousel-container" style={{ display: 'flex', overflowX: 'scroll' }}>
+        {slides.map((fixture, idx) => (
           <div
-            key={index}
-            style={{
-              flex: '0 0 100%',
-              scrollSnapAlign: 'start',
-            }}
+            key={`${fixture.homeTeam.id}-${fixture.awayTeam.id}-${idx}`}
+            className="carousel-slide"
+            style={{ flex: '0 0 100%' }}
             onClick={() => onGameSelect?.(fixture)}
           >
-            {/* Replace kickoff with your actual date/time property */}
             <div>{fixture.homeTeam.name} vs {fixture.awayTeam.name}</div>
-            <div>{fixture.date}</div>
+            <div>{fixture.matchWeek ? `Week ${fixture.matchWeek}` : 'TBD'}</div>
           </div>
         ))}
       </div>
 
-      <div style={{ textAlign: 'center', marginTop: 8 }}>
-        {fixtures.map((_, dotIndex) => (
+      <div className="carousel-dots" style={{ textAlign: 'center', marginTop: '8px' }}>
+        {fixtures.map((_, idx) => (
           <button
-            key={dotIndex}
-            onClick={() => goToIndex(dotIndex)}
+            key={idx}
+            onClick={() => goToIndex(idx)}
             style={{
-              width: 10,
-              height: 10,
+              width: '10px',
+              height: '10px',
               borderRadius: '50%',
               margin: '0 4px',
-              background: dotIndex === currentIndex ? 'black' : 'gray',
+              background: idx === currentIndex ? '#000' : '#ccc',
               border: 'none',
-              padding: 0,
+              cursor: 'pointer',
             }}
           />
         ))}
