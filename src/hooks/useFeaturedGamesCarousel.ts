@@ -1,114 +1,102 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { FeaturedFixtureWithImportance } from '../components/fixtures/FeaturedGamesCarousel/FeaturedGamesCarousel.types';
 
-interface UseFeaturedGamesCarouselProps {
-  fixtures: FeaturedFixtureWithImportance[];
+interface UseFeaturedGamesCarouselParams {
+  fixtures?: FeaturedFixtureWithImportance[];
   rotateInterval?: number;
-  autoRefresh?: boolean;
 }
 
 interface CarouselState {
   currentIndex: number;
-  isTransitioning: boolean;
+  isAutoRotating: boolean;
+  isDragging: boolean;
 }
 
 export const useFeaturedGamesCarousel = ({
-  fixtures,
+  fixtures = [],
   rotateInterval = 5000,
-  autoRefresh = false,
-}: UseFeaturedGamesCarouselProps) => {
-  // add importance to fixtures
-  const baseGames = fixtures.map(fixture => ({
-    ...fixture,
-    importance: fixture.importance ?? 1,
-  }));
-
-  // clone first & last for infinite loop illusion
-  const featuredGames = [
-    baseGames[baseGames.length - 1], // clone last at start
-    ...baseGames,
-    baseGames[0], // clone first at end
-  ];
-
+}: UseFeaturedGamesCarouselParams) => {
   const [carouselState, setCarouselState] = useState<CarouselState>({
-    currentIndex: 1, // start at "real" first item
-    isTransitioning: false,
+    currentIndex: 0,
+    isAutoRotating: true,
+    isDragging: false,
   });
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const autoRotateTimeout = useRef<number | null>(null);
 
-  // Scroll to index
+  const totalSlides = fixtures.length;
+
+  // Scroll to given index
   const scrollToIndex = useCallback(
-    (index: number, smooth: boolean = true) => {
+    (index: number) => {
       if (!scrollRef.current) return;
+      const width = scrollRef.current.clientWidth;
       scrollRef.current.scrollTo({
-        left: index * scrollRef.current.clientWidth,
-        behavior: smooth ? 'smooth' : 'auto',
+        left: width * index,
+        behavior: 'smooth',
       });
+      setCarouselState((prev) => ({ ...prev, currentIndex: index }));
     },
     []
   );
 
-  // Next slide
+  // Auto-rotate logic
   const nextSlide = useCallback(() => {
-    setCarouselState(prev => ({
-      ...prev,
-      currentIndex: prev.currentIndex + 1,
-      isTransitioning: true,
-    }));
+    const nextIndex = (carouselState.currentIndex + 1) % totalSlides;
+    scrollToIndex(nextIndex);
+  }, [carouselState.currentIndex, scrollToIndex, totalSlides]);
+
+  // Toggle auto-rotate
+  const toggleAutoRotate = useCallback(() => {
+    setCarouselState((prev) => ({ ...prev, isAutoRotating: !prev.isAutoRotating }));
   }, []);
 
-  // Prev slide
-  const prevSlide = useCallback(() => {
-    setCarouselState(prev => ({
-      ...prev,
-      currentIndex: prev.currentIndex - 1,
-      isTransitioning: true,
-    }));
-  }, []);
-
-  // Auto rotate
+  // Handle auto-rotation timer
   useEffect(() => {
-    if (!autoRefresh || baseGames.length <= 1) return;
+    if (!carouselState.isAutoRotating || totalSlides <= 1) return;
 
-    const interval = setInterval(() => {
+    autoRotateTimeout.current = window.setTimeout(() => {
       nextSlide();
     }, rotateInterval);
 
-    return () => clearInterval(interval);
-  }, [autoRefresh, rotateInterval, nextSlide, baseGames.length]);
+    return () => {
+      if (autoRotateTimeout.current) clearTimeout(autoRotateTimeout.current);
+    };
+  }, [carouselState.isAutoRotating, carouselState.currentIndex, nextSlide, rotateInterval, totalSlides]);
 
-  // Sync scroll position on index change
-  useEffect(() => {
-    scrollToIndex(carouselState.currentIndex, true);
-  }, [carouselState.currentIndex, scrollToIndex]);
+  // Swipe handling
+  const startX = useRef<number | null>(null);
+  const isDragging = useRef(false);
 
-  // Handle "snap back" after reaching clones
-  const handleTransitionEnd = useCallback(() => {
-    setCarouselState(prev => {
-      if (prev.currentIndex === 0) {
-        // jumped to the cloned last → snap to real last
-        scrollToIndex(baseGames.length, false);
-        return { currentIndex: baseGames.length, isTransitioning: false };
-      }
-      if (prev.currentIndex === baseGames.length + 1) {
-        // jumped to the cloned first → snap to real first
-        scrollToIndex(1, false);
-        return { currentIndex: 1, isTransitioning: false };
-      }
-      return { ...prev, isTransitioning: false };
-    });
-  }, [baseGames.length, scrollToIndex]);
+  const handleTouchStart = (e: React.TouchEvent) => {
+    startX.current = e.touches[0].clientX;
+    isDragging.current = true;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging.current || startX.current === null) return;
+    const deltaX = e.touches[0].clientX - startX.current;
+    if (Math.abs(deltaX) > 50) {
+      if (deltaX > 0) scrollToIndex((carouselState.currentIndex - 1 + totalSlides) % totalSlides);
+      else scrollToIndex((carouselState.currentIndex + 1) % totalSlides);
+      isDragging.current = false;
+    }
+  };
+
+  const handleTouchEnd = () => {
+    isDragging.current = false;
+    startX.current = null;
+  };
 
   return {
-    featuredGames,
-    baseGames,
+    featuredGames: fixtures,
     carouselState,
-    setCarouselState,
-    scrollRef,
     scrollToIndex,
-    nextSlide,
-    prevSlide,
-    handleTransitionEnd,
+    toggleAutoRotate,
+    scrollRef,
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
   };
 };
