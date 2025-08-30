@@ -1,9 +1,12 @@
-import { FeaturedFixture } from '../../../types';
+import { FeaturedFixture, Team } from '../../../types';
 import type { FeaturedGamesCarouselConfig } from './FeaturedGamesCarouselConfig.types';
 
+/**
+ * Props for the FeaturedGamesCarousel component
+ */
 export interface FeaturedGamesCarouselProps {
-  fixtures?: FeaturedFixture[];
-  onGameSelect?: (fixture: FeaturedFixture) => void;
+  fixtures?: FeaturedFixtureWithImportance[];
+  onGameSelect?: (fixture: FeaturedFixtureWithImportance) => void;
   onViewStats?: (fixtureId: string) => void;
   autoRotate?: boolean;
   rotateInterval?: number;
@@ -12,6 +15,9 @@ export interface FeaturedGamesCarouselProps {
   selectionConfig?: FeaturedGamesCarouselConfig['selection'];
 }
 
+/**
+ * Configuration for game selection logic
+ */
 export interface GameSelectionConfig {
   prioritizeLiveGames?: boolean;
   includeNextWeekIfFew?: boolean;
@@ -21,13 +27,27 @@ export interface GameSelectionConfig {
   topTeamIds?: string[];
 }
 
+/**
+ * Extended fixture type with importance and extra fields used in carousel
+ */
 export interface FeaturedFixtureWithImportance extends FeaturedFixture {
   importanceScore: number;
   matchWeek: number;
   isBigMatch: boolean;
   tags: string[];
+  date: string;        // required for display
+  kickoff: string;     // required for display
+  homeTeam: Team;      // required for display
+  awayTeam: Team;      // required for display
+  score?: {
+    home: number;
+    away: number;
+  };
 }
 
+/**
+ * Type for match tags
+ */
 export type MatchTag =
   | 'derby'
   | 'top-six'
@@ -38,6 +58,9 @@ export type MatchTag =
   | 'season-opener'
   | 'season-finale';
 
+/**
+ * Carousel state for internal logic
+ */
 export interface CarouselState {
   currentIndex: number;
   canScrollLeft: boolean;
@@ -46,6 +69,9 @@ export interface CarouselState {
   isDragging: boolean;
 }
 
+/**
+ * Hook return interface
+ */
 export interface UseCarouselReturn {
   featuredGames: FeaturedFixtureWithImportance[];
   isLoading: boolean;
@@ -58,6 +84,9 @@ export interface UseCarouselReturn {
   refreshData: () => Promise<void>;
 }
 
+/**
+ * Data fetching configuration
+ */
 export interface DataFetchConfig {
   fixturesEndpoint?: string;
   refreshInterval?: number;
