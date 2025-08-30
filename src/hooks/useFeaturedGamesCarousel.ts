@@ -13,10 +13,9 @@ export const useFeaturedGamesCarousel = ({
   rotateInterval = 5000,
 }: UseFeaturedGamesCarouselParams) => {
   const realCount = fixtures.length;
-  const [currentIndex, setCurrentIndex] = useState(0); // real slide index
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
 
-  // Cloned slides for infinite loop
   const slides = [
     fixtures[realCount - 1], // clone last
     ...fixtures,
@@ -50,7 +49,6 @@ export const useFeaturedGamesCarousel = ({
   const goToNext = useCallback(() => goToIndex(currentIndex + 1), [currentIndex, goToIndex]);
   const goToPrev = useCallback(() => goToIndex(currentIndex - 1), [currentIndex, goToIndex]);
 
-  // Auto-rotate
   useEffect(() => {
     if (!autoRotate) return;
     autoRotateRef.current = window.setInterval(goToNext, rotateInterval);
@@ -59,24 +57,22 @@ export const useFeaturedGamesCarousel = ({
     };
   }, [goToNext, autoRotate, rotateInterval]);
 
-  // Scroll effect
   useEffect(() => {
     if (!containerRef.current) return;
 
     const container = containerRef.current;
-    const handleTransitionEnd = () => {
+
+    const handleScrollEnd = () => {
       setIsAnimating(false);
       if (currentIndex >= realCount) setCurrentIndex(0);
       if (currentIndex < 0) setCurrentIndex(realCount - 1);
     };
 
     scrollToIndex(currentIndex);
-
-    container.addEventListener('scroll', handleTransitionEnd);
-    return () => container.removeEventListener('scroll', handleTransitionEnd);
+    container.addEventListener('scroll', handleScrollEnd);
+    return () => container.removeEventListener('scroll', handleScrollEnd);
   }, [currentIndex, realCount, scrollToIndex]);
 
-  // Real slide index for dots
   const visibleIndex = currentIndex >= realCount
     ? 0
     : currentIndex < 0
@@ -93,3 +89,4 @@ export const useFeaturedGamesCarousel = ({
     goToIndex,
   };
 };
+
