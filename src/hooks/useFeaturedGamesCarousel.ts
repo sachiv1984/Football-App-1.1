@@ -1,4 +1,3 @@
-// src/hooks/useFeaturedGamesCarousel.ts
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { FeaturedFixtureWithImportance } from '../components/fixtures/FeaturedGamesCarousel/FeaturedGamesCarousel.types';
 
@@ -22,7 +21,7 @@ export type UseCarouselReturn = {
 
 export const useFeaturedGamesCarousel = (
   featuredGames: FeaturedFixtureWithImportance[],
-  rotateInterval: number = 5000 // 5 seconds default, UX-friendly
+  rotateInterval: number = 5000
 ): UseCarouselReturn => {
   const [carouselState, setCarouselState] = useState<CarouselState>({
     currentIndex: 0,
@@ -34,7 +33,7 @@ export const useFeaturedGamesCarousel = (
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const scrollRef = useRef<HTMLDivElement>(null);
-  const autoRotateRef = useRef<NodeJS.Timer>();
+  const autoRotateRef = useRef<number | null>(null);
 
   const scrollRight = useCallback(() => {
     setCarouselState(prev => {
@@ -61,27 +60,25 @@ export const useFeaturedGamesCarousel = (
         canScrollRight: true,
       }));
 
-      resetAutoRotateAfterManual();
+      // reset auto-rotation after manual scroll
+      if (autoRotateRef.current) {
+        clearInterval(autoRotateRef.current);
+        autoRotateRef.current = window.setInterval(scrollRight, rotateInterval);
+      }
     },
-    [scrollRef]
+    [scrollRef, rotateInterval, scrollRight]
   );
 
   const toggleAutoRotate = useCallback(() => {
     setCarouselState(prev => ({ ...prev, isAutoRotating: !prev.isAutoRotating }));
   }, []);
 
-  const resetAutoRotateAfterManual = useCallback(() => {
-    if (!carouselState.isAutoRotating) return;
-    if (autoRotateRef.current) clearInterval(autoRotateRef.current);
-    autoRotateRef.current = setInterval(scrollRight, rotateInterval);
-  }, [carouselState.isAutoRotating, rotateInterval, scrollRight]);
-
   const refreshData = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(undefined);
-      // Placeholder for async refresh logic if needed
-    } catch (err) {
+      // placeholder async refresh
+    } catch {
       setError('Failed to refresh featured games.');
     } finally {
       setIsLoading(false);
@@ -90,9 +87,11 @@ export const useFeaturedGamesCarousel = (
 
   useEffect(() => {
     if (carouselState.isAutoRotating) {
-      autoRotateRef.current = setInterval(scrollRight, rotateInterval);
+      autoRotateRef.current = window.setInterval(scrollRight, rotateInterval);
       return () => {
-        if (autoRotateRef.current) clearInterval(autoRotateRef.current);
+        if (autoRotateRef.current) {
+          clearInterval(autoRotateRef.current);
+        }
       };
     }
   }, [carouselState.isAutoRotating, scrollRight, rotateInterval]);
