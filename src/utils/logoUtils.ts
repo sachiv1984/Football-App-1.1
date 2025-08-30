@@ -49,7 +49,7 @@ export const getTeamLogoPath = (
 ): string | null => {
   const slug = TEAM_LOGO_MAP[teamName] || (shortName && TEAM_LOGO_MAP[shortName]) || null;
   // Updated to match your folder with capitals and space
-  return slug ? `/Images/Club Logos/${slug}.png` : null;
+  return slug ? `/Images/Club%20Logos/${slug}.png` : null;
 };
 
 export const getTeamLogo = (team: { name: string; shortName?: string; id?: string }) => {
