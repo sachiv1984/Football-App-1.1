@@ -45,6 +45,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({
     homeScore: 0,
     awayScore: 0,
     aiInsight: {
+      id: 'insight-1', // Added missing id property
       title: 'High-Scoring Encounter Expected',
       description: 'Both teams average 2.3 goals per game. Over 2.5 goals has hit in 4/5 recent meetings.',
       confidence: 'high',
@@ -54,21 +55,25 @@ const HeroSection: React.FC<HeroSectionProps> = ({
 
   const fixture = featuredFixture || defaultFixture;
 
-  const renderFormIndicators = (form: ('W' | 'D' | 'L')[]) => (
-    <div className="flex space-x-1">
-      {form.map((result, index) => (
-        <span
-          key={index}
-          className={`form-indicator ${
-            result === 'W' ? 'form-w' : 
-            result === 'D' ? 'form-d' : 'form-l'
-          }`}
-        >
-          {result}
-        </span>
-      ))}
-    </div>
-  );
+  // Handle potentially undefined form arrays
+  const renderFormIndicators = (form?: ('W' | 'D' | 'L')[]) => {
+    const formArray = form || [];
+    return (
+      <div className="flex space-x-1">
+        {formArray.map((result, index) => (
+          <span
+            key={index}
+            className={`form-indicator ${
+              result === 'W' ? 'form-w' : 
+              result === 'D' ? 'form-d' : 'form-l'
+            }`}
+          >
+            {result}
+          </span>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <section className="bg-gradient-hero text-white py-16 lg:py-24">
@@ -101,7 +106,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({
                   </h2>
                   <div className="flex items-center space-x-4 mb-3">
                     <span className="badge badge-secondary">
-                      #{fixture.homeTeam.position}
+                      #{fixture.homeTeam.position ?? 'TBD'}
                     </span>
                     <span className="text-blue-100">League Position</span>
                   </div>
@@ -134,7 +139,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({
                   </h2>
                   <div className="flex items-center space-x-4 mb-3">
                     <span className="badge badge-secondary">
-                      #{fixture.awayTeam.position}
+                      #{fixture.awayTeam.position ?? 'TBD'}
                     </span>
                     <span className="text-blue-100">League Position</span>
                   </div>
