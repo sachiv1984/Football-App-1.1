@@ -1,14 +1,14 @@
 // src/components/fixtures/FeaturedGamesCarousel/OptimizedFeaturedGamesCarousel.tsx
-import React, { useRef } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import { FeaturedFixtureWithImportance } from './FeaturedGamesCarousel.types';
+import GameCard from '../GameCard/GameCard'; // <-- make sure this path matches your project
 import { useFeaturedGamesCarousel } from '../../../hooks/useFeaturedGamesCarousel';
-import GameCard from '../GameCard/GameCard';
-import './OptimizedFeaturedGamesCarousel.css';
 
 interface OptimizedFeaturedGamesCarouselProps {
   fixtures: FeaturedFixtureWithImportance[];
   onGameSelect: (fixture: FeaturedFixtureWithImportance) => void;
   rotateInterval?: number;
+  visibleCards?: number; // new prop to control how many cards are visible
   className?: string;
 }
 
@@ -16,10 +16,9 @@ const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselPro
   fixtures,
   onGameSelect,
   rotateInterval = 5000,
+  visibleCards = 4, // default to 4 cards
   className = '',
 }) => {
-  const scrollRef = useRef<HTMLDivElement>(null);
-
   const {
     featuredGames,
     carouselState,
@@ -27,45 +26,32 @@ const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselPro
     toggleAutoRotate,
   } = useFeaturedGamesCarousel({
     fixtures,
-    autoRefresh: true,
     rotateInterval,
   });
 
-  // Determine how many cards to show based on screen width
-  const getVisibleCards = () => (window.innerWidth < 768 ? 1 : 3);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  const visibleCards = getVisibleCards();
+  // Auto scroll logic
+  useEffect(() => {
+    const interval = setInterval(() => {
+      scrollToIndex((carouselState.currentIndex + 1) % featuredGames.length);
+    }, rotateInterval);
+
+    return () => clearInterval(interval);
+  }, [carouselState.currentIndex, featuredGames.length, scrollToIndex, rotateInterval]);
+
+  // Determine which cards to show
+  const startIndex = carouselState.currentIndex;
+  const endIndex = Math.min(startIndex + visibleCards, featuredGames.length);
+  const visibleFixtures = featuredGames.slice(startIndex, endIndex);
 
   return (
-    <div className={`carousel-wrapper ${className}`} ref={scrollRef}>
-      <div className="carousel-container">
-        {featuredGames.map((game, index) => (
-          <div
-            key={game.id}
-            className="carousel-card"
-            style={{
-              flex: `0 0 calc(100% / ${visibleCards})`,
-            }}
-          >
-            <GameCard
-              game={game}
-              isActive={index === carouselState.currentIndex}
-              onSelect={() => onGameSelect(game)}
-            />
-          </div>
-        ))}
-      </div>
-
-      {/* Carousel Controls */}
-      <div className="carousel-controls">
-        <button onClick={() => scrollToIndex((carouselState.currentIndex - 1 + featuredGames.length) % featuredGames.length)}>
-          ‹
-        </button>
-        <button onClick={() => scrollToIndex((carouselState.currentIndex + 1) % featuredGames.length)}>
-          ›
-        </button>
-        <button onClick={toggleAutoRotate}>Toggle Auto-Rotate</button>
-      </div>
+    <div className={`flex overflow-x-auto ${className}`} ref={scrollRef}>
+      {visibleFixtures.map((fixture) => (
+        <div key={fixture.id} className="flex-shrink-0 mr-4">
+          <GameCard fixture={fixture} onClick={() => onGameSelect(fixture)} />
+        </div>
+      ))}
     </div>
   );
 };
