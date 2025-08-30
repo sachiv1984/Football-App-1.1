@@ -20,7 +20,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselPro
   const {
     featuredGames,
     carouselState,
-    scrollToIndex,
+    // scrollToIndex,  <-- removed because it’s unused
   } = useFeaturedGamesCarousel({ fixtures, rotateInterval });
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -58,3 +58,4 @@ const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselPro
 };
 
 export default OptimizedFeaturedGamesCarousel;
+
