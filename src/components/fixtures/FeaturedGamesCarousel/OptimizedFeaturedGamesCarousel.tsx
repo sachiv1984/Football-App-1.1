@@ -17,43 +17,92 @@ const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselPro
   className,
 }) => {
   const {
-    featuredGames,
+    featuredGames,   // includes clones
+    baseGames,       // only real fixtures
     carouselState,
-    scrollRef, // ✅ from hook
+    setCarouselState,
+    scrollRef,
+    scrollToIndex,
+    handleTransitionEnd,
   } = useFeaturedGamesCarousel({ 
     fixtures, 
     rotateInterval, 
-    autoRefresh: true // ✅ enable auto-rotate
+    autoRefresh: true 
   });
 
+  // Keep scroll synced with index changes (when auto-rotating or dot click)
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTo({
-        left: carouselState.currentIndex * scrollRef.current.clientWidth,
-        behavior: 'smooth',
-      });
+    scrollToIndex(carouselState.currentIndex, true);
+  }, [carouselState.currentIndex, scrollToIndex]);
+
+  // Update index when user swipes manually
+  const handleScroll = () => {
+    if (!scrollRef.current) return;
+    const index = Math.round(
+      scrollRef.current.scrollLeft / scrollRef.current.clientWidth
+    );
+    if (index !== carouselState.currentIndex) {
+      setCarouselState(prev => ({ ...prev, currentIndex: index }));
     }
-  }, [carouselState.currentIndex, scrollRef]);
+  };
+
+  // Map current index (with clones) to "real" index for dots
+  const getRealIndex = (index: number) => {
+    if (index === 0) return baseGames.length - 1;        // left clone → last
+    if (index === baseGames.length + 1) return 0;        // right clone → first
+    return index - 1;                                    // shift down by 1
+  };
 
   return (
-    <div
-      className={className}
-      ref={scrollRef}
-      style={{
-        display: 'flex',
-        overflowX: 'hidden',
-        scrollSnapType: 'x mandatory',
-      }}
-    >
-      {featuredGames.map((fixture) => (
-        <div
-          key={fixture.id}
-          style={{ flex: '0 0 100%', scrollSnapAlign: 'center', padding: '0 0.5rem' }}
-          onClick={() => onGameSelect(fixture)}
-        >
-          <FixtureCard fixture={fixture} />
-        </div>
-      ))}
+    <div>
+      {/* Carousel */}
+      <div
+        className={className}
+        ref={scrollRef}
+        onScroll={handleScroll}
+        onTransitionEnd={handleTransitionEnd}
+        style={{
+          display: 'flex',
+          overflowX: 'scroll',
+          scrollSnapType: 'x mandatory',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+        }}
+      >
+        {featuredGames.map((fixture, idx) => (
+          <div
+            key={`${fixture.id}-${idx}`} // must include idx because of clones
+            style={{ 
+              flex: '0 0 100%', 
+              scrollSnapAlign: 'center', 
+              padding: '0 0.5rem' 
+            }}
+            onClick={() => onGameSelect(fixture)}
+          >
+            <FixtureCard fixture={fixture} />
+          </div>
+        ))}
+      </div>
+
+      {/* Navigation Dots */}
+      <div style={{ display: 'flex', justifyContent: 'center', marginTop: '0.5rem' }}>
+        {baseGames.map((_, index) => (
+          <button
+            key={index}
+            onClick={() => setCarouselState(prev => ({ ...prev, currentIndex: index + 1 }))}
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              margin: '0 4px',
+              border: 'none',
+              background: 
+                getRealIndex(carouselState.currentIndex) === index ? '#333' : '#ccc',
+              cursor: 'pointer',
+            }}
+          />
+        ))}
+      </div>
     </div>
   );
 };
