@@ -15,14 +15,12 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   onGameSelect,
   autoRotate = true,
   rotateInterval = 5000,
-  className = '',
+  className,
 }) => {
   const {
     containerRef,
     slides,
     currentIndex,
-    goToNext,
-    goToPrev,
     scrollToIndex,
   } = useFeaturedGamesCarousel({
     fixtures,
@@ -30,43 +28,45 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     rotateInterval,
   });
 
-  const handleDotClick = (index: number) => {
-    scrollToIndex(index);
-  };
-
   return (
-    <div className={`featured-games-carousel ${className}`}>
-      <div className="carousel-container" ref={containerRef} style={{ display: 'flex', overflowX: 'hidden' }}>
-        {slides.map((fixture, idx) => (
+    <div className={className}>
+      <div
+        ref={containerRef}
+        style={{
+          display: 'flex',
+          overflowX: 'hidden',
+          scrollSnapType: 'x mandatory',
+        }}
+      >
+        {slides.map((fixture, index) => (
           <div
-            key={`${fixture.id}-${idx}`}
-            className="carousel-slide"
-            style={{ minWidth: '100%', cursor: 'pointer' }}
+            key={index}
+            style={{
+              flex: '0 0 100%',
+              scrollSnapAlign: 'start',
+            }}
             onClick={() => onGameSelect?.(fixture)}
           >
-            <div className="fixture-details">
-              <span>{fixture.homeTeam.name}</span> vs <span>{fixture.awayTeam.name}</span>
-              <div>{fixture.date}</div> {/* replace with your kickoff property if needed */}
-            </div>
+            {/* Render your fixture card here */}
+            <div>{fixture.homeTeam.name} vs {fixture.awayTeam.name}</div>
+            <div>{fixture.kickoff}</div>
           </div>
         ))}
       </div>
 
-      {/* Dots navigation */}
-      <div className="carousel-dots" style={{ display: 'flex', justifyContent: 'center', marginTop: 8 }}>
-        {fixtures.map((_, idx) => (
+      <div style={{ textAlign: 'center', marginTop: 8 }}>
+        {fixtures.map((_, dotIndex) => (
           <button
-            key={idx}
-            className={`dot ${currentIndex % fixtures.length === idx ? 'active' : ''}`}
-            onClick={() => handleDotClick(idx)}
+            key={dotIndex}
+            onClick={() => scrollToIndex(dotIndex)}
             style={{
               width: 10,
               height: 10,
               borderRadius: '50%',
-              margin: 4,
+              margin: '0 4px',
+              background: dotIndex === currentIndex ? 'black' : 'gray',
               border: 'none',
-              backgroundColor: currentIndex % fixtures.length === idx ? '#000' : '#ccc',
-              cursor: 'pointer',
+              padding: 0,
             }}
           />
         ))}
