@@ -7,7 +7,7 @@ import FixturesList from '../components/fixtures/FixturesList/FixturesList';
 import LeagueTable from '../components/league/LeagueTable/LeagueTable';
 import { designTokens } from '../styles/designTokens';
 import { Fixture, Team, LeagueTableRow } from '../types';
-import OptimizedFeaturedGamesCarousel from '../components/fixtures/FeaturedGamesCarousel/OptimizedFeaturedGamesCarousel';
+import { OptimizedFeaturedGamesCarousel } from '../components/fixtures/FeaturedGamesCarousel/OptimizedFeaturedGamesCarousel';
 import { FeaturedFixtureWithImportance } from '../components/fixtures/FeaturedGamesCarousel/FeaturedGamesCarousel.types';
 
 // Helper function to convert Fixture to FeaturedFixtureWithImportance
