@@ -108,7 +108,7 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
   return (
     <div 
-      className={`relative overflow-hidden ${className}`}
+      className={`relative overflow-hidden group ${className}`}
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
@@ -294,9 +294,9 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
         })}
       </div>
 
-      {/* Enhanced navigation */}
+      {/* Navigation arrows - hidden on mobile, visible on desktop */}
       <button
-        className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm p-3 rounded-full shadow-lg hover:bg-white hover:shadow-xl transition-all duration-200 text-gray-700 hover:text-gray-900"
+        className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm p-3 rounded-full shadow-lg hover:bg-white hover:shadow-xl transition-all duration-200 text-gray-700 hover:text-gray-900 hidden md:block opacity-0 group-hover:opacity-100"
         onClick={goToPrev}
         aria-label="Previous game"
       >
@@ -306,7 +306,7 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
       </button>
       
       <button
-        className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm p-3 rounded-full shadow-lg hover:bg-white hover:shadow-xl transition-all duration-200 text-gray-700 hover:text-gray-900"
+        className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm p-3 rounded-full shadow-lg hover:bg-white hover:shadow-xl transition-all duration-200 text-gray-700 hover:text-gray-900 hidden md:block opacity-0 group-hover:opacity-100"
         onClick={goToNext}
         aria-label="Next game"
       >
@@ -334,24 +334,7 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
         ))}
       </div>
 
-      {/* Auto-rotate pause/play button */}
-      {autoRotate && (
-        <button
-          className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm p-2 rounded-full shadow-md hover:shadow-lg transition-all duration-200"
-          onClick={() => setIsPaused(!isPaused)}
-          aria-label={isPaused ? 'Resume auto-rotation' : 'Pause auto-rotation'}
-        >
-          {isPaused ? (
-            <svg className="w-4 h-4 text-gray-700" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M8 5v14l11-7z"/>
-            </svg>
-          ) : (
-            <svg className="w-4 h-4 text-gray-700" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M6 4h4v16H6zM14 4h4v16h-4z"/>
-            </svg>
-          )}
-        </button>
-      )}
+      {/* Remove the pause/play button - pause on hover is sufficient */}
     </div>
   );
 };
