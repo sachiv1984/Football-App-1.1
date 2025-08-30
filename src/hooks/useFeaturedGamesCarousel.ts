@@ -8,7 +8,12 @@ import {
   MatchTag,
   DataFetchConfig
 } from '../types';
-import { FeaturedGamesCarouselConfig } from '../components/fixtures/FeaturedGamesCarousel/FeaturedGamesCarouselConfig.types';
+
+// Simple config interface to avoid circular dependencies
+interface FeaturedGamesCarouselConfig {
+  selection?: GameSelectionConfig;
+  data?: DataFetchConfig;
+}
 
 interface UseFeaturedGamesCarouselProps {
   fixtures?: FeaturedFixture[];
@@ -26,7 +31,7 @@ export const useFeaturedGamesCarousel = ({
 
   const [featuredGames, setFeaturedGames] = useState<FeaturedFixtureWithImportance[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | undefined>(undefined);
   const [carouselState, setCarouselState] = useState<CarouselState>({
     currentIndex: 0,
     canScrollLeft: false,
@@ -83,9 +88,12 @@ export const useFeaturedGamesCarousel = ({
     else if (manchesterTeams.includes(homeTeam.id) && manchesterTeams.includes(awayTeam.id)) tags.push('derby');
     else if (liverpoolTeams.includes(homeTeam.id) && liverpoolTeams.includes(awayTeam.id)) tags.push('derby');
 
-    if (homeTeam.position <= 4 && awayTeam.position <= 4) tags.push('title-race');
-    if ((homeTeam.position >= 5 && homeTeam.position <= 7) || (awayTeam.position >= 5 && awayTeam.position <= 7)) tags.push('european-qualification');
-    if (homeTeam.position >= 15 && awayTeam.position >= 15) tags.push('relegation-battle');
+    const homePos = homeTeam.position ?? 10;
+    const awayPos = awayTeam.position ?? 10;
+    
+    if (homePos <= 4 && awayPos <= 4) tags.push('title-race');
+    if ((homePos >= 5 && homePos <= 7) || (awayPos >= 5 && awayPos <= 7)) tags.push('european-qualification');
+    if (homePos >= 15 && awayPos >= 15) tags.push('relegation-battle');
 
     return tags;
   }, [selectionConfig.topTeamIds]);
@@ -107,7 +115,7 @@ export const useFeaturedGamesCarousel = ({
       if (fixture.awayTeam && topTeams.includes(fixture.awayTeam.id)) importance += 2;
     }
 
-    const avgPosition = ((fixture.homeTeam?.position || 10) + (fixture.awayTeam?.position || 10)) / 2;
+    const avgPosition = ((fixture.homeTeam?.position ?? 10) + (fixture.awayTeam?.position ?? 10)) / 2;
     if (avgPosition <= 3) importance += 3;
     else if (avgPosition <= 6) importance += 2;
     else if (avgPosition <= 10) importance += 1;
@@ -145,23 +153,23 @@ export const useFeaturedGamesCarousel = ({
     }
 
     const currentWeekGames = fixturesWithImportance.filter(f => f.matchWeek === currentWeek && !selected.includes(f));
-    const remainingSlots = selectionConfig.maxGames - selected.length;
+    const remainingSlots = (selectionConfig.maxGames ?? 4) - selected.length;
     selected.push(...currentWeekGames.sort((a,b) => (b.importanceScore||0)-(a.importanceScore||0)).slice(0, remainingSlots));
 
-    while (selected.length < selectionConfig.maxGames) {
+    while (selected.length < (selectionConfig.maxGames ?? 4)) {
       const remaining = fixturesWithImportance.filter(f => !selected.includes(f))
         .sort((a,b) => (b.importanceScore||0)-(a.importanceScore||0));
       if (!remaining.length) break;
       selected.push(remaining[0]);
     }
 
-    return selected.slice(0, selectionConfig.maxGames)
+    return selected.slice(0, selectionConfig.maxGames ?? 4)
       .sort((a,b) => (a.status === 'live' ? -1 : 0) - (b.status === 'live' ? -1 : 0) || (b.importanceScore||0)-(a.importanceScore||0));
   }, [calculateImportance, getMatchWeek, getCurrentMatchWeek, getMatchTags, selectionConfig]);
 
   const refreshData = useCallback(async () => {
     try {
-      setError(null);
+      setError(undefined);
       setIsLoading(true);
       let data = fixtures;
 
@@ -216,4 +224,3 @@ export const useFeaturedGamesCarousel = ({
 
   return { featuredGames, isLoading, error, carouselState, scrollToIndex, scrollLeft, scrollRight, toggleAutoRotate, refreshData, scrollRef };
 };
-
