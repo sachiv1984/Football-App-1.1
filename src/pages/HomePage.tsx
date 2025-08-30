@@ -117,12 +117,11 @@ const HomePage: React.FC = () => {
 
       {/* Hero Section */}
       <OptimizedFeaturedGamesCarousel
-        fixtures={featuredFixtures}
-        onGameSelect={handleGameSelect}
-        rotateInterval={5000}
-        visibleCards={visibleCards} // mobile optimization
-        className="mb-8"
-      />
+  fixtures={featuredFixtures}
+  onGameSelect={handleGameSelect}
+  rotateInterval={5000}
+  className="my-8"
+/>
 
       {/* Tab Navigation */}
       <TabNavigation
