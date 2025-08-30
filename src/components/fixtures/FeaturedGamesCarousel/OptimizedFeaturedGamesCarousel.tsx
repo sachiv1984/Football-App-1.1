@@ -1,11 +1,15 @@
-import React from 'react';
+// src/components/fixtures/FeaturedGamesCarousel/OptimizedFeaturedGamesCarousel.tsx
+import React, { useRef } from 'react';
+import { FeaturedGamesCarouselConfig } from './FeaturedGamesCarouselConfig.types';
+import { useFeaturedGamesCarousel } from '../../../hooks/useFeaturedGamesCarousel';
 import { FeaturedFixtureWithImportance } from './FeaturedGamesCarousel.types';
 import { GameSelectionConfig } from '../../../types';
-import { useFeaturedGamesCarousel } from '../../../hooks/useFeaturedGamesCarousel';
 import FixtureCard from '../FixtureCard/FixtureCard';
 
 interface OptimizedFeaturedGamesCarouselProps {
   fixtures?: FeaturedFixtureWithImportance[];
+  config?: FeaturedGamesCarouselConfig;
+  autoRefresh?: boolean;
   rotateInterval?: number;
   className?: string;
   onGameSelect?: (fixture: FeaturedFixtureWithImportance) => void;
@@ -15,31 +19,46 @@ interface OptimizedFeaturedGamesCarouselProps {
 
 const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselProps> = ({
   fixtures = [],
+  config,
+  autoRefresh = false,
   rotateInterval = 5000,
   className = '',
   selectionConfig,
   onGameSelect,
   maxFeaturedGames,
 }) => {
-  const { featuredGames, carouselState, scrollToIndex } = useFeaturedGamesCarousel({
+  // Expose scrollRef so parent can access if needed
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const {
+    featuredGames,
+    isLoading,
+    error,
+    carouselState,
+    scrollToIndex,
+    toggleAutoRotate,
+    refreshData,
+  } = useFeaturedGamesCarousel({
     fixtures,
-    config: { selection: selectionConfig },
-    autoRefresh: true,
+    config: { selection: selectionConfig || config?.selection },
+    autoRefresh,
     rotateInterval,
   });
 
-  const displayedGames = maxFeaturedGames
-    ? featuredGames.slice(0, maxFeaturedGames)
-    : featuredGames;
+  // Limit number of displayed games if maxFeaturedGames is set
+  const displayedGames = maxFeaturedGames ? featuredGames.slice(0, maxFeaturedGames) : featuredGames;
 
-  if (!displayedGames.length) {
-    return <div className={`carousel-empty ${className}`}>No featured games</div>;
-  }
+  if (isLoading) return <div className={`carousel-loading ${className}`}>Loading...</div>;
+  if (error) return <div className={`carousel-error ${className}`}>Error: {error}</div>;
+  if (!displayedGames.length) return <div className={`carousel-empty ${className}`}>No featured games</div>;
 
   return (
     <div className={`featured-games-carousel w-full ${className}`}>
       {/* Scrollable Container */}
-      <div className="carousel-container flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2">
+      <div
+        ref={scrollRef}
+        className="carousel-container flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2"
+      >
         {displayedGames.map((fixture, index) => (
           <div
             key={fixture.id}
@@ -51,7 +70,8 @@ const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselPro
             <FixtureCard
               fixture={fixture}
               size="md"
-              showCompetition={true}
+              showAIInsight
+              showCompetition
               showVenue={false}
               onClick={() => onGameSelect?.(fixture)}
             />
@@ -74,6 +94,22 @@ const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselPro
             style={{ minWidth: '12px', minHeight: '12px' }}
           />
         ))}
+      </div>
+
+      {/* Controls */}
+      <div className="flex justify-center gap-2 mt-4">
+        <button
+          className="px-3 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300"
+          onClick={toggleAutoRotate}
+        >
+          {carouselState.isAutoRotating ? 'Stop Auto-Rotate' : 'Start Auto-Rotate'}
+        </button>
+        <button
+          className="px-3 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300"
+          onClick={refreshData}
+        >
+          Refresh Games
+        </button>
       </div>
     </div>
   );
