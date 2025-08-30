@@ -1,62 +1,88 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { FeaturedFixtureWithImportance } from '../components/fixtures/FeaturedGamesCarousel/FeaturedGamesCarousel.types';
+import { FeaturedGamesCarouselConfig } from '../components/fixtures/FeaturedGamesCarousel/FeaturedGamesCarouselConfig.types';
+import { GameSelectionConfig } from '../types';
 
-export interface CarouselState {
+interface UseFeaturedGamesCarouselProps {
+  fixtures?: FeaturedFixtureWithImportance[];
+  config?: { selection?: GameSelectionConfig };
+  autoRefresh?: boolean;
+  rotateInterval?: number;
+  maxFeaturedGames?: number;
+}
+
+interface CarouselState {
   currentIndex: number;
 }
 
-export interface UseFeaturedGamesCarouselReturn {
-  featuredGames: FeaturedFixtureWithImportance[];
-  carouselState: CarouselState;
-  scrollToIndex: (index: number, smooth?: boolean) => void;
-  toggleAutoRotate: () => void;
-  refreshData: () => Promise<void>;
-}
-
-export const useFeaturedGamesCarousel = (
-  fixtures: FeaturedFixtureWithImportance[],
-  rotateInterval: number
-): UseFeaturedGamesCarouselReturn => {
+export const useFeaturedGamesCarousel = ({
+  fixtures = [],
+  config,
+  autoRefresh = false,
+  rotateInterval = 5000,
+  maxFeaturedGames,
+}: UseFeaturedGamesCarouselProps) => {
+  const [featuredGames, setFeaturedGames] = useState<FeaturedFixtureWithImportance[]>(fixtures);
   const [carouselState, setCarouselState] = useState<CarouselState>({ currentIndex: 0 });
-  const [autoRotate, setAutoRotate] = useState(true);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  const scrollToIndex = useCallback((index: number, smooth = true) => {
-    setCarouselState({ currentIndex: index });
-    // Reset auto-rotate when user manually changes index
-    if (autoRotate) {
-      clearTimeout(timeoutRef.current!);
-      timeoutRef.current = setTimeout(() => nextSlide(), rotateInterval);
-    }
-  }, [autoRotate, rotateInterval]);
+  const [isAutoRotating, setIsAutoRotating] = useState<boolean>(autoRefresh);
+  const intervalRef = useRef<NodeJS.Timer | null>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
 
   const nextSlide = useCallback(() => {
     setCarouselState((prev) => ({
-      currentIndex: (prev.currentIndex + 1) % fixtures.length,
+      currentIndex: (prev.currentIndex + 1) % featuredGames.length,
     }));
-  }, [fixtures.length]);
+  }, [featuredGames.length]);
 
-  const toggleAutoRotate = () => setAutoRotate(!autoRotate);
+  const scrollToIndex = useCallback(
+    (index: number) => {
+      setCarouselState({ currentIndex: index });
+      if (scrollRef.current) {
+        scrollRef.current.scrollTo({
+          left: scrollRef.current.clientWidth * index,
+          behavior: 'smooth',
+        });
+      }
 
-  const refreshData = async () => {
-    // Placeholder for actual data refresh logic
-    return Promise.resolve();
-  };
+      // Reset auto-rotation after manual scroll
+      if (isAutoRotating) {
+        clearInterval(intervalRef.current!);
+        intervalRef.current = setInterval(nextSlide, rotateInterval);
+      }
+    },
+    [isAutoRotating, nextSlide, rotateInterval]
+  );
+
+  const toggleAutoRotate = useCallback(() => {
+    setIsAutoRotating((prev) => !prev);
+  }, []);
+
+  const refreshData = useCallback(() => {
+    setFeaturedGames([...fixtures]);
+    setCarouselState({ currentIndex: 0 });
+  }, [fixtures]);
 
   // Auto-rotate effect
   useEffect(() => {
-    if (!autoRotate) return;
-    timeoutRef.current = setTimeout(() => nextSlide(), rotateInterval);
+    if (isAutoRotating) {
+      intervalRef.current = setInterval(nextSlide, rotateInterval);
+    } else if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
     return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [carouselState.currentIndex, autoRotate, rotateInterval, nextSlide]);
+  }, [isAutoRotating, nextSlide, rotateInterval]);
 
   return {
-    featuredGames: fixtures,
+    featuredGames: maxFeaturedGames ? featuredGames.slice(0, maxFeaturedGames) : featuredGames,
     carouselState,
+    scrollRef,
     scrollToIndex,
     toggleAutoRotate,
     refreshData,
+    isAutoRotating,
   };
 };
