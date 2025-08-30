@@ -1,51 +1,60 @@
-// src/components/fixtures/FeaturedGamesCarousel/OptimizedFeaturedGamesCarousel.tsx
 import React from 'react';
+import { FeaturedGamesCarouselConfig } from './FeaturedGamesCarouselConfig.types';
 import { useFeaturedGamesCarousel } from '../../../hooks/useFeaturedGamesCarousel';
 import { FeaturedFixtureWithImportance } from './FeaturedGamesCarousel.types';
-import FixtureCard from '../FixtureCard/FixtureCard';
 import { GameSelectionConfig } from '../../../types';
+import FixtureCard from '../FixtureCard/FixtureCard';
 
 interface OptimizedFeaturedGamesCarouselProps {
-  fixtures: FeaturedFixtureWithImportance[];
-  maxFeaturedGames?: number;
-  rotateInterval?: number; // milliseconds
-  selectionConfig?: GameSelectionConfig;
-  onGameSelect?: (fixture: FeaturedFixtureWithImportance) => void;
+  fixtures?: FeaturedFixtureWithImportance[];
+  config?: FeaturedGamesCarouselConfig;
+  rotateInterval?: number;
   className?: string;
+  onGameSelect?: (fixture: FeaturedFixtureWithImportance) => void;
+  maxFeaturedGames?: number;
+  selectionConfig?: GameSelectionConfig;
 }
 
 const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselProps> = ({
-  fixtures,
-  maxFeaturedGames = 4,
-  rotateInterval = 5000,
+  fixtures = [],
+  config,
+  rotateInterval = 5000, // Recommended UX interval
+  className = '',
   selectionConfig,
   onGameSelect,
-  className = '',
+  maxFeaturedGames,
 }) => {
   const {
     featuredGames,
     carouselState,
     scrollToIndex,
-  } = useFeaturedGamesCarousel(fixtures, rotateInterval, selectionConfig);
+  } = useFeaturedGamesCarousel({
+    fixtures,
+    rotateInterval,
+    selectionConfig: selectionConfig || config?.selection,
+    maxFeaturedGames,
+  });
 
   if (!featuredGames.length) return <div className={`carousel-empty ${className}`}>No featured games</div>;
 
   return (
     <div className={`featured-games-carousel w-full ${className}`}>
       {/* Scrollable Container */}
-      <div className="carousel-container flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2">
-        {featuredGames.slice(0, maxFeaturedGames).map((fixture, index) => (
+      <div
+        className="carousel-container flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2"
+      >
+        {featuredGames.map((fixture, index) => (
           <div
             key={fixture.id}
             className={`relative carousel-card min-w-[280px] snap-start ${
-              carouselState.currentIndex === index ? 'scale-105' : ''
+              carouselState.currentIndex === index ? 'scale-105 transition-transform duration-300' : ''
             }`}
             onClick={() => scrollToIndex(index)}
           >
             <FixtureCard
               fixture={fixture}
               size="md"
-              showAIInsight={false}   // Removed AI insight
+              showAIInsight={false} // Removed AI insight
               showCompetition={true}
               showVenue={false}
               onClick={() => onGameSelect?.(fixture)}
@@ -56,7 +65,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselPro
 
       {/* Dot Indicators */}
       <div className="flex justify-center gap-2 mt-3">
-        {featuredGames.slice(0, maxFeaturedGames).map((_, index) => (
+        {featuredGames.map((_, index) => (
           <button
             key={index}
             onClick={() => scrollToIndex(index)}
