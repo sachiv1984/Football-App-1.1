@@ -18,22 +18,24 @@ interface OptimizedFeaturedGamesCarouselProps {
 const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselProps> = ({
   fixtures = [],
   config,
-  rotateInterval = 5000, // Recommended UX interval
+  rotateInterval = 5000,
   className = '',
   selectionConfig,
   onGameSelect,
-  maxFeaturedGames,
+  maxFeaturedGames = 4,
 }) => {
   const {
     featuredGames,
     carouselState,
     scrollToIndex,
-  } = useFeaturedGamesCarousel({
-    fixtures,
-    rotateInterval,
-    selectionConfig: selectionConfig || config?.selection,
-    maxFeaturedGames,
-  });
+  } = useFeaturedGamesCarousel(
+    fixtures, // First argument: array
+    { 
+      selection: selectionConfig || config?.selection,
+      rotateInterval,
+      maxFeaturedGames,
+    } // Second argument: config object
+  );
 
   if (!featuredGames.length) return <div className={`carousel-empty ${className}`}>No featured games</div>;
 
@@ -47,14 +49,14 @@ const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselPro
           <div
             key={fixture.id}
             className={`relative carousel-card min-w-[280px] snap-start ${
-              carouselState.currentIndex === index ? 'scale-105 transition-transform duration-300' : ''
+              carouselState.currentIndex === index ? 'scale-105' : ''
             }`}
             onClick={() => scrollToIndex(index)}
           >
             <FixtureCard
               fixture={fixture}
               size="md"
-              showAIInsight={false} // Removed AI insight
+              showAIInsight={false} // removed AI insight
               showCompetition={true}
               showVenue={false}
               onClick={() => onGameSelect?.(fixture)}
