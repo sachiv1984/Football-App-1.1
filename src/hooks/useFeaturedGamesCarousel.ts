@@ -1,6 +1,6 @@
 // src/hooks/useFeaturedGamesCarousel.ts
 import { useState, useRef, useEffect, useCallback } from 'react';
-import type { FeaturedFixtureWithImportance } from '../components/fixtures/FeaturedGamesCarousel/FeaturedGamesCarousel.types';
+import type { FeaturedFixtureWithImportance } from '../types';
 
 interface UseFeaturedGamesCarouselParams {
   fixtures: FeaturedFixtureWithImportance[];
