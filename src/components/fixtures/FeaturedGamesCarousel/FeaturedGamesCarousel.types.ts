@@ -1,10 +1,6 @@
-// src/components/fixtures/FeaturedGamesCarousel/FeaturedGamesCarousel.types.ts
-import { FeaturedFixture } from '../../../types';
+import { FeaturedFixture, Team } from '../../../types';
 import type { FeaturedGamesCarouselConfig } from './FeaturedGamesCarouselConfig.types';
 
-/**
- * Props for the carousel component
- */
 export interface FeaturedGamesCarouselProps {
   fixtures?: FeaturedFixture[];
   onGameSelect?: (fixture: FeaturedFixture) => void;
@@ -16,9 +12,6 @@ export interface FeaturedGamesCarouselProps {
   selectionConfig?: FeaturedGamesCarouselConfig['selection'];
 }
 
-/**
- * Configuration for filtering/selecting games
- */
 export interface GameSelectionConfig {
   prioritizeLiveGames?: boolean;
   includeNextWeekIfFew?: boolean;
@@ -28,32 +21,14 @@ export interface GameSelectionConfig {
   topTeamIds?: string[];
 }
 
-/**
- * Team object
- */
-export interface Team {
-  id: string;
-  name: string;
-  logoUrl: string; // Ensure your data provides this
-}
-
-/**
- * Extended fixture object for carousel usage
- */
+// Fixed: extend the main FeaturedFixture instead of redefining Team
 export interface FeaturedFixtureWithImportance extends FeaturedFixture {
   importanceScore: number;
   matchWeek: number;
   isBigMatch: boolean;
   tags: string[];
-  kickoff: string; // time string (e.g., "19:45")
-  date: string;    // date string (e.g., "2025-09-01")
-  homeTeam: Team;
-  awayTeam: Team;
 }
 
-/**
- * Match type tags
- */
 export type MatchTag =
   | 'derby'
   | 'top-six'
@@ -64,9 +39,6 @@ export type MatchTag =
   | 'season-opener'
   | 'season-finale';
 
-/**
- * State of the carousel
- */
 export interface CarouselState {
   currentIndex: number;
   canScrollLeft: boolean;
@@ -75,9 +47,6 @@ export interface CarouselState {
   isDragging: boolean;
 }
 
-/**
- * Return type from carousel hook
- */
 export interface UseCarouselReturn {
   featuredGames: FeaturedFixtureWithImportance[];
   isLoading: boolean;
@@ -90,9 +59,6 @@ export interface UseCarouselReturn {
   refreshData: () => Promise<void>;
 }
 
-/**
- * Data fetch configuration
- */
 export interface DataFetchConfig {
   fixturesEndpoint?: string;
   refreshInterval?: number;
