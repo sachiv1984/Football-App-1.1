@@ -187,6 +187,10 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
           const homeLogo = getTeamLogo(fixture.homeTeam);
           const awayLogo = getTeamLogo(fixture.awayTeam);
           
+          // Debug logging - remove this after testing
+          console.log('Home team:', fixture.homeTeam.name, 'Logo path:', homeLogo.logoPath);
+          console.log('Away team:', fixture.awayTeam.name, 'Logo path:', awayLogo.logoPath);
+          
           return (
             <div
               key={idx}
