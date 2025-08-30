@@ -1,72 +1,52 @@
 import React from 'react';
-import { FeaturedGamesCarouselConfig } from './FeaturedGamesCarouselConfig.types';
 import { useFeaturedGamesCarousel } from '../../../hooks/useFeaturedGamesCarousel';
 import { FeaturedFixtureWithImportance } from './FeaturedGamesCarousel.types';
 import { GameSelectionConfig } from '../../../types';
 import FixtureCard from '../FixtureCard/FixtureCard';
 
 interface OptimizedFeaturedGamesCarouselProps {
-  fixtures?: FeaturedFixtureWithImportance[];
-  config?: FeaturedGamesCarouselConfig;
-  autoRefresh?: boolean;
-  rotateInterval?: number;
-  className?: string;
-  onGameSelect?: (fixture: FeaturedFixtureWithImportance) => void;
+  fixtures: FeaturedFixtureWithImportance[];
   maxFeaturedGames?: number;
+  rotateInterval?: number;
   selectionConfig?: GameSelectionConfig;
+  onGameSelect?: (fixture: FeaturedFixtureWithImportance) => void;
+  className?: string;
 }
 
 const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselProps> = ({
-  fixtures = [],
-  config,
-  autoRefresh = false,
+  fixtures,
+  maxFeaturedGames = 4,
   rotateInterval = 5000,
-  className = '',
   selectionConfig,
   onGameSelect,
+  className = '',
 }) => {
-  const {
-    featuredGames,
-    isLoading,
-    error,
-    carouselState,
-    scrollToIndex,
-    toggleAutoRotate,
-    refreshData,
-    scrollRef,
-  } = useFeaturedGamesCarousel({
+  const { featuredGames, carouselState, scrollToIndex } = useFeaturedGamesCarousel({
     fixtures,
-    config: { selection: selectionConfig || config?.selection },
-    autoRefresh,
+    autoRefresh: true,
     rotateInterval,
   });
 
-  if (isLoading) return <div className={`carousel-loading ${className}`}>Loading...</div>;
-  if (error) return <div className={`carousel-error ${className}`}>Error: {error}</div>;
   if (!featuredGames.length) return <div className={`carousel-empty ${className}`}>No featured games</div>;
 
   return (
     <div className={`featured-games-carousel w-full ${className}`}>
-      {/* Scrollable Container */}
-      <div
-        ref={scrollRef}
-        className="carousel-container flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2"
-      >
-        {featuredGames.map((fixture, index) => (
+      {/* Scrollable Cards */}
+      <div className="carousel-container flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2">
+        {featuredGames.slice(0, maxFeaturedGames).map((fixture, index) => (
           <div
             key={fixture.id}
-            className={`relative carousel-card min-w-[280px] snap-start ${
-              carouselState.currentIndex === index ? 'scale-105' : ''
+            className={`relative carousel-card min-w-[280px] snap-start transition-transform duration-300 ${
+              carouselState.currentIndex === index ? 'scale-105' : 'scale-100'
             }`}
-            onClick={() => scrollToIndex(index)}
+            onClick={() => onGameSelect?.(fixture)}
           >
             <FixtureCard
               fixture={fixture}
               size="md"
-              showAIInsight={true}
+              showAIInsight={false}
               showCompetition={true}
               showVenue={false}
-              onClick={() => onGameSelect?.(fixture)}
             />
           </div>
         ))}
@@ -74,7 +54,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselPro
 
       {/* Dot Indicators */}
       <div className="flex justify-center gap-2 mt-3">
-        {featuredGames.map((_, index) => (
+        {featuredGames.slice(0, maxFeaturedGames).map((_, index) => (
           <button
             key={index}
             onClick={() => scrollToIndex(index)}
@@ -87,22 +67,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselPro
             style={{ minWidth: '12px', minHeight: '12px' }}
           />
         ))}
-      </div>
-
-      {/* Controls */}
-      <div className="flex justify-center gap-2 mt-4">
-        <button
-          className="px-3 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300"
-          onClick={toggleAutoRotate}
-        >
-          {carouselState.isAutoRotating ? 'Stop Auto-Rotate' : 'Start Auto-Rotate'}
-        </button>
-        <button
-          className="px-3 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300"
-          onClick={refreshData}
-        >
-          Refresh Games
-        </button>
       </div>
     </div>
   );
