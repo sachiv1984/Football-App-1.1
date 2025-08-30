@@ -187,9 +187,11 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
           const homeLogo = getTeamLogo(fixture.homeTeam);
           const awayLogo = getTeamLogo(fixture.awayTeam);
           
-          // Debug logging - remove this after testing
-          console.log('Home team:', fixture.homeTeam.name, 'Logo path:', homeLogo.logoPath);
-          console.log('Away team:', fixture.awayTeam.name, 'Logo path:', awayLogo.logoPath);
+            // --- DEBUG LOGGING START ---
+  console.log(`[DEBUG] Slide ${idx}`);
+  console.log('Home team:', fixture.homeTeam.name, 'Logo path:', homeLogo.logoPath, 'Fallback:', homeLogo.fallbackInitial);
+  console.log('Away team:', fixture.awayTeam.name, 'Logo path:', awayLogo.logoPath, 'Fallback:', awayLogo.fallbackInitial);
+  // --- DEBUG LOGGING END ---
           
           return (
             <div
