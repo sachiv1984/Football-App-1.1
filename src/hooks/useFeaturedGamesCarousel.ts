@@ -1,102 +1,92 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { FeaturedFixtureWithImportance } from '../components/fixtures/FeaturedGamesCarousel/FeaturedGamesCarousel.types';
+import type { FeaturedFixtureWithImportance } from '../components/fixtures/FeaturedGamesCarousel/FeaturedGamesCarousel.types';
 
 interface UseFeaturedGamesCarouselParams {
-  fixtures?: FeaturedFixtureWithImportance[];
+  fixtures: FeaturedFixtureWithImportance[];
+  autoRotate?: boolean;
   rotateInterval?: number;
 }
 
-interface CarouselState {
-  currentIndex: number;
-  isAutoRotating: boolean;
-  isDragging: boolean;
-}
-
 export const useFeaturedGamesCarousel = ({
-  fixtures = [],
+  fixtures,
+  autoRotate = true,
   rotateInterval = 5000,
 }: UseFeaturedGamesCarouselParams) => {
-  const [carouselState, setCarouselState] = useState<CarouselState>({
-    currentIndex: 0,
-    isAutoRotating: true,
-    isDragging: false,
-  });
+  const realCount = fixtures.length;
+  const [currentIndex, setCurrentIndex] = useState(0); // Real slide index
+  const [isAnimating, setIsAnimating] = useState(false);
 
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const autoRotateTimeout = useRef<number | null>(null);
+  // Cloned slides
+  const slides = [
+    fixtures[realCount - 1], // clone last
+    ...fixtures,
+    fixtures[0], // clone first
+  ];
 
-  const totalSlides = fixtures.length;
+  const containerRef = useRef<HTMLDivElement>(null);
+  const autoRotateRef = useRef<number | null>(null);
 
-  // Scroll to given index
   const scrollToIndex = useCallback(
-    (index: number) => {
-      if (!scrollRef.current) return;
-      const width = scrollRef.current.clientWidth;
-      scrollRef.current.scrollTo({
-        left: width * index,
-        behavior: 'smooth',
+    (index: number, smooth = true) => {
+      if (!containerRef.current) return;
+      const slideWidth = containerRef.current.clientWidth;
+      containerRef.current.scrollTo({
+        left: (index + 1) * slideWidth, // +1 because of prepended clone
+        behavior: smooth ? 'smooth' : 'auto',
       });
-      setCarouselState((prev) => ({ ...prev, currentIndex: index }));
     },
     []
   );
 
-  // Auto-rotate logic
-  const nextSlide = useCallback(() => {
-    const nextIndex = (carouselState.currentIndex + 1) % totalSlides;
-    scrollToIndex(nextIndex);
-  }, [carouselState.currentIndex, scrollToIndex, totalSlides]);
+  const goToNext = useCallback(() => {
+    if (isAnimating) return;
+    setIsAnimating(true);
+    setCurrentIndex((prev) => prev + 1);
+  }, [isAnimating]);
 
-  // Toggle auto-rotate
-  const toggleAutoRotate = useCallback(() => {
-    setCarouselState((prev) => ({ ...prev, isAutoRotating: !prev.isAutoRotating }));
-  }, []);
+  const goToPrev = useCallback(() => {
+    if (isAnimating) return;
+    setIsAnimating(true);
+    setCurrentIndex((prev) => prev - 1);
+  }, [isAnimating]);
 
-  // Handle auto-rotation timer
+  // Auto-rotate
   useEffect(() => {
-    if (!carouselState.isAutoRotating || totalSlides <= 1) return;
+    if (!autoRotate) return;
+    autoRotateRef.current = window.setInterval(() => goToNext(), rotateInterval);
+    return () => {
+      if (autoRotateRef.current) clearInterval(autoRotateRef.current);
+    };
+  }, [goToNext, autoRotate, rotateInterval]);
 
-    autoRotateTimeout.current = window.setTimeout(() => {
-      nextSlide();
-    }, rotateInterval);
+  // Scroll effect
+  useEffect(() => {
+    scrollToIndex(currentIndex);
+
+    const handleTransitionEnd = () => {
+      setIsAnimating(false);
+      if (currentIndex >= realCount) setCurrentIndex(0);
+      if (currentIndex < 0) setCurrentIndex(realCount - 1);
+    };
+
+    const container = containerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleTransitionEnd);
+    }
 
     return () => {
-      if (autoRotateTimeout.current) clearTimeout(autoRotateTimeout.current);
+      if (container) container.removeEventListener('scroll', handleTransitionEnd);
     };
-  }, [carouselState.isAutoRotating, carouselState.currentIndex, nextSlide, rotateInterval, totalSlides]);
-
-  // Swipe handling
-  const startX = useRef<number | null>(null);
-  const isDragging = useRef(false);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    startX.current = e.touches[0].clientX;
-    isDragging.current = true;
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging.current || startX.current === null) return;
-    const deltaX = e.touches[0].clientX - startX.current;
-    if (Math.abs(deltaX) > 50) {
-      if (deltaX > 0) scrollToIndex((carouselState.currentIndex - 1 + totalSlides) % totalSlides);
-      else scrollToIndex((carouselState.currentIndex + 1) % totalSlides);
-      isDragging.current = false;
-    }
-  };
-
-  const handleTouchEnd = () => {
-    isDragging.current = false;
-    startX.current = null;
-  };
+  }, [currentIndex, realCount, scrollToIndex]);
 
   return {
-    featuredGames: fixtures,
-    carouselState,
+    containerRef,
+    slides,
+    currentIndex,
+    realCount,
+    goToNext,
+    goToPrev,
     scrollToIndex,
-    toggleAutoRotate,
-    scrollRef,
-    handleTouchStart,
-    handleTouchMove,
-    handleTouchEnd,
+    setCurrentIndex,
   };
 };
