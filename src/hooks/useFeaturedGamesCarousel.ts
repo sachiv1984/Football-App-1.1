@@ -1,4 +1,4 @@
-m// src/hooks/useFeaturedGamesCarousel.ts
+// src/hooks/useFeaturedGamesCarousel.ts
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { FeaturedFixtureWithImportance } from '../components/fixtures/FeaturedGamesCarousel/FeaturedGamesCarousel.types';
 
@@ -51,19 +51,17 @@ export const useFeaturedGamesCarousel = (
   }, [carouselState.currentIndex, isAutoRotate, featuredGames.length, rotateInterval, scrollToIndex]);
 
   // Toggle auto-rotate
-  const toggleAutoRotate = useCallback(() => {
-    setIsAutoRotate(prev => !prev);
-  }, []);
+  const toggleAutoRotate = useCallback(() => setIsAutoRotate(prev => !prev), []);
 
-  // Refresh data placeholder
-  const refreshData = useCallback(async () => {
+  // Refresh data
+  const refreshData = useCallback(async (): Promise<void> => {
     setIsLoading(true);
     try {
       // Simulate refresh
-      await new Promise(res => setTimeout(res, 500));
+      await new Promise<void>(resolve => setTimeout(resolve, 500));
       setError(undefined);
-    } catch (err: any) {
-      setError(err.message || 'Error refreshing data');
+    } catch (err) {
+      setError((err as Error)?.message || 'Error refreshing data');
     } finally {
       setIsLoading(false);
     }
