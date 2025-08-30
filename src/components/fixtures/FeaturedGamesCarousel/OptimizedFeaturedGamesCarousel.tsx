@@ -33,21 +33,6 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     fixtures[0], // first item clone at end
   ] : [];
 
-  // Dynamic logo path generator
-  const getTeamLogoPath = (teamName: string, teamId?: string) => {
-    // Try multiple naming conventions
-    const possibleNames = [
-      teamName.toLowerCase().replace(/\s+/g, '_'),
-      teamName.toLowerCase().replace(/\s+/g, '-'),
-      teamName.toLowerCase().replace(/\s+/g, ''),
-      teamId?.toLowerCase(),
-      teamName.toLowerCase()
-    ].filter(Boolean);
-
-    // Return the first potential path (you might want to add logic to check if file exists)
-    return `/src/Images/Club Logos/${possibleNames[0]}.png`;
-  };
-
   // Scroll to a specific index
   const scrollToIndex = useCallback(
     (index: number, smooth = true) => {
