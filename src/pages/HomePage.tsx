@@ -6,7 +6,7 @@ import TabNavigation from '../components/common/TabNavigation/TabNavigation';
 import FixturesList from '../components/fixtures/FixturesList/FixturesList';
 import LeagueTable from '../components/league/LeagueTable/LeagueTable';
 import { designTokens } from '../styles/designTokens';
-import { Fixture, Team, LeagueTableRow, GameSelectionConfig } from '../types';
+import { Fixture, Team, LeagueTableRow } from '../types';
 import OptimizedFeaturedGamesCarousel from '../components/fixtures/FeaturedGamesCarousel/OptimizedFeaturedGamesCarousel';
 import { FeaturedFixtureWithImportance } from '../components/fixtures/FeaturedGamesCarousel/FeaturedGamesCarousel.types';
 
@@ -99,11 +99,8 @@ const HomePage: React.FC = () => {
     console.log('Selected fixture:', fixture.id);
   };
 
-  // Carousel configuration
-  const carouselConfig: { selection?: GameSelectionConfig; visibleCards?: number } = {
-    selection: undefined,
-    visibleCards: window.innerWidth < 768 ? 1 : 4, // 1 card for mobile, 4 for desktop
-  };
+  // Determine visible cards for mobile / desktop
+  const visibleCards = window.innerWidth < 768 ? 1 : 4;
 
   return (
     <div
@@ -123,7 +120,7 @@ const HomePage: React.FC = () => {
         fixtures={featuredFixtures}
         onGameSelect={handleGameSelect}
         rotateInterval={5000}
-        config={carouselConfig}
+        visibleCards={visibleCards} // mobile optimization
         className="mb-8"
       />
 
