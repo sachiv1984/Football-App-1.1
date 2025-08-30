@@ -48,31 +48,32 @@ const HomePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'fixtures' | 'standings'>('fixtures');
   const [isDarkMode, setIsDarkMode] = useState(false);
 
-  const { featuredGames, scrollRef, scrollToIndex } = useFeaturedGamesCarousel(featuredFixtures, 5000);
-
   const handleToggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
   const handleGameSelect = (fixture: FeaturedFixtureWithImportance) => {
     console.log('Selected fixture:', fixture.id);
   };
 
+  const { featuredGames, scrollRef, scrollToIndex } = useFeaturedGamesCarousel(featuredFixtures, 5000);
+
   return (
     <div style={{ background: designTokens.colors.neutral.background, color: designTokens.colors.neutral.darkGrey, minHeight: '100vh' }}>
       <Header isDarkMode={isDarkMode} onToggleDarkMode={handleToggleDarkMode} />
 
-      {/* Featured Games Carousel */}
+      {/* Carousel Section */}
       <OptimizedFeaturedGamesCarousel
         fixtures={featuredGames}
         onGameSelect={handleGameSelect}
         autoRefresh={true}
-        rotateInterval={5000} // best UX: 5s per card
+        rotateInterval={5000}
         maxFeaturedGames={4}
+        scrollRef={scrollRef} // passed so component can use it if needed
       />
 
       {/* Tab Navigation */}
       <TabNavigation
         activeTab={activeTab}
-        onTabChange={(tabId) => setActiveTab(tabId as 'fixtures' | 'standings')}
+        onTabChange={(tabId: string) => setActiveTab(tabId as 'fixtures' | 'standings')}
         tabs={[
           { label: 'Fixtures', id: 'fixtures', content: <FixturesList fixtures={fixtures} /> },
           { label: 'Standings', id: 'standings', content: <LeagueTable rows={standings} /> },
@@ -83,5 +84,6 @@ const HomePage: React.FC = () => {
     </div>
   );
 };
+
 
 export default HomePage;
