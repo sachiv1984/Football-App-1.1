@@ -1,5 +1,4 @@
 // src/utils/logoUtils.ts
-
 // Team name to exact logo filename mapping (matching your file structure)
 const TEAM_LOGO_MAP: Record<string, string> = {
   // Premier League - exact matches to your filenames
@@ -86,7 +85,8 @@ export const getTeamLogoPath = (
     }
   }
   
-  return logoFileName ? `/src/Images/Club Logos/${logoFileName}.png` : null;
+  // Changed path to public folder - accessible via URL
+  return logoFileName ? `/images/club-logos/${logoFileName}.png` : null;
 };
 
 /**
