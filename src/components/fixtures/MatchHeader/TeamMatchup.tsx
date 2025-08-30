@@ -13,8 +13,8 @@ const TeamMatchup: React.FC<TeamMatchupProps> = ({
     backgroundColor: `${team.colors.primary}10`
   };
 
-  // Ensure form array is typed correctly
-  const recentForm: Array<'W' | 'D' | 'L'> = team.form.slice(-5) as Array<'W' | 'D' | 'L'>;
+  // Handle potentially undefined form array
+  const recentForm: Array<'W' | 'D' | 'L'> = (team.form || []).slice(-5) as Array<'W' | 'D' | 'L'>;
 
   return (
     <div
