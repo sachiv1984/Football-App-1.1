@@ -99,9 +99,6 @@ const HomePage: React.FC = () => {
     console.log('Selected fixture:', fixture.id);
   };
 
-  // Determine visible cards for mobile / desktop
-  const visibleCards = window.innerWidth < 768 ? 1 : 4;
-
   return (
     <div
       style={{
