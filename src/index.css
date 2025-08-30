@@ -8,8 +8,17 @@
   .btn-primary {
     @apply bg-electric-yellow rounded-lg px-4 py-2 font-semibold text-gray-900 transition-colors hover:bg-yellow-400;
   }
-
   .card {
     @apply rounded-xl border border-gray-100 bg-white shadow-lg;
+  }
+}
+
+@layer utilities {
+  .hide-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;     /* Firefox */
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;             /* Chrome, Safari, Opera */
   }
 }
