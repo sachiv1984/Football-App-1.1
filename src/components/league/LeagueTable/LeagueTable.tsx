@@ -11,8 +11,8 @@ interface LocalSortConfig {
 }
 
 // Team form indicators
-const TeamFormIndicator: React.FC<{ form: ('W' | 'D' | 'L')[], maxItems?: number, size?: 'sm' | 'md' | 'lg' }> = ({
-  form,
+const TeamFormIndicator: React.FC<{ form?: ('W' | 'D' | 'L')[], maxItems?: number, size?: 'sm' | 'md' | 'lg' }> = ({
+  form = [], // Default to empty array
   maxItems = 5,
   size = 'sm'
 }) => {
@@ -65,7 +65,7 @@ const LeagueTableHeader: React.FC<{ league?: League; title?: string; totalTeams:
 const MobileCard: React.FC<{ row: LeagueTableRow; showForm: boolean; onTeamClick?: (team: LeagueTableRow['team']) => void }> = ({
   row, showForm, onTeamClick
 }) => {
-  const { position, team, played, won, drawn, lost, goalsFor, goalsAgainst, points, form } = row;
+  const { position, team, played = 0, won = 0, drawn = 0, lost = 0, goalsFor = 0, goalsAgainst = 0, points = 0, form = [] } = row;
   return (
     <div 
       className={`card p-4 ${onTeamClick ? 'card-clickable' : 'card-hover'} flex items-center space-x-4`}
@@ -131,12 +131,21 @@ const LeagueTable: React.FC<LeagueTableProps> = ({
     return [...displayRows].sort((a, b) => {
       let aValue = a[sortConfig.field];
       let bValue = b[sortConfig.field];
-      if (typeof aValue === 'string') {
-        aValue = aValue.toLowerCase();
-        bValue = (bValue as string).toLowerCase();
+      
+      // Handle undefined values
+      if (aValue === undefined || bValue === undefined) {
+        if (aValue === undefined && bValue === undefined) return 0;
+        if (aValue === undefined) return 1;
+        if (bValue === undefined) return -1;
       }
-      return aValue < bValue ? (sortConfig.direction === 'asc' ? -1 : 1)
-           : aValue > bValue ? (sortConfig.direction === 'asc' ? 1 : -1)
+      
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        aValue = aValue.toLowerCase();
+        bValue = bValue.toLowerCase();
+      }
+      
+      return aValue! < bValue! ? (sortConfig.direction === 'asc' ? -1 : 1)
+           : aValue! > bValue! ? (sortConfig.direction === 'asc' ? 1 : -1)
            : 0;
     });
   }, [displayRows, sortConfig, sortable]);
@@ -198,7 +207,20 @@ const LeagueTable: React.FC<LeagueTableProps> = ({
           </thead>
           <tbody>
             {sortedRows.map(row => {
-              const { position, team, played, won, drawn, lost, goalsFor, goalsAgainst, goalDifference, points, form } = row;
+              const { 
+                position, 
+                team, 
+                played = 0, 
+                won = 0, 
+                drawn = 0, 
+                lost = 0, 
+                goalsFor = 0, 
+                goalsAgainst = 0, 
+                goalDifference = 0, 
+                points = 0, 
+                form = [] 
+              } = row;
+              
               return (
                 <tr key={team.id} className={`league-table-row ${onTeamClick ? 'cursor-pointer' : ''} ${
                   position === 1 ? 'bg-green-50 border-l-4 border-green-500' :
