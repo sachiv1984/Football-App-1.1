@@ -200,7 +200,15 @@ export const useFeaturedGamesCarousel = ({
 
   const scrollRight = useCallback(() => {
     setCarouselState(prev => {
-      const nextIndex = (prev.currentIndex + 1) % featuredGames.length; // infinite wrap-around
+      const nextIndex = (prev.currentIndex + 1) % featuredGames.length;
+      scrollToIndex(nextIndex);
+      return prev;
+    });
+  }, [featuredGames.length, scrollToIndex]);
+
+  const scrollLeft = useCallback(() => {
+    setCarouselState(prev => {
+      const nextIndex = (prev.currentIndex - 1 + featuredGames.length) % featuredGames.length;
       scrollToIndex(nextIndex);
       return prev;
     });
@@ -234,6 +242,8 @@ export const useFeaturedGamesCarousel = ({
     error, 
     carouselState, 
     scrollToIndex, 
+    scrollLeft,
+    scrollRight,
     toggleAutoRotate, 
     refreshData, 
     scrollRef 
