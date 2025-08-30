@@ -1,4 +1,4 @@
-import type { FeaturedFixture, Team } from '../../../types';
+import type { FeaturedFixture } from '../../../types';
 import type { FeaturedGamesCarouselConfig } from './FeaturedGamesCarouselConfig.types';
 
 export interface FeaturedGamesCarouselProps {
