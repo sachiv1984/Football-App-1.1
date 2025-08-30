@@ -10,7 +10,8 @@ const AIInsightCard: React.FC<AIInsightCardProps> = ({
   showConfidence = true,
   compact = false,
 }) => {
-  const getMarketIcon = (market: string) => {
+  const getMarketIcon = (market?: string) => {
+    if (!market) return '📊';
     if (market.toLowerCase().includes('goal')) return '⚽';
     if (market.toLowerCase().includes('card')) return '🟨';
     if (market.toLowerCase().includes('corner')) return '📐';
@@ -25,7 +26,7 @@ const AIInsightCard: React.FC<AIInsightCardProps> = ({
           <div className="flex-1">
             <p className="mb-2 text-sm text-gray-700">{insight.description}</p>
             <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-500">{insight.market}</span>
+              <span className="text-gray-500">{insight.market || 'General'}</span>
               {showConfidence && (
                 <ConfidenceIndicator
                   confidence={insight.confidence}
@@ -62,7 +63,7 @@ const AIInsightCard: React.FC<AIInsightCardProps> = ({
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2 text-sm text-gray-600">
           <Target className="h-4 w-4" />
-          <span>{insight.market}</span>
+          <span>{insight.market || 'General'}</span>
         </div>
 
         {insight.odds && (
