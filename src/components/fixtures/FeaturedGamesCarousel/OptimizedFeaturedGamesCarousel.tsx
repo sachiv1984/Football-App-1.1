@@ -98,7 +98,7 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             <div className="fixture-card flex items-center justify-between bg-white rounded-xl shadow-card p-4 hover:shadow-card-hover transition-all">
               <div className="flex items-center space-x-4">
                 <img
-                  src={fixture.homeTeam.logoUrl}
+                  src={fixture.homeTeam.logo}
                   alt={fixture.homeTeam.name}
                   className="team-logo"
                 />
@@ -106,14 +106,18 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                 <span className="mx-2 text-gray-500">vs</span>
                 <span className="font-bold text-lg">{fixture.awayTeam.name}</span>
                 <img
-                  src={fixture.awayTeam.logoUrl}
+                  src={fixture.awayTeam.logo}
                   alt={fixture.awayTeam.name}
                   className="team-logo"
                 />
               </div>
               <div className="text-right">
-                <div className="text-sm text-gray-400">{fixture.date}</div>
-                <div className="text-md font-semibold">{fixture.kickoff}</div>
+                <div className="text-sm text-gray-400">
+                  {new Date(fixture.dateTime).toLocaleDateString()}
+                </div>
+                <div className="text-md font-semibold">
+                  {new Date(fixture.dateTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                </div>
               </div>
             </div>
           </div>
