@@ -6,7 +6,7 @@ import TabNavigation from '../components/common/TabNavigation/TabNavigation';
 import FixturesList from '../components/fixtures/FixturesList/FixturesList';
 import LeagueTable from '../components/league/LeagueTable/LeagueTable';
 import { designTokens } from '../styles/designTokens';
-import { AIInsight, Fixture, Team, LeagueTableRow } from '../types';
+import { Fixture, Team, LeagueTableRow } from '../types';
 import OptimizedFeaturedGamesCarousel from '../components/fixtures/FeaturedGamesCarousel/OptimizedFeaturedGamesCarousel';
 import { FeaturedFixtureWithImportance } from '../components/fixtures/FeaturedGamesCarousel/FeaturedGamesCarousel.types';
 
