@@ -1,14 +1,13 @@
 // src/components/fixtures/FeaturedGamesCarousel/OptimizedFeaturedGamesCarousel.tsx
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { FeaturedFixtureWithImportance } from './FeaturedGamesCarousel.types';
-import GameCard from '../GameCard/GameCard'; // <-- make sure this path matches your project
 import { useFeaturedGamesCarousel } from '../../../hooks/useFeaturedGamesCarousel';
+import GameCard from '../GameCard/GameCard';
 
 interface OptimizedFeaturedGamesCarouselProps {
   fixtures: FeaturedFixtureWithImportance[];
   onGameSelect: (fixture: FeaturedFixtureWithImportance) => void;
   rotateInterval?: number;
-  visibleCards?: number; // new prop to control how many cards are visible
   className?: string;
 }
 
@@ -16,40 +15,42 @@ const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselPro
   fixtures,
   onGameSelect,
   rotateInterval = 5000,
-  visibleCards = 4, // default to 4 cards
-  className = '',
+  className,
 }) => {
   const {
     featuredGames,
     carouselState,
     scrollToIndex,
-    toggleAutoRotate,
-  } = useFeaturedGamesCarousel({
-    fixtures,
-    rotateInterval,
-  });
+  } = useFeaturedGamesCarousel({ fixtures, rotateInterval });
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Auto scroll logic
   useEffect(() => {
-    const interval = setInterval(() => {
-      scrollToIndex((carouselState.currentIndex + 1) % featuredGames.length);
-    }, rotateInterval);
-
-    return () => clearInterval(interval);
-  }, [carouselState.currentIndex, featuredGames.length, scrollToIndex, rotateInterval]);
-
-  // Determine which cards to show
-  const startIndex = carouselState.currentIndex;
-  const endIndex = Math.min(startIndex + visibleCards, featuredGames.length);
-  const visibleFixtures = featuredGames.slice(startIndex, endIndex);
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({
+        left: carouselState.currentIndex * scrollRef.current.clientWidth,
+        behavior: 'smooth',
+      });
+    }
+  }, [carouselState.currentIndex]);
 
   return (
-    <div className={`flex overflow-x-auto ${className}`} ref={scrollRef}>
-      {visibleFixtures.map((fixture) => (
-        <div key={fixture.id} className="flex-shrink-0 mr-4">
-          <GameCard fixture={fixture} onClick={() => onGameSelect(fixture)} />
+    <div
+      className={className}
+      ref={scrollRef}
+      style={{
+        display: 'flex',
+        overflowX: 'hidden',
+        scrollSnapType: 'x mandatory',
+      }}
+    >
+      {featuredGames.map((fixture) => (
+        <div
+          key={fixture.id}
+          style={{ flex: '0 0 100%', scrollSnapAlign: 'center', padding: '0 0.5rem' }}
+          onClick={() => onGameSelect(fixture)}
+        >
+          <GameCard fixture={fixture} />
         </div>
       ))}
     </div>
