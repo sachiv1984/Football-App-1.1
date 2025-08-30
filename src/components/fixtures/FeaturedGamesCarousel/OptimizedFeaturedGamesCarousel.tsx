@@ -1,12 +1,10 @@
 import React from 'react';
-import type { FeaturedFixtureWithImportance } from './FeaturedGamesCarousel.types';
 import { useFeaturedGamesCarousel } from '../../../hooks/useFeaturedGamesCarousel';
-import './OptimizedFeaturedGamesCarousel.css';
+import type { FeaturedFixtureWithImportance } from './FeaturedGamesCarousel.types';
 
 interface Props {
   fixtures: FeaturedFixtureWithImportance[];
   onGameSelect?: (fixture: FeaturedFixtureWithImportance) => void;
-  onViewStats?: (fixtureId: string) => void;
   autoRotate?: boolean;
   rotateInterval?: number;
   className?: string;
@@ -15,10 +13,9 @@ interface Props {
 export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   fixtures,
   onGameSelect,
-  onViewStats,
   autoRotate = true,
   rotateInterval = 5000,
-  className = '',
+  className,
 }) => {
   const {
     containerRef,
@@ -26,39 +23,57 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     currentIndex,
     goToNext,
     goToPrev,
-    scrollToIndex,
     setCurrentIndex,
-    realCount,
   } = useFeaturedGamesCarousel({ fixtures, autoRotate, rotateInterval });
 
   return (
-    <div className={`carousel-container ${className}`}>
-      <div className="carousel-wrapper" ref={containerRef}>
-        {slides.map((fixture, index) => (
-          <div key={index} className="carousel-slide">
-            <div className="fixture-card" onClick={() => onGameSelect?.(fixture)}>
+    <div className={className}>
+      <div
+        ref={containerRef}
+        style={{
+          display: 'flex',
+          overflowX: 'hidden',
+          scrollSnapType: 'x mandatory',
+        }}
+      >
+        {slides.map((fixture, idx) => (
+          <div
+            key={`${fixture.id}-${idx}`}
+            style={{
+              flex: '0 0 100%',
+              scrollSnapAlign: 'start',
+            }}
+            onClick={() => onGameSelect?.(fixture)}
+          >
+            <div>
               <h4>{fixture.homeTeam} vs {fixture.awayTeam}</h4>
-              <p>{fixture.kickoff ?? 'TBD'}</p>
-              <button onClick={() => onViewStats?.(fixture.id)}>View Stats</button>
+              <p>{fixture.kickoff}</p>
             </div>
           </div>
         ))}
       </div>
 
       {/* Dots */}
-      <div className="carousel-dots">
-        {fixtures.map((_, dotIndex) => (
+      <div style={{ display: 'flex', justifyContent: 'center', marginTop: '10px' }}>
+        {fixtures.map((_, idx) => (
           <button
-            key={dotIndex}
-            className={`dot ${currentIndex === dotIndex ? 'active' : ''}`}
-            onClick={() => setCurrentIndex(dotIndex)}
+            key={idx}
+            style={{
+              width: '10px',
+              height: '10px',
+              borderRadius: '50%',
+              margin: '0 5px',
+              background: idx === currentIndex ? '#000' : '#ccc',
+              border: 'none',
+            }}
+            onClick={() => setCurrentIndex(idx)}
           />
         ))}
       </div>
 
-      {/* Optional navigation */}
-      <button className="carousel-nav prev" onClick={goToPrev}>‹</button>
-      <button className="carousel-nav next" onClick={goToNext}>›</button>
+      {/* Navigation */}
+      <button onClick={goToPrev}>Prev</button>
+      <button onClick={goToNext}>Next</button>
     </div>
   );
 };
