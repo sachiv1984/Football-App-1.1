@@ -2,7 +2,7 @@
 import React, { useRef, useEffect } from 'react';
 import { FeaturedFixtureWithImportance } from './FeaturedGamesCarousel.types';
 import { useFeaturedGamesCarousel } from '../../../hooks/useFeaturedGamesCarousel';
-import GameCard from '../GameCard/GameCard';
+import FixtureCard from '../FixtureCard/FixtureCard';
 
 interface OptimizedFeaturedGamesCarouselProps {
   fixtures: FeaturedFixtureWithImportance[];
