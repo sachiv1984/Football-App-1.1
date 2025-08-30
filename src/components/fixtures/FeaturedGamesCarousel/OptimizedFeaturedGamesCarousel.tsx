@@ -3,6 +3,7 @@ import React from 'react';
 import { FeaturedGamesCarouselConfig } from './FeaturedGamesCarouselConfig.types';
 import { useFeaturedGamesCarousel } from '../../../hooks/useFeaturedGamesCarousel';
 import { FeaturedFixtureWithImportance } from './FeaturedGamesCarousel.types';
+import { GameSelectionConfig } from '../../../types'; // Import from main types
 
 interface OptimizedFeaturedGamesCarouselProps {
   fixtures?: FeaturedFixtureWithImportance[];
@@ -10,6 +11,10 @@ interface OptimizedFeaturedGamesCarouselProps {
   autoRefresh?: boolean;
   rotateInterval?: number;
   className?: string;
+  onGameSelect?: (fixture: FeaturedFixtureWithImportance) => void;
+  onViewStats?: (fixtureId: string) => void;
+  maxFeaturedGames?: number;
+  selectionConfig?: GameSelectionConfig; // Use main type instead of nested type
 }
 
 const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselProps> = ({
@@ -17,7 +22,8 @@ const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselPro
   config,
   autoRefresh = false,
   rotateInterval = 5000,
-  className = ''
+  className = '',
+  selectionConfig // Extract selectionConfig from props
 }) => {
   const {
     featuredGames,
@@ -32,7 +38,9 @@ const OptimizedFeaturedGamesCarousel: React.FC<OptimizedFeaturedGamesCarouselPro
     scrollRef
   } = useFeaturedGamesCarousel({
     fixtures,
-    config: { selection: config?.selection },
+    config: { 
+      selection: selectionConfig || config?.selection // Use selectionConfig from props or config
+    },
     autoRefresh,
     rotateInterval
   });
