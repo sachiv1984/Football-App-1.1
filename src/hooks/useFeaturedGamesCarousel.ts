@@ -61,7 +61,6 @@ export const useFeaturedGamesCarousel = ({
 
   const calculateImportance = useCallback((fixture: FeaturedFixture): number => {
     let importance = 5;
-    // Simple scoring logic for demo
     if (fixture.status === 'live') importance += 5;
     return importance;
   }, []);
@@ -87,16 +86,24 @@ export const useFeaturedGamesCarousel = ({
   }, [fixtures, selectFeaturedGames]);
 
   const scrollToIndex = useCallback((index: number, smooth = true) => {
-    if (!scrollRef.current) return;
+    if (!scrollRef.current || featuredGames.length === 0) return;
+
     const card = scrollRef.current.children[0] as HTMLElement;
     const gap = 16;
     const width = card?.offsetWidth + gap || 300;
-    scrollRef.current.scrollTo({ left: index * width, behavior: smooth ? 'smooth' : 'auto' });
-    setCarouselState(prev => ({
-      ...prev,
-      currentIndex: index
-    }));
-  }, []);
+    const safeIndex = ((index % featuredGames.length) + featuredGames.length) % featuredGames.length;
+
+    scrollRef.current.scrollTo({ left: safeIndex * width, behavior: smooth ? 'smooth' : 'auto' });
+    setCarouselState(prev => ({ ...prev, currentIndex: safeIndex }));
+  }, [featuredGames.length]);
+
+  const scrollLeft = useCallback(() => {
+    scrollToIndex(carouselState.currentIndex - 1);
+  }, [carouselState.currentIndex, scrollToIndex]);
+
+  const scrollRight = useCallback(() => {
+    scrollToIndex(carouselState.currentIndex + 1);
+  }, [carouselState.currentIndex, scrollToIndex]);
 
   const toggleAutoRotate = useCallback(() => {
     setCarouselState(prev => ({ ...prev, isAutoRotating: !prev.isAutoRotating }));
@@ -106,10 +113,10 @@ export const useFeaturedGamesCarousel = ({
   useEffect(() => {
     if (!carouselState.isAutoRotating || featuredGames.length <= 1) return;
     autoRotateRef.current = setInterval(() => {
-      scrollToIndex((carouselState.currentIndex + 1) % featuredGames.length);
+      scrollRight();
     }, rotateInterval);
     return () => clearInterval(autoRotateRef.current);
-  }, [carouselState.isAutoRotating, carouselState.currentIndex, featuredGames.length, rotateInterval, scrollToIndex]);
+  }, [carouselState.isAutoRotating, featuredGames.length, rotateInterval, scrollRight]);
 
   // Auto-refresh
   useEffect(() => {
@@ -121,5 +128,16 @@ export const useFeaturedGamesCarousel = ({
   // Initial load
   useEffect(() => { refreshData(); }, [refreshData]);
 
-  return { featuredGames, isLoading, error, carouselState, scrollToIndex, toggleAutoRotate, refreshData, scrollRef };
+  return {
+    featuredGames,
+    isLoading,
+    error,
+    carouselState,
+    scrollToIndex,
+    scrollLeft,
+    scrollRight,
+    toggleAutoRotate,
+    refreshData,
+    scrollRef
+  };
 };
