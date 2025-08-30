@@ -7,7 +7,6 @@ interface UseFeaturedGamesCarouselParams {
   fixtures?: FeaturedFixtureWithImportance[];
   config?: {
     selection?: GameSelectionConfig;
-    visibleCards?: number;
   };
   autoRefresh?: boolean;
   rotateInterval?: number;
@@ -15,7 +14,6 @@ interface UseFeaturedGamesCarouselParams {
 
 interface CarouselState {
   currentIndex: number;
-  visibleCards: number;
 }
 
 export const useFeaturedGamesCarousel = ({
@@ -25,64 +23,63 @@ export const useFeaturedGamesCarousel = ({
   rotateInterval = 5000,
 }: UseFeaturedGamesCarouselParams) => {
   const [featuredGames, setFeaturedGames] = useState<FeaturedFixtureWithImportance[]>(fixtures);
+  const [carouselState, setCarouselState] = useState<CarouselState>({ currentIndex: 0 });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const [isAutoRotating, setIsAutoRotating] = useState(false);
 
-  // Initialize visibleCards based on window width
-  const getVisibleCards = () => (window.innerWidth < 768 ? 1 : config?.visibleCards || 4);
-
-  const [carouselState, setCarouselState] = useState<CarouselState>({
-    currentIndex: 0,
-    visibleCards: getVisibleCards(),
-  });
-
+  const scrollRef = useRef<HTMLDivElement>(null);
   const autoRotateTimeout = useRef<number | null>(null);
 
   const nextSlide = useCallback(() => {
     setCarouselState((prev) => ({
-      ...prev,
       currentIndex: (prev.currentIndex + 1) % featuredGames.length,
     }));
   }, [featuredGames.length]);
 
   const scrollToIndex = useCallback((index: number) => {
-    setCarouselState((prev) => ({ ...prev, currentIndex: index }));
+    setCarouselState({ currentIndex: index });
   }, []);
 
   const toggleAutoRotate = useCallback(() => {
-    if (autoRotateTimeout.current) {
-      clearTimeout(autoRotateTimeout.current);
-      autoRotateTimeout.current = null;
+    if (isAutoRotating) {
+      if (autoRotateTimeout.current !== null) {
+        clearTimeout(autoRotateTimeout.current);
+        autoRotateTimeout.current = null;
+      }
+      setIsAutoRotating(false);
     } else {
       autoRotateTimeout.current = window.setTimeout(nextSlide, rotateInterval);
+      setIsAutoRotating(true);
     }
-  }, [nextSlide, rotateInterval]);
+  }, [isAutoRotating, nextSlide, rotateInterval]);
 
   const refreshData = useCallback(() => {
-    setFeaturedGames(fixtures);
+    try {
+      setIsLoading(true);
+      setFeaturedGames(fixtures);
+      setError(null);
+    } catch (err) {
+      setError(err as Error);
+    } finally {
+      setIsLoading(false);
+    }
   }, [fixtures]);
 
-  // Auto-rotate effect
   useEffect(() => {
     if (!autoRefresh) return;
 
     autoRotateTimeout.current = window.setTimeout(nextSlide, rotateInterval);
+    setIsAutoRotating(true);
 
     return () => {
       if (autoRotateTimeout.current !== null) {
         clearTimeout(autoRotateTimeout.current);
         autoRotateTimeout.current = null;
       }
+      setIsAutoRotating(false);
     };
   }, [nextSlide, autoRefresh, rotateInterval]);
-
-  // Update visibleCards on window resize
-  useEffect(() => {
-    const handleResize = () => {
-      setCarouselState((prev) => ({ ...prev, visibleCards: getVisibleCards() }));
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [config?.visibleCards]);
 
   return {
     featuredGames,
@@ -90,5 +87,9 @@ export const useFeaturedGamesCarousel = ({
     scrollToIndex,
     toggleAutoRotate,
     refreshData,
+    isLoading,
+    error,
+    scrollRef,
+    isAutoRotating,
   };
 };
