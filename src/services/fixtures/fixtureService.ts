@@ -108,7 +108,7 @@ private async transformEvent(event: SportsDbEvent): Promise<FeaturedFixtureWithI
 
   return {
     id: event.idEvent ?? 'unknown-id',
-    dateTime: `${event.strDate ?? '1970-01-01'}T${event.strTime ?? '00:00:00'}`,
+    dateTime: `${event.dateEventLocal}T${event.strTimeLocal}`,
     homeTeam: {
       id: event.idHomeTeam ?? 'unknown-id',
       name: event.strHomeTeam ?? 'Unknown Team',
