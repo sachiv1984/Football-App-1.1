@@ -276,12 +276,12 @@ const { featuredFixtures, loading, error } = useFixtures();
                    <img 
                    src={competitionLogo} 
                   alt={`${fixture.competition.name} logo`} 
-                 className="w-10 h-10 sm:w-12 sm:h-12"
+                 className="w-20 h-20 sm:w-24 sm:h-24"
                   />
                   )}
-                      <span className="text-sm sm:text-base font-semibold text-gray-800">
-                        {fixture.competition.name}
-                      </span>
+                     // <span className="text-sm sm:text-base font-semibold text-gray-800">
+                        // {fixture.competition.name}
+                     // </span>
                     </div>
                     <div className="flex items-center space-x-3">
                       <span className="text-xs sm:text-sm text-gray-500">
