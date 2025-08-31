@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import type { FeaturedFixtureWithImportance } from '../../../types';
-import { getTeamLogo } from '../../../utils/logoUtils';
+import { getTeamLogo, getCompetitionLogo } from '../../../utils/logoUtils';
 import { useFixtures } from '../../../hooks/useFixtures'; // Add this import
 
 interface Props {
@@ -258,7 +258,8 @@ const { featuredFixtures, loading, error } = useFixtures();
           const homeLogo = getTeamLogo(fixture.homeTeam);
           const awayLogo = getTeamLogo(fixture.awayTeam);
           const matchDayLabel = getMatchDayLabel(fixture.dateTime);
-          
+          const competitionLogo = getCompetitionLogo(fixture.competition.name, fixture.competition.logo);
+
           return (
             <div
               key={idx}
@@ -271,13 +272,13 @@ const { featuredFixtures, loading, error } = useFixtures();
                 <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-t-xl px-4 sm:px-6 py-3">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center space-x-2">
-                      {fixture.competition.logo && (
-                        <img 
-                          src={fixture.competition.logo} 
-                          alt={fixture.competition.name}
-                          className="w-5 h-5 sm:w-6 sm:h-6"
-                        />
-                      )}
+                   {competitionLogo && (
+  <img 
+    src={competitionLogo} 
+    alt={fixture.competition.name}
+    className="w-5 h-5 sm:w-6 sm:h-6"
+  />
+)}
                       <span className="text-sm sm:text-base font-semibold text-gray-800">
                         {fixture.competition.name}
                       </span>
