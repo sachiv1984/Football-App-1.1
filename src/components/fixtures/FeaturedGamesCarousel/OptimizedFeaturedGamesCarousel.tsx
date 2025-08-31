@@ -17,8 +17,8 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   className = '',
 }) => {
   // Replace mock data with useFixtures hook
-  const { fixtures, loading, error } = useFixtures();
-  
+const { featuredFixtures, loading, error } = useFixtures();
+
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -26,13 +26,13 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const [touchStart, setTouchStart] = useState(0);
   const [touchEnd, setTouchEnd] = useState(0);
 
-  const realCount = fixtures.length;
+  const realCount = featuredFixtures.length;
 
   // Cloned slides for infinite scroll
   const slides = realCount > 0 ? [
-    fixtures[realCount - 1], // last item clone at start
-    ...fixtures,
-    fixtures[0], // first item clone at end
+    featuredFixtures[realCount - 1], // last item clone at start
+    ...featuredFixtures,
+    featuredFixtures[0], // first item clone at end
   ] : [];
 
   // Scroll to a specific index
