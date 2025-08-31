@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import type { FeaturedFixtureWithImportance } from '../../../types';
 import { getTeamLogo } from '../../../utils/logoUtils';
+import { useFixtures } from '../../../hooks/useFixtures'; // Add this import
 
 interface Props {
-  fixtures: FeaturedFixtureWithImportance[];
   onGameSelect?: (fixture: FeaturedFixtureWithImportance) => void;
   autoRotate?: boolean;
   rotateInterval?: number;
@@ -11,12 +11,14 @@ interface Props {
 }
 
 export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
-  fixtures,
   onGameSelect,
   autoRotate = true,
   rotateInterval = 5000,
   className = '',
 }) => {
+  // Replace mock data with useFixtures hook
+  const { fixtures, loading, error } = useFixtures();
+  
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -191,6 +193,35 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
       day: 'numeric' 
     });
   };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className={`${className}`}>
+        <div className="flex items-center justify-center h-64 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <div className="text-lg font-semibold text-gray-600">Loading Featured Games...</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className={`${className}`}>
+        <div className="flex items-center justify-center h-64 bg-gradient-to-br from-red-50 to-red-100 rounded-xl border border-red-200">
+          <div className="text-center">
+            <div className="text-4xl mb-4">⚠️</div>
+            <div className="text-xl font-semibold text-red-600 mb-2">Error Loading Games</div>
+            <div className="text-sm text-red-500">{error}</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Empty state
   if (fixtures.length === 0) {
