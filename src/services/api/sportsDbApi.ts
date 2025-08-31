@@ -43,6 +43,12 @@ export interface SportsDbLeague {
   strForm: string;
 }
 
+export interface SportsDbTableRow {
+  idTeam: string;
+  strTeam: string;
+  strForm: string; // e.g., "W,W,D,L,W"
+}
+
 interface CachedData<T> {
   data: T;
   timestamp: number;
@@ -147,28 +153,24 @@ export class SportsDbApi {
     return response.leagues?.[0] || null;
   }
 
-  // Get team's last 5 matches for form
-  async getTeamForm(teamId: string): Promise<string[]> {
-    const url = `${SPORTS_DB_BASE_URL}/eventslast.php?id=${teamId}`;
-    try {
-      const response = await this.fetchWithCache<{ results: Match[] }>(url, `form-${teamId}`);
-      return (response.results || [])
-        .slice(0, 5)
-        .map((match: Match) => {
-          const isHome = match.idHomeTeam === teamId;
-          const teamScore = isHome ? parseInt(match.intHomeScore) : parseInt(match.intAwayScore);
-          const opponentScore = isHome ? parseInt(match.intAwayScore) : parseInt(match.intHomeScore);
+// Get team's last 5 matches for form using league table
+async getTeamForm(teamId: string): Promise<string[]> {
+  try {
+    const url = `${SPORTS_DB_BASE_URL}/lookuptable.php?l=${PREMIER_LEAGUE_ID}&s=${currentSeason}`;
+    const response = await this.fetchWithCache<{ table: SportsDbTableRow[] }>(url, `league-table-${PREMIER_LEAGUE_ID}`);
 
-          if (teamScore > opponentScore) return 'W';
-          if (teamScore < opponentScore) return 'L';
-          return 'D';
-        });
-    } catch (error) {
-      console.error(`Error fetching form for team ${teamId}:`, error);
-      return [];
-    }
+    const table = response.table || [];
+    const teamRow = table.find(row => row.idTeam === teamId);
+
+    if (!teamRow || !teamRow.strForm) return [];
+
+    // strForm is usually a comma-separated string of results
+    return teamRow.strForm.split(',').slice(0, 5); // get last 5 matches
+  } catch (error) {
+    console.error(`Error fetching league table for team ${teamId}:`, error);
+    return [];
   }
-
+}
   // Clear cache (useful for testing or manual refresh)
   clearCache(): void {
     this.cache.clear();
