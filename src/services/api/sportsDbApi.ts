@@ -182,5 +182,3 @@ export class SportsDbApi {
     }).sort((a, b) => new Date(a.strDate).getTime() - new Date(b.strDate).getTime());
   }
 }
-
-
