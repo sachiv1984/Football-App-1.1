@@ -129,6 +129,43 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return null;
   };
 
+  // Team name abbreviations for long names
+  const getDisplayName = (teamName: string, shortName?: string) => {
+    const abbreviations: { [key: string]: string } = {
+      'Manchester United': 'Man Utd',
+      'Manchester City': 'Man City',
+      'Tottenham Hotspur': 'Tottenham',
+      'Brighton & Hove Albion': 'Brighton',
+      'Sheffield United': 'Sheffield Utd',
+      'West Ham United': 'West Ham',
+      'Newcastle United': 'Newcastle',
+      'Wolverhampton Wanderers': 'Wolves',
+      'Leicester City': 'Leicester',
+      'Crystal Palace': 'Crystal Palace',
+      'Nottingham Forest': "Nott'm Forest",
+      'AFC Bournemouth': 'Bournemouth',
+      'Luton Town': 'Luton',
+    };
+
+    // Use predefined abbreviation if exists
+    if (abbreviations[teamName]) {
+      return abbreviations[teamName];
+    }
+    
+    // Use shortName from API if available
+    if (shortName && shortName.length <= 12) {
+      return shortName;
+    }
+    
+    // Use full name if it's short enough
+    if (teamName.length <= 12) {
+      return teamName;
+    }
+    
+    // Fallback: truncate long names
+    return teamName.length > 12 ? `${teamName.substring(0, 10)}...` : teamName;
+  };
+
   // Handle image error (fallback for missing logos)
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     e.currentTarget.style.display = 'none';
@@ -259,7 +296,7 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                       </div>
                       <div className="text-center">
                         <div className="font-bold text-base sm:text-xl text-gray-900">
-                          {fixture.homeTeam.shortName || fixture.homeTeam.name}
+                          {getDisplayName(fixture.homeTeam.name, fixture.homeTeam.shortName)}
                         </div>
                         <div className="text-xs sm:text-sm text-gray-500 font-medium mt-1">
                           Home
@@ -324,7 +361,7 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                       </div>
                       <div className="text-center">
                         <div className="font-bold text-base sm:text-xl text-gray-900">
-                          {fixture.awayTeam.shortName || fixture.awayTeam.name}
+                          {getDisplayName(fixture.awayTeam.name, fixture.awayTeam.shortName)}
                         </div>
                         <div className="text-xs sm:text-sm text-gray-500 font-medium mt-1">
                           Away
