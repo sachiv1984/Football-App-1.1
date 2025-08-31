@@ -267,23 +267,23 @@ const { featuredFixtures, loading, error } = useFixtures();
               onClick={() => onGameSelect?.(fixture)}
             >
               <div className="fixture-card relative bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] border border-gray-100">
-                
-          {/* Header with Competition Info and Venue */}
+
+{/* Header with Competition Logo and Venue */}
 <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-t-xl px-4 sm:px-6 py-3">
   <div className="flex items-center justify-between mb-2">
-    <div className="flex items-center space-x-2">
+    
+    {/* Left side: Competition logo only */}
+    <div className="flex items-center">
       {competitionLogo && (
         <img 
           src={competitionLogo} 
           alt={`${fixture.competition.name} logo`} 
-          className="w-20 h-20 sm:w-24 sm:h-24"
+          className="w-20 h-20 sm:w-24 sm:h-24 object-contain"
         />
       )}
-      {/* Competition name removed */}
-      {/* <span className="text-sm sm:text-base font-semibold text-gray-800">
-        {fixture.competition.name}
-      </span> */}
     </div>
+
+    {/* Right side: Week number and importance badge */}
     <div className="flex items-center space-x-3">
       <span className="text-xs sm:text-sm text-gray-500">
         Week {fixture.matchWeek}
@@ -294,15 +294,14 @@ const { featuredFixtures, loading, error } = useFixtures();
         </span>
       )}
     </div>
+
+  </div>
+
+  {/* Venue below header */}
+  <div className="text-center">
+    <h3 className="text-lg sm:text-xl font-bold text-gray-900">{fixture.venue}</h3>
   </div>
 </div>
-
-                  
-                  {/* Venue */}
-                  <div className="text-center">
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-900">{fixture.venue}</h3>
-                  </div>
-                </div>
 
                 {/* Main fixture content */}
                 <div className="p-4 sm:p-6">
