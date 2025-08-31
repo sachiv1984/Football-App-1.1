@@ -39,9 +39,21 @@ export interface SportsDbLeague {
   strCountry: string;
 }
 
+interface CachedData<T> {
+  data: T;
+  timestamp: number;
+}
+
+interface Match {
+  idHomeTeam: string;
+  idAwayTeam: string;
+  intHomeScore: string;
+  intAwayScore: string;
+}
+
 export class SportsDbApi {
   private static instance: SportsDbApi;
-  private cache: Map<string, { data: any; timestamp: number }> = new Map();
+  private cache: Map<string, CachedData<any>> = new Map();
   private readonly cacheTimeout = 5 * 60 * 1000; // 5 minutes
 
   private constructor() {}
@@ -64,8 +76,7 @@ export class SportsDbApi {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      const data = await response.json();
-      
+      const data: T = await response.json(); // Updated to use generic type T
       this.cache.set(cacheKey, { data, timestamp: Date.now() });
       return data;
     } catch (error) {
@@ -99,15 +110,14 @@ export class SportsDbApi {
   async getTeamForm(teamId: string): Promise<string[]> {
     const url = `${SPORTS_DB_BASE_URL}/eventslast.php?id=${teamId}`;
     try {
-      const response = await this.fetchWithCache<{ results: any[] }>(url, `form-${teamId}`);
-      
+      const response = await this.fetchWithCache<{ results: Match[] }>(url, `form-${teamId}`);
       return (response.results || [])
         .slice(0, 5)
-        .map((match: any) => {
+        .map((match: Match) => { // Updated to use Match type
           const isHome = match.idHomeTeam === teamId;
           const teamScore = isHome ? parseInt(match.intHomeScore) : parseInt(match.intAwayScore);
           const opponentScore = isHome ? parseInt(match.intAwayScore) : parseInt(match.intHomeScore);
-          
+
           if (teamScore > opponentScore) return 'W';
           if (teamScore < opponentScore) return 'L';
           return 'D';
@@ -123,3 +133,4 @@ export class SportsDbApi {
     this.cache.clear();
   }
 }
+
