@@ -8,7 +8,9 @@ import LeagueTable from '../components/league/LeagueTable/LeagueTable';
 import { designTokens } from '../styles/designTokens';
 import { Fixture, Team, LeagueTableRow } from '../types';
 import { OptimizedFeaturedGamesCarousel } from '../components/fixtures/FeaturedGamesCarousel/OptimizedFeaturedGamesCarousel';
+import { FixturesDebugTable } from '../components/FixturesDebugTable'; // Add this import
 import type { FeaturedFixtureWithImportance } from '../types';
+import { ErrorBoundary, CarouselErrorBoundary } from '../components/ErrorBoundary';
 
 // Helper function to convert Fixture to FeaturedFixtureWithImportance
 const convertToFeaturedFixture = (fixture: Fixture): FeaturedFixtureWithImportance => ({
@@ -92,6 +94,7 @@ const standings: LeagueTableRow[] = [
 const HomePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'fixtures' | 'standings'>('fixtures');
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [showDebugTable, setShowDebugTable] = useState(true); // Add this to toggle debug table
 
   const handleToggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
@@ -100,38 +103,66 @@ const HomePage: React.FC = () => {
   };
 
   return (
-    <div
-      style={{
-        background: designTokens.colors.neutral.background,
-        color: designTokens.colors.neutral.darkGrey,
-        minHeight: '100vh',
-      }}
-    >
-      <Header isDarkMode={isDarkMode} onToggleDarkMode={handleToggleDarkMode} />
+    <ErrorBoundary>
+      <div
+        style={{
+          background: designTokens.colors.neutral.background,
+          color: designTokens.colors.neutral.darkGrey,
+          minHeight: '100vh',
+        }}
+      >
+        <Header isDarkMode={isDarkMode} onToggleDarkMode={handleToggleDarkMode} />
 
-      {/* Space below header */}
-      <div style={{ marginTop: '2rem' }} />
+        {/* Space below header */}
+        <div style={{ marginTop: '2rem' }} />
 
-      {/* Hero Section */}
-      <OptimizedFeaturedGamesCarousel
-  fixtures={featuredFixtures}
-  onGameSelect={handleGameSelect}
-  rotateInterval={5000}
-  className="my-8"
-/>
+        {/* Debug Table Section - ADD THIS */}
+        {showDebugTable && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-yellow-800">🔍 API Debug Mode</h3>
+                  <p className="text-sm text-yellow-700">Review what data your API is returning</p>
+                </div>
+                <button
+                  onClick={() => setShowDebugTable(false)}
+                  className="text-yellow-600 hover:text-yellow-800 text-sm"
+                >
+                  Hide Debug Table
+                </button>
+              </div>
+            </div>
+            <FixturesDebugTable />
+          </div>
+        )}
 
-      {/* Tab Navigation */}
-      <TabNavigation
-        activeTab={activeTab}
-        onTabChange={(tabId: string) => setActiveTab(tabId as 'fixtures' | 'standings')}
-        tabs={[
-          { label: 'Fixtures', id: 'fixtures', content: <FixturesList fixtures={fixtures} /> },
-          { label: 'Standings', id: 'standings', content: <LeagueTable rows={standings} /> },
-        ]}
-      />
+        {/* Hero Section with Error Boundary */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <CarouselErrorBoundary>
+            <OptimizedFeaturedGamesCarousel
+              onGameSelect={handleGameSelect}
+              rotateInterval={5000}
+              className="my-8"
+            />
+          </CarouselErrorBoundary>
+        </div>
 
-      <Footer />
-    </div>
+        {/* Tab Navigation */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <TabNavigation
+            activeTab={activeTab}
+            onTabChange={(tabId: string) => setActiveTab(tabId as 'fixtures' | 'standings')}
+            tabs={[
+              { label: 'Fixtures', id: 'fixtures', content: <FixturesList fixtures={fixtures} /> },
+              { label: 'Standings', id: 'standings', content: <LeagueTable rows={standings} /> },
+            ]}
+          />
+        </div>
+
+        <Footer />
+      </div>
+    </ErrorBoundary>
   );
 };
 
