@@ -85,51 +85,55 @@ export class FixtureService {
   }
 
   // Transform SportsDB event to your fixture format
-  private async transformEvent(event: SportsDbEvent): Promise<FeaturedFixtureWithImportance> {
-    const importance = this.calculateImportance(
-      event.strHomeTeam, 
-      event.strAwayTeam, 
-      parseInt(event.intRound)
-    );
+ private async transformEvent(event: SportsDbEvent): Promise<FeaturedFixtureWithImportance> {
+  const importance = this.calculateImportance(
+    event.strHomeTeam ?? 'Unknown Team',
+    event.strAwayTeam ?? 'Unknown Team',
+    parseInt(event.intRound ?? '0')
+  );
 
-    // Get team forms in parallel
-    const [homeForm, awayForm] = await Promise.all([
-      this.sportsDbApi.getTeamForm(event.idHomeTeam).catch(() => []),
-      this.sportsDbApi.getTeamForm(event.idAwayTeam).catch(() => [])
-    ]);
+  // Get team forms in parallel
+  const [homeForm, awayForm] = await Promise.all([
+    this.sportsDbApi.getTeamForm(event.idHomeTeam).catch(() => []),
+    this.sportsDbApi.getTeamForm(event.idAwayTeam).catch(() => [])
+  ]);
 
-    // Get league details for competition logo
-    const leagueDetails = await this.sportsDbApi.getLeagueDetails().catch(() => null);
+  // Get league details for competition logo
+  const leagueDetails = await this.sportsDbApi.getLeagueDetails().catch(() => null);
 
-    return {
-      id: event.idEvent,
-      dateTime: `${event.strDate}T${event.strTime}`,
-      homeTeam: {
-        id: event.idHomeTeam,
-        name: event.strHomeTeam,
-        shortName: event.strHomeTeamShort,
-        badge: event.strHomeTeamBadge,
-        form: homeForm
-      },
-      awayTeam: {
-        id: event.idAwayTeam,
-        name: event.strAwayTeam,
-        shortName: event.strAwayTeamShort,
-        badge: event.strAwayTeamBadge,
-        form: awayForm
-      },
-      venue: event.strVenue,
-      competition: {
-        id: PREMIER_LEAGUE_ID,
-        name: event.strLeague,
-        logo: leagueDetails?.strLogo || leagueDetails?.strLeagueBadge
-      },
-      matchWeek: parseInt(event.intRound),
-      importance,
-      tags: this.generateMatchTags(event.strHomeTeam, event.strAwayTeam, parseInt(event.intRound)),
-      status: 'upcoming'
-    };
-  }
+  return {
+    id: event.idEvent ?? 'unknown-id',
+    dateTime: `${event.strDate ?? '1970-01-01'}T${event.strTime ?? '00:00:00'}`,
+    homeTeam: {
+      id: event.idHomeTeam ?? 'unknown-id',
+      name: event.strHomeTeam ?? 'Unknown Team',
+      shortName: event.strHomeTeamShort ?? 'Unknown',
+      badge: event.strHomeTeamBadge ?? '',
+      form: homeForm
+    },
+    awayTeam: {
+      id: event.idAwayTeam ?? 'unknown-id',
+      name: event.strAwayTeam ?? 'Unknown Team',
+      shortName: event.strAwayTeamShort ?? 'Unknown',
+      badge: event.strAwayTeamBadge ?? '',
+      form: awayForm
+    },
+    venue: event.strVenue ?? 'Unknown Venue',
+    competition: {
+      id: PREMIER_LEAGUE_ID,
+      name: event.strLeague ?? 'Unknown League',
+      logo: leagueDetails?.strLogo || leagueDetails?.strLeagueBadge || ''
+    },
+    matchWeek: parseInt(event.intRound ?? '0'),
+    importance,
+    tags: this.generateMatchTags(
+      event.strHomeTeam ?? 'Unknown Team',
+      event.strAwayTeam ?? 'Unknown Team',
+      parseInt(event.intRound ?? '0')
+    ),
+    status: 'upcoming'
+  };
+}
 
   // Get featured fixtures (top 5-10 most important upcoming matches)
   async getFeaturedFixtures(limit: number = 8): Promise<FeaturedFixtureWithImportance[]> {
