@@ -1,6 +1,6 @@
 // src/services/api/sportsDbApi.ts
 const SPORTS_DB_BASE_URL = 'https://www.thesportsdb.com/api/v1/json/3';
-const PREMIER_LEAGUE_ID = '4328';
+export const PREMIER_LEAGUE_ID = '4328';
 
 export interface SportsDbEvent {
   idEvent: string;
