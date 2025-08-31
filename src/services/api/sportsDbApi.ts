@@ -53,7 +53,7 @@ interface Match {
 
 export class SportsDbApi {
   private static instance: SportsDbApi;
-  private cache: Map<string, CachedData<any>> = new Map();
+  private cache: Map<string, CachedData<unknown>> = new Map(); // Updated to use `unknown`
   private readonly cacheTimeout = 5 * 60 * 1000; // 5 minutes
 
   private constructor() {}
@@ -66,7 +66,7 @@ export class SportsDbApi {
   }
 
   private async fetchWithCache<T>(url: string, cacheKey: string): Promise<T> {
-    const cached = this.cache.get(cacheKey);
+    const cached = this.cache.get(cacheKey) as CachedData<T> | undefined; // Explicitly cast to `CachedData<T>`
     if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
       return cached.data;
     }
@@ -76,7 +76,7 @@ export class SportsDbApi {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      const data: T = await response.json(); // Updated to use generic type T
+      const data: T = await response.json();
       this.cache.set(cacheKey, { data, timestamp: Date.now() });
       return data;
     } catch (error) {
