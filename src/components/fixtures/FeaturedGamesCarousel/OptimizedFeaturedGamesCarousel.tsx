@@ -4,6 +4,7 @@ import { getTeamLogo } from '../../../utils/logoUtils';
 import { useFixtures } from '../../../hooks/useFixtures'; // Add this import
 
 interface Props {
+  fixtures?: FeaturedFixtureWithImportance[]
   onGameSelect?: (fixture: FeaturedFixtureWithImportance) => void;
   autoRotate?: boolean;
   rotateInterval?: number;
