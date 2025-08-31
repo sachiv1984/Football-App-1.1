@@ -460,26 +460,26 @@ const { featuredFixtures, loading, error } = useFixtures();
         </svg>
       </button>
 
-      {/* Dots indicator */}
-      {realCount > 1 && (
-        <div className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 flex space-x-2">
-          {fixtures.map((_, idx) => (
-            <button
-              key={idx}
-              className={`w-2 h-2 rounded-full transition-all duration-200 ${
-                idx === (currentIndex < 0 ? realCount - 1 : currentIndex % realCount)
-                  ? 'bg-blue-600 w-4 sm:w-6'
-                  : 'bg-gray-300 hover:bg-gray-400'
-              }`}
-              onClick={() => {
-                setCurrentIndex(idx);
-                setIsAnimating(true);
-              }}
-              aria-label={`Go to game ${idx + 1}`}
-            />
-          ))}
-        </div>
-      )}
+     {/* Dots indicator */}
+{realCount > 1 && (
+  <div className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 flex space-x-2">
+    {featuredFixtures.map((_, idx) => (
+      <button
+        key={idx}
+        className={`w-2 h-2 rounded-full transition-all duration-200 ${
+          idx === (currentIndex < 0 ? realCount - 1 : currentIndex % realCount)
+            ? 'bg-blue-600 w-4 sm:w-6'
+            : 'bg-gray-300 hover:bg-gray-400'
+        }`}
+        onClick={() => {
+          setCurrentIndex(idx);
+          setIsAnimating(true);
+        }}
+        aria-label={`Go to game ${idx + 1}`}
+      />
+    ))}
+  </div>
+)}
     </div>
   );
 };
