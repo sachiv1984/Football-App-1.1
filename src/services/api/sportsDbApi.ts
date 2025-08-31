@@ -63,12 +63,6 @@ export class SportsDbApi {
     if (!SportsDbApi.instance) {
       SportsDbApi.instance = new SportsDbApi();
     }
-
-  // Clear cache (useful for testing or manual refresh)
-  clearCache(): void {
-    this.cache.clear();
-  }
-}
     return SportsDbApi.instance;
   }
 
@@ -95,9 +89,9 @@ export class SportsDbApi {
   // Get upcoming Premier League fixtures
   async getUpcomingFixtures(): Promise<SportsDbEvent[]> {
     const url = `${SPORTS_DB_BASE_URL}/eventsnextleague.php?id=${PREMIER_LEAGUE_ID}`;
-    console.log('Fetching upcoming fixtures from:', url); // Debug log
+    console.log('Fetching upcoming fixtures from:', url);
     const response = await this.fetchWithCache<{ events: SportsDbEvent[] }>(url, 'upcoming-fixtures');
-    console.log('Upcoming fixtures response:', response); // Debug log
+    console.log('Upcoming fixtures response:', response);
     return response.events || [];
   }
 
@@ -105,19 +99,34 @@ export class SportsDbApi {
   async getCurrentSeasonFixtures(): Promise<SportsDbEvent[]> {
     const currentSeason = '2025-2026';
     const url = `${SPORTS_DB_BASE_URL}/eventsseason.php?id=${PREMIER_LEAGUE_ID}&s=${currentSeason}`;
-    console.log('Fetching season fixtures from:', url); // Debug log
+    console.log('Fetching season fixtures from:', url);
     const response = await this.fetchWithCache<{ events: SportsDbEvent[] }>(url, `fixtures-${currentSeason}`);
-    console.log('Season fixtures response:', response); // Debug log
+    console.log('Season fixtures response:', response);
     return response.events || [];
   }
 
-  // NEW: Get recent Premier League results
-  async getRecentFixtures(): Promise<SportsDbEvent[]> {
-    const url = `${SPORTS_DB_BASE_URL}/eventspastleague.php?id=${PREMIER_LEAGUE_ID}`;
-    console.log('Fetching recent fixtures from:', url); // Debug log
-    const response = await this.fetchWithCache<{ events: SportsDbEvent[] }>(url, 'recent-fixtures');
-    console.log('Recent fixtures response:', response); // Debug log
-    return response.events || [];
+  // Get recent results from current season
+  async getRecentResults(): Promise<SportsDbEvent[]> {
+    const allFixtures = await this.getCurrentSeasonFixtures();
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    
+    return allFixtures.filter(fixture => {
+      const fixtureDate = new Date(fixture.strDate);
+      return fixtureDate < today && fixture.strStatus === 'Match Finished';
+    }).sort((a, b) => new Date(b.strDate).getTime() - new Date(a.strDate).getTime());
+  }
+
+  // Get upcoming fixtures from current season
+  async getUpcomingFixturesFromSeason(): Promise<SportsDbEvent[]> {
+    const allFixtures = await this.getCurrentSeasonFixtures();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    return allFixtures.filter(fixture => {
+      const fixtureDate = new Date(fixture.strDate);
+      return fixtureDate >= today && (!fixture.strStatus || fixture.strStatus === '' || fixture.strStatus === 'Not Started');
+    }).sort((a, b) => new Date(a.strDate).getTime() - new Date(b.strDate).getTime());
   }
 
   // Get team details by ID
@@ -130,9 +139,9 @@ export class SportsDbApi {
   // Get league details
   async getLeagueDetails(): Promise<SportsDbLeague | null> {
     const url = `${SPORTS_DB_BASE_URL}/lookupleague.php?id=${PREMIER_LEAGUE_ID}`;
-    console.log('Fetching league details from:', url); // Debug log
+    console.log('Fetching league details from:', url);
     const response = await this.fetchWithCache<{ leagues: SportsDbLeague[] }>(url, 'premier-league');
-    console.log('League details response:', response); // Debug log
+    console.log('League details response:', response);
     return response.leagues?.[0] || null;
   }
 
@@ -158,27 +167,8 @@ export class SportsDbApi {
     }
   }
 
-  // Get recent results from current season
-  async getRecentResults(): Promise<SportsDbEvent[]> {
-    const allFixtures = await this.getCurrentSeasonFixtures();
-    const today = new Date();
-    today.setHours(23, 59, 59, 999); // End of today
-    
-    return allFixtures.filter(fixture => {
-      const fixtureDate = new Date(fixture.strDate);
-      return fixtureDate < today && fixture.strStatus === 'Match Finished';
-    }).sort((a, b) => new Date(b.strDate).getTime() - new Date(a.strDate).getTime()); // Most recent first
-  }
-
-  // Get upcoming fixtures from current season
-  async getUpcomingFixturesFromSeason(): Promise<SportsDbEvent[]> {
-    const allFixtures = await this.getCurrentSeasonFixtures();
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Start of today
-    
-    return allFixtures.filter(fixture => {
-      const fixtureDate = new Date(fixture.strDate);
-      return fixtureDate >= today && (!fixture.strStatus || fixture.strStatus === '' || fixture.strStatus === 'Not Started');
-    }).sort((a, b) => new Date(a.strDate).getTime() - new Date(b.strDate).getTime());
+  // Clear cache (useful for testing or manual refresh)
+  clearCache(): void {
+    this.cache.clear();
   }
 }
