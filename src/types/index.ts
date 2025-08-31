@@ -49,7 +49,7 @@ export interface Game {
   competition: Competition; // always an object
   homeScore?: number;
   awayScore?: number;
-  status?: 'scheduled' | 'live' | 'finished' | 'postponed';
+  status?: 'scheduled' | 'live' | 'finished' | 'postponed' | 'upcoming';
   aiInsight?: AIInsight;
 }
 
