@@ -54,13 +54,6 @@ interface CachedData<T> {
   timestamp: number;
 }
 
-interface Match {
-  idHomeTeam: string;
-  idAwayTeam: string;
-  intHomeScore: string;
-  intAwayScore: string;
-}
-
 export class SportsDbApi {
   private static instance: SportsDbApi;
   private cache: Map<string, CachedData<unknown>> = new Map();
