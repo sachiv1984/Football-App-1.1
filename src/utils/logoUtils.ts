@@ -47,8 +47,13 @@ export const getTeamLogoPath = (
   shortName?: string
 ): string | null => {
   const slug = TEAM_LOGO_MAP[teamName] || (shortName && TEAM_LOGO_MAP[shortName]) || null;
-  // Fixed: Point to public folder (accessible via URL)
-  return slug ? `/Images/Club%20Logos/${slug}.png` : null;
+  
+  // Check if we're in development or production
+  const isProduction = process.env.NODE_ENV === 'production';
+  const basePath = isProduction ? '/Football-App-1.1' : '';
+  
+  // Point to public folder (accessible via URL)
+  return slug ? `${basePath}/Images/Club%20Logos/${slug}.png` : null;
 };
 
 export const getTeamLogo = (team: { name: string; shortName?: string; id?: string }) => {
