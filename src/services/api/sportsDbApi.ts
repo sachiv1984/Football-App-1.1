@@ -1,6 +1,7 @@
 // src/services/api/sportsDbApi.ts
 const SPORTS_DB_BASE_URL = `https://www.thesportsdb.com/api/v1/json/123`;
 export const PREMIER_LEAGUE_ID = '4328';
+const currentSeason = '2025-2026'
 
 export interface SportsDbEvent {
   idEvent: string;
@@ -39,6 +40,7 @@ export interface SportsDbLeague {
   strLeagueBadge?: string;
   strLogo?: string;
   strCountry: string;
+  strForm: string;
 }
 
 interface CachedData<T> {
@@ -97,8 +99,7 @@ export class SportsDbApi {
   }
 
   // Get current season fixtures (2025-2026)
-  async getCurrentSeasonFixtures(): Promise<SportsDbEvent[]> {
-    const currentSeason = '2025-2026';
+  async getCurrentSeasonFixtures(): 
     const url = `${SPORTS_DB_BASE_URL}/eventsseason.php?id=${PREMIER_LEAGUE_ID}&s=${currentSeason}`;
     console.log('Fetching season fixtures from:', url);
     const response = await this.fetchWithCache<{ events: SportsDbEvent[] }>(url, `fixtures-${currentSeason}`);
@@ -139,7 +140,7 @@ export class SportsDbApi {
 
   // Get league details
   async getLeagueDetails(): Promise<SportsDbLeague | null> {
-    const url = `${SPORTS_DB_BASE_URL}/lookupleague.php?id=${PREMIER_LEAGUE_ID}`;
+    const url = `${SPORTS_DB_BASE_URL}/lookupleague.php?id=${PREMIER_LEAGUE_ID}&s=${currentSeason}`;
     console.log('Fetching league details from:', url);
     const response = await this.fetchWithCache<{ leagues: SportsDbLeague[] }>(url, 'premier-league');
     console.log('League details response:', response);
