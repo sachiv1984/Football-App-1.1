@@ -1,6 +1,5 @@
 // src/services/api/sportsDbApi.ts
-const SPORTS_DB_API_KEY = process.env.REACT_APP_SPORTSDB_API_KEY || '123'; // Fallback to free tier
-const SPORTS_DB_BASE_URL = `https://www.thesportsdb.com/api/v1/json/${SPORTS_DB_API_KEY}`;
+const SPORTS_DB_BASE_URL = `https://www.thesportsdb.com/api/v1/json/123`;
 export const PREMIER_LEAGUE_ID = '4328';
 
 export interface SportsDbEvent {
