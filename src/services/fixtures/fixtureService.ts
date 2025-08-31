@@ -107,15 +107,19 @@ private async transformEvent(event: SportsDbEvent): Promise<FeaturedFixtureWithI
       id: event.idHomeTeam ?? 'unknown-id',
       name: event.strHomeTeam ?? 'Unknown Team',
       shortName: event.strHomeTeamShort ?? 'Unknown',
-      badge: event.strHomeTeamBadge ?? '',
-      form: homeForm
+      logo: event.strHomeTeamBadge ?? '',
+      colors: { primary: undefined, secondary: undefined }, // Default colors
+      form: homeForm,
+      position: undefined // Default position
     },
     awayTeam: {
       id: event.idAwayTeam ?? 'unknown-id',
       name: event.strAwayTeam ?? 'Unknown Team',
       shortName: event.strAwayTeamShort ?? 'Unknown',
-      badge: event.strAwayTeamBadge ?? '',
-      form: awayForm
+      logo: event.strAwayTeamBadge ?? '',
+      colors: { primary: undefined, secondary: undefined }, // Default colors
+      form: awayForm,
+      position: undefined // Default position
     },
     venue: event.strVenue ?? 'Unknown Venue',
     competition: {
@@ -133,8 +137,6 @@ private async transformEvent(event: SportsDbEvent): Promise<FeaturedFixtureWithI
     status: 'upcoming'
   };
 }
-
-
   // Get featured fixtures (top 5-10 most important upcoming matches)
   async getFeaturedFixtures(limit: number = 8): Promise<FeaturedFixtureWithImportance[]> {
     try {
