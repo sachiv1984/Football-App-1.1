@@ -212,7 +212,7 @@ export const FixturesDebugTable: React.FC = () => {
                             <div className="space-y-1">
                               <div><span className="font-medium">ID:</span> {fixture.id}</div>
                               <div><span className="font-medium">Status:</span> {fixture.status}</div>
-                              <div><span className="font-medium">Round:</span> {fixture.round || 'N/A'}</div>
+                              <div><span className="font-medium">Week:</span> {fixture.matchWeek}</div>
                             </div>
                           </div>
                           
