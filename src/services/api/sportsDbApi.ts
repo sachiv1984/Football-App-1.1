@@ -1,7 +1,7 @@
 // src/services/api/sportsDbApi.ts
 const SPORTS_DB_BASE_URL = `https://www.thesportsdb.com/api/v1/json/123`;
 export const PREMIER_LEAGUE_ID = '4328';
-const currentSeason = '2025-2026'
+const currentSeason = '2025-2026';
 
 export interface SportsDbEvent {
   idEvent: string;
@@ -43,12 +43,6 @@ export interface SportsDbLeague {
   strForm: string;
 }
 
-export interface SportsDbTableRow {
-  idTeam: string;
-  strTeam: string;
-  strForm: string; // e.g., "W,W,D,L,W"
-}
-
 interface CachedData<T> {
   data: T;
   timestamp: number;
@@ -76,9 +70,7 @@ export class SportsDbApi {
 
     try {
       const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data: T = await response.json();
       this.cache.set(cacheKey, { data, timestamp: Date.now() });
       return data;
@@ -91,43 +83,15 @@ export class SportsDbApi {
   // Get upcoming Premier League fixtures
   async getUpcomingFixtures(): Promise<SportsDbEvent[]> {
     const url = `${SPORTS_DB_BASE_URL}/eventsnextleague.php?id=${PREMIER_LEAGUE_ID}`;
-    console.log('Fetching upcoming fixtures from:', url);
     const response = await this.fetchWithCache<{ events: SportsDbEvent[] }>(url, 'upcoming-fixtures');
-    console.log('Upcoming fixtures response:', response);
     return response.events || [];
   }
 
-  // Get current season fixtures (2025-2026)
+  // Get current season fixtures
   async getCurrentSeasonFixtures(): Promise<SportsDbEvent[]> {
     const url = `${SPORTS_DB_BASE_URL}/eventsseason.php?id=${PREMIER_LEAGUE_ID}&s=${currentSeason}`;
-    console.log('Fetching season fixtures from:', url);
     const response = await this.fetchWithCache<{ events: SportsDbEvent[] }>(url, `fixtures-${currentSeason}`);
-    console.log('Season fixtures response:', response);
     return response.events || [];
-  }
-
-  // Get recent results from current season
-  async getRecentResults(): Promise<SportsDbEvent[]> {
-    const allFixtures = await this.getCurrentSeasonFixtures();
-    const today = new Date();
-    today.setHours(23, 59, 59, 999);
-    
-    return allFixtures.filter(fixture => {
-      const fixtureDate = new Date(fixture.strDate);
-      return fixtureDate < today && fixture.strStatus === 'Match Finished';
-    }).sort((a, b) => new Date(b.strDate).getTime() - new Date(a.strDate).getTime());
-  }
-
-  // Get upcoming fixtures from current season
-  async getUpcomingFixturesFromSeason(): Promise<SportsDbEvent[]> {
-    const allFixtures = await this.getCurrentSeasonFixtures();
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    return allFixtures.filter(fixture => {
-      const fixtureDate = new Date(fixture.strDate);
-      return fixtureDate >= today && (!fixture.strStatus || fixture.strStatus === '' || fixture.strStatus === 'Not Started');
-    }).sort((a, b) => new Date(a.strDate).getTime() - new Date(b.strDate).getTime());
   }
 
   // Get team details by ID
@@ -140,32 +104,27 @@ export class SportsDbApi {
   // Get league details
   async getLeagueDetails(): Promise<SportsDbLeague | null> {
     const url = `${SPORTS_DB_BASE_URL}/lookupleague.php?id=${PREMIER_LEAGUE_ID}&s=${currentSeason}`;
-    console.log('Fetching league details from:', url);
     const response = await this.fetchWithCache<{ leagues: SportsDbLeague[] }>(url, 'premier-league');
-    console.log('League details response:', response);
     return response.leagues?.[0] || null;
   }
 
-// Get team's last 5 matches for form using the league table
-async getTeamForm(teamId: string): Promise<string[]> {
-  try {
+  // Get team's last 5 matches for form using league table
+  async getTeamForm(teamId: string): Promise<('W'|'D'|'L')[]> {
     const url = `${SPORTS_DB_BASE_URL}/lookuptable.php?l=${PREMIER_LEAGUE_ID}&s=${currentSeason}`;
-    const response = await this.fetchWithCache<{ table: SportsDbTableRow[] }>(url, `league-table-${PREMIER_LEAGUE_ID}`);
+    try {
+      const response = await this.fetchWithCache<{ table: Array<{ idTeam: string, strForm: string }> }>(url, `table-${currentSeason}`);
+      const teamRow = response.table.find(row => row.idTeam === teamId);
+      if (!teamRow || !teamRow.strForm) return [];
 
-    const table = response.table || [];
-    const teamRow = table.find(row => row.idTeam === teamId);
-
-    if (!teamRow || !teamRow.strForm) return [];
-
-    // strForm is a string like "WWW" or "WWD", split it into individual letters
-    return teamRow.strForm.split('').slice(0, 5); // last 5 matches
-  } catch (error) {
-    console.error(`Error fetching league table for team ${teamId}:`, error);
-    return [];
+      // strForm is most recent first; reverse for oldest → newest
+      return teamRow.strForm.split('').slice(0, 5).reverse() as ('W'|'D'|'L')[];
+    } catch (error) {
+      console.error(`Error fetching form for team ${teamId}:`, error);
+      return [];
+    }
   }
-}
 
-  // Clear cache (useful for testing or manual refresh)
+  // Clear cache
   clearCache(): void {
     this.cache.clear();
   }
