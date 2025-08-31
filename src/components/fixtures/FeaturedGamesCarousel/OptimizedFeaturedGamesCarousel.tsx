@@ -268,32 +268,35 @@ const { featuredFixtures, loading, error } = useFixtures();
             >
               <div className="fixture-card relative bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] border border-gray-100">
                 
-                {/* Header with Competition Info and Venue */}
-                <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-t-xl px-4 sm:px-6 py-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center space-x-2">
-                   {competitionLogo && (
-                   <img 
-                   src={competitionLogo} 
-                  alt={`${fixture.competition.name} logo`} 
-                 className="w-20 h-20 sm:w-24 sm:h-24"
-                  />
-                  )}
-                     // <span className="text-sm sm:text-base font-semibold text-gray-800">
-                        // {fixture.competition.name}
-                     // </span>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <span className="text-xs sm:text-sm text-gray-500">
-                        Week {fixture.matchWeek}
-                      </span>
-                      {importanceBadge && (
-                        <span className={`px-2 py-1 text-xs font-bold rounded-full ${importanceBadge.style}`}>
-                          {importanceBadge.text}
-                        </span>
-                      )}
-                    </div>
-                  </div>
+          {/* Header with Competition Info and Venue */}
+<div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-t-xl px-4 sm:px-6 py-3">
+  <div className="flex items-center justify-between mb-2">
+    <div className="flex items-center space-x-2">
+      {competitionLogo && (
+        <img 
+          src={competitionLogo} 
+          alt={`${fixture.competition.name} logo`} 
+          className="w-20 h-20 sm:w-24 sm:h-24"
+        />
+      )}
+      {/* Competition name removed */}
+      {/* <span className="text-sm sm:text-base font-semibold text-gray-800">
+        {fixture.competition.name}
+      </span> */}
+    </div>
+    <div className="flex items-center space-x-3">
+      <span className="text-xs sm:text-sm text-gray-500">
+        Week {fixture.matchWeek}
+      </span>
+      {importanceBadge && (
+        <span className={`px-2 py-1 text-xs font-bold rounded-full ${importanceBadge.style}`}>
+          {importanceBadge.text}
+        </span>
+      )}
+    </div>
+  </div>
+</div>
+
                   
                   {/* Venue */}
                   <div className="text-center">
