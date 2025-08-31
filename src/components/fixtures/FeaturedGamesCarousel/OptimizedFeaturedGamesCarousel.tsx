@@ -224,19 +224,19 @@ const { featuredFixtures, loading, error } = useFixtures();
   }
 
   // Empty state
-  if (data.length === 0) {
-    return (
-      <div className={`${className}`}>
-        <div className="flex items-center justify-center h-64 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200">
-          <div className="text-center">
-            <div className="text-4xl mb-4">⚽</div>
-            <div className="text-xl font-semibold text-gray-600 mb-2">No Featured Games</div>
-            <div className="text-sm text-gray-500">Check back later for upcoming matches</div>
-          </div>
+  if (featuredFixtures.length === 0) {
+  return (
+    <div className={`${className}`}>
+      <div className="flex items-center justify-center h-64 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200">
+        <div className="text-center">
+          <div className="text-4xl mb-4">⚽</div>
+          <div className="text-xl font-semibold text-gray-600 mb-2">No Featured Games</div>
+          <div className="text-sm text-gray-500">Check back later for upcoming matches</div>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   return (
     <div 
