@@ -99,7 +99,7 @@ export class SportsDbApi {
   }
 
   // Get current season fixtures (2025-2026)
-  async getCurrentSeasonFixtures(): 
+  async getCurrentSeasonFixtures(): Promise<SportsDbEvent[]> {
     const url = `${SPORTS_DB_BASE_URL}/eventsseason.php?id=${PREMIER_LEAGUE_ID}&s=${currentSeason}`;
     console.log('Fetching season fixtures from:', url);
     const response = await this.fetchWithCache<{ events: SportsDbEvent[] }>(url, `fixtures-${currentSeason}`);
