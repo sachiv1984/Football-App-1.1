@@ -121,22 +121,6 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     };
   }, [currentIndex, realCount, scrollToIndex]);
 
-  // Format time until match
-  const getTimeUntilMatch = (dateTime: string) => {
-    const now = new Date();
-    const matchTime = new Date(dateTime);
-    const diffMs = matchTime.getTime() - now.getTime();
-    
-    if (diffMs < 0) return 'Match finished';
-    
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    
-    if (diffDays > 0) return `${diffDays}d ${diffHours}h`;
-    if (diffHours > 0) return `${diffHours}h`;
-    return 'Starting soon';
-  };
-
   // Get importance badge styling
   const getImportanceBadge = (importance: number) => {
     if (importance >= 8) return { text: 'BIG MATCH', style: 'bg-red-600 text-white' };
@@ -150,6 +134,25 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     e.currentTarget.style.display = 'none';
     const fallback = e.currentTarget.nextElementSibling as HTMLElement;
     if (fallback) fallback.style.display = 'flex';
+  };
+
+  // Check if match is today or tomorrow for better time display
+  const getMatchDayLabel = (dateTime: string) => {
+    const matchDate = new Date(dateTime);
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const isToday = matchDate.toDateString() === today.toDateString();
+    const isTomorrow = matchDate.toDateString() === tomorrow.toDateString();
+    
+    if (isToday) return 'Today';
+    if (isTomorrow) return 'Tomorrow';
+    return matchDate.toLocaleDateString('en-GB', { 
+      weekday: 'short', 
+      month: 'short', 
+      day: 'numeric' 
+    });
   };
 
   // Empty state
@@ -183,15 +186,9 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
       >
         {slides.map((fixture, idx) => {
           const importanceBadge = getImportanceBadge(fixture.importance);
-          const timeUntil = getTimeUntilMatch(fixture.dateTime);
           const homeLogo = getTeamLogo(fixture.homeTeam);
           const awayLogo = getTeamLogo(fixture.awayTeam);
-          
-            // --- DEBUG LOGGING START ---
-  console.log(`[DEBUG] Slide ${idx}`);
-  console.log('Home team:', fixture.homeTeam.name, 'Logo path:', homeLogo.logoPath, 'Fallback:', homeLogo.fallbackInitial);
-  console.log('Away team:', fixture.awayTeam.name, 'Logo path:', awayLogo.logoPath, 'Fallback:', awayLogo.fallbackInitial);
-  // --- DEBUG LOGGING END ---
+          const matchDayLabel = getMatchDayLabel(fixture.dateTime);
           
           return (
             <div
@@ -201,23 +198,9 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             >
               <div className="fixture-card relative bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] border border-gray-100">
                 
-                {/* Status and Importance badges */}
-                <div className="absolute top-3 right-3 sm:top-4 sm:right-4 flex gap-2 z-10">
-                  {fixture.isLive && (
-                    <span className="px-2 py-1 text-xs font-bold bg-red-500 text-white rounded-full animate-pulse">
-                      LIVE
-                    </span>
-                  )}
-                  {importanceBadge && (
-                    <span className={`px-2 py-1 text-xs font-bold rounded-full ${importanceBadge.style}`}>
-                      {importanceBadge.text}
-                    </span>
-                  )}
-                </div>
-
-                <div className="p-4 sm:p-6">
-                  {/* Competition info */}
-                  <div className="flex items-center justify-between mb-4">
+                {/* Header with Competition Info and Venue */}
+                <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-t-xl px-4 sm:px-6 py-3">
+                  <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center space-x-2">
                       {fixture.competition.logo && (
                         <img 
@@ -226,50 +209,67 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                           className="w-5 h-5 sm:w-6 sm:h-6"
                         />
                       )}
-                      <span className="text-xs sm:text-sm font-medium text-gray-600">
+                      <span className="text-sm sm:text-base font-semibold text-gray-800">
                         {fixture.competition.name}
                       </span>
                     </div>
-                    <span className="text-xs text-gray-500">
-                      MW {fixture.matchWeek}
-                    </span>
+                    <div className="flex items-center space-x-3">
+                      <span className="text-xs sm:text-sm text-gray-500">
+                        Week {fixture.matchWeek}
+                      </span>
+                      {importanceBadge && (
+                        <span className={`px-2 py-1 text-xs font-bold rounded-full ${importanceBadge.style}`}>
+                          {importanceBadge.text}
+                        </span>
+                      )}
+                    </div>
                   </div>
+                  
+                  {/* Venue */}
+                  <div className="text-center">
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-900">{fixture.venue}</h3>
+                  </div>
+                </div>
 
-                  {/* Main fixture content */}
+                {/* Main fixture content */}
+                <div className="p-4 sm:p-6">
                   <div className="flex items-center justify-between">
                     {/* Home Team */}
-                    <div className="flex flex-col items-center space-y-2 flex-1">
-                      <div className="w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center relative">
+                    <div className="flex flex-col items-center space-y-3 flex-1">
+                      <div className="w-14 h-14 sm:w-18 sm:h-18 flex items-center justify-center relative">
                         {homeLogo.logoPath ? (
                           <>
                             <img
                               src={homeLogo.logoPath}
                               alt={fixture.homeTeam.name}
-                              className="w-full h-full object-contain"
+                              className="w-full h-full object-contain drop-shadow-sm"
                               onError={handleImageError}
                             />
                             <div 
-                              className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 rounded-full absolute inset-0 hidden items-center justify-center text-gray-500 font-bold text-sm sm:text-base"
+                              className="w-12 h-12 sm:w-14 sm:h-14 bg-gray-200 rounded-full absolute inset-0 hidden items-center justify-center text-gray-600 font-bold text-sm sm:text-lg border-2 border-gray-300"
                             >
                               {homeLogo.fallbackInitial}
                             </div>
                           </>
                         ) : (
-                          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 font-bold text-sm sm:text-base">
+                          <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 font-bold text-sm sm:text-lg border-2 border-gray-300">
                             {homeLogo.fallbackInitial}
                           </div>
                         )}
                       </div>
                       <div className="text-center">
-                        <div className="font-bold text-sm sm:text-lg">
+                        <div className="font-bold text-base sm:text-xl text-gray-900">
                           {fixture.homeTeam.shortName || fixture.homeTeam.name}
                         </div>
+                        <div className="text-xs sm:text-sm text-gray-500 font-medium mt-1">
+                          Home
+                        </div>
                         {fixture.homeTeam.form && (
-                          <div className="flex space-x-1 mt-1">
+                          <div className="flex space-x-1 mt-2 justify-center">
                             {fixture.homeTeam.form.slice(-5).map((result, i) => (
                               <span
                                 key={i}
-                                className={`w-4 h-4 sm:w-5 sm:h-5 text-xs font-bold rounded-full flex items-center justify-center ${
+                                className={`w-5 h-5 sm:w-6 sm:h-6 text-xs font-bold rounded-full flex items-center justify-center ${
                                   result === 'W' ? 'bg-green-500 text-white' :
                                   result === 'D' ? 'bg-yellow-500 text-white' :
                                   'bg-red-500 text-white'
@@ -283,68 +283,58 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                       </div>
                     </div>
 
-                    {/* VS and Score/Time */}
-                    <div className="flex flex-col items-center space-y-2 px-4 sm:px-6">
-                      {fixture.status === 'finished' && fixture.homeScore !== undefined && fixture.awayScore !== undefined ? (
-                        <div className="text-xl sm:text-2xl font-bold text-gray-900">
-                          {fixture.homeScore} - {fixture.awayScore}
-                        </div>
-                      ) : (
-                        <div className="text-lg sm:text-xl font-bold text-gray-400">VS</div>
-                      )}
-                      <div className="text-center">
-                        <div className="text-xs sm:text-sm text-gray-600">
-                          {new Date(fixture.dateTime).toLocaleDateString('en-GB', { 
-                            weekday: 'short', 
-                            month: 'short', 
-                            day: 'numeric' 
-                          })}
-                        </div>
-                        <div className="text-xs sm:text-sm font-semibold text-gray-800">
-                          {fixture.isLive ? 'LIVE' : new Date(fixture.dateTime).toLocaleTimeString([], {
+                    {/* VS and Match Time */}
+                    <div className="flex flex-col items-center space-y-2 px-4 sm:px-8">
+                      <div className="text-2xl sm:text-3xl font-bold text-gray-400">VS</div>
+                      <div className="text-center bg-gray-50 rounded-lg px-3 py-2 border">
+                        <div className="text-sm sm:text-base font-bold text-gray-900">
+                          {new Date(fixture.dateTime).toLocaleTimeString([], {
                             hour: '2-digit', 
                             minute: '2-digit'
                           })}
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          {timeUntil}
+                        <div className="text-xs sm:text-sm text-gray-600">
+                          {matchDayLabel}
                         </div>
                       </div>
                     </div>
 
                     {/* Away Team */}
-                    <div className="flex flex-col items-center space-y-2 flex-1">
-                      <div className="w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center relative">
+                    <div className="flex flex-col items-center space-y-3 flex-1">
+                      <div className="w-14 h-14 sm:w-18 sm:h-18 flex items-center justify-center relative">
                         {awayLogo.logoPath ? (
                           <>
                             <img
                               src={awayLogo.logoPath}
                               alt={fixture.awayTeam.name}
-                              className="w-full h-full object-contain"
+                              className="w-full h-full object-contain drop-shadow-sm"
                               onError={handleImageError}
                             />
                             <div 
-                              className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 rounded-full absolute inset-0 hidden items-center justify-center text-gray-500 font-bold text-sm sm:text-base"
+                              className="w-12 h-12 sm:w-14 sm:h-14 bg-gray-200 rounded-full absolute inset-0 hidden items-center justify-center text-gray-600 font-bold text-sm sm:text-lg border-2 border-gray-300"
                             >
                               {awayLogo.fallbackInitial}
                             </div>
                           </>
                         ) : (
-                          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 font-bold text-sm sm:text-base">
+                          <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 font-bold text-sm sm:text-lg border-2 border-gray-300">
                             {awayLogo.fallbackInitial}
                           </div>
                         )}
                       </div>
                       <div className="text-center">
-                        <div className="font-bold text-sm sm:text-lg">
+                        <div className="font-bold text-base sm:text-xl text-gray-900">
                           {fixture.awayTeam.shortName || fixture.awayTeam.name}
                         </div>
+                        <div className="text-xs sm:text-sm text-gray-500 font-medium mt-1">
+                          Away
+                        </div>
                         {fixture.awayTeam.form && (
-                          <div className="flex space-x-1 mt-1">
+                          <div className="flex space-x-1 mt-2 justify-center">
                             {fixture.awayTeam.form.slice(-5).map((result, i) => (
                               <span
                                 key={i}
-                                className={`w-4 h-4 sm:w-5 sm:h-5 text-xs font-bold rounded-full flex items-center justify-center ${
+                                className={`w-5 h-5 sm:w-6 sm:h-6 text-xs font-bold rounded-full flex items-center justify-center ${
                                   result === 'W' ? 'bg-green-500 text-white' :
                                   result === 'D' ? 'bg-yellow-500 text-white' :
                                   'bg-red-500 text-white'
@@ -361,24 +351,17 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
                   {/* Match tags */}
                   {fixture.tags && fixture.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-100">
+                    <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t border-gray-100">
                       {fixture.tags.slice(0, 3).map((tag, i) => (
                         <span
                           key={i}
-                          className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full"
+                          className="px-3 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full"
                         >
                           {tag.replace('-', ' ').toUpperCase()}
                         </span>
                       ))}
                     </div>
                   )}
-
-                  {/* Venue info */}
-                  <div className="text-center mt-3 sm:mt-4 pt-2 border-t border-gray-100">
-                    <span className="text-xs text-gray-500">
-                      📍 {fixture.venue}
-                    </span>
-                  </div>
                 </div>
               </div>
             </div>
