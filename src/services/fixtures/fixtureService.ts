@@ -85,20 +85,19 @@ export class FixtureService {
   }
 
   // Transform SportsDB event to your fixture format
- private async transformEvent(event: SportsDbEvent): Promise<FeaturedFixtureWithImportance> {
+private async transformEvent(event: SportsDbEvent): Promise<FeaturedFixtureWithImportance> {
+  const validResults = ["W", "D", "L"];
+  const homeForm = (await this.sportsDbApi.getTeamForm(event.idHomeTeam).catch(() => []))
+    .filter(result => validResults.includes(result)) as ("W" | "D" | "L")[];
+  const awayForm = (await this.sportsDbApi.getTeamForm(event.idAwayTeam).catch(() => []))
+    .filter(result => validResults.includes(result)) as ("W" | "D" | "L")[];
+
   const importance = this.calculateImportance(
     event.strHomeTeam ?? 'Unknown Team',
     event.strAwayTeam ?? 'Unknown Team',
     parseInt(event.intRound ?? '0')
   );
 
-  // Get team forms in parallel
-  const [homeForm, awayForm] = await Promise.all([
-    this.sportsDbApi.getTeamForm(event.idHomeTeam).catch(() => []),
-    this.sportsDbApi.getTeamForm(event.idAwayTeam).catch(() => [])
-  ]);
-
-  // Get league details for competition logo
   const leagueDetails = await this.sportsDbApi.getLeagueDetails().catch(() => null);
 
   return {
@@ -134,6 +133,7 @@ export class FixtureService {
     status: 'upcoming'
   };
 }
+
 
   // Get featured fixtures (top 5-10 most important upcoming matches)
   async getFeaturedFixtures(limit: number = 8): Promise<FeaturedFixtureWithImportance[]> {
