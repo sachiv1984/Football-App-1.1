@@ -20,7 +20,6 @@ export const TEAM_ABBREVIATIONS: { [key: string]: string } = {
   'Liverpool': 'Liverpool',
   'Arsenal': 'Arsenal',
   'Chelsea': 'Chelsea',
-  // Add more as needed
 };
 
 export const getDisplayTeamName = (
@@ -45,4 +44,23 @@ export const getDisplayTeamName = (
   
   // 4. Fallback: smart truncation
   return `${fullName.substring(0, maxLength - 3)}...`;
+};
+
+// Team classification utilities
+export const TOP_SIX_TEAMS = [
+  'Manchester United', 'Manchester City', 'Arsenal', 
+  'Chelsea', 'Liverpool', 'Tottenham Hotspur'
+];
+
+export const BIG_SIX_TEAMS = [
+  'Newcastle United', 'Brighton & Hove Albion', 
+  'West Ham United', 'Aston Villa'
+];
+
+export const isTopSixTeam = (teamName: string): boolean => {
+  return TOP_SIX_TEAMS.includes(teamName);
+};
+
+export const isBigSixTeam = (teamName: string): boolean => {
+  return BIG_SIX_TEAMS.includes(teamName);
 };
