@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useFixtures } from '../hooks/useFixtures';
-import type { FeaturedFixtureWithImportance } from '../types';
 
 export const FixturesDebugTable: React.FC = () => {
   const { featuredFixtures, allFixtures, loading, error, refetch } = useFixtures();
