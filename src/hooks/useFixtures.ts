@@ -1,5 +1,5 @@
 // src/hooks/useFixtures.ts
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { FixtureService } from '../services/fixtures/fixtureService';
 import type { FeaturedFixtureWithImportance } from '../types';
 
@@ -17,7 +17,8 @@ export const useFixtures = (): UseFixturesReturn => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fixtureService = new FixtureService();
+  // Memoize the fixtureService instance
+  const fixtureService = useMemo(() => new FixtureService(), []);
 
   const fetchData = useCallback(async () => {
     try {
@@ -36,7 +37,7 @@ export const useFixtures = (): UseFixturesReturn => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fixtureService]); // Include memoized fixtureService in the dependency array
 
   useEffect(() => {
     fetchData();
