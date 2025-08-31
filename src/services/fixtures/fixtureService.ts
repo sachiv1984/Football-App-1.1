@@ -1,7 +1,7 @@
 // src/services/fixtures/fixtureService.ts
 import { SportsDbApi, type SportsDbEvent } from '../api/sportsDbApi';
 import type { FeaturedFixtureWithImportance } from '../../types';
-
+import { PREMIER_LEAGUE_ID } from '../api/sportsDbApi';
 
 export class FixtureService {
   private sportsDbApi: SportsDbApi;
