@@ -44,13 +44,6 @@ interface CachedData<T> {
   timestamp: number;
 }
 
-interface Match {
-  idHomeTeam: string;
-  idAwayTeam: string;
-  intHomeScore: string;
-  intAwayScore: string;
-}
-
 export class SportsDbApi {
   private static instance: SportsDbApi;
   private cache: Map<string, CachedData<any>> = new Map();
@@ -84,7 +77,6 @@ export class SportsDbApi {
       throw error;
     }
   }
-
   // Get upcoming Premier League fixtures
   async getUpcomingFixtures(): Promise<SportsDbEvent[]> {
     const url = `${SPORTS_DB_BASE_URL}/eventsnextleague.php?id=${PREMIER_LEAGUE_ID}`;
