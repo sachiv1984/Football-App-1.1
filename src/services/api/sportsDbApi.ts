@@ -153,7 +153,7 @@ export class SportsDbApi {
     return response.leagues?.[0] || null;
   }
 
-// Get team's last 5 matches for form using league table
+// Get team's last 5 matches for form using the league table
 async getTeamForm(teamId: string): Promise<string[]> {
   try {
     const url = `${SPORTS_DB_BASE_URL}/lookuptable.php?l=${PREMIER_LEAGUE_ID}&s=${currentSeason}`;
@@ -164,13 +164,14 @@ async getTeamForm(teamId: string): Promise<string[]> {
 
     if (!teamRow || !teamRow.strForm) return [];
 
-    // strForm is usually a comma-separated string of results
-    return teamRow.strForm.split(',').slice(0, 5); // get last 5 matches
+    // strForm is a string like "WWW" or "WWD", split it into individual letters
+    return teamRow.strForm.split('').slice(0, 5); // last 5 matches
   } catch (error) {
     console.error(`Error fetching league table for team ${teamId}:`, error);
     return [];
   }
 }
+
   // Clear cache (useful for testing or manual refresh)
   clearCache(): void {
     this.cache.clear();
