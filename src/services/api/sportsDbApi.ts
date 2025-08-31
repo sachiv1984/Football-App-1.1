@@ -14,6 +14,8 @@ export interface SportsDbEvent {
   strVenue: string;
   strDate: string;
   strTime: string;
+  dateEventLocal?: string;
+  strTimeLocal?: string;
   intRound: string;
   strLeague: string;
   strHomeTeamBadge?: string;
