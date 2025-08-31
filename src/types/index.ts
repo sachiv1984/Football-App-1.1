@@ -164,3 +164,129 @@ export interface FeaturedGamesCarouselConfig {
   selection?: GameSelectionConfig;
   data?: DataFetchConfig;
 }
+
+// ===========================================
+// API-SPECIFIC TYPES (TheSportsDB Integration)
+// ===========================================
+
+// Raw API response types from TheSportsDB
+export interface SportsDbEvent {
+  idEvent: string;
+  strEvent: string;
+  strHomeTeam: string;
+  strAwayTeam: string;
+  strHomeTeamShort?: string;
+  strAwayTeamShort?: string;
+  idHomeTeam: string;
+  idAwayTeam: string;
+  strVenue: string;
+  strDate: string;
+  strTime: string;
+  intRound: string;
+  strLeague: string;
+  strHomeTeamBadge?: string;
+  strAwayTeamBadge?: string;
+  strStatus?: string;
+}
+
+export interface SportsDbTeam {
+  idTeam: string;
+  strTeam: string;
+  strTeamShort?: string;
+  strTeamBadge?: string;
+  strStadium?: string;
+  strLeague: string;
+}
+
+export interface SportsDbLeague {
+  idLeague: string;
+  strLeague: string;
+  strSport: string;
+  strLeagueBadge?: string;
+  strLogo?: string;
+  strCountry: string;
+}
+
+// API Response wrappers
+export interface SportsDbEventsResponse {
+  events: SportsDbEvent[];
+}
+
+export interface SportsDbTeamsResponse {
+  teams: SportsDbTeam[];
+}
+
+export interface SportsDbLeaguesResponse {
+  leagues: SportsDbLeague[];
+}
+
+export interface SportsDbFormResponse {
+  results: any[]; // TheSportsDB form response structure varies
+}
+
+// Transformed/normalized types for your app (bridges API to your existing types)
+export interface ApiFixture {
+  id: string;
+  dateTime: string;
+  homeTeam: ApiTeam;
+  awayTeam: ApiTeam;
+  venue: string;
+  competition: ApiCompetition;
+  matchWeek: number;
+  status: 'upcoming' | 'live' | 'finished';
+}
+
+export interface ApiTeam {
+  id: string;
+  name: string;
+  shortName?: string;
+  badge?: string;
+  form?: string[];
+}
+
+export interface ApiCompetition {
+  id: string;
+  name: string;
+  logo?: string;
+}
+
+// ===========================================
+// UTILITY & ERROR TYPES
+// ===========================================
+
+export type TeamNameMapping = { [fullName: string]: string };
+
+export interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+}
+
+export type ApiEndpoint = 
+  | 'upcoming-fixtures'
+  | 'team-details' 
+  | 'league-details'
+  | 'team-form';
+
+export interface ApiErrorDetails {
+  message: string;
+  statusCode?: number;
+  endpoint?: string;
+  timestamp: number;
+}
+
+export type LoadingState = 'idle' | 'loading' | 'success' | 'error';
+
+// Enhanced hook return types
+export interface UseFixturesReturn {
+  featuredFixtures: FeaturedFixtureWithImportance[];
+  allFixtures: FeaturedFixtureWithImportance[];
+  loading: boolean;
+  error: string | null;
+  refetch: () => Promise<void>;
+}
+
+export interface UseTeamDataReturn {
+  team: ApiTeam | null;
+  loading: boolean;
+  error: string | null;
+}
