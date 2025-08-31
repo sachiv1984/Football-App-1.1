@@ -4,6 +4,7 @@ import { getTeamLogo } from '../../../utils/logoUtils';
 import { useFixtures } from '../../../hooks/useFixtures'; // Add this import
 
 interface Props {
+  fixtures?: FeaturedFixtureWithImportance[]; // Add this line
   onGameSelect?: (fixture: FeaturedFixtureWithImportance) => void;
   autoRotate?: boolean;
   rotateInterval?: number;
@@ -224,7 +225,7 @@ const { featuredFixtures, loading, error } = useFixtures();
   }
 
   // Empty state
-  if (featuredFixtures.length === 0) {
+  if (fixtures.length === 0) {
     return (
       <div className={`${className}`}>
         <div className="flex items-center justify-center h-64 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200">
