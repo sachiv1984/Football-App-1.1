@@ -100,6 +100,12 @@ private async transformEvent(event: SportsDbEvent): Promise<FeaturedFixtureWithI
 
   const leagueDetails = await this.sportsDbApi.getLeagueDetails().catch(() => null);
 
+  // Calculate importanceScore (example: use importance as the score)
+  const importanceScore = importance;
+
+  // Determine if the match is a "big match" (example: importance >= 8)
+  const isBigMatch = importance >= 8;
+
   return {
     id: event.idEvent ?? 'unknown-id',
     dateTime: `${event.strDate ?? '1970-01-01'}T${event.strTime ?? '00:00:00'}`,
@@ -108,18 +114,18 @@ private async transformEvent(event: SportsDbEvent): Promise<FeaturedFixtureWithI
       name: event.strHomeTeam ?? 'Unknown Team',
       shortName: event.strHomeTeamShort ?? 'Unknown',
       logo: event.strHomeTeamBadge ?? '',
-      colors: { primary: undefined, secondary: undefined }, // Default colors
+      colors: { primary: undefined, secondary: undefined },
       form: homeForm,
-      position: undefined // Default position
+      position: undefined
     },
     awayTeam: {
       id: event.idAwayTeam ?? 'unknown-id',
       name: event.strAwayTeam ?? 'Unknown Team',
       shortName: event.strAwayTeamShort ?? 'Unknown',
       logo: event.strAwayTeamBadge ?? '',
-      colors: { primary: undefined, secondary: undefined }, // Default colors
+      colors: { primary: undefined, secondary: undefined },
       form: awayForm,
-      position: undefined // Default position
+      position: undefined
     },
     venue: event.strVenue ?? 'Unknown Venue',
     competition: {
@@ -129,11 +135,13 @@ private async transformEvent(event: SportsDbEvent): Promise<FeaturedFixtureWithI
     },
     matchWeek: parseInt(event.intRound ?? '0'),
     importance,
+    importanceScore, // Added importanceScore
     tags: this.generateMatchTags(
       event.strHomeTeam ?? 'Unknown Team',
       event.strAwayTeam ?? 'Unknown Team',
       parseInt(event.intRound ?? '0')
     ),
+    isBigMatch, // Added isBigMatch
     status: 'upcoming'
   };
 }
