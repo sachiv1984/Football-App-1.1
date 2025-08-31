@@ -153,20 +153,20 @@ export const getCompetitionLogo = (
 ): string | null => {
   // Map of competition logos you might have locally
   const competitionLogos: Record<string, string> = {
-    'English Premier League': 'premier-league',
-    'Premier League': 'premier-league',
+    'English Premier League': 'english-premier-league',
+    'Premier League': 'english-premier-league',
     'FA Cup': 'fa-cup',
     'EFL Cup': 'efl-cup',
     'Champions League': 'champions-league',
     'Europa League': 'europa-league',
   };
 
-  const slug = competitionLogos[competitionName];
+  const slug = competition[competitionName];
   
   if (slug) {
     const isProduction = process.env.NODE_ENV === 'production';
     const basePath = isProduction ? '/Football-App-1.1' : '';
-    return `${basePath}/Images/Competition%20Logos/${slug}.png`;
+    return `${basePath}/Images/competition/${slug}.png`;
   }
 
   // Fallback to API logo
