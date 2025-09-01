@@ -1,21 +1,14 @@
-// src/services/api/footballDataApi.ts
-// 🔥 TEMPORARY CORS FIX - Use proxy for production
-const isLocalhost = typeof window !== 'undefined' && 
-  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-
-const FOOTBALL_DATA_BASE_URL = isLocalhost 
-  ? 'https://api.football-data.org/v4'  // Direct API for localhost
-  : 'https://api.allorigins.win/raw?url=https://api.football-data.org/v4'; // More reliable proxy for production
-
+// src/services/api/footballDataApi.ts - Clean version for Vercel
+const FOOTBALL_DATA_BASE_URL = 'https://api.football-data.org/v4';
 export const PREMIER_LEAGUE_ID = 'PL';
 
 const API_TOKEN = process.env.REACT_APP_FOOTBALL_DATA_TOKEN;
 
-if (!API_TOKEN || API_TOKEN === 'YOUR_API_TOKEN_HERE') {
-  console.warn('⚠️ Football Data API token not configured. Please set REACT_APP_FOOTBALL_DATA_TOKEN in your .env file');
+if (!API_TOKEN) {
+  console.error('❌ REACT_APP_FOOTBALL_DATA_TOKEN is not set. Please check your environment variables.');
+  console.error('For local development: Add it to your .env file');
+  console.error('For Vercel: Add it in your project settings');
 }
-
-// ... rest of your interfaces stay the same ...
 
 export interface FootballDataMatch {
   id: number;
@@ -162,8 +155,9 @@ export class FootballDataApi {
   private readonly minRequestInterval = 6000; // 6 seconds between requests (10/min limit)
 
   private constructor() {
-    console.log(`🌐 API Mode: ${isLocalhost ? 'Direct (localhost)' : 'Proxy (production)'}`);
+    console.log(`🌐 Football Data API initialized`);
     console.log(`🔗 Base URL: ${FOOTBALL_DATA_BASE_URL}`);
+    console.log(`🔑 API Token: ${API_TOKEN ? '✅ Configured' : '❌ Missing'}`);
   }
 
   public static getInstance(): FootballDataApi {
