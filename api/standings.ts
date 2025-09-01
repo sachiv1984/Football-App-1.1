@@ -1,13 +1,18 @@
 // /api/standings.ts
-import { FootballDataApi } from '../src/services/api/footballDataApi';
+import type { NextApiRequest, NextApiResponse } from 'next';
+import { FootballDataApi, FootballDataStanding } from '../src/services/api/footballDataApi';
 
-let cache: any = null;
+let cache: FootballDataStanding[] | null = null;
 let cacheTime = 0;
-const CACHE_TTL = 10 * 60 * 1000; // 10 min
+const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
-export default async function handler(req: any, res: any) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse<FootballDataStanding[] | { error: string }>
+) {
   try {
     const now = Date.now();
+
     if (cache && now - cacheTime < CACHE_TTL) {
       return res.status(200).json(cache);
     }
@@ -20,7 +25,7 @@ export default async function handler(req: any, res: any) {
 
     res.status(200).json(standings);
   } catch (err) {
-    console.error('Error in /api/standings:', err);
+    console.error('❌ Error in /api/standings:', err);
     res.status(500).json({ error: 'Failed to fetch standings' });
   }
 }
