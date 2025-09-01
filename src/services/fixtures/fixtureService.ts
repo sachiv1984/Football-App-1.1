@@ -1,6 +1,6 @@
 // src/services/fixtures/fixtureService.ts
-import { FootballDataApi, FootballDataMatch, FootballDataStanding } from '../api/footballDataApi';
 import type { FeaturedFixtureWithImportance } from '../../types';
+import type { FootballDataMatch, FootballDataStanding } from '../api/footballDataApi';
 
 interface TeamWithForm {
   id: string;
@@ -12,37 +12,43 @@ interface TeamWithForm {
 }
 
 export class FixtureService {
-  private footballDataApi: FootballDataApi;
   private standingsCache: FootballDataStanding[] = [];
   private matchesCache: FootballDataMatch[] = [];
-  private standingsCacheTime: number = 0;
-  private matchesCacheTime: number = 0;
+  private standingsCacheTime = 0;
+  private matchesCacheTime = 0;
   private readonly cacheTimeout = 10 * 60 * 1000; // 10 min
 
-  constructor() {
-    this.footballDataApi = FootballDataApi.getInstance();
-  }
+  constructor() {}
 
-  private async getStandings(): Promise<FootballDataStanding[]> {
-    const now = Date.now();
-    if (this.standingsCache.length && now - this.standingsCacheTime < this.cacheTimeout) {
-      return this.standingsCache;
-    }
-    this.standingsCache = await this.footballDataApi.getStandings();
-    this.standingsCacheTime = now;
-    return this.standingsCache;
-  }
-
+  // Fetch matches from your API
   private async getMatches(): Promise<FootballDataMatch[]> {
     const now = Date.now();
     if (this.matchesCache.length && now - this.matchesCacheTime < this.cacheTimeout) {
       return this.matchesCache;
     }
-    this.matchesCache = await this.footballDataApi.getMatches();
+
+    const res = await fetch('/api/matches');
+    if (!res.ok) throw new Error('Failed to fetch matches');
+    this.matchesCache = await res.json();
     this.matchesCacheTime = now;
     return this.matchesCache;
   }
 
+  // Fetch standings from your API
+  private async getStandings(): Promise<FootballDataStanding[]> {
+    const now = Date.now();
+    if (this.standingsCache.length && now - this.standingsCacheTime < this.cacheTimeout) {
+      return this.standingsCache;
+    }
+
+    const res = await fetch('/api/standings');
+    if (!res.ok) throw new Error('Failed to fetch standings');
+    this.standingsCache = await res.json();
+    this.standingsCacheTime = now;
+    return this.standingsCache;
+  }
+
+  // Map team colors
   private getTeamColors(teamName: string): { primary?: string; secondary?: string } {
     const colorMap: Record<string, { primary?: string; secondary?: string }> = {
       'Arsenal': { primary: '#EF0107', secondary: '#023474' },
@@ -55,13 +61,14 @@ export class FixtureService {
     return colorMap[teamName] || {};
   }
 
+  // Transform match data for components
   private async getTeamDetails(team: FootballDataMatch['homeTeam'] | FootballDataMatch['awayTeam']): Promise<TeamWithForm> {
     try {
       const standings = await this.getStandings();
       const teamStanding = standings.find(s => s.team.id === team.id);
 
       let form: ('W' | 'D' | 'L')[] = [];
-      if (teamStanding?.form) form = FootballDataApi.parseForm(teamStanding.form);
+      if (teamStanding?.form) form = teamStanding.form; // Adjust parsing if needed
 
       return {
         id: team.id.toString(),
@@ -160,7 +167,7 @@ export class FixtureService {
 
     return {
       id: match.id.toString(),
-      dateTime: FootballDataApi.formatDateTime(match.utcDate),
+      dateTime: match.utcDate,
       homeTeam,
       awayTeam,
       venue: match.venue || 'TBD',
@@ -196,6 +203,5 @@ export class FixtureService {
     this.matchesCache = [];
     this.standingsCacheTime = 0;
     this.matchesCacheTime = 0;
-    this.footballDataApi.clearCache();
   }
 }
