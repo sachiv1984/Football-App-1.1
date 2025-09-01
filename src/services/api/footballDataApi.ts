@@ -1,10 +1,21 @@
 // src/services/api/footballDataApi.ts
-const FOOTBALL_DATA_BASE_URL = 'https://api.football-data.org/v4';
-export const PREMIER_LEAGUE_ID = 'PL'; // Premier League code in Football-Data.org
-// const currentSeason = '2024'; // Football-Data uses year format
+// 🔥 TEMPORARY CORS FIX - Use proxy for production
+const isLocalhost = typeof window !== 'undefined' && 
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
-// Add your API token here or use environment variable
-const API_TOKEN = process.env.REACT_APP_FOOTBALL_DATA_TOKEN || 'YOUR_API_TOKEN_HERE';
+const FOOTBALL_DATA_BASE_URL = isLocalhost 
+  ? 'https://api.football-data.org/v4'  // Direct API for localhost
+  : 'https://corsproxy.io/?https://api.football-data.org/v4'; // Proxy for production
+
+export const PREMIER_LEAGUE_ID = 'PL';
+
+const API_TOKEN = process.env.REACT_APP_FOOTBALL_DATA_TOKEN;
+
+if (!API_TOKEN || API_TOKEN === 'YOUR_API_TOKEN_HERE') {
+  console.warn('⚠️ Football Data API token not configured. Please set REACT_APP_FOOTBALL_DATA_TOKEN in your .env file');
+}
+
+// ... rest of your interfaces stay the same ...
 
 export interface FootballDataMatch {
   id: number;
@@ -16,8 +27,8 @@ export interface FootballDataMatch {
     id: number;
     name: string;
     shortName: string;
-    tla: string; // Three Letter Abbreviation
-    crest: string; // Team logo URL
+    tla: string;
+    crest: string;
   };
   awayTeam: {
     id: number;
@@ -102,7 +113,7 @@ export interface FootballDataStanding {
     crest: string;
   };
   playedGames: number;
-  form: string; // Last 5 games: "W,L,W,D,W"
+  form: string;
   won: number;
   draw: number;
   lost: number;
@@ -143,11 +154,17 @@ export class FootballDataApi {
   private cache: Map<string, CachedData<unknown>> = new Map();
   private readonly cacheTimeout = 5 * 60 * 1000; // 5 minutes
   private readonly headers = {
-    'X-Auth-Token': API_TOKEN,
+    'X-Auth-Token': API_TOKEN || '',
     'Content-Type': 'application/json'
   };
+  private requestQueue: Promise<any> = Promise.resolve();
+  private lastRequestTime: number = 0;
+  private readonly minRequestInterval = 6000; // 6 seconds between requests (10/min limit)
 
-  private constructor() {}
+  private constructor() {
+    console.log(`🌐 API Mode: ${isLocalhost ? 'Direct (localhost)' : 'Proxy (production)'}`);
+    console.log(`🔗 Base URL: ${FOOTBALL_DATA_BASE_URL}`);
+  }
 
   public static getInstance(): FootballDataApi {
     if (!FootballDataApi.instance) {
@@ -156,28 +173,103 @@ export class FootballDataApi {
     return FootballDataApi.instance;
   }
 
+  // Add rate limiting
+  private async throttleRequest(): Promise<void> {
+    const now = Date.now();
+    const timeSinceLastRequest = now - this.lastRequestTime;
+    
+    if (timeSinceLastRequest < this.minRequestInterval) {
+      const delay = this.minRequestInterval - timeSinceLastRequest;
+      console.log(`⏳ Throttling request for ${delay}ms to respect rate limits`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+    
+    this.lastRequestTime = Date.now();
+  }
+
+  // Enhanced error handling and logging
   private async fetchWithCache<T>(url: string, cacheKey: string): Promise<T> {
     const cached = this.cache.get(cacheKey) as CachedData<T> | undefined;
     if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
+      console.log(`📦 Using cached data for: ${cacheKey}`);
       return cached.data;
     }
 
-    try {
-      const response = await fetch(url, { headers: this.headers });
-      
-      if (!response.ok) {
-        if (response.status === 429) {
-          throw new Error('Rate limit exceeded. Please wait before making more requests.');
+    // Queue requests to avoid hitting rate limits
+    return this.requestQueue = this.requestQueue.then(async () => {
+      try {
+        await this.throttleRequest();
+        
+        console.log(`🌐 Making API request to: ${url}`);
+        
+        const response = await fetch(url, { headers: this.headers });
+        
+        // Enhanced error handling
+        if (!response.ok) {
+          console.error(`❌ API Error: ${response.status} - ${response.statusText}`);
+          
+          let errorMessage: string;
+          try {
+            const errorBody = await response.text();
+            console.error('Error body:', errorBody);
+            errorMessage = errorBody || response.statusText;
+          } catch {
+            errorMessage = response.statusText;
+          }
+
+          switch (response.status) {
+            case 403:
+              throw new Error('Invalid API token or insufficient permissions. Please check your REACT_APP_FOOTBALL_DATA_TOKEN.');
+            case 429:
+              throw new Error('Rate limit exceeded. Please wait before making more requests.');
+            case 404:
+              throw new Error(`Resource not found: ${url}`);
+            case 500:
+              throw new Error('Football Data API server error. Please try again later.');
+            default:
+              throw new Error(`HTTP error! status: ${response.status} - ${errorMessage}`);
+          }
         }
-        throw new Error(`HTTP error! status: ${response.status}`);
+        
+        const data: T = await response.json();
+        
+        // Log successful request
+        console.log(`✅ Successfully fetched data for: ${cacheKey}`);
+        
+        this.cache.set(cacheKey, { data, timestamp: Date.now() });
+        return data;
+      } catch (error) {
+        console.error(`💥 Error fetching from ${url}:`, error);
+        
+        // If we have cached data, return it as fallback
+        if (cached) {
+          console.log(`🔄 Using stale cached data as fallback for: ${cacheKey}`);
+          return cached.data;
+        }
+        
+        throw error;
       }
+    });
+  }
+
+  // Test API connection
+  async testConnection(): Promise<boolean> {
+    try {
+      console.log('🔍 Testing API connection...');
+      const response = await fetch(`${FOOTBALL_DATA_BASE_URL}/competitions`, {
+        headers: this.headers
+      });
       
-      const data: T = await response.json();
-      this.cache.set(cacheKey, { data, timestamp: Date.now() });
-      return data;
+      if (response.ok) {
+        console.log('✅ API connection successful');
+        return true;
+      } else {
+        console.error('❌ API connection failed:', response.status, response.statusText);
+        return false;
+      }
     } catch (error) {
-      console.error(`Error fetching from ${url}:`, error);
-      throw error;
+      console.error('❌ Network error:', error);
+      return false;
     }
   }
 
@@ -194,49 +286,77 @@ export class FootballDataApi {
       url += `?${params.toString()}`;
     }
 
-    const response = await this.fetchWithCache<{ matches: FootballDataMatch[] }>(
-      url, 
-      `matches-${PREMIER_LEAGUE_ID}-${status || 'all'}`
-    );
-    return response.matches || [];
+    try {
+      const response = await this.fetchWithCache<{ matches: FootballDataMatch[] }>(
+        url, 
+        `matches-${PREMIER_LEAGUE_ID}-${status || 'all'}`
+      );
+      return response.matches || [];
+    } catch (error) {
+      console.error('Error fetching current season matches:', error);
+      return [];
+    }
   }
 
   // Get matches for a specific matchday
   async getMatchesByMatchday(matchday: number): Promise<FootballDataMatch[]> {
     const url = `${FOOTBALL_DATA_BASE_URL}/competitions/${PREMIER_LEAGUE_ID}/matches?matchday=${matchday}`;
-    const response = await this.fetchWithCache<{ matches: FootballDataMatch[] }>(
-      url, 
-      `matches-${PREMIER_LEAGUE_ID}-md${matchday}`
-    );
-    return response.matches || [];
+    
+    try {
+      const response = await this.fetchWithCache<{ matches: FootballDataMatch[] }>(
+        url, 
+        `matches-${PREMIER_LEAGUE_ID}-md${matchday}`
+      );
+      return response.matches || [];
+    } catch (error) {
+      console.error(`Error fetching matches for matchday ${matchday}:`, error);
+      return [];
+    }
   }
 
   // Get upcoming matches (next few matchdays)
   async getUpcomingMatches(limit: number = 20): Promise<FootballDataMatch[]> {
-    const matches = await this.getCurrentSeasonMatches('SCHEDULED');
-    return matches.slice(0, limit);
+    try {
+      const matches = await this.getCurrentSeasonMatches('SCHEDULED');
+      return matches.slice(0, limit);
+    } catch (error) {
+      console.error('Error fetching upcoming matches:', error);
+      return [];
+    }
   }
 
   // Get team details by ID
   async getTeamById(teamId: number): Promise<FootballDataTeam | undefined> {
     const url = `${FOOTBALL_DATA_BASE_URL}/teams/${teamId}`;
-    const response = await this.fetchWithCache<FootballDataTeam>(url, `team-${teamId}`);
-    return response;
+    
+    try {
+      const response = await this.fetchWithCache<FootballDataTeam>(url, `team-${teamId}`);
+      return response;
+    } catch (error) {
+      console.error(`Error fetching team ${teamId}:`, error);
+      return undefined;
+    }
   }
 
   // Get Premier League standings (includes form data!)
   async getStandings(): Promise<FootballDataStanding[]> {
     const url = `${FOOTBALL_DATA_BASE_URL}/competitions/${PREMIER_LEAGUE_ID}/standings`;
-    const response = await this.fetchWithCache<{ 
-      standings: Array<{ 
-        stage: string;
-        type: string;
-        table: FootballDataStanding[] 
-      }> 
-    }>(url, `standings-${PREMIER_LEAGUE_ID}`);
     
-    // Return the main league table
-    return response.standings?.[0]?.table || [];
+    try {
+      const response = await this.fetchWithCache<{ 
+        standings: Array<{ 
+          stage: string;
+          type: string;
+          table: FootballDataStanding[] 
+        }> 
+      }>(url, `standings-${PREMIER_LEAGUE_ID}`);
+      
+      // Return the main league table
+      return response.standings?.[0]?.table || [];
+    } catch (error) {
+      console.error('Error fetching standings:', error);
+      return [];
+    }
   }
 
   // Get team form from standings
@@ -267,8 +387,14 @@ export class FootballDataApi {
   // Get competition details
   async getCompetitionDetails(): Promise<FootballDataCompetition | undefined> {
     const url = `${FOOTBALL_DATA_BASE_URL}/competitions/${PREMIER_LEAGUE_ID}`;
-    const response = await this.fetchWithCache<FootballDataCompetition>(url, `competition-${PREMIER_LEAGUE_ID}`);
-    return response;
+    
+    try {
+      const response = await this.fetchWithCache<FootballDataCompetition>(url, `competition-${PREMIER_LEAGUE_ID}`);
+      return response;
+    } catch (error) {
+      console.error('Error fetching competition details:', error);
+      return undefined;
+    }
   }
 
   // Get current matchday
@@ -284,7 +410,16 @@ export class FootballDataApi {
 
   // Clear cache
   clearCache(): void {
+    console.log('🗑️ Clearing API cache');
     this.cache.clear();
+  }
+
+  // Get cache stats
+  getCacheStats(): { size: number; keys: string[] } {
+    return {
+      size: this.cache.size,
+      keys: Array.from(this.cache.keys())
+    };
   }
 
   // Helper method to convert form string to array
@@ -300,7 +435,7 @@ export class FootballDataApi {
     }) as ('W'|'D'|'L')[];
   }
 
-  // Helper method to format date properly (no UTC issues!)
+  // Helper method to format date properly
   static formatDateTime(utcDate: string): string {
     return utcDate; // Football-Data already provides proper ISO timestamps
   }
