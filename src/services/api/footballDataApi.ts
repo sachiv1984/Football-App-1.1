@@ -5,7 +5,7 @@ const isLocalhost = typeof window !== 'undefined' &&
 
 const FOOTBALL_DATA_BASE_URL = isLocalhost 
   ? 'https://api.football-data.org/v4'  // Direct API for localhost
-  : 'https://corsproxy.io/?https://api.football-data.org/v4'; // Proxy for production
+  : 'https://api.allorigins.win/raw?url=https://api.football-data.org/v4'; // More reliable proxy for production
 
 export const PREMIER_LEAGUE_ID = 'PL';
 
