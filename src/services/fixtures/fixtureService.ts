@@ -7,7 +7,7 @@ interface TeamWithForm {
   name: string;
   shortName: string; // Changed from optional to required
   logo?: string;
-  colors?: Record<string, string>;
+  colors: { primary?: string; secondary?: string }; // Fixed to match Team interface
   form?: ('W'|'D'|'L')[];
 }
 
@@ -53,7 +53,7 @@ export class FixtureService {
         name: teamName,
         shortName: teamData?.strTeamShort || teamName, // Provide fallback to satisfy type
         logo: teamData?.strTeamBadge,
-        colors: {},
+        colors: {}, // Fixed to match Team interface
         form: form
       };
     } catch (error) {
@@ -63,7 +63,7 @@ export class FixtureService {
         name: teamName,
         shortName: teamName, // Use team name as fallback
         logo: undefined,
-        colors: {},
+        colors: {}, // Fixed to match Team interface
         form: []
       };
     }
