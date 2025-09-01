@@ -134,23 +134,43 @@ export class SportsDbApi {
   }
 
   // FIXED: Get team's last 5 matches for form using league table
-  async getTeamForm(teamId: string): Promise<('W'|'D'|'L')[]> {
+  async getTeamForm(teamId: string, teamName: string): Promise<('W'|'D'|'L')[]> {
     const url = `${SPORTS_DB_BASE_URL}/lookuptable.php?l=${PREMIER_LEAGUE_ID}&s=${currentSeason}`;
     try {
       const response = await this.fetchWithCache<{ table: SportsDbTableEntry[] }>(url, `table-${currentSeason}`);
-      const teamRow = response.table?.find(row => row.idTeam === teamId);
+      
+      // First try to find by team ID
+      let teamRow = response.table?.find(row => row.idTeam === teamId);
+      
+      // If not found by ID, try to find by team name (case-insensitive)
+      if (!teamRow) {
+        teamRow = response.table?.find(row => 
+          row.strTeam?.toLowerCase() === teamName.toLowerCase()
+        );
+      }
+      
+      // If still not found, try partial matching for cases like "Nottingham Forest" vs "Nott'm Forest"
+      if (!teamRow) {
+        const searchTerms = teamName.toLowerCase().split(' ');
+        teamRow = response.table?.find(row => {
+          const tableTeamName = row.strTeam?.toLowerCase() || '';
+          return searchTerms.some(term => tableTeamName.includes(term)) ||
+                 searchTerms.every(term => term.length > 3 && tableTeamName.includes(term.substring(0, 4))); // Match first 4 chars of longer terms
+        });
+      }
       
       if (!teamRow?.strForm) {
-        console.log(`No form data found for team ${teamId}`);
+        console.log(`No form data found for team ${teamName} (ID: ${teamId})`);
+        console.log('Available teams in table:', response.table?.map(t => t.strTeam).slice(0, 5));
         return [];
       }
 
       // strForm is most recent first; reverse for oldest → newest, take last 5
       const formArray = teamRow.strForm.split('').slice(0, 5).reverse() as ('W'|'D'|'L')[];
-      console.log(`Form for team ${teamId}:`, formArray);
+      console.log(`Form for team ${teamName}:`, formArray);
       return formArray;
     } catch (error) {
-      console.error(`Error fetching form for team ${teamId}:`, error);
+      console.error(`Error fetching form for team ${teamName} (${teamId}):`, error);
       return [];
     }
   }
@@ -167,14 +187,17 @@ export class SportsDbApi {
     }
   }
 
-  // FIXED: Combine date and time from API response
+  // FIXED: Combine date and time from API response with proper timezone handling
   static combineDateTime(dateEvent: string, strTime: string, strTimestamp?: string): string {
-    // If we have a timestamp, use that (it's in ISO format)
+    // If we have a timestamp, use that but convert from UTC to local
     if (strTimestamp) {
-      return strTimestamp;
+      const utcDate = new Date(strTimestamp);
+      // Convert UTC to local time
+      const localDate = new Date(utcDate.getTime() - (utcDate.getTimezoneOffset() * 60000));
+      return localDate.toISOString();
     }
     
-    // Otherwise combine date and time
+    // Otherwise combine date and time and assume it's already in local time
     if (dateEvent && strTime) {
       return `${dateEvent}T${strTime}`;
     }
