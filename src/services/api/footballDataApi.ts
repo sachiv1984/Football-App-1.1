@@ -2,7 +2,7 @@
 const FOOTBALL_DATA_BASE_URL = 'https://api.football-data.org/v4';
 export const PREMIER_LEAGUE_ID = 'PL';
 
-const API_TOKEN = process.env.REACT_APP_FOOTBALL_DATA_TOKEN;
+const API_TOKEN = process.env.FOOTBALL_DATA_TOKEN;
 
 if (!API_TOKEN) {
   console.error('❌ REACT_APP_FOOTBALL_DATA_TOKEN is not set. Please check your environment variables.');
