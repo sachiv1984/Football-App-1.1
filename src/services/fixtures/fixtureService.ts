@@ -1,5 +1,5 @@
 // src/services/fixtures/fixtureService.ts
-import { SportsDbApi, SportsDbEvent, SportsDbTeam, SportsDbTableEntry } from '../api/sportsDbApi';
+import { SportsDbApi, SportsDbEvent, SportsDbTeam } from '../api/sportsDbApi';
 import type { FeaturedFixtureWithImportance } from '../../types';
 
 interface TeamWithForm {
