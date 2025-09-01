@@ -9,6 +9,7 @@ interface UseFixturesReturn {
   loading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
+  rawError?: any; // full error object for debugging
 }
 
 export const useFixtures = (): UseFixturesReturn => {
@@ -16,6 +17,7 @@ export const useFixtures = (): UseFixturesReturn => {
   const [allFixtures, setAllFixtures] = useState<FeaturedFixtureWithImportance[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [rawError, setRawError] = useState<any>(null);
 
   // Memoize the FixtureService instance
   const fixtureService = useMemo(() => new FixtureService(), []);
@@ -23,6 +25,7 @@ export const useFixtures = (): UseFixturesReturn => {
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setRawError(null);
 
     try {
       const [featured, all] = await Promise.all([
@@ -32,8 +35,10 @@ export const useFixtures = (): UseFixturesReturn => {
 
       setFeaturedFixtures(featured);
       setAllFixtures(all);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+    } catch (err: any) {
+      console.error('Fixtures API error:', err); // Log full error to console
+      setRawError(err);
+      setError(err instanceof Error ? err.message : JSON.stringify(err));
     } finally {
       setLoading(false);
     }
@@ -48,7 +53,7 @@ export const useFixtures = (): UseFixturesReturn => {
     allFixtures,
     loading,
     error,
-    refetch: fetchData
+    refetch: fetchData,
+    rawError,
   };
 };
-
