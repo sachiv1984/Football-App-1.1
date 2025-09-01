@@ -1,24 +1,19 @@
-// /api/matches.ts
-import { FootballDataApi } from '../src/services/api/footballDataApi';
+import { FixtureService } from '../src/services/fixtures/fixtureService';
 
 let cache: any = null;
 let cacheTime = 0;
-const CACHE_TTL = 60 * 1000; // 1 minute
+const CACHE_TTL = 60 * 1000;
 
 export default async function handler(req: any, res: any) {
   try {
     const now = Date.now();
+    if (cache && now - cacheTime < CACHE_TTL) return res.status(200).json(cache);
 
-    // Serve cached data if valid
-    if (cache && now - cacheTime < CACHE_TTL) {
-      return res.status(200).json(cache);
-    }
-
-    const api = FootballDataApi.getInstance();
-    const matches = await api.getCurrentSeasonMatches('SCHEDULED');
+    const fixtureService = new FixtureService();
+    const matches = await fixtureService.getAllFixtures();
 
     cache = matches;
-    cacheTime = now;
+    cacheTime = Date.now();
 
     res.status(200).json(matches);
   } catch (err) {
