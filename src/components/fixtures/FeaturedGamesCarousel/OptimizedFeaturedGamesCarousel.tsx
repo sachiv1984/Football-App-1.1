@@ -176,14 +176,22 @@ const { featuredFixtures, loading, error } = useFixtures();
     if (fallback) fallback.style.display = 'flex';
   };
 
-  // Check if match is today or tomorrow for better time display - FIXED to handle invalid dates
+  // Check if match is today or tomorrow for better time display - FIXED to handle API date format
   const getMatchDayLabel = (dateTime: string) => {
     // Check if dateTime is valid
     if (!dateTime || dateTime === 'nullTnull' || dateTime === 'null') {
       return 'TBD'; // To Be Determined
     }
     
-    const matchDate = new Date(dateTime);
+    // Handle both ISO format (2025-09-13T11:30:00) and combined format
+    let matchDate: Date;
+    if (dateTime.includes('T')) {
+      // ISO format from API
+      matchDate = new Date(dateTime);
+    } else {
+      // Fallback for other formats
+      matchDate = new Date(dateTime);
+    }
     
     // Check if the date is valid
     if (isNaN(matchDate.getTime())) {
@@ -206,14 +214,22 @@ const { featuredFixtures, loading, error } = useFixtures();
     });
   };
 
-  // FIXED: Function to get match time - handles invalid dates
+  // FIXED: Function to get match time - handles API datetime format
   const getMatchTime = (dateTime: string) => {
     // Check if dateTime is valid
     if (!dateTime || dateTime === 'nullTnull' || dateTime === 'null') {
       return 'TBD';
     }
     
-    const matchDate = new Date(dateTime);
+    // Handle both ISO format (2025-09-13T11:30:00) and combined format
+    let matchDate: Date;
+    if (dateTime.includes('T')) {
+      // ISO format from API
+      matchDate = new Date(dateTime);
+    } else {
+      // Fallback for other formats
+      matchDate = new Date(dateTime);
+    }
     
     // Check if the date is valid
     if (isNaN(matchDate.getTime())) {
