@@ -35,13 +35,15 @@ export const FixturesDebugTable: React.FC = () => {
   }
 
   if (error) {
-    console.error('Fixtures API error:', error);
+    // TypeScript-safe error handling
+    const errorMessage =
+      typeof error === 'string'
+        ? error
+        : error && typeof (error as any).message === 'string'
+        ? (error as any).message
+        : JSON.stringify(error);
 
-    const errorMessage = error instanceof Error
-      ? error.message
-      : typeof error === 'string'
-      ? error
-      : JSON.stringify(error);
+    console.error('Fixtures API error:', error);
 
     return (
       <div className="bg-white rounded-lg shadow-lg p-6">
@@ -50,11 +52,10 @@ export const FixturesDebugTable: React.FC = () => {
             <span className="text-red-500 text-xl mr-2">⚠️</span>
             <h3 className="text-lg font-semibold text-red-800">API Error</h3>
           </div>
-          <p className="text-red-700 mb-2">Error fetching fixtures:</p>
-          <pre className="text-xs bg-gray-100 p-2 rounded overflow-auto">{errorMessage}</pre>
+          <p className="text-red-700 mb-4">{errorMessage}</p>
           <button
             onClick={() => refetch()}
-            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors mt-2"
+            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors"
           >
             Retry API Call
           </button>
@@ -76,7 +77,7 @@ export const FixturesDebugTable: React.FC = () => {
             Refresh Data
           </button>
         </div>
-
+        
         {/* Tabs */}
         <div className="flex space-x-1 mb-4">
           <button
@@ -188,7 +189,9 @@ export const FixturesDebugTable: React.FC = () => {
                         {formatDate(fixture.dateTime)}
                       </div>
                     </td>
-                    <td className="p-3">{fixture.venue}</td>
+                    <td className="p-3">
+                      <div className="text-sm text-gray-900">{fixture.venue}</div>
+                    </td>
                     <td className="p-3">
                       <div className="flex items-center space-x-2">
                         <span className="text-sm font-medium text-gray-900">{fixture.importance}/10</span>
@@ -208,12 +211,12 @@ export const FixturesDebugTable: React.FC = () => {
                       </button>
                     </td>
                   </tr>
-
-                  {/* Expanded row */}
+                  
+                  {/* Expanded row details */}
                   {expandedRow === index && (
                     <tr className="bg-blue-50 border-b">
                       <td colSpan={8} className="p-4">
-                        <pre className="text-xs bg-gray-100 p-2 rounded overflow-auto">
+                        <pre className="mt-2 p-3 bg-gray-100 rounded text-xs overflow-auto max-h-60 border">
                           {JSON.stringify(fixture, null, 2)}
                         </pre>
                       </td>
