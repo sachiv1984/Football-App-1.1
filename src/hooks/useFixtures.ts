@@ -1,6 +1,6 @@
 // src/hooks/useFixtures.ts
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { FixtureService }  from '../services/fixtures/fixtureService';
+import { FixtureService } from '../services/fixtures/fixtureService';
 import type { FeaturedFixtureWithImportance } from '../types';
 
 interface UseFixturesReturn {
@@ -27,7 +27,7 @@ export const useFixtures = (): UseFixturesReturn => {
 
       const [featured, all] = await Promise.all([
         fixtureService.getFeaturedFixtures(8),
-        fixtureService.getAllUpcomingFixtures()
+        fixtureService.getAllFixtures() // ✅ updated here
       ]);
 
       setFeaturedFixtures(featured);
@@ -37,7 +37,7 @@ export const useFixtures = (): UseFixturesReturn => {
     } finally {
       setLoading(false);
     }
-  }, [fixtureService]); // Include memoized fixtureService in the dependency array
+  }, [fixtureService]);
 
   useEffect(() => {
     fetchData();
