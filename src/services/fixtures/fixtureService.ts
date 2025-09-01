@@ -1,11 +1,11 @@
 // src/services/fixtures/fixtureService.ts
-import { SportsDbApi, SportsDbEvent, SportsDbTeam } from '../api/sportsDbApi';
+import { SportsDbApi, SportsDbEvent, SportsDbTeam, SportsDbTableEntry } from '../api/sportsDbApi';
 import type { FeaturedFixtureWithImportance } from '../../types';
 
 interface TeamWithForm {
   id: string;
   name: string;
-  shortName?: string;
+  shortName: string; // Changed from optional to required
   logo?: string;
   colors?: Record<string, string>;
   form?: ('W'|'D'|'L')[];
@@ -34,9 +34,10 @@ export class FixtureService {
       
       // If not in cache, fetch it
       if (!teamData) {
-        teamData = await this.sportsDbApi.getTeamById(teamId);
-        if (teamData) {
-          this.teamCache.set(teamId, teamData);
+        const fetchedTeam = await this.sportsDbApi.getTeamById(teamId);
+        if (fetchedTeam) {
+          teamData = fetchedTeam;
+          this.teamCache.set(teamId, fetchedTeam);
         }
       }
 
@@ -50,7 +51,7 @@ export class FixtureService {
       return {
         id: teamId,
         name: teamName,
-        shortName: teamData?.strTeamShort || undefined, // This will be undefined if not available
+        shortName: teamData?.strTeamShort || teamName, // Provide fallback to satisfy type
         logo: teamData?.strTeamBadge,
         colors: {},
         form: form
@@ -60,7 +61,7 @@ export class FixtureService {
       return {
         id: teamId,
         name: teamName,
-        shortName: undefined,
+        shortName: teamName, // Use team name as fallback
         logo: undefined,
         colors: {},
         form: []
@@ -162,7 +163,7 @@ export class FixtureService {
       importanceScore: importance,
       tags,
       isBigMatch: importance >= 8,
-      status: event.strStatus === 'Not Started' ? 'upcoming' : 'completed'
+      status: event.strStatus === 'Not Started' ? 'upcoming' : 'finished' // Fixed to use valid status
     };
   }
 
