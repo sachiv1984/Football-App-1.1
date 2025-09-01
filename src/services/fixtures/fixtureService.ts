@@ -44,7 +44,7 @@ export class FixtureService {
       // Get form data
       let form = this.formCache.get(teamId);
       if (!form) {
-        form = await this.sportsDbApi.getTeamForm(teamId);
+        form = await this.sportsDbApi.getTeamForm(teamId, teamName); // Pass team name too
         this.formCache.set(teamId, form);
       }
 
@@ -170,15 +170,27 @@ export class FixtureService {
   // Get featured fixtures with importance scoring
   async getFeaturedFixtures(limit: number = 8): Promise<FeaturedFixtureWithImportance[]> {
     try {
-      const events = await this.sportsDbApi.getUpcomingFixtures();
+      // FIXED: Use current season fixtures and filter for upcoming games
+      const events = await this.sportsDbApi.getCurrentSeasonFixtures();
       
       if (!events || events.length === 0) {
         return [];
       }
 
-      // Transform all events
+      // Filter for upcoming fixtures only (status = "Not Started")
+      const upcomingEvents = events.filter(event => 
+        event.strStatus === 'Not Started' || 
+        event.strStatus === '' || 
+        !event.strStatus
+      );
+
+      // Get current round to show games around current week
+      const currentDate = new Date();
+      const currentRoundEvents = this.getEventsAroundCurrentRound(upcomingEvents, currentDate);
+
+      // Transform selected events
       const transformedFixtures = await Promise.all(
-        events.slice(0, 15).map(event => this.transformEvent(event)) // Get more than needed for filtering
+        currentRoundEvents.slice(0, 15).map(event => this.transformEvent(event))
       );
 
       // Sort by importance (descending) and take the most important ones
@@ -192,18 +204,50 @@ export class FixtureService {
     }
   }
 
+  // Helper function to get events around current round
+  private getEventsAroundCurrentRound(events: SportsDbEvent[], currentDate: Date): SportsDbEvent[] {
+    // Find the current round by looking at upcoming fixtures
+    const upcomingWithDates = events
+      .map(event => ({
+        event,
+        date: new Date(SportsDbApi.combineDateTime(event.dateEvent, event.strTime, event.strTimestamp))
+      }))
+      .filter(({ date }) => !isNaN(date.getTime()) && date >= currentDate)
+      .sort((a, b) => a.date.getTime() - b.date.getTime());
+
+    if (upcomingWithDates.length === 0) return events.slice(0, 10);
+
+    // Get the round of the next upcoming fixture
+    const nextFixture = upcomingWithDates[0];
+    const currentRound = parseInt(nextFixture.event.intRound || '1');
+
+    // Return fixtures from current round and next 2 rounds
+    return events.filter(event => {
+      const eventRound = parseInt(event.intRound || '1');
+      return eventRound >= currentRound && eventRound <= currentRound + 2;
+    });
+  }
+
   // Get all upcoming fixtures
   async getAllUpcomingFixtures(): Promise<FeaturedFixtureWithImportance[]> {
     try {
-      const events = await this.sportsDbApi.getUpcomingFixtures();
+      // FIXED: Use current season fixtures and filter for upcoming
+      const events = await this.sportsDbApi.getCurrentSeasonFixtures();
       
       if (!events || events.length === 0) {
         return [];
       }
 
-      // Transform all events
+      // Filter for upcoming fixtures only
+      const upcomingEvents = events.filter(event => 
+        event.strStatus === 'Not Started' || 
+        event.strStatus === '' || 
+        !event.strStatus
+      );
+
+      // Transform all upcoming events
       const transformedFixtures = await Promise.all(
-        events.map(event => this.transformEvent(event))
+        upcomingEvents.map(event => this.transformEvent(event))
       );
 
       // Sort by date
