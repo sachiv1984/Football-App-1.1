@@ -196,7 +196,7 @@ export class FootballDataApi {
     }
 
     // Queue requests to avoid hitting rate limits
-    return this.requestQueue = this.requestQueue.then(async (): Promise<T> => {
+    const result = await this.requestQueue.then(async (): Promise<T> => {
       try {
         await this.throttleRequest();
         
@@ -250,6 +250,11 @@ export class FootballDataApi {
         throw error;
       }
     });
+
+    // Update the queue for the next request
+    this.requestQueue = this.requestQueue.then(() => {}).catch(() => {});
+    
+    return result;
   }
 
   // Test API connection
