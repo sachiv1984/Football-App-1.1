@@ -157,7 +157,7 @@ export class FootballDataApi {
     'X-Auth-Token': API_TOKEN || '',
     'Content-Type': 'application/json'
   };
-  private requestQueue: Promise<unknown> = Promise.resolve();
+  private requestQueue: Promise<void> = Promise.resolve();
   private lastRequestTime: number = 0;
   private readonly minRequestInterval = 6000; // 6 seconds between requests (10/min limit)
 
@@ -196,7 +196,7 @@ export class FootballDataApi {
     }
 
     // Queue requests to avoid hitting rate limits
-    return this.requestQueue = this.requestQueue.then(async () => {
+    return this.requestQueue = this.requestQueue.then(async (): Promise<T> => {
       try {
         await this.throttleRequest();
         
