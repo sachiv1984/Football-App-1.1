@@ -11,12 +11,6 @@ interface TeamWithForm {
   form?: ('W'|'D'|'L')[];
 }
 
-interface Competition {
-  id: string;
-  name: string;
-  logo?: string;
-}
-
 export class FixtureService {
   private footballDataApi = FootballDataApi.getInstance();
 
