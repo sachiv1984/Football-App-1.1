@@ -17,17 +17,17 @@ export const useFixtures = (): UseFixturesReturn => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Memoize the fixtureService instance
+  // Memoize the FixtureService instance
   const fixtureService = useMemo(() => new FixtureService(), []);
 
   const fetchData = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
+    setLoading(true);
+    setError(null);
 
+    try {
       const [featured, all] = await Promise.all([
         fixtureService.getFeaturedFixtures(8),
-        fixtureService.getAllFixtures() // ✅ updated here
+        fixtureService.getAllFixtures()
       ]);
 
       setFeaturedFixtures(featured);
@@ -51,3 +51,4 @@ export const useFixtures = (): UseFixturesReturn => {
     refetch: fetchData
   };
 };
+
