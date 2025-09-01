@@ -157,7 +157,7 @@ export class FootballDataApi {
     'X-Auth-Token': API_TOKEN || '',
     'Content-Type': 'application/json'
   };
-  private requestQueue: Promise<any> = Promise.resolve();
+  private requestQueue: Promise<unknown> = Promise.resolve();
   private lastRequestTime: number = 0;
   private readonly minRequestInterval = 6000; // 6 seconds between requests (10/min limit)
 
