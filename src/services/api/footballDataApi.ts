@@ -129,7 +129,7 @@ export interface FootballDataCompetition {
     startDate: string;
     endDate: string;
     currentMatchday: number;
-    winner: any;
+    winner: string;
   };
 }
 
