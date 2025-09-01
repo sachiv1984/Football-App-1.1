@@ -13,8 +13,9 @@ export interface SportsDbEvent {
   idHomeTeam: string;
   idAwayTeam: string;
   strVenue: string;
-  strDate: string;
-  strTime: string;
+  dateEvent: string; // FIXED: Use correct field names from API
+  strTime: string;   // FIXED: Use correct field names from API
+  strTimestamp?: string; // FIXED: Add timestamp field
   dateEventLocal?: string;
   strTimeLocal?: string;
   intRound: string;
@@ -40,7 +41,19 @@ export interface SportsDbLeague {
   strLeagueBadge?: string;
   strLogo?: string;
   strCountry: string;
-  strForm: string;
+  strForm?: string;
+}
+
+// FIXED: Add interface for league table
+export interface SportsDbTableEntry {
+  idTeam: string;
+  strTeam: string;
+  strForm?: string;
+  intRank?: string;
+  intPlayed?: string;
+  intWin?: string;
+  intLoss?: string;
+  intDraw?: string;
 }
 
 interface CachedData<T> {
@@ -101,6 +114,18 @@ export class SportsDbApi {
     return response.teams?.[0] || null;
   }
 
+  // FIXED: Get all Premier League teams (for getting short names)
+  async getAllPremierLeagueTeams(): Promise<SportsDbTeam[]> {
+    const url = `${SPORTS_DB_BASE_URL}/lookup_all_teams.php?id=${PREMIER_LEAGUE_ID}`;
+    try {
+      const response = await this.fetchWithCache<{ teams: SportsDbTeam[] }>(url, 'all-pl-teams');
+      return response.teams || [];
+    } catch (error) {
+      console.error('Error fetching all teams:', error);
+      return [];
+    }
+  }
+
   // Get league details
   async getLeagueDetails(): Promise<SportsDbLeague | null> {
     const url = `${SPORTS_DB_BASE_URL}/lookupleague.php?id=${PREMIER_LEAGUE_ID}&s=${currentSeason}`;
@@ -108,20 +133,54 @@ export class SportsDbApi {
     return response.leagues?.[0] || null;
   }
 
-  // Get team's last 5 matches for form using league table
+  // FIXED: Get team's last 5 matches for form using league table
   async getTeamForm(teamId: string): Promise<('W'|'D'|'L')[]> {
     const url = `${SPORTS_DB_BASE_URL}/lookuptable.php?l=${PREMIER_LEAGUE_ID}&s=${currentSeason}`;
     try {
-      const response = await this.fetchWithCache<{ table: Array<{ idTeam: string, strForm: string }> }>(url, `table-${currentSeason}`);
-      const teamRow = response.table.find(row => row.idTeam === teamId);
-      if (!teamRow || !teamRow.strForm) return [];
+      const response = await this.fetchWithCache<{ table: SportsDbTableEntry[] }>(url, `table-${currentSeason}`);
+      const teamRow = response.table?.find(row => row.idTeam === teamId);
+      
+      if (!teamRow?.strForm) {
+        console.log(`No form data found for team ${teamId}`);
+        return [];
+      }
 
-      // strForm is most recent first; reverse for oldest → newest
-      return teamRow.strForm.split('').slice(0, 5).reverse() as ('W'|'D'|'L')[];
+      // strForm is most recent first; reverse for oldest → newest, take last 5
+      const formArray = teamRow.strForm.split('').slice(0, 5).reverse() as ('W'|'D'|'L')[];
+      console.log(`Form for team ${teamId}:`, formArray);
+      return formArray;
     } catch (error) {
       console.error(`Error fetching form for team ${teamId}:`, error);
       return [];
     }
+  }
+
+  // FIXED: Get the full league table for better team data
+  async getLeagueTable(): Promise<SportsDbTableEntry[]> {
+    const url = `${SPORTS_DB_BASE_URL}/lookuptable.php?l=${PREMIER_LEAGUE_ID}&s=${currentSeason}`;
+    try {
+      const response = await this.fetchWithCache<{ table: SportsDbTableEntry[] }>(url, `table-${currentSeason}`);
+      return response.table || [];
+    } catch (error) {
+      console.error('Error fetching league table:', error);
+      return [];
+    }
+  }
+
+  // FIXED: Combine date and time from API response
+  static combineDateTime(dateEvent: string, strTime: string, strTimestamp?: string): string {
+    // If we have a timestamp, use that (it's in ISO format)
+    if (strTimestamp) {
+      return strTimestamp;
+    }
+    
+    // Otherwise combine date and time
+    if (dateEvent && strTime) {
+      return `${dateEvent}T${strTime}`;
+    }
+    
+    // Fallback
+    return dateEvent || 'TBD';
   }
 
   // Clear cache
