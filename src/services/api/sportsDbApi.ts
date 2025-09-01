@@ -108,10 +108,10 @@ export class SportsDbApi {
   }
 
   // Get team details by ID
-  async getTeamById(teamId: string): Promise<SportsDbTeam | null> {
+  async getTeamById(teamId: string): Promise<SportsDbTeam | undefined> {
     const url = `${SPORTS_DB_BASE_URL}/lookupteam.php?id=${teamId}`;
     const response = await this.fetchWithCache<{ teams: SportsDbTeam[] }>(url, `team-${teamId}`);
-    return response.teams?.[0] || null;
+    return response.teams?.[0] || undefined; // Changed to return undefined instead of null
   }
 
   // FIXED: Get all Premier League teams (for getting short names)
@@ -127,10 +127,10 @@ export class SportsDbApi {
   }
 
   // Get league details
-  async getLeagueDetails(): Promise<SportsDbLeague | null> {
+  async getLeagueDetails(): Promise<SportsDbLeague | undefined> {
     const url = `${SPORTS_DB_BASE_URL}/lookupleague.php?id=${PREMIER_LEAGUE_ID}&s=${currentSeason}`;
     const response = await this.fetchWithCache<{ leagues: SportsDbLeague[] }>(url, 'premier-league');
-    return response.leagues?.[0] || null;
+    return response.leagues?.[0] || undefined; // Changed to return undefined instead of null
   }
 
   // FIXED: Get team's last 5 matches for form using league table
