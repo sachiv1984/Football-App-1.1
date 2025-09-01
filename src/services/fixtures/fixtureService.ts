@@ -1,7 +1,7 @@
 // src/services/api/footballDataApi.ts
 const FOOTBALL_DATA_BASE_URL = 'https://api.football-data.org/v4';
 export const PREMIER_LEAGUE_ID = 'PL'; // Premier League code in Football-Data.org
-const currentSeason = '2024'; // Football-Data uses year format
+// const currentSeason = '2024'; // Football-Data uses year format
 
 // Add your API token here or use environment variable
 const API_TOKEN = process.env.REACT_APP_FOOTBALL_DATA_TOKEN || 'YOUR_API_TOKEN_HERE';
