@@ -132,7 +132,7 @@ const { featuredFixtures, loading, error } = useFixtures();
     return null;
   };
 
-  // Team name abbreviations for long names
+  // Team name abbreviations for long names - FIXED to handle "Unknown" shortName
   const getDisplayName = (teamName: string, shortName?: string) => {
     const abbreviations: { [key: string]: string } = {
       'Manchester United': 'Man Utd',
@@ -155,8 +155,8 @@ const { featuredFixtures, loading, error } = useFixtures();
       return abbreviations[teamName];
     }
     
-    // Use shortName from API if available
-    if (shortName && shortName.length <= 12) {
+    // Use shortName from API if available AND not "Unknown"
+    if (shortName && shortName !== 'Unknown' && shortName.length <= 12) {
       return shortName;
     }
     
@@ -176,9 +176,20 @@ const { featuredFixtures, loading, error } = useFixtures();
     if (fallback) fallback.style.display = 'flex';
   };
 
-  // Check if match is today or tomorrow for better time display
+  // Check if match is today or tomorrow for better time display - FIXED to handle invalid dates
   const getMatchDayLabel = (dateTime: string) => {
+    // Check if dateTime is valid
+    if (!dateTime || dateTime === 'nullTnull' || dateTime === 'null') {
+      return 'TBD'; // To Be Determined
+    }
+    
     const matchDate = new Date(dateTime);
+    
+    // Check if the date is valid
+    if (isNaN(matchDate.getTime())) {
+      return 'TBD';
+    }
+    
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -192,6 +203,26 @@ const { featuredFixtures, loading, error } = useFixtures();
       weekday: 'short', 
       month: 'short', 
       day: 'numeric' 
+    });
+  };
+
+  // FIXED: Function to get match time - handles invalid dates
+  const getMatchTime = (dateTime: string) => {
+    // Check if dateTime is valid
+    if (!dateTime || dateTime === 'nullTnull' || dateTime === 'null') {
+      return 'TBD';
+    }
+    
+    const matchDate = new Date(dateTime);
+    
+    // Check if the date is valid
+    if (isNaN(matchDate.getTime())) {
+      return 'TBD';
+    }
+    
+    return matchDate.toLocaleTimeString([], {
+      hour: '2-digit', 
+      minute: '2-digit'
     });
   };
 
@@ -258,6 +289,7 @@ const { featuredFixtures, loading, error } = useFixtures();
           const homeLogo = getTeamLogo(fixture.homeTeam);
           const awayLogo = getTeamLogo(fixture.awayTeam);
           const matchDayLabel = getMatchDayLabel(fixture.dateTime);
+          const matchTime = getMatchTime(fixture.dateTime);
           const competitionLogo = getCompetitionLogo(fixture.competition.name, fixture.competition.logo);
 
           return (
@@ -360,10 +392,7 @@ const { featuredFixtures, loading, error } = useFixtures();
                       <div className="text-2xl sm:text-3xl font-bold text-gray-400">VS</div>
                       <div className="text-center bg-gray-50 rounded-lg px-3 py-2 border">
                         <div className="text-sm sm:text-base font-bold text-gray-900">
-                          {new Date(fixture.dateTime).toLocaleTimeString([], {
-                            hour: '2-digit', 
-                            minute: '2-digit'
-                          })}
+                          {matchTime}
                         </div>
                         <div className="text-xs sm:text-sm text-gray-600">
                           {matchDayLabel}
