@@ -1,6 +1,6 @@
 // src/hooks/useFixtures.ts
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import  FixtureService  from '../services/fixtures/fixtureService';
+import { FixtureService }  from '../services/fixtures/fixtureService';
 import type { FeaturedFixtureWithImportance } from '../types';
 
 interface UseFixturesReturn {
