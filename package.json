@@ -14,11 +14,9 @@
     "react-dom": "^18.2.0",
     "react-router-dom": "^7.8.2",
     "react-scripts": "5.0.1",
-    "save-dev": "^0.0.1-security",
     "tailwindcss": "^3.4.17"
   },
   "devDependencies": {
-    "@craco/craco": "^7.1.0",
     "@tailwindcss/forms": "^0.5.10",
     "@tailwindcss/typography": "^0.5.16",
     "@testing-library/jest-dom": "^6.8.0",
