@@ -1,307 +1,300 @@
-// src/services/api/footballDataApi.ts
-const FOOTBALL_DATA_BASE_URL = 'https://api.football-data.org/v4';
-export const PREMIER_LEAGUE_ID = 'PL'; // Premier League code in Football-Data.org
-// const currentSeason = '2024'; // Football-Data uses year format
+// src/services/fixtures/fixtureService.ts
+import { FootballDataApi, FootballDataMatch, FootballDataStanding } from '../api/footballDataApi';
+import type { FeaturedFixtureWithImportance } from '../../types';
 
-// Add your API token here or use environment variable
-const API_TOKEN = process.env.REACT_APP_FOOTBALL_DATA_TOKEN || 'YOUR_API_TOKEN_HERE';
-
-export interface FootballDataMatch {
-  id: number;
-  utcDate: string;
-  status: 'SCHEDULED' | 'LIVE' | 'IN_PLAY' | 'PAUSED' | 'FINISHED' | 'POSTPONED' | 'SUSPENDED' | 'CANCELLED';
-  matchday: number;
-  stage: string;
-  homeTeam: {
-    id: number;
-    name: string;
-    shortName: string;
-    tla: string; // Three Letter Abbreviation
-    crest: string; // Team logo URL
-  };
-  awayTeam: {
-    id: number;
-    name: string;
-    shortName: string;
-    tla: string;
-    crest: string;
-  };
-  score: {
-    winner: 'HOME_TEAM' | 'AWAY_TEAM' | 'DRAW' | null;
-    duration: 'REGULAR' | 'EXTRA_TIME' | 'PENALTY_SHOOTOUT';
-    fullTime: { home: number | null; away: number | null };
-    halfTime: { home: number | null; away: number | null };
-    regularTime: { home: number | null; away: number | null };
-    extraTime: { home: number | null; away: number | null };
-    penalties: { home: number | null; away: number | null };
-  };
-  venue?: string;
-  competition: {
-    id: number;
-    name: string;
-    code: string;
-    type: string;
-    emblem: string;
-  };
-  season: {
-    id: number;
-    startDate: string;
-    endDate: string;
-    currentMatchday: number;
-  };
-  area: {
-    id: number;
-    name: string;
-    code: string;
-    flag: string;
-  };
-}
-
-export interface FootballDataTeam {
-  id: number;
+interface TeamWithForm {
+  id: string;
   name: string;
   shortName: string;
-  tla: string;
-  crest: string;
-  address: string;
-  website: string;
-  founded: number;
-  clubColors: string;
-  venue: string;
-  lastUpdated: string;
-  area: {
-    id: number;
-    name: string;
-    code: string;
-    flag: string;
-  };
-  coach?: {
-    id: number;
-    firstName: string;
-    lastName: string;
-    name: string;
-    dateOfBirth: string;
-    nationality: string;
-  };
-  squad?: Array<{
-    id: number;
-    name: string;
-    position: string;
-    dateOfBirth: string;
-    nationality: string;
-  }>;
+  logo?: string;
+  colors: { primary?: string; secondary?: string };
+  form?: ('W'|'D'|'L')[];
 }
 
-export interface FootballDataStanding {
-  position: number;
-  team: {
-    id: number;
-    name: string;
-    shortName: string;
-    tla: string;
-    crest: string;
-  };
-  playedGames: number;
-  form: string; // Last 5 games: "W,L,W,D,W"
-  won: number;
-  draw: number;
-  lost: number;
-  points: number;
-  goalsFor: number;
-  goalsAgainst: number;
-  goalDifference: number;
-}
-
-export interface FootballDataCompetition {
-  id: number;
-  area: {
-    id: number;
-    name: string;
-    code: string;
-    flag: string;
-  };
+interface Competition {
+  id: string;
   name: string;
-  code: string;
-  type: string;
-  emblem: string;
-  currentSeason: {
-    id: number;
-    startDate: string;
-    endDate: string;
-    currentMatchday: number;
-    winner: any;
-  };
+  logo?: string;
 }
 
-interface CachedData<T> {
-  data: T;
-  timestamp: number;
-}
+export class FixtureService {
+  private footballDataApi: FootballDataApi;
+  private standingsCache: FootballDataStanding[] = [];
+  private standingsCacheTime: number = 0;
+  private readonly standingsCacheTimeout = 10 * 60 * 1000; // 10 minutes
 
-export class FootballDataApi {
-  private static instance: FootballDataApi;
-  private cache: Map<string, CachedData<unknown>> = new Map();
-  private readonly cacheTimeout = 5 * 60 * 1000; // 5 minutes
-  private readonly headers = {
-    'X-Auth-Token': API_TOKEN,
-    'Content-Type': 'application/json'
-  };
-
-  private constructor() {}
-
-  public static getInstance(): FootballDataApi {
-    if (!FootballDataApi.instance) {
-      FootballDataApi.instance = new FootballDataApi();
-    }
-    return FootballDataApi.instance;
+  constructor() {
+    this.footballDataApi = FootballDataApi.getInstance();
   }
 
-  private async fetchWithCache<T>(url: string, cacheKey: string): Promise<T> {
-    const cached = this.cache.get(cacheKey) as CachedData<T> | undefined;
-    if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
-      return cached.data;
+  // Get cached standings (includes form data)
+  private async getStandings(): Promise<FootballDataStanding[]> {
+    const now = Date.now();
+    if (this.standingsCache.length > 0 && now - this.standingsCacheTime < this.standingsCacheTimeout) {
+      return this.standingsCache;
     }
 
+    this.standingsCache = await this.footballDataApi.getStandings();
+    this.standingsCacheTime = now;
+    return this.standingsCache;
+  }
+
+  // Transform Football-Data team to our format
+  private async getTeamDetails(footballDataTeam: FootballDataMatch['homeTeam'] | FootballDataMatch['awayTeam']): Promise<TeamWithForm> {
     try {
-      const response = await fetch(url, { headers: this.headers });
-      
-      if (!response.ok) {
-        if (response.status === 429) {
-          throw new Error('Rate limit exceeded. Please wait before making more requests.');
-        }
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data: T = await response.json();
-      this.cache.set(cacheKey, { data, timestamp: Date.now() });
-      return data;
-    } catch (error) {
-      console.error(`Error fetching from ${url}:`, error);
-      throw error;
-    }
-  }
-
-  // Get Premier League matches for current season
-  async getCurrentSeasonMatches(status?: 'SCHEDULED' | 'FINISHED'): Promise<FootballDataMatch[]> {
-    let url = `${FOOTBALL_DATA_BASE_URL}/competitions/${PREMIER_LEAGUE_ID}/matches`;
-    const params = new URLSearchParams();
-    
-    if (status) {
-      params.append('status', status);
-    }
-    
-    if (params.toString()) {
-      url += `?${params.toString()}`;
-    }
-
-    const response = await this.fetchWithCache<{ matches: FootballDataMatch[] }>(
-      url, 
-      `matches-${PREMIER_LEAGUE_ID}-${status || 'all'}`
-    );
-    return response.matches || [];
-  }
-
-  // Get matches for a specific matchday
-  async getMatchesByMatchday(matchday: number): Promise<FootballDataMatch[]> {
-    const url = `${FOOTBALL_DATA_BASE_URL}/competitions/${PREMIER_LEAGUE_ID}/matches?matchday=${matchday}`;
-    const response = await this.fetchWithCache<{ matches: FootballDataMatch[] }>(
-      url, 
-      `matches-${PREMIER_LEAGUE_ID}-md${matchday}`
-    );
-    return response.matches || [];
-  }
-
-  // Get upcoming matches (next few matchdays)
-  async getUpcomingMatches(limit: number = 20): Promise<FootballDataMatch[]> {
-    const matches = await this.getCurrentSeasonMatches('SCHEDULED');
-    return matches.slice(0, limit);
-  }
-
-  // Get team details by ID
-  async getTeamById(teamId: number): Promise<FootballDataTeam | undefined> {
-    const url = `${FOOTBALL_DATA_BASE_URL}/teams/${teamId}`;
-    const response = await this.fetchWithCache<FootballDataTeam>(url, `team-${teamId}`);
-    return response;
-  }
-
-  // Get Premier League standings (includes form data!)
-  async getStandings(): Promise<FootballDataStanding[]> {
-    const url = `${FOOTBALL_DATA_BASE_URL}/competitions/${PREMIER_LEAGUE_ID}/standings`;
-    const response = await this.fetchWithCache<{ 
-      standings: Array<{ 
-        stage: string;
-        type: string;
-        table: FootballDataStanding[] 
-      }> 
-    }>(url, `standings-${PREMIER_LEAGUE_ID}`);
-    
-    // Return the main league table
-    return response.standings?.[0]?.table || [];
-  }
-
-  // Get team form from standings
-  async getTeamForm(teamId: number): Promise<('W'|'D'|'L')[]> {
-    try {
+      // Get form from standings
       const standings = await this.getStandings();
-      const teamStanding = standings.find(standing => standing.team.id === teamId);
+      const teamStanding = standings.find(standing => standing.team.id === footballDataTeam.id);
       
-      if (!teamStanding?.form) {
+      // Parse form data
+      let form: ('W'|'D'|'L')[] = [];
+      if (teamStanding?.form) {
+        form = FootballDataApi.parseForm(teamStanding.form);
+      }
+
+      return {
+        id: footballDataTeam.id.toString(),
+        name: footballDataTeam.name,
+        shortName: footballDataTeam.shortName || footballDataTeam.tla || footballDataTeam.name,
+        logo: footballDataTeam.crest,
+        colors: this.getTeamColors(footballDataTeam.name), // You can enhance this
+        form: form
+      };
+    } catch (error) {
+      console.error(`Error getting team details for ${footballDataTeam.name}:`, error);
+      return {
+        id: footballDataTeam.id.toString(),
+        name: footballDataTeam.name,
+        shortName: footballDataTeam.shortName || footballDataTeam.tla || footballDataTeam.name,
+        logo: footballDataTeam.crest,
+        colors: {},
+        form: []
+      };
+    }
+  }
+
+  // Get team colors (you can expand this based on your needs)
+  private getTeamColors(teamName: string): { primary?: string; secondary?: string } {
+    const colorMap: { [key: string]: { primary?: string; secondary?: string } } = {
+      'Arsenal': { primary: '#EF0107', secondary: '#023474' },
+      'Chelsea': { primary: '#034694', secondary: '#FFFFFF' },
+      'Liverpool': { primary: '#C8102E', secondary: '#F6EB61' },
+      'Manchester City': { primary: '#6CABDD', secondary: '#1C2C5B' },
+      'Manchester United': { primary: '#DA020E', secondary: '#FBE122' },
+      'Tottenham Hotspur': { primary: '#132257', secondary: '#FFFFFF' },
+    };
+    return colorMap[teamName] || {};
+  }
+
+  // Calculate importance based on various factors
+  private calculateImportance(match: FootballDataMatch, standings?: FootballDataStanding[]): number {
+    let importance = 3; // Base importance
+
+    // Factor 1: Matchday (later in season = more important)
+    const matchday = match.matchday;
+    if (matchday >= 35) importance += 3; // Final stretch
+    else if (matchday >= 25) importance += 2; // Business end
+    else if (matchday >= 15) importance += 1; // Mid-season
+
+    // Factor 2: Table positions (if standings available)
+    if (standings) {
+      const homePos = standings.find(s => s.team.id === match.homeTeam.id)?.position || 20;
+      const awayPos = standings.find(s => s.team.id === match.awayTeam.id)?.position || 20;
+      
+      // Top 6 clash
+      if (homePos <= 6 && awayPos <= 6) importance += 3;
+      // Top vs bottom half
+      else if ((homePos <= 10 && awayPos > 10) || (homePos > 10 && awayPos <= 10)) importance += 1;
+      // Relegation battle
+      else if (homePos >= 17 && awayPos >= 17) importance += 2;
+    }
+
+    // Factor 3: Traditional "Big 6" teams
+    const bigSixTeams = ['Arsenal', 'Chelsea', 'Liverpool', 'Manchester City', 'Manchester United', 'Tottenham Hotspur'];
+    const homeIsBigSix = bigSixTeams.includes(match.homeTeam.name);
+    const awayIsBigSix = bigSixTeams.includes(match.awayTeam.name);
+    
+    if (homeIsBigSix && awayIsBigSix) importance += 2; // Big 6 clash
+    else if (homeIsBigSix || awayIsBigSix) importance += 1; // Involves Big 6
+
+    // Factor 4: Derby matches
+    const isDerby = this.isDerbyMatch(match.homeTeam.name, match.awayTeam.name);
+    if (isDerby) importance += 2;
+
+    return Math.min(importance, 10); // Cap at 10
+  }
+
+  // Derby detection
+  private isDerbyMatch(homeTeam: string, awayTeam: string): boolean {
+    const derbies = [
+      ['Arsenal', 'Tottenham Hotspur'], // North London Derby
+      ['Liverpool', 'Everton'], // Merseyside Derby
+      ['Manchester United', 'Manchester City'], // Manchester Derby
+      ['Chelsea', 'Arsenal'], // London Derby
+      ['Chelsea', 'Tottenham Hotspur'], // London Derby
+      ['Chelsea', 'Fulham'], // West London Derby
+      ['Crystal Palace', 'Brighton & Hove Albion'], // M23 Derby
+    ];
+
+    return derbies.some(derby => 
+      (derby.includes(homeTeam) && derby.includes(awayTeam))
+    );
+  }
+
+  // Generate match tags
+  private generateTags(match: FootballDataMatch, importance: number): string[] {
+    const tags: string[] = [];
+    const matchday = match.matchday;
+
+    if (matchday <= 5) tags.push('early-season');
+    else if (matchday >= 35) tags.push('title-race', 'relegation-battle');
+    else if (matchday >= 25) tags.push('business-end');
+
+    if (importance >= 8) tags.push('big-match');
+    if (this.isDerbyMatch(match.homeTeam.name, match.awayTeam.name)) tags.push('derby');
+
+    // Add day-based tags
+    const matchDate = new Date(match.utcDate);
+    if (!isNaN(matchDate.getTime())) {
+      const dayOfWeek = matchDate.getDay();
+      if (dayOfWeek === 0) tags.push('sunday-fixture');
+      else if (dayOfWeek === 6) tags.push('saturday-fixture');
+      else if (dayOfWeek === 1) tags.push('monday-night-football');
+    }
+
+    // Add competition stage tags
+    if (match.stage === 'REGULAR_SEASON') tags.push('league-match');
+
+    return tags;
+  }
+
+  // Transform Football-Data match to internal format
+  private async transformMatch(match: FootballDataMatch): Promise<FeaturedFixtureWithImportance> {
+    // Get current standings for importance calculation
+    const standings = await this.getStandings();
+
+    // Get team details with form
+    const [homeTeam, awayTeam] = await Promise.all([
+      this.getTeamDetails(match.homeTeam),
+      this.getTeamDetails(match.awayTeam)
+    ]);
+
+    const importance = this.calculateImportance(match, standings);
+    const tags = this.generateTags(match, importance);
+
+    // Map Football-Data status to our status
+    const mapStatus = (status: FootballDataMatch['status']): 'scheduled' | 'live' | 'finished' | 'postponed' | 'upcoming' => {
+      switch (status) {
+        case 'SCHEDULED': return 'upcoming';
+        case 'LIVE':
+        case 'IN_PLAY': 
+        case 'PAUSED': return 'live';
+        case 'FINISHED': return 'finished';
+        case 'POSTPONED':
+        case 'SUSPENDED':
+        case 'CANCELLED': return 'postponed';
+        default: return 'scheduled';
+      }
+    };
+
+    return {
+      id: match.id.toString(),
+      dateTime: FootballDataApi.formatDateTime(match.utcDate), // Already properly formatted!
+      homeTeam,
+      awayTeam,
+      venue: match.venue || 'TBD',
+      competition: {
+        id: match.competition.code,
+        name: match.competition.name,
+        logo: match.competition.emblem
+      } as Competition,
+      matchWeek: match.matchday,
+      importance,
+      importanceScore: importance,
+      tags,
+      isBigMatch: importance >= 8,
+      status: mapStatus(match.status)
+    };
+  }
+
+  // Get featured fixtures with importance scoring
+  async getFeaturedFixtures(limit: number = 8): Promise<FeaturedFixtureWithImportance[]> {
+    try {
+      // Get upcoming matches
+      const matches = await this.footballDataApi.getUpcomingMatches(20);
+      
+      if (!matches || matches.length === 0) {
         return [];
       }
 
-      // Form comes as "W,L,W,D,W" - split and convert to our format
-      return teamStanding.form.split(',').map(result => {
-        switch(result.trim()) {
-          case 'W': return 'W';
-          case 'D': return 'D';
-          case 'L': return 'L';
-          default: return 'D'; // fallback
-        }
-      }) as ('W'|'D'|'L')[];
+      // Transform matches
+      const transformedFixtures = await Promise.all(
+        matches.slice(0, 15).map(match => this.transformMatch(match))
+      );
+
+      // Sort by importance (descending) and take the most important ones
+      return transformedFixtures
+        .sort((a, b) => b.importance - a.importance)
+        .slice(0, limit);
+
     } catch (error) {
-      console.error(`Error fetching form for team ${teamId}:`, error);
-      return [];
+      console.error('Error fetching featured fixtures:', error);
+      throw new Error('Failed to fetch featured fixtures');
     }
   }
 
-  // Get competition details
-  async getCompetitionDetails(): Promise<FootballDataCompetition | undefined> {
-    const url = `${FOOTBALL_DATA_BASE_URL}/competitions/${PREMIER_LEAGUE_ID}`;
-    const response = await this.fetchWithCache<FootballDataCompetition>(url, `competition-${PREMIER_LEAGUE_ID}`);
-    return response;
-  }
-
-  // Get current matchday
-  async getCurrentMatchday(): Promise<number> {
+  // Get all upcoming fixtures
+  async getAllUpcomingFixtures(): Promise<FeaturedFixtureWithImportance[]> {
     try {
-      const competition = await this.getCompetitionDetails();
-      return competition?.currentSeason?.currentMatchday || 1;
+      const matches = await this.footballDataApi.getUpcomingMatches(50);
+      
+      if (!matches || matches.length === 0) {
+        return [];
+      }
+
+      // Transform all matches
+      const transformedFixtures = await Promise.all(
+        matches.map(match => this.transformMatch(match))
+      );
+
+      // Sort by date
+      return transformedFixtures.sort((a, b) => 
+        new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime()
+      );
+
     } catch (error) {
-      console.error('Error getting current matchday:', error);
-      return 1;
+      console.error('Error fetching all fixtures:', error);
+      throw new Error('Failed to fetch fixtures');
     }
   }
 
-  // Clear cache
-  clearCache(): void {
-    this.cache.clear();
-  }
-
-  // Helper method to convert form string to array
-  static parseForm(formString: string): ('W'|'D'|'L')[] {
-    if (!formString) return [];
-    return formString.split(',').map(result => {
-      switch(result.trim()) {
-        case 'W': return 'W';
-        case 'D': return 'D';
-        case 'L': return 'L';
-        default: return 'D';
+  // Get fixtures for a specific matchday
+  async getFixturesByMatchday(matchday: number): Promise<FeaturedFixtureWithImportance[]> {
+    try {
+      const matches = await this.footballDataApi.getMatchesByMatchday(matchday);
+      
+      if (!matches || matches.length === 0) {
+        return [];
       }
-    }) as ('W'|'D'|'L')[];
+
+      const transformedFixtures = await Promise.all(
+        matches.map(match => this.transformMatch(match))
+      );
+
+      return transformedFixtures.sort((a, b) => 
+        new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime()
+      );
+
+    } catch (error) {
+      console.error('Error fetching matchday fixtures:', error);
+      throw new Error('Failed to fetch matchday fixtures');
+    }
   }
 
-  // Helper method to format date properly (no UTC issues!)
-  static formatDateTime(utcDate: string): string {
-    return utcDate; // Football-Data already provides proper ISO timestamps
+  // Clear caches
+  clearCache(): void {
+    this.standingsCache = [];
+    this.standingsCacheTime = 0;
+    this.footballDataApi.clearCache();
   }
 }
