@@ -1,5 +1,4 @@
 name: CI & Deploy to GitHub Pages
-
 on:
   push:
     branches: [main]
@@ -23,35 +22,37 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     needs: case-sensitivity-check
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-
+        
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 'lts/*'
           cache: 'npm'
-
-      - name: create.env file
-        run: echo REACT_APP_FOOTBALL_DATA_API_KEY: ${{secrets.REACT_APP_FOOTBALL_DATA_API_KEY}}
-
+          
       - name: Install dependencies
         run: npm ci
-
+        
       - name: Check Prettier formatting
         run: npm run format -- --check
-
+        
       - name: Run ESLint
         run: npm run lint
-
+        
       - name: TypeScript Type Check
         run: npm run type-check
-
+        
       - name: Build
         run: npm run build
-
+        env:
+          # 🔥 CRITICAL: This environment variable must match your GitHub secret name
+          # If your secret is named FOOTBALL_DATA_API_TOKEN, change this line to:
+          # REACT_APP_FOOTBALL_DATA_TOKEN: ${{ secrets.FOOTBALL_DATA_API_TOKEN }}
+          # Or rename your GitHub secret to REACT_APP_FOOTBALL_DATA_TOKEN (recommended)
+          REACT_APP_FOOTBALL_DATA_TOKEN: ${{ secrets.REACT_APP_FOOTBALL_DATA_TOKEN }}
+          
       - name: Deploy to GitHub Pages
         if: github.ref == 'refs/heads/main'
         uses: peaceiris/actions-gh-pages@v3
