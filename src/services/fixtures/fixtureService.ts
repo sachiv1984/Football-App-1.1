@@ -15,7 +15,7 @@ interface FootballDataMatch {
 
 interface FootballDataStanding {
   team: { id: number };
-  form?: string; // e.g. "WDLWD"
+  form?: string;
   position: number;
 }
 
@@ -35,11 +35,14 @@ export class FixtureService {
   private standingsCacheTime = 0;
   private readonly cacheTimeout = 10 * 60 * 1000; // 10 min
 
+  // -------------------------
+  // Helpers
+  // -------------------------
   private getTeamColors(teamName: string): { primary?: string; secondary?: string } {
     const colorMap: Record<string, { primary?: string; secondary?: string }> = {
-      'Arsenal': { primary: '#EF0107', secondary: '#023474' },
-      'Chelsea': { primary: '#034694', secondary: '#FFFFFF' },
-      'Liverpool': { primary: '#C8102E', secondary: '#F6EB61' },
+      Arsenal: { primary: '#EF0107', secondary: '#023474' },
+      Chelsea: { primary: '#034694', secondary: '#FFFFFF' },
+      Liverpool: { primary: '#C8102E', secondary: '#F6EB61' },
       'Manchester City': { primary: '#6CABDD', secondary: '#1C2C5B' },
       'Manchester United': { primary: '#DA020E', secondary: '#FBE122' },
       'Tottenham Hotspur': { primary: '#132257', secondary: '#FFFFFF' },
@@ -52,6 +55,88 @@ export class FixtureService {
     return formString.split('') as ('W' | 'D' | 'L')[];
   }
 
+  private isDerby(home: string, away: string): boolean {
+    const derbies = [
+      ['Arsenal', 'Tottenham Hotspur'],
+      ['Liverpool', 'Everton'],
+      ['Manchester United', 'Manchester City'],
+      ['Chelsea', 'Arsenal'],
+      ['Chelsea', 'Tottenham Hotspur'],
+      ['Chelsea', 'Fulham'],
+      ['Crystal Palace', 'Brighton & Hove Albion'],
+    ];
+    return derbies.some(d => d.includes(home) && d.includes(away));
+  }
+
+  private calculateImportance(match: FootballDataMatch, standings?: FootballDataStanding[]): number {
+    let importance = 3;
+
+    // Matchday weighting
+    const matchday = match.matchday;
+    if (matchday >= 35) importance += 3;
+    else if (matchday >= 25) importance += 2;
+    else if (matchday >= 15) importance += 1;
+
+    // Standings weighting
+    if (standings) {
+      const homePos = standings.find(s => s.team.id === match.homeTeam.id)?.position || 20;
+      const awayPos = standings.find(s => s.team.id === match.awayTeam.id)?.position || 20;
+      if (homePos <= 6 && awayPos <= 6) importance += 3;
+      else if ((homePos <= 10 && awayPos > 10) || (homePos > 10 && awayPos <= 10)) importance += 1;
+      else if (homePos >= 17 && awayPos >= 17) importance += 2;
+    }
+
+    // Big six weighting
+    const bigSix = ['Arsenal', 'Chelsea', 'Liverpool', 'Manchester City', 'Manchester United', 'Tottenham Hotspur'];
+    if (bigSix.includes(match.homeTeam.name) && bigSix.includes(match.awayTeam.name)) importance += 2;
+    else if (bigSix.includes(match.homeTeam.name) || bigSix.includes(match.awayTeam.name)) importance += 1;
+
+    // Derby weighting
+    if (this.isDerby(match.homeTeam.name, match.awayTeam.name)) importance += 2;
+
+    return Math.min(importance, 10);
+  }
+
+  private generateTags(match: FootballDataMatch, importance: number): string[] {
+    const tags: string[] = [];
+    const md = match.matchday;
+
+    if (md <= 5) tags.push('early-season');
+    else if (md >= 35) tags.push('title-race', 'relegation-battle');
+    else if (md >= 25) tags.push('business-end');
+
+    if (importance >= 8) tags.push('big-match');
+    if (this.isDerby(match.homeTeam.name, match.awayTeam.name)) tags.push('derby');
+
+    const day = new Date(match.utcDate).getDay();
+    if (day === 0) tags.push('sunday-fixture');
+    else if (day === 6) tags.push('saturday-fixture');
+    else if (day === 1) tags.push('monday-night-football');
+
+    if (match.stage === 'REGULAR_SEASON') tags.push('league-match');
+
+    return tags;
+  }
+
+  private mapStatus(status: FootballDataMatch['status']): 'scheduled' | 'live' | 'finished' | 'postponed' | 'upcoming' {
+    switch (status) {
+      case 'SCHEDULED': return 'upcoming';
+      case 'LIVE':
+      case 'IN_PLAY':
+      case 'PAUSED':
+        return 'live';
+      case 'FINISHED': return 'finished';
+      case 'POSTPONED':
+      case 'SUSPENDED':
+      case 'CANCELLED':
+        return 'postponed';
+      default: return 'scheduled';
+    }
+  }
+
+  // -------------------------
+  // Caching and API fetching
+  // -------------------------
   private async getStandings(): Promise<FootballDataStanding[]> {
     const now = Date.now();
     if (this.standingsCache.length && now - this.standingsCacheTime < this.cacheTimeout) {
@@ -102,72 +187,6 @@ export class FixtureService {
     }
   }
 
-  private isDerby(home: string, away: string) {
-    const derbies = [
-      ['Arsenal', 'Tottenham Hotspur'],
-      ['Liverpool', 'Everton'],
-      ['Manchester United', 'Manchester City'],
-      ['Chelsea', 'Arsenal'],
-      ['Chelsea', 'Tottenham Hotspur'],
-      ['Chelsea', 'Fulham'],
-      ['Crystal Palace', 'Brighton & Hove Albion'],
-    ];
-    return derbies.some(d => d.includes(home) && d.includes(away));
-  }
-
-  private calculateImportance(match: FootballDataMatch, standings?: FootballDataStanding[]): number {
-    let importance = 3;
-    const matchday = match.matchday;
-    if (matchday >= 35) importance += 3;
-    else if (matchday >= 25) importance += 2;
-    else if (matchday >= 15) importance += 1;
-
-    if (standings) {
-      const homePos = standings.find(s => s.team.id === match.homeTeam.id)?.position || 20;
-      const awayPos = standings.find(s => s.team.id === match.awayTeam.id)?.position || 20;
-      if (homePos <= 6 && awayPos <= 6) importance += 3;
-      else if ((homePos <= 10 && awayPos > 10) || (homePos > 10 && awayPos <= 10)) importance += 1;
-      else if (homePos >= 17 && awayPos >= 17) importance += 2;
-    }
-
-    const bigSix = ['Arsenal', 'Chelsea', 'Liverpool', 'Manchester City', 'Manchester United', 'Tottenham Hotspur'];
-    if (bigSix.includes(match.homeTeam.name) && bigSix.includes(match.awayTeam.name)) importance += 2;
-    else if (bigSix.includes(match.homeTeam.name) || bigSix.includes(match.awayTeam.name)) importance += 1;
-
-    if (this.isDerby(match.homeTeam.name, match.awayTeam.name)) importance += 2;
-
-    return Math.min(importance, 10);
-  }
-
-  private generateTags(match: FootballDataMatch, importance: number): string[] {
-    const tags: string[] = [];
-    const md = match.matchday;
-    if (md <= 5) tags.push('early-season');
-    else if (md >= 35) tags.push('title-race', 'relegation-battle');
-    else if (md >= 25) tags.push('business-end');
-    if (importance >= 8) tags.push('big-match');
-    if (this.isDerby(match.homeTeam.name, match.awayTeam.name)) tags.push('derby');
-
-    const day = new Date(match.utcDate).getDay();
-    if (day === 0) tags.push('sunday-fixture');
-    else if (day === 6) tags.push('saturday-fixture');
-    else if (day === 1) tags.push('monday-night-football');
-
-    if (match.stage === 'REGULAR_SEASON') tags.push('league-match');
-
-    return tags;
-  }
-
-  private mapStatus(status: FootballDataMatch['status']): 'scheduled' | 'live' | 'finished' | 'postponed' | 'upcoming' {
-    switch (status) {
-      case 'SCHEDULED': return 'upcoming';
-      case 'LIVE': case 'IN_PLAY': case 'PAUSED': return 'live';
-      case 'FINISHED': return 'finished';
-      case 'POSTPONED': case 'SUSPENDED': case 'CANCELLED': return 'postponed';
-      default: return 'scheduled';
-    }
-  }
-
   private async transformMatch(match: FootballDataMatch): Promise<FeaturedFixtureWithImportance> {
     const standings = await this.getStandings();
     const [homeTeam, awayTeam] = await Promise.all([
@@ -197,7 +216,9 @@ export class FixtureService {
     };
   }
 
-  // Public methods for components
+  // -------------------------
+  // Public Methods
+  // -------------------------
   async getFeaturedFixtures(limit: number = 8): Promise<FeaturedFixtureWithImportance[]> {
     const matches = await this.getMatches();
     const transformed = await Promise.all(matches.slice(0, 15).map(m => this.transformMatch(m)));
