@@ -1,21 +1,20 @@
 // /api/standings.ts
-import { FootballDataApi } from '../src/services/api/footballDataApi';
+import type { NextApiRequest, NextApiResponse } from 'next';
+import { FixtureService } from '../src/services/fixtures/fixtureService';
 
 let cache: any = null;
 let cacheTime = 0;
-const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+const CACHE_TTL = 10 * 60 * 1000; // 10 min
 
-export default async function handler(req: any, res: any) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     const now = Date.now();
-
-    // Serve cached data if valid
     if (cache && now - cacheTime < CACHE_TTL) {
       return res.status(200).json(cache);
     }
 
-    const api = FootballDataApi.getInstance();
-    const standings = await api.getStandings();
+    const fixtureService = new FixtureService();
+    const standings = await fixtureService['getStandings'](); // private method access workaround
 
     cache = standings;
     cacheTime = now;
