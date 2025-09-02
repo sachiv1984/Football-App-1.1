@@ -1,5 +1,5 @@
 // src/utils/teamUtils.ts
-// TEST FIX - Removing potential double path issue
+// Consolidated Team & Logo Utilities - FINAL VERSION
 
 export const TEAM_ABBREVIATIONS: Record<string, string> = {
   'Manchester United': 'Man Utd',
@@ -57,10 +57,12 @@ const TEAM_LOGO_MAP: Record<string, string> = {
   "Newcastle United": "newcastle-united",
   "Newcastle United FC": "newcastle-united",
   "Nottingham Forest": "nottingham-forest",
+  "Nottingham Forest FC": "nottingham-forest",
   "Nott'm Forest": "nottingham-forest",
   "Sunderland AFC": "sunderland-afc",
   "Sunderland": "sunderland-afc",
   "Tottenham Hotspur": "tottenham-hotspur",
+  "Tottenham Hotspur FC": "tottenham-hotspur",
   "Spurs": "tottenham-hotspur",
   "West Ham United": "west-ham-united",
   "West Ham": "west-ham-united",
@@ -101,21 +103,16 @@ export interface TeamLogoResult {
   displayName: string;
 }
 
-// Get team logo path - TEST FIX: Try without base path first
+// Get team logo path
 export const getTeamLogoPath = (
   teamName: string,
   shortName?: string,
   apiBadgeUrl?: string
 ): string | null => {
   const slug = TEAM_LOGO_MAP[teamName] || (shortName && TEAM_LOGO_MAP[shortName]) || null;
-  
   if (slug) {
-    // TEST: Try without the base path first
-    const testPath = `/Images/Club%20Logos/${slug}.png`;
-    console.log('🧪 TEST PATH:', testPath);
-    return testPath;
+    return `/Images/Club%20Logos/${slug}.png`;
   }
-  
   if (!apiBadgeUrl) {
     console.warn(`Logo not found for team: "${teamName}" (shortName: "${shortName}")`);
   }
@@ -126,7 +123,6 @@ export const getTeamLogoPath = (
 export const getTeamLogo = (team: { name: string; shortName?: string; badge?: string }): TeamLogoResult => {
   const logoPath = getTeamLogoPath(team.name, team.shortName, team.badge);
   const displayName = getDisplayTeamName(team.name, team.shortName);
-  
   if (!logoPath) console.warn(`Missing logo for ${team.name}`);
   return {
     logoPath,
@@ -136,14 +132,11 @@ export const getTeamLogo = (team: { name: string; shortName?: string; badge?: st
   };
 };
 
-// Competition logo - TEST FIX
+// Competition logo
 export const getCompetitionLogo = (competitionName: string, apiLogoUrl?: string): string | null => {
   const slug = COMPETITION_LOGOS[competitionName];
   if (slug) {
-    // TEST: Try without the base path first
-    const testPath = `/Images/competition/${slug}.png`;
-    console.log('🧪 TEST COMPETITION PATH:', testPath);
-    return testPath;
+    return `/Images/competition/${slug}.png`;
   }
   return apiLogoUrl || null;
 };
