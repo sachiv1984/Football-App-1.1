@@ -56,22 +56,16 @@ export interface TeamLogoResult {
  */
 export const getTeamLogoPath = (
   teamName: string,
-  teamId?: string,
   shortName?: string,
   apiBadgeUrl?: string
 ): string | null => {
-  // First try local logo mapping
   const slug = TEAM_LOGO_MAP[teamName] || (shortName && TEAM_LOGO_MAP[shortName]) || null;
-  
+
   if (slug) {
-    // Check if we're in development or production
-    const isProduction = process.env.NODE_ENV === 'production';
-    const basePath = isProduction ? '/Football-App-1.1' : '';
-    
-    // Point to public folder (accessible via URL)
-    return `${basePath}/Images/Club%20Logos/${slug}.png`;
+    // Public folder is always accessible at root
+    return `/Images/Club%20Logos/${slug}.png`;
   }
-  
+
   // Fallback to API badge URL if available
   return apiBadgeUrl || null;
 };
@@ -85,7 +79,7 @@ export const getTeamLogo = (team: {
   id?: string;
   badge?: string; // From API (strHomeTeamBadge/strAwayTeamBadge)
 }): TeamLogoResult => {
-  const logoPath = getTeamLogoPath(team.name, team.id, team.shortName, team.badge);
+  const logoPath = getTeamLogoPath(team.name, team.shortName, team.badge);
   const displayName = getDisplayTeamName(team.name, team.shortName);
   
   return {
@@ -119,7 +113,6 @@ export const getValidatedTeamLogo = async (team: {
 }): Promise<TeamLogoResult> => {
   const result = getTeamLogo(team);
   
-  // If we have a logo path, validate it
   if (result.logoPath) {
     const isValid = await validateLogoUrl(result.logoPath);
     if (!isValid) {
@@ -139,7 +132,6 @@ export const preloadTeamLogos = (teams: Array<{ name: string; shortName?: string
     if (logoPath) {
       const img = new Image();
       img.src = logoPath;
-      // Silently preload - don't handle errors as fallbacks will be used
     }
   });
 };
@@ -156,8 +148,8 @@ export const getCompetitionLogo = (
     'Premier League': 'english-premier-league',
     'FA Cup': 'fa-cup',
     'EFL Cup': 'efl-cup',
-    'Carabao Cup': 'efl-cup', // alias
-    'UEFA Champions League': 'champions-league', // alias
+    'Carabao Cup': 'efl-cup',
+    'UEFA Champions League': 'champions-league',
     'Champions League': 'champions-league',
     'Europa League': 'europa-league',
   };
@@ -165,12 +157,9 @@ export const getCompetitionLogo = (
   const slug = competitionLogos[competitionName];
 
   if (slug) {
-    const isProduction = process.env.NODE_ENV === 'production';
-    const basePath = isProduction ? '/Football-App-1.1' : '';
-    return `${basePath}/Images/competition/${slug}.png`;
+    return `/Images/competition/${slug}.png`;
   }
 
-  // Fallback to API logo
   return apiLogoUrl || null;
 };
 
@@ -180,9 +169,7 @@ export const getCompetitionLogo = (
 export const generateFallbackInitial = (teamName: string, shortName?: string): string => {
   const displayName = getDisplayTeamName(teamName, shortName);
   
-  // Handle special cases for better initials
   if (displayName.includes(' ')) {
-    // Multi-word: take first letter of each word
     return displayName
       .split(' ')
       .map(word => word.charAt(0))
@@ -190,7 +177,6 @@ export const generateFallbackInitial = (teamName: string, shortName?: string): s
       .substring(0, 3)
       .toUpperCase();
   }
-  
-  // Single word: take first 2-3 characters
+
   return displayName.substring(0, 3).toUpperCase();
 };
