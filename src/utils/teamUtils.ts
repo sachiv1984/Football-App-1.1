@@ -1,0 +1,162 @@
+// src/utils/teamUtils.ts
+
+// ------------------------------
+// TEAM ABBREVIATIONS & DISPLAY
+// ------------------------------
+export const TEAM_ABBREVIATIONS: { [key: string]: string } = {
+  'Manchester United': 'Man Utd',
+  'Manchester City': 'Man City',
+  'Tottenham Hotspur': 'Tottenham',
+  'Brighton & Hove Albion': 'Brighton',
+  'Sheffield United': 'Sheffield Utd',
+  'West Ham United': 'West Ham',
+  'Newcastle United': 'Newcastle',
+  'Wolverhampton Wanderers': 'Wolves',
+  'Leicester City': 'Leicester',
+  'Crystal Palace': 'Crystal Palace',
+  'Nottingham Forest': "Nott'm Forest",
+  'AFC Bournemouth': 'Bournemouth',
+  'Luton Town': 'Luton',
+  'Aston Villa': 'Villa',
+  'Fulham': 'Fulham',
+  'Brentford': 'Brentford',
+  'Everton': 'Everton',
+  'Liverpool': 'Liverpool',
+  'Arsenal': 'Arsenal',
+  'Chelsea': 'Chelsea',
+};
+
+// Display team name with smart truncation
+export const getDisplayTeamName = (
+  fullName: string,
+  apiShortName?: string,
+  maxLength: number = 12
+): string => {
+  if (TEAM_ABBREVIATIONS[fullName]) return TEAM_ABBREVIATIONS[fullName];
+  if (apiShortName && apiShortName !== 'Unknown' && apiShortName.length <= maxLength) return apiShortName;
+  if (fullName.length <= maxLength) return fullName;
+  return `${fullName.substring(0, maxLength - 3)}...`;
+};
+
+// ------------------------------
+// TEAM CLASSIFICATIONS
+// ------------------------------
+export const TOP_SIX_TEAMS = [
+  'Manchester United', 'Manchester City', 'Arsenal', 
+  'Chelsea', 'Liverpool', 'Tottenham Hotspur'
+];
+
+export const BIG_SIX_TEAMS = [
+  'Newcastle United', 'Brighton & Hove Albion', 
+  'West Ham United', 'Aston Villa'
+];
+
+export const isTopSixTeam = (teamName: string): boolean =>
+  TOP_SIX_TEAMS.includes(teamName);
+
+export const isBigSixTeam = (teamName: string): boolean =>
+  BIG_SIX_TEAMS.includes(teamName);
+
+// ------------------------------
+// TEAM LOGO UTILITIES
+// ------------------------------
+const TEAM_LOGO_MAP: Record<string, string> = {
+  ...TEAM_ABBREVIATIONS,
+  // Add any extra mapping if slug differs from abbreviation
+};
+
+const normalizeTeamName = (name: string) =>
+  name.toLowerCase().replace(/\s+|&/g, '-').replace(/'/g, '').replace(/\.+/g, '');
+
+// Get logo path for a team
+export const getTeamLogoPath = (
+  teamName: string,
+  apiShortName?: string,
+  apiBadgeUrl?: string
+): string | null => {
+  const slug =
+    TEAM_LOGO_MAP[teamName] ||
+    (apiShortName && TEAM_LOGO_MAP[apiShortName]) ||
+    normalizeTeamName(teamName);
+
+  if (slug) {
+    // Vercel/public folder friendly
+    return `/Images/Club%20Logos/${slug}.png`;
+  }
+
+  return apiBadgeUrl || null;
+};
+
+// Logo result interface
+export interface TeamLogoResult {
+  logoPath: string | null;
+  fallbackInitial: string;
+  fallbackName: string;
+  displayName: string;
+}
+
+// Get full logo info
+export const getTeamLogo = (team: {
+  name: string;
+  shortName?: string;
+  badge?: string; // API badge fallback
+}): TeamLogoResult => {
+  const logoPath = getTeamLogoPath(team.name, team.shortName, team.badge);
+  const displayName = getDisplayTeamName(team.name, team.shortName);
+
+  return {
+    logoPath,
+    fallbackInitial: displayName
+      .split(' ')
+      .map(w => w[0])
+      .join('')
+      .substring(0, 3)
+      .toUpperCase(),
+    fallbackName: displayName,
+    displayName
+  };
+};
+
+// Debug helper: log missing logos and suggest slug
+export const logMissingTeamLogos = (teams: Array<{ name: string; shortName?: string; badge?: string }>) => {
+  teams.forEach(team => {
+    const logoPath = getTeamLogoPath(team.name, team.shortName, team.badge);
+    if (!logoPath) {
+      const suggestedSlug = team.shortName ? normalizeTeamName(team.shortName) : normalizeTeamName(team.name);
+      console.warn(`[Missing Logo] Team: "${team.name}" | ShortName: "${team.shortName || '-'}" | Suggested Slug: "${suggestedSlug}"`);
+    }
+  });
+};
+
+// Preload logos for smoother carousel
+export const preloadTeamLogos = (teams: Array<{ name: string; shortName?: string; badge?: string }>) => {
+  teams.forEach(team => {
+    const { logoPath } = getTeamLogo(team);
+    if (logoPath) {
+      const img = new Image();
+      img.src = logoPath;
+    }
+  });
+};
+
+// ------------------------------
+// COMPETITION LOGOS
+// ------------------------------
+export const getCompetitionLogo = (
+  competitionName: string,
+  apiLogoUrl?: string
+): string | null => {
+  const competitionLogos: Record<string, string> = {
+    'English Premier League': 'english-premier-league',
+    'Premier League': 'english-premier-league',
+    'FA Cup': 'fa-cup',
+    'EFL Cup': 'efl-cup',
+    'Carabao Cup': 'efl-cup',
+    'UEFA Champions League': 'champions-league',
+    'Champions League': 'champions-league',
+    'Europa League': 'europa-league',
+  };
+
+  const slug = competitionLogos[competitionName];
+  return slug ? `/Images/competition/${slug}.png` : apiLogoUrl || null;
+};
