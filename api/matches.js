@@ -1,10 +1,43 @@
 // api/matches.js
 let matchesCache = { data: null, timestamp: 0 };
+const teamVenueCache = new Map(); // teamId -> { venue, ts }
+
+// helper: fetch & cache venue from /teams endpoint
+async function getTeamVenue(teamId, API_TOKEN) {
+  const cached = teamVenueCache.get(teamId);
+  const week = 7 * 24 * 60 * 60 * 1000; // 7 days
+  if (cached && Date.now() - cached.ts < week) {
+    return cached.venue;
+  }
+
+  try {
+    const r = await fetch(`https://api.football-data.org/v4/teams/${teamId}`, {
+      headers: {
+        "X-Auth-Token": API_TOKEN,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!r.ok) {
+      console.warn(`Failed to fetch venue for team ${teamId}: ${r.status}`);
+      return "";
+    }
+
+    const t = await r.json();
+    const venue = t.venue || "";
+    teamVenueCache.set(teamId, { venue, ts: Date.now() });
+    return venue;
+  } catch (err) {
+    console.error("Error fetching team venue:", err);
+    return "";
+  }
+}
 
 module.exports = async function handler(req, res) {
   try {
     const API_TOKEN =
-      process.env.FOOTBALL_DATA_TOKEN || process.env.REACT_APP_FOOTBALL_DATA_TOKEN;
+      process.env.FOOTBALL_DATA_TOKEN ||
+      process.env.REACT_APP_FOOTBALL_DATA_TOKEN;
 
     if (!API_TOKEN) {
       return res.status(500).json({ error: "API token not configured" });
@@ -18,8 +51,8 @@ module.exports = async function handler(req, res) {
     let ttl = 60 * 60 * 1000; // default 1h
 
     if (matchesCache.data) {
-      const hasLive = matchesCache.data.some(
-        (m) => ["LIVE", "IN_PLAY", "PAUSED"].includes(m.status)
+      const hasLive = matchesCache.data.some((m) =>
+        ["LIVE", "IN_PLAY", "PAUSED"].includes(m.status)
       );
       if (hasLive) ttl = 30 * 1000; // live games -> 30s
       else {
@@ -60,17 +93,27 @@ module.exports = async function handler(req, res) {
     }
 
     const data = await response.json();
-    const matches = (data.matches || []).map((match) => ({
-      id: match.id,
-      utcDate: match.utcDate,
-      status: match.status,
-      matchday: match.matchday,
-      stage: match.stage || "REGULAR_SEASON",
-      homeTeam: match.homeTeam,
-      awayTeam: match.awayTeam,
-      venue: match.venue || "",
-      competition: match.competition || {},
-    }));
+
+    // Enrich each match with venue if missing
+    const matches = await Promise.all(
+      (data.matches || []).map(async (match) => {
+        let venue = match.venue || "";
+        if (!venue && match.homeTeam?.id) {
+          venue = await getTeamVenue(match.homeTeam.id, API_TOKEN);
+        }
+        return {
+          id: match.id,
+          utcDate: match.utcDate,
+          status: match.status,
+          matchday: match.matchday,
+          stage: match.stage || "REGULAR_SEASON",
+          homeTeam: match.homeTeam,
+          awayTeam: match.awayTeam,
+          venue,
+          competition: match.competition || {},
+        };
+      })
+    );
 
     // Save to cache
     matchesCache = { data: matches, timestamp: now };
