@@ -26,7 +26,6 @@ const TEAM_LOGO_MAP: Record<string, string> = {
   "Manchester City": "manchester-city",
   "Manchester United": "manchester-united",
   "Newcastle United": "newcastle-united",
-  "Nottingham Forest": "nottingham-forest",
   "Sunderland AFC": "sunderland-afc",
   "Sunderland": "sunderland-afc",
   "Tottenham Hotspur": "tottenham-hotspur",
@@ -44,6 +43,14 @@ const TEAM_LOGO_MAP: Record<string, string> = {
   "Bournemouth": "afc-bournemouth"
 };
 
+// Utility to normalize any team name into a slug
+const normalizeTeamName = (name: string) =>
+  name
+    .toLowerCase()
+    .replace(/\s+|&/g, '-')       // spaces and & → dash
+    .replace(/'/g, '')             // remove apostrophes
+    .replace(/\.+/g, '');          // remove dots
+
 export interface TeamLogoResult {
   logoPath: string | null;
   fallbackInitial: string;
@@ -59,14 +66,15 @@ export const getTeamLogoPath = (
   shortName?: string,
   apiBadgeUrl?: string
 ): string | null => {
-  const slug = TEAM_LOGO_MAP[teamName] || (shortName && TEAM_LOGO_MAP[shortName]) || null;
+  const slug =
+    TEAM_LOGO_MAP[teamName] || 
+    (shortName && TEAM_LOGO_MAP[shortName]) || 
+    normalizeTeamName(teamName);
 
   if (slug) {
-    // Public folder is always accessible at root
     return `/Images/Club%20Logos/${slug}.png`;
   }
 
-  // Fallback to API badge URL if available
   return apiBadgeUrl || null;
 };
 
@@ -77,7 +85,7 @@ export const getTeamLogo = (team: {
   name: string; 
   shortName?: string; 
   id?: string;
-  badge?: string; // From API (strHomeTeamBadge/strAwayTeamBadge)
+  badge?: string; 
 }): TeamLogoResult => {
   const logoPath = getTeamLogoPath(team.name, team.shortName, team.badge);
   const displayName = getDisplayTeamName(team.name, team.shortName);
@@ -91,7 +99,7 @@ export const getTeamLogo = (team: {
 };
 
 /**
- * Validate if a logo URL is accessible (useful for testing API badges)
+ * Validate if a logo URL is accessible
  */
 export const validateLogoUrl = async (url: string): Promise<boolean> => {
   try {
@@ -103,7 +111,7 @@ export const validateLogoUrl = async (url: string): Promise<boolean> => {
 };
 
 /**
- * Get logo with validation (for critical UI where logo must load)
+ * Get validated team logo (for critical UI)
  */
 export const getValidatedTeamLogo = async (team: { 
   name: string; 
@@ -115,16 +123,14 @@ export const getValidatedTeamLogo = async (team: {
   
   if (result.logoPath) {
     const isValid = await validateLogoUrl(result.logoPath);
-    if (!isValid) {
-      result.logoPath = null;
-    }
+    if (!isValid) result.logoPath = null;
   }
   
   return result;
 };
 
 /**
- * Preload team logos for better performance
+ * Preload team logos
  */
 export const preloadTeamLogos = (teams: Array<{ name: string; shortName?: string; badge?: string }>) => {
   teams.forEach(team => {
@@ -156,9 +162,7 @@ export const getCompetitionLogo = (
 
   const slug = competitionLogos[competitionName];
 
-  if (slug) {
-    return `/Images/competition/${slug}.png`;
-  }
+  if (slug) return `/Images/competition/${slug}.png`;
 
   return apiLogoUrl || null;
 };
