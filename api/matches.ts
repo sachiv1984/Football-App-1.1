@@ -1,91 +1,96 @@
 // src/api/matches.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { FootballDataApi } from '../../services/api/footballDataApi';
 
+// Simple test endpoint first
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
-    console.log('Starting /api/matches handler');
+    console.log('=== API /matches called ===');
     
-    // Check if API token is available
+    // Check environment variables
     const API_TOKEN = process.env.FOOTBALL_DATA_TOKEN || process.env.REACT_APP_FOOTBALL_DATA_TOKEN;
+    console.log('API_TOKEN exists:', !!API_TOKEN);
+    console.log('Available env vars:', Object.keys(process.env).filter(k => k.includes('FOOTBALL')));
+    
     if (!API_TOKEN) {
-      console.error('❌ API token is missing');
+      console.error('❌ No API token found');
       return res.status(500).json({
         success: false,
         error: 'API token is not configured',
-        note: 'Please set FOOTBALL_DATA_TOKEN in your environment variables.'
+        note: 'Please set FOOTBALL_DATA_TOKEN in environment variables',
+        availableEnvVars: Object.keys(process.env).filter(k => k.includes('FOOTBALL'))
       });
     }
 
-    console.log('API token found, initializing FootballDataApi');
+    // Test basic fetch first
+    console.log('Testing direct API call...');
+    const testUrl = 'https://api.football-data.org/v4/competitions/PL/matches';
     
-    // Use server-side FootballDataApi directly
-    const footballApi = FootballDataApi.getInstance();
-    
-    console.log('Fetching matches from Football Data API');
-    const matches = await footballApi.getCurrentSeasonMatches();
-    
-    console.log(`Fetched ${matches.length} matches`);
+    const response = await fetch(testUrl, {
+      headers: {
+        'X-Auth-Token': API_TOKEN,
+        'Content-Type': 'application/json'
+      }
+    });
 
-    // Simple transformation without private method access
-    const fixtures = matches.map(match => ({
+    console.log('API Response status:', response.status);
+    console.log('API Response headers:', Object.fromEntries(response.headers.entries()));
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('API Error response:', errorText);
+      
+      return res.status(500).json({
+        success: false,
+        error: `Football Data API error: ${response.status} ${response.statusText}`,
+        details: errorText,
+        note: 'Check your API token and account limits'
+      });
+    }
+
+    const data = await response.json();
+    console.log('API Response data keys:', Object.keys(data));
+    console.log('Matches count:', data.matches?.length || 0);
+
+    // Return simplified match data
+    const matches = (data.matches || []).slice(0, 10).map((match: any) => ({
       id: match.id,
       date: match.utcDate,
       status: match.status,
-      matchday: match.matchday,
-      stage: match.stage,
       homeTeam: {
-        id: match.homeTeam.id,
         name: match.homeTeam.name,
-        shortName: match.homeTeam.shortName,
-        tla: match.homeTeam.tla,
         crest: match.homeTeam.crest
       },
       awayTeam: {
-        id: match.awayTeam.id,
         name: match.awayTeam.name,
-        shortName: match.awayTeam.shortName,
-        tla: match.awayTeam.tla,
         crest: match.awayTeam.crest
       },
-      score: match.score,
-      venue: match.venue,
-      competition: match.competition,
-      // Add any additional fields your frontend expects
-      importance: 1, // Default importance
-      colors: {
-        home: '#000000',
-        away: '#FFFFFF'
-      }
+      score: match.score
     }));
 
-    console.log(`Transformed ${fixtures.length} fixtures, sending response`);
-    res.status(200).json(fixtures);
+    console.log('Sending response with', matches.length, 'matches');
+    
+    res.status(200).json({
+      success: true,
+      matches: matches,
+      total: data.matches?.length || 0
+    });
     
   } catch (error: unknown) {
-    console.error('❌ API /matches error:', error);
-
-    // More detailed error logging
+    console.error('❌ Unexpected error in /api/matches:', error);
+    
     if (error instanceof Error) {
-      console.error('Error name:', error.name);
-      console.error('Error message:', error.message);
-      console.error('Error stack:', error.stack);
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
     }
-
-    const errorMessage =
-      error instanceof Error ? error.message :
-      typeof error === 'string' ? error :
-      'Unknown server error';
 
     res.status(500).json({
       success: false,
-      error: errorMessage,
-      details: error instanceof Error ? {
-        name: error.name,
-        message: error.message,
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-      } : error,
-      note: 'Check FootballDataApi token and network connectivity.'
+      error: error instanceof Error ? error.message : 'Unknown server error',
+      type: error instanceof Error ? error.constructor.name : typeof error,
+      stack: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined
     });
   }
 }
