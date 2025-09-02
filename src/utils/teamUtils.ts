@@ -1,5 +1,5 @@
 // src/utils/teamUtils.ts
-// Consolidated Team & Logo Utilities
+// Consolidated Team & Logo Utilities with debug logging
 
 export const TEAM_ABBREVIATIONS: Record<string, string> = {
   'Manchester United': 'Man Utd',
@@ -22,7 +22,6 @@ export const TEAM_ABBREVIATIONS: Record<string, string> = {
   'Liverpool': 'Liverpool',
   'Arsenal': 'Arsenal',
   'Chelsea': 'Chelsea',
-  // Add more as needed
 };
 
 // Mapping to local logo slugs
@@ -112,6 +111,8 @@ export const getTeamLogoPath = (
     const basePath = isProduction ? '/Football-App-1.1' : '';
     return `${basePath}/Images/Club%20Logos/${slug}.png`;
   }
+  if (apiBadgeUrl) console.warn(`Team logo missing for "${teamName}" / "${shortName}", falling back to API badge`);
+  else console.warn(`Team logo missing for "${teamName}" / "${shortName}", no badge available`);
   return apiBadgeUrl || null;
 };
 
@@ -119,6 +120,7 @@ export const getTeamLogoPath = (
 export const getTeamLogo = (team: { name: string; shortName?: string; badge?: string }): TeamLogoResult => {
   const logoPath = getTeamLogoPath(team.name, team.shortName, team.badge);
   const displayName = getDisplayTeamName(team.name, team.shortName);
+  if (!logoPath) console.info(`Logo not found for team: "${team.name}" (shortName: "${team.shortName}")`);
   return {
     logoPath,
     fallbackInitial: displayName.split(' ').map(w => w[0]).join('').substring(0,3).toUpperCase(),
@@ -135,6 +137,8 @@ export const getCompetitionLogo = (competitionName: string, apiLogoUrl?: string)
     const basePath = isProduction ? '/Football-App-1.1' : '';
     return `${basePath}/Images/competition/${slug}.png`;
   }
+  if (apiLogoUrl) console.warn(`Competition logo missing for "${competitionName}", using API logo`);
+  else console.warn(`Competition logo missing for "${competitionName}"`);
   return apiLogoUrl || null;
 };
 
