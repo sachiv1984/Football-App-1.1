@@ -1,57 +1,91 @@
 // api/matches.js
+let matchesCache = { data: null, timestamp: 0 };
+
 module.exports = async function handler(req, res) {
   try {
-    const API_TOKEN = process.env.FOOTBALL_DATA_TOKEN;
+    const API_TOKEN =
+      process.env.FOOTBALL_DATA_TOKEN || process.env.REACT_APP_FOOTBALL_DATA_TOKEN;
+
     if (!API_TOKEN) {
-      return res.status(500).json({ error: 'API token not configured' });
+      return res.status(500).json({ error: "API token not configured" });
     }
 
-    const url = 'https://api.football-data.org/v4/competitions/PL/matches';
+    const now = Date.now();
+
+    // --------------------------
+    // Cache TTL logic (smart)
+    // --------------------------
+    let ttl = 60 * 60 * 1000; // default 1h
+
+    if (matchesCache.data) {
+      const hasLive = matchesCache.data.some(
+        (m) => ["LIVE", "IN_PLAY", "PAUSED"].includes(m.status)
+      );
+      if (hasLive) ttl = 30 * 1000; // live games -> 30s
+      else {
+        const today = new Date();
+        const hasTodayMatch = matchesCache.data.some((m) => {
+          const d = new Date(m.utcDate);
+          return d.toDateString() === today.toDateString();
+        });
+        if (hasTodayMatch) ttl = 15 * 60 * 1000; // matchday -> 15min
+      }
+    }
+
+    // Serve from cache if still valid
+    if (matchesCache.data && now - matchesCache.timestamp < ttl) {
+      res.setHeader("x-cache", "HIT");
+      return res.status(200).json(matchesCache.data);
+    }
+
+    // Fetch fresh
+    const url = "https://api.football-data.org/v4/competitions/PL/matches";
     const response = await fetch(url, {
       headers: {
-        'X-Auth-Token': API_TOKEN,
-        'Content-Type': 'application/json'
-      }
+        "X-Auth-Token": API_TOKEN,
+        "Content-Type": "application/json",
+      },
     });
 
-    // Forward upstream errors with correct status
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Football Data API error:', response.status, errorText);
-
-      // Handle rate limiting explicitly
-      if (response.status === 429) {
-        return res.status(429).json({ error: 'Rate limit exceeded', details: errorText });
+      // If rate-limited, return stale cache
+      if (response.status === 429 && matchesCache.data) {
+        res.setHeader("x-cache", "STALE");
+        return res.status(200).json(matchesCache.data);
       }
-
-      return res.status(response.status).json({
-        error: 'Football Data API error',
-        status: response.status,
-        details: errorText
-      });
+      return res
+        .status(500)
+        .json({ error: "Football Data API error", details: errorText });
     }
 
     const data = await response.json();
-
-    // Normalize matches
-    const matches = (data.matches || []).map(match => ({
+    const matches = (data.matches || []).map((match) => ({
       id: match.id,
       utcDate: match.utcDate,
       status: match.status,
       matchday: match.matchday,
-      stage: match.stage || 'REGULAR_SEASON',
+      stage: match.stage || "REGULAR_SEASON",
       homeTeam: match.homeTeam,
       awayTeam: match.awayTeam,
-      venue: match.venue || '',
-      competition: match.competition || {}
+      venue: match.venue || "",
+      competition: match.competition || {},
     }));
 
-    // Cache response to ease API load
-    res.setHeader('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=300');
-    res.status(200).json(matches);
+    // Save to cache
+    matchesCache = { data: matches, timestamp: now };
 
+    res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=600");
+    res.setHeader("x-cache", "MISS");
+    return res.status(200).json(matches);
   } catch (error) {
-    console.error('Unhandled /api/matches error:', error);
-    res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' });
+    if (matchesCache.data) {
+      res.setHeader("x-cache", "ERROR-STALE");
+      return res.status(200).json(matchesCache.data);
+    }
+    res
+      .status(500)
+      .json({ error: error instanceof Error ? error.message : "Unknown error" });
   }
 };
+
