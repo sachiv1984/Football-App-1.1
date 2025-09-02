@@ -1,4 +1,4 @@
-// api/matches-simple.js
+// api/matches.js
 
 module.exports = async function handler(req, res) {
   try {
@@ -63,11 +63,8 @@ module.exports = async function handler(req, res) {
 
     console.log('Sending response with', matches.length, 'matches');
     
-    res.status(200).json({
-      success: true,
-      matches: matches,
-      total: data.matches?.length || 0
-    });
+    // Return just the array (not wrapped in an object) to match FixtureService expectations
+    res.status(200).json(matches);
     
   } catch (error) {
     console.error('❌ Unexpected error:', error);
