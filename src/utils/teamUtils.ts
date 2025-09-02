@@ -1,6 +1,4 @@
 // src/utils/teamUtils.ts
-// Consolidated Team & Logo Utilities
-
 export const TEAM_ABBREVIATIONS: Record<string, string> = {
   'Manchester United': 'Man Utd',
   'Manchester City': 'Man City',
@@ -101,7 +99,7 @@ export interface TeamLogoResult {
   displayName: string;
 }
 
-// Get team logo path
+// Get team logo path - FIXED VERSION
 export const getTeamLogoPath = (
   teamName: string,
   shortName?: string,
@@ -111,7 +109,8 @@ export const getTeamLogoPath = (
   if (slug) {
     const isProduction = process.env.NODE_ENV === 'production';
     const basePath = isProduction ? '/Football-App-1.1' : '';
-    return `${basePath}/Images/Club%20Logos/${slug}.png`;
+    // Fixed: Use forward slashes and spaces instead of URL encoding
+    return `${basePath}/Images/Club Logos/${slug}.png`;
   }
   if (!apiBadgeUrl) {
     console.warn(`Logo not found for team: "${teamName}" (shortName: "${shortName}")`);
@@ -132,12 +131,13 @@ export const getTeamLogo = (team: { name: string; shortName?: string; badge?: st
   };
 };
 
-// Competition logo
+// Competition logo - FIXED VERSION
 export const getCompetitionLogo = (competitionName: string, apiLogoUrl?: string): string | null => {
   const slug = COMPETITION_LOGOS[competitionName];
   if (slug) {
     const isProduction = process.env.NODE_ENV === 'production';
     const basePath = isProduction ? '/Football-App-1.1' : '';
+    // Fixed: Use forward slashes and spaces instead of URL encoding
     return `${basePath}/Images/competition/${slug}.png`;
   }
   return apiLogoUrl || null;
