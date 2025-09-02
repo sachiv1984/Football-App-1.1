@@ -1,5 +1,5 @@
 // src/utils/teamUtils.ts
-// Consolidated Team & Logo Utilities
+// Consolidated Team & Logo Utilities - DEBUG VERSION
 
 export const TEAM_ABBREVIATIONS: Record<string, string> = {
   'Manchester United': 'Man Utd',
@@ -101,19 +101,41 @@ export interface TeamLogoResult {
   displayName: string;
 }
 
-// Get team logo path - FIXED VERSION
+// Get team logo path - DEBUG VERSION
 export const getTeamLogoPath = (
   teamName: string,
   shortName?: string,
   apiBadgeUrl?: string
 ): string | null => {
+  console.log('🔍 DEBUG getTeamLogoPath:', {
+    teamName,
+    shortName,
+    apiBadgeUrl,
+    nodeEnv: process.env.NODE_ENV,
+    hasTeamNameInMap: !!TEAM_LOGO_MAP[teamName],
+    hasShortNameInMap: shortName ? !!TEAM_LOGO_MAP[shortName] : false
+  });
+
   const slug = TEAM_LOGO_MAP[teamName] || (shortName && TEAM_LOGO_MAP[shortName]) || null;
+  
   if (slug) {
     const isProduction = process.env.NODE_ENV === 'production';
     const basePath = isProduction ? '/Football-App-1.1' : '';
-    // Use URL encoding for spaces in folder names (required for Vercel deployment)
-    return `${basePath}/Images/Club%20Logos/${slug}.png`;
+    const finalPath = `${basePath}/Images/Club%20Logos/${slug}.png`;
+    
+    console.log('✅ Found slug for team:', {
+      teamName,
+      slug,
+      isProduction,
+      basePath,
+      finalPath
+    });
+    
+    return finalPath;
   }
+  
+  console.log('❌ No slug found for team:', teamName, 'shortName:', shortName);
+  
   if (!apiBadgeUrl) {
     console.warn(`Logo not found for team: "${teamName}" (shortName: "${shortName}")`);
   }
@@ -122,26 +144,48 @@ export const getTeamLogoPath = (
 
 // Get full team logo object
 export const getTeamLogo = (team: { name: string; shortName?: string; badge?: string }): TeamLogoResult => {
+  console.log('🏆 DEBUG getTeamLogo called with:', team);
+  
   const logoPath = getTeamLogoPath(team.name, team.shortName, team.badge);
   const displayName = getDisplayTeamName(team.name, team.shortName);
-  if (!logoPath) console.warn(`Missing logo for ${team.name}`);
-  return {
+  
+  const result = {
     logoPath,
     fallbackInitial: displayName.split(' ').map(w => w[0]).join('').substring(0,3).toUpperCase(),
     fallbackName: displayName,
     displayName,
   };
+  
+  console.log('🏆 getTeamLogo result:', result);
+  
+  if (!logoPath) console.warn(`Missing logo for ${team.name}`);
+  return result;
 };
 
-// Competition logo - FIXED VERSION
+// Competition logo - DEBUG VERSION
 export const getCompetitionLogo = (competitionName: string, apiLogoUrl?: string): string | null => {
+  console.log('🏅 DEBUG getCompetitionLogo:', {
+    competitionName,
+    apiLogoUrl,
+    hasSlug: !!COMPETITION_LOGOS[competitionName]
+  });
+
   const slug = COMPETITION_LOGOS[competitionName];
   if (slug) {
     const isProduction = process.env.NODE_ENV === 'production';
     const basePath = isProduction ? '/Football-App-1.1' : '';
-    // Use URL encoding for spaces in folder names (required for Vercel deployment)
-    return `${basePath}/Images/competition/${slug}.png`;
+    const finalPath = `${basePath}/Images/competition/${slug}.png`;
+    
+    console.log('✅ Found competition slug:', {
+      competitionName,
+      slug,
+      finalPath
+    });
+    
+    return finalPath;
   }
+  
+  console.log('❌ No competition slug found for:', competitionName);
   return apiLogoUrl || null;
 };
 
