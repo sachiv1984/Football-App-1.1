@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import type { FeaturedFixtureWithImportance } from '../../../types';
-import { getTeamLogo, getCompetitionLogo, getDisplayTeamName } from '../../../utils/teamUtils';
+import { getTeamLogo, getCompetitionLogo } from '../../../utils/teamUtils';
 import { useFixtures } from '../../../hooks/useFixtures';
 
 interface Props {
