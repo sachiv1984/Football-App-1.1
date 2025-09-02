@@ -1,38 +1,59 @@
 // src/utils/teamUtils.ts
-// Consolidated Team & Logo Utilities with debug logging
+// Consolidated Team & Logo Utilities (Enhanced with full PL 2025/26 teams + variants)
 
 export const TEAM_ABBREVIATIONS: Record<string, string> = {
-  'Manchester United': 'Man Utd',
-  'Manchester City': 'Man City',
-  'Tottenham Hotspur': 'Tottenham',
-  'Brighton & Hove Albion': 'Brighton',
-  'Sheffield United': 'Sheffield Utd',
-  'West Ham United': 'West Ham',
-  'Newcastle United': 'Newcastle',
-  'Wolverhampton Wanderers': 'Wolves',
-  'Leicester City': 'Leicester',
-  'Crystal Palace': 'Crystal Palace',
-  'Nottingham Forest': "Nott'm Forest",
-  'AFC Bournemouth': 'Bournemouth',
-  'Luton Town': 'Luton',
-  'Aston Villa': 'Villa',
-  'Fulham': 'Fulham',
-  'Brentford': 'Brentford',
-  'Everton': 'Everton',
-  'Liverpool': 'Liverpool',
+  'Arsenal FC': 'Arsenal',
   'Arsenal': 'Arsenal',
+  'Aston Villa': 'Villa',
+  'AFC Bournemouth': 'Bournemouth',
+  'Brentford FC': 'Brentford',
+  'Brentford': 'Brentford',
+  'Brighton & Hove Albion': 'Brighton',
+  'Brighton': 'Brighton',
+  'Burnley FC': 'Burnley',
+  'Burnley': 'Burnley',
+  'Chelsea FC': 'Chelsea',
   'Chelsea': 'Chelsea',
+  'Crystal Palace': 'Crystal Palace',
+  'Everton FC': 'Everton',
+  'Everton': 'Everton',
+  'Fulham FC': 'Fulham',
+  'Fulham': 'Fulham',
+  'Leeds United': 'Leeds',
+  'Leeds': 'Leeds',
+  'Leicester City': 'Leicester',
+  'Liverpool FC': 'Liverpool',
+  'Liverpool': 'Liverpool',
+  'Manchester City': 'Man City',
+  'Man City': 'Man City',
+  'Manchester United': 'Man Utd',
+  'Man Utd': 'Man Utd',
+  'Newcastle United': 'Newcastle',
+  'Nottingham Forest': "Nott'm Forest",
+  "Nott'm Forest": "Nott'm Forest",
+  'Southampton FC': 'Southampton',
+  'Southampton': 'Southampton',
+  'Tottenham Hotspur': 'Tottenham',
+  'Spurs': 'Tottenham',
+  'West Ham United': 'West Ham',
+  'West Ham': 'West Ham',
+  'Wolverhampton Wanderers': 'Wolves',
+  'Wolverhampton Wanderers FC': 'Wolves',
+  'Wolves': 'Wolves',
+  // Add more if necessary
 };
 
 // Mapping to local logo slugs
 const TEAM_LOGO_MAP: Record<string, string> = {
-  "AFC Bournemouth": "afc-bournemouth",
   "Arsenal FC": "arsenal-fc",
   "Arsenal": "arsenal-fc",
   "Aston Villa": "aston-villa",
+  "AFC Bournemouth": "afc-bournemouth",
+  "Bournemouth": "afc-bournemouth",
   "Brentford FC": "brentford-fc",
   "Brentford": "brentford-fc",
   "Brighton & Hove Albion": "brighton-and-hove-albion",
+  "Brighton": "brighton-and-hove-albion",
   "Burnley FC": "burnley-fc",
   "Burnley": "burnley-fc",
   "Chelsea FC": "chelsea-fc",
@@ -43,27 +64,26 @@ const TEAM_LOGO_MAP: Record<string, string> = {
   "Fulham FC": "fulham-fc",
   "Fulham": "fulham-fc",
   "Leeds United": "leeds-united",
+  "Leeds": "leeds-united",
+  "Leicester City": "leicester-city",
   "Liverpool FC": "liverpool-fc",
   "Liverpool": "liverpool-fc",
   "Manchester City": "manchester-city",
+  "Man City": "manchester-city",
   "Manchester United": "manchester-united",
+  "Man Utd": "manchester-united",
   "Newcastle United": "newcastle-united",
   "Nottingham Forest": "nottingham-forest",
-  "Sunderland AFC": "sunderland-afc",
-  "Sunderland": "sunderland-afc",
-  "Tottenham Hotspur": "tottenham-hotspur",
-  "West Ham United": "west-ham-united",
-  "Wolverhampton Wanderers": "wolverhampton-wanderers",
-  "Man Utd": "manchester-united",
-  "Man United": "manchester-united",
-  "Spurs": "tottenham-hotspur",
-  "Man City": "manchester-city",
   "Nott'm Forest": "nottingham-forest",
-  "Wolves": "wolverhampton-wanderers",
-  "Brighton": "brighton-and-hove-albion",
-  "Leeds": "leeds-united",
+  "Southampton FC": "southampton-fc",
+  "Southampton": "southampton-fc",
+  "Tottenham Hotspur": "tottenham-hotspur",
+  "Spurs": "tottenham-hotspur",
+  "West Ham United": "west-ham-united",
   "West Ham": "west-ham-united",
-  "Bournemouth": "afc-bournemouth",
+  "Wolverhampton Wanderers": "wolverhampton-wanderers",
+  "Wolverhampton Wanderers FC": "wolverhampton-wanderers",
+  "Wolves": "wolverhampton-wanderers",
 };
 
 // Competition logos
@@ -111,8 +131,9 @@ export const getTeamLogoPath = (
     const basePath = isProduction ? '/Football-App-1.1' : '';
     return `${basePath}/Images/Club%20Logos/${slug}.png`;
   }
-  if (apiBadgeUrl) console.warn(`Team logo missing for "${teamName}" / "${shortName}", falling back to API badge`);
-  else console.warn(`Team logo missing for "${teamName}" / "${shortName}", no badge available`);
+  if (!apiBadgeUrl) {
+    console.warn(`Logo not found for team: "${teamName}" (shortName: "${shortName}")`);
+  }
   return apiBadgeUrl || null;
 };
 
@@ -120,7 +141,6 @@ export const getTeamLogoPath = (
 export const getTeamLogo = (team: { name: string; shortName?: string; badge?: string }): TeamLogoResult => {
   const logoPath = getTeamLogoPath(team.name, team.shortName, team.badge);
   const displayName = getDisplayTeamName(team.name, team.shortName);
-  if (!logoPath) console.info(`Logo not found for team: "${team.name}" (shortName: "${team.shortName}")`);
   return {
     logoPath,
     fallbackInitial: displayName.split(' ').map(w => w[0]).join('').substring(0,3).toUpperCase(),
@@ -137,8 +157,6 @@ export const getCompetitionLogo = (competitionName: string, apiLogoUrl?: string)
     const basePath = isProduction ? '/Football-App-1.1' : '';
     return `${basePath}/Images/competition/${slug}.png`;
   }
-  if (apiLogoUrl) console.warn(`Competition logo missing for "${competitionName}", using API logo`);
-  else console.warn(`Competition logo missing for "${competitionName}"`);
   return apiLogoUrl || null;
 };
 
