@@ -196,7 +196,6 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
         onTouchEnd={handleTouchEnd}
       >
         {slides.map((fixture, idx) => {
-          const importanceBadge = getImportanceBadge(fixture.importance);
           const homeLogo = getTeamLogo(fixture.homeTeam);
           const awayLogo = getTeamLogo(fixture.awayTeam);
           const competitionLogo = getCompetitionLogo(fixture.competition.name, fixture.competition.logo);
