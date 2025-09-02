@@ -30,7 +30,7 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   // Check if mobile
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 1024); // lg breakpoint
+      setIsMobile(window.innerWidth < 768); // md breakpoint - show 2 on tablet+
     };
     
     checkMobile();
@@ -38,7 +38,7 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // For mobile: infinite loop with clones, for desktop: show all 4
+  // For mobile: infinite loop with clones, for desktop: show 2 games
   const slides = realCount > 0 && isMobile ? [
     featuredFixtures[realCount - 1],
     ...featuredFixtures,
@@ -189,7 +189,7 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
         className={`flex ${
           isMobile 
             ? 'overflow-x-scroll scroll-smooth hide-scrollbar' 
-            : 'grid lg:grid-cols-4 gap-4'
+            : 'grid md:grid-cols-2 gap-6'
         }`}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -210,10 +210,10 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
           return (
             <div 
               key={idx} 
-              className={`${isMobile ? 'min-w-full' : 'w-full'} p-2 sm:p-4 cursor-pointer`} 
+              className={`${isMobile ? 'min-w-full' : 'w-full'} p-3 cursor-pointer`} 
               onClick={() => onGameSelect?.(fixture)}
             >
-              <div className="fixture-card bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 overflow-hidden">
+              <div className="fixture-card bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] overflow-hidden">
                 {/* Purple-to-blue gradient header */}
                 <div className="bg-gradient-to-r from-purple-50 to-blue-50 px-4 py-3 flex justify-between items-center border-b border-gray-100">
                   {/* Competition logo on the left */}
@@ -233,47 +233,12 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                   </div>
                 </div>
 
-                {/* Venue information prominently displayed */}
-                <div className="px-4 py-2 bg-gradient-to-r from-gray-50 to-blue-50 text-center">
-                  <p className="text-sm sm:text-base font-medium text-gray-700">
-                    {fixture.venue || 'Venue TBD'}
-                  </p>
-                  <p className="text-xs sm:text-sm text-gray-500">
-                    {(() => {
-                      const dateStr = fixture.dateTime;
-                      if (!dateStr) return 'Date TBD';
-                      
-                      const date = new Date(dateStr);
-                      if (isNaN(date.getTime())) return 'Date TBD';
-                      
-                      return date.toLocaleDateString('en-GB', {
-                        weekday: 'short',
-                        day: 'numeric',
-                        month: 'short',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      });
-                    })()}
-                  </p>
-                </div>
-
-                {/* Teams section */}
+                {/* Teams section with improved layout */}
                 <div className="p-4 sm:p-6">
-                  {/* Competition logo (large) */}
-                  <div className="flex justify-center mb-4">
-                    {competitionLogo && (
-                      <img 
-                        src={competitionLogo} 
-                        alt={fixture.competition.name} 
-                        className="w-20 h-20 sm:w-24 sm:h-24 object-contain opacity-90"
-                      />
-                    )}
-                  </div>
-
                   {/* Home vs Away */}
                   <div className="flex justify-between items-center mb-4">
                     <div className="flex flex-col items-center flex-1">
-                      <div className="w-16 h-16 sm:w-20 sm:h-20 mb-2 bg-white rounded-full shadow-md flex items-center justify-center">
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 mb-3 bg-white rounded-full shadow-md flex items-center justify-center ring-2 ring-gray-100">
                         <img 
                           src={homeLogo.logoPath || ''} 
                           alt={homeLogo.displayName} 
@@ -285,13 +250,45 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                       </span>
                     </div>
                     
-                    <div className="flex flex-col items-center mx-4">
-                      <span className="text-xl sm:text-2xl font-bold text-purple-600 mb-1">VS</span>
-                      <div className="h-0.5 w-8 bg-gradient-to-r from-purple-400 to-blue-400"></div>
+                    {/* VS with prominent time/date */}
+                    <div className="flex flex-col items-center mx-4 min-w-[80px]">
+                      <span className="text-xl sm:text-2xl font-bold text-purple-600 mb-2">VS</span>
+                      
+                      {/* Prominent time/date display */}
+                      <div className="bg-gradient-to-r from-purple-100 to-blue-100 px-3 py-2 rounded-lg text-center border border-purple-200">
+                        <div className="text-xs sm:text-sm font-bold text-purple-700">
+                          {(() => {
+                            const dateStr = fixture.dateTime;
+                            if (!dateStr) return 'TBD';
+                            
+                            const date = new Date(dateStr);
+                            if (isNaN(date.getTime())) return 'TBD';
+                            
+                            return date.toLocaleDateString('en-GB', {
+                              day: 'numeric',
+                              month: 'short'
+                            });
+                          })()}
+                        </div>
+                        <div className="text-xs sm:text-sm font-semibold text-gray-600 mt-1">
+                          {(() => {
+                            const dateStr = fixture.dateTime;
+                            if (!dateStr) return 'TBD';
+                            
+                            const date = new Date(dateStr);
+                            if (isNaN(date.getTime())) return 'TBD';
+                            
+                            return date.toLocaleTimeString('en-GB', {
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            });
+                          })()}
+                        </div>
+                      </div>
                     </div>
                     
                     <div className="flex flex-col items-center flex-1">
-                      <div className="w-16 h-16 sm:w-20 sm:h-20 mb-2 bg-white rounded-full shadow-md flex items-center justify-center">
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 mb-3 bg-white rounded-full shadow-md flex items-center justify-center ring-2 ring-gray-100">
                         <img 
                           src={awayLogo.logoPath || ''} 
                           alt={awayLogo.displayName} 
@@ -304,14 +301,15 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                     </div>
                   </div>
 
-                  {/* Importance badge */}
-                  {importanceBadge && (
-                    <div className="flex justify-center">
-                      <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-bold ${importanceBadge.style} shadow-sm`}>
-                        {importanceBadge.text}
-                      </span>
+                  {/* Venue information at bottom - cleaner presentation */}
+                  <div className="flex justify-center mt-4 pt-3 border-t border-gray-100">
+                    <div className="text-center">
+                      <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Venue</div>
+                      <div className="text-sm font-medium text-gray-700">
+                        {fixture.venue || 'TBD'}
+                      </div>
                     </div>
-                  )}
+                  </div>
                 </div>
               </div>
             </div>
