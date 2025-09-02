@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import type { FeaturedFixtureWithImportance } from '../../../types';
-import { getTeamLogo, getCompetitionLogo } from '../../../utils/teamUtils';
+import { getTeamLogo, getCompetitionLogo, getDisplayName } from '../../../utils/teamUtils';
 import { useFixtures } from '../../../hooks/useFixtures';
 
 interface Props {
@@ -20,13 +20,18 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const { featuredFixtures, loading, error } = useFixtures();
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isAnimating, setIsAnimating] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [touchStart, setTouchStart] = useState(0);
+  const [touchEnd, setTouchEnd] = useState(0);
+  const [showArrows, setShowArrows] = useState(false);
 
   const realCount = featuredFixtures.length;
-  const slides = realCount > 0
-    ? [featuredFixtures[realCount - 1], ...featuredFixtures, featuredFixtures[0]]
-    : [];
+
+  const slides = realCount > 0 ? [
+    featuredFixtures[realCount - 1],
+    ...featuredFixtures,
+    featuredFixtures[0],
+  ] : [];
 
   const scrollToIndex = useCallback(
     (index: number, smooth = true) => {
@@ -41,47 +46,25 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   );
 
   const goToNext = useCallback(() => {
-    if (isAnimating || realCount === 0) return;
-    setIsAnimating(true);
+    if (realCount === 0) return;
     setCurrentIndex((prev) => prev + 1);
-  }, [isAnimating, realCount]);
+  }, [realCount]);
 
   const goToPrev = useCallback(() => {
-    if (isAnimating || realCount === 0) return;
-    setIsAnimating(true);
+    if (realCount === 0) return;
     setCurrentIndex((prev) => prev - 1);
-  }, [isAnimating, realCount]);
+  }, [realCount]);
 
-  useEffect(() => {
-    if (realCount === 0 || !containerRef.current) return;
-    const container = containerRef.current;
-    const slideWidth = container.clientWidth;
-    scrollToIndex(currentIndex);
-
-    const handleScrollEnd = () => {
-      setIsAnimating(false);
-
-      if (currentIndex >= realCount) {
-        // Reset to first real slide without smooth scroll
-        setCurrentIndex(0);
-        scrollToIndex(0, false);
-      }
-      if (currentIndex < 0) {
-        // Reset to last real slide
-        setCurrentIndex(realCount - 1);
-        scrollToIndex(realCount - 1, false);
-      }
-    };
-
-    container.addEventListener('scroll', handleScrollEnd);
-    return () => container.removeEventListener('scroll', handleScrollEnd);
-  }, [currentIndex, realCount, scrollToIndex]);
-
-  useEffect(() => {
-    if (!autoRotate || isPaused || realCount === 0) return;
-    const interval = window.setInterval(goToNext, rotateInterval);
-    return () => clearInterval(interval);
-  }, [autoRotate, isPaused, goToNext, rotateInterval, realCount]);
+  const handleTouchStart = (e: React.TouchEvent) => setTouchStart(e.targetTouches[0].clientX);
+  const handleTouchMove = (e: React.TouchEvent) => setTouchEnd(e.targetTouches[0].clientX);
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    if (distance > 50) goToNext();
+    if (distance < -50) goToPrev();
+    setTouchStart(0);
+    setTouchEnd(0);
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -91,106 +74,115 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [goToPrev, goToNext]);
+  }, [goToNext, goToPrev]);
+
+  useEffect(() => {
+    if (!autoRotate || isPaused || realCount === 0) return;
+    const interval = setInterval(goToNext, rotateInterval);
+    return () => clearInterval(interval);
+  }, [autoRotate, isPaused, goToNext, rotateInterval, realCount]);
+
+  useEffect(() => {
+    if (!containerRef.current || realCount === 0) return;
+    const container = containerRef.current;
+    scrollToIndex(currentIndex);
+
+    const handleScrollEnd = () => {
+      if (currentIndex >= realCount) {
+        setCurrentIndex(0);
+        scrollToIndex(0, false);
+      }
+      if (currentIndex < 0) {
+        setCurrentIndex(realCount - 1);
+        scrollToIndex(realCount - 1, false);
+      }
+    };
+
+    container.addEventListener('scroll', handleScrollEnd);
+    return () => container.removeEventListener('scroll', handleScrollEnd);
+  }, [currentIndex, realCount, scrollToIndex]);
 
   const handleImageError = (teamName: string, logoPath: string | null) => {
-    console.warn(`Logo missing for team: ${teamName}, attempted path: ${logoPath}`);
+    console.warn(`Logo missing for ${teamName}: ${logoPath}`);
   };
 
-  const getMatchDayLabel = (dateTime: string) => {
-    if (!dateTime || dateTime === 'nullTnull' || dateTime === 'null') return 'TBD';
-    const matchDate = new Date(dateTime);
-    if (isNaN(matchDate.getTime())) return 'TBD';
+  if (loading) {
+    return <div className={`${className} h-64 flex items-center justify-center`}>Loading...</div>;
+  }
 
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
+  if (error) {
+    return <div className={`${className} h-64 flex items-center justify-center text-red-600`}>Error: {error}</div>;
+  }
 
-    if (matchDate.toDateString() === today.toDateString()) return 'Today';
-    if (matchDate.toDateString() === tomorrow.toDateString()) return 'Tomorrow';
-    return matchDate.toLocaleDateString('en-GB', { weekday: 'short', month: 'short', day: 'numeric' });
-  };
-
-  const getMatchTime = (dateTime: string) => {
-    if (!dateTime || dateTime === 'nullTnull' || dateTime === 'null') return 'TBD';
-    const matchDate = new Date(dateTime);
-    if (isNaN(matchDate.getTime())) return 'TBD';
-    return matchDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
-  if (loading) return <div className={`${className}`}>Loading...</div>;
-  if (error) return <div className={`${className}`}>Error: {error}</div>;
-  if (featuredFixtures.length === 0) return <div className={`${className}`}>No Featured Games</div>;
+  if (realCount === 0) {
+    return <div className={`${className} h-64 flex items-center justify-center`}>No Featured Games</div>;
+  }
 
   return (
     <div
       className={`relative overflow-hidden group ${className}`}
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
+      onMouseEnter={() => { setIsPaused(true); setShowArrows(true); }}
+      onMouseLeave={() => { setIsPaused(false); setShowArrows(false); }}
     >
-      <div ref={containerRef} className="flex overflow-x-scroll scroll-smooth hide-scrollbar">
+      <div
+        ref={containerRef}
+        className="flex overflow-x-scroll scroll-smooth hide-scrollbar"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
         {slides.map((fixture, idx) => {
           const homeLogo = getTeamLogo(fixture.homeTeam);
           const awayLogo = getTeamLogo(fixture.awayTeam);
           const competitionLogo = getCompetitionLogo(fixture.competition.name, fixture.competition.logo);
 
-          if (!homeLogo.logoPath) handleImageError(fixture.homeTeam.name, homeLogo.logoPath);
-          if (!awayLogo.logoPath) handleImageError(fixture.awayTeam.name, awayLogo.logoPath);
-          if (!competitionLogo) console.warn(`Competition logo missing: ${fixture.competition.name}`);
-
           return (
-            <div key={idx} className="min-w-full flex-shrink-0 p-2">
-              <div className="fixture-card bg-white rounded-xl shadow-lg p-4">
-                {/* Competition Logo */}
-                {competitionLogo && (
-                  <img src={competitionLogo} alt={fixture.competition.name} className="w-20 h-20 object-contain mb-2" />
-                )}
-
-                {/* Teams */}
-                <div className="flex items-center justify-between">
-                  <div className="text-center">
+            <div key={idx} className="min-w-full flex-shrink-0 p-4 cursor-pointer" onClick={() => onGameSelect?.(fixture)}>
+              <div className="bg-white rounded-xl shadow-lg p-4 flex flex-col items-center">
+                {competitionLogo && <img src={competitionLogo} alt={`${fixture.competition.name} logo`} className="w-16 h-16 mb-2" />}
+                <div className="flex justify-between w-full items-center mb-2">
+                  <div className="flex flex-col items-center">
                     {homeLogo.logoPath ? (
-                      <img src={homeLogo.logoPath} alt={fixture.homeTeam.name} className="w-14 h-14 object-contain" />
+                      <img src={homeLogo.logoPath} alt={fixture.homeTeam.name} className="w-14 h-14 object-contain" onError={() => handleImageError(fixture.homeTeam.name, homeLogo.logoPath)} />
                     ) : (
-                      <div className="w-14 h-14 flex items-center justify-center bg-gray-200 rounded-full">
-                        {homeLogo.fallbackInitial}
-                      </div>
+                      <div className="w-14 h-14 bg-gray-200 flex items-center justify-center text-gray-600 font-bold">{homeLogo.fallbackInitial}</div>
                     )}
-                    <div className="mt-1 font-bold">{homeLogo.displayName}</div>
+                    <div className="mt-1 text-center">{getDisplayName(fixture.homeTeam.name, fixture.homeTeam.shortName)}</div>
                   </div>
-
-                  <div className="text-center">
-                    <div>VS</div>
-                    <div>{getMatchTime(fixture.dateTime)}</div>
-                    <div>{getMatchDayLabel(fixture.dateTime)}</div>
-                  </div>
-
-                  <div className="text-center">
+                  <div className="text-xl font-bold">VS</div>
+                  <div className="flex flex-col items-center">
                     {awayLogo.logoPath ? (
-                      <img src={awayLogo.logoPath} alt={fixture.awayTeam.name} className="w-14 h-14 object-contain" />
+                      <img src={awayLogo.logoPath} alt={fixture.awayTeam.name} className="w-14 h-14 object-contain" onError={() => handleImageError(fixture.awayTeam.name, awayLogo.logoPath)} />
                     ) : (
-                      <div className="w-14 h-14 flex items-center justify-center bg-gray-200 rounded-full">
-                        {awayLogo.fallbackInitial}
-                      </div>
+                      <div className="w-14 h-14 bg-gray-200 flex items-center justify-center text-gray-600 font-bold">{awayLogo.fallbackInitial}</div>
                     )}
-                    <div className="mt-1 font-bold">{awayLogo.displayName}</div>
+                    <div className="mt-1 text-center">{getDisplayName(fixture.awayTeam.name, fixture.awayTeam.shortName)}</div>
                   </div>
                 </div>
+                <div className="text-sm text-gray-500">{fixture.venue}</div>
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Arrows (show on hover) */}
-      <button
-        className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 p-2 rounded-full opacity-0 group-hover:opacity-100 transition"
-        onClick={goToPrev}
-      >‹</button>
-      <button
-        className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 p-2 rounded-full opacity-0 group-hover:opacity-100 transition"
-        onClick={goToNext}
-      >›</button>
+      {/* Arrows */}
+      {showArrows && (
+        <>
+          <button
+            className="absolute left-2 top-1/2 -translate-y-1/2 bg-white p-2 rounded-full shadow"
+            onClick={goToPrev}
+          >
+            &#10094;
+          </button>
+          <button
+            className="absolute right-2 top-1/2 -translate-y-1/2 bg-white p-2 rounded-full shadow"
+            onClick={goToNext}
+          >
+            &#10095;
+          </button>
+        </>
+      )}
     </div>
   );
 };
