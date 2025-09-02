@@ -1,4 +1,6 @@
 // src/utils/teamUtils.ts
+// Consolidated Team & Logo Utilities
+
 export const TEAM_ABBREVIATIONS: Record<string, string> = {
   'Manchester United': 'Man Utd',
   'Manchester City': 'Man City',
@@ -109,8 +111,8 @@ export const getTeamLogoPath = (
   if (slug) {
     const isProduction = process.env.NODE_ENV === 'production';
     const basePath = isProduction ? '/Football-App-1.1' : '';
-    // Fixed: Use forward slashes and spaces instead of URL encoding
-    return `${basePath}/Images/Club Logos/${slug}.png`;
+    // Use URL encoding for spaces in folder names (required for Vercel deployment)
+    return `${basePath}/Images/Club%20Logos/${slug}.png`;
   }
   if (!apiBadgeUrl) {
     console.warn(`Logo not found for team: "${teamName}" (shortName: "${shortName}")`);
@@ -137,7 +139,7 @@ export const getCompetitionLogo = (competitionName: string, apiLogoUrl?: string)
   if (slug) {
     const isProduction = process.env.NODE_ENV === 'production';
     const basePath = isProduction ? '/Football-App-1.1' : '';
-    // Fixed: Use forward slashes and spaces instead of URL encoding
+    // Use URL encoding for spaces in folder names (required for Vercel deployment)
     return `${basePath}/Images/competition/${slug}.png`;
   }
   return apiLogoUrl || null;
