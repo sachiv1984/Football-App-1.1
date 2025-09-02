@@ -26,7 +26,8 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const totalFixtures = fixtures.length;
   const intervalRef = useRef<number | null>(null);
 
-  // Navigate carousel
+  const currentFixture = fixtures[currentIndex];
+
   const goToPrevious = useCallback(() => {
     setCurrentIndex((prev) => (prev - 1 + totalFixtures) % totalFixtures);
   }, [totalFixtures]);
@@ -67,7 +68,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     setTouchEnd(null);
   };
 
-  // Display helpers
   const formatDate = (dateStr: string) => {
     if (!dateStr) return "TBD";
     const date = new Date(dateStr);
@@ -101,74 +101,79 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
       </div>
 
       <div className="relative h-[360px] sm:h-[400px]">
-        {/* ✅ AnimatePresence fix: always returns valid JSX (null fallback) */}
         <AnimatePresence initial={false} custom={currentIndex}>
-          {fixtures.length > 0 ? (
+          {currentFixture && (
             <motion.div
-              key={fixtures[currentIndex].id}
+              key={currentFixture.id}
               className="absolute inset-0 flex items-center justify-center"
               custom={currentIndex}
               initial={{ opacity: 0, x: 100 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -100 }}
               transition={{ duration: 0.5 }}
-              onClick={() => onGameSelect?.(fixtures[currentIndex])}
+              onClick={() => onGameSelect?.(currentFixture)}
             >
               <div className="bg-white rounded-xl shadow-xl p-6 w-[95%] sm:w-[85%] max-w-2xl mx-auto">
-                {(() => {
-                  const fixture = fixtures[currentIndex];
-                  if (!fixture) return null;
-                  return (
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <div className="text-xs sm:text-sm font-semibold text-purple-600 bg-white px-2 py-1 rounded-full">
-                          Matchweek {fixture.matchWeek}
-                        </div>
-                        <div className="text-xs sm:text-sm text-gray-500">{fixture.competition?.name}</div>
-                      </div>
-
-                      <div className="flex justify-around items-center">
-                        <div className="flex flex-col items-center w-1/3">
-                          <img src={getLogo(fixture.homeTeam)} alt={fixture.homeTeam?.name} className="w-16 h-16 object-contain" />
-                          <span className="mt-2 text-center text-sm sm:text-base font-medium">{fixture.homeTeam?.shortName}</span>
-                        </div>
-
-                        <div className="flex flex-col items-center w-1/3">
-                          <div className="text-lg sm:text-xl font-bold text-purple-700">vs</div>
-                          <div className="mt-2 text-sm font-medium text-purple-600">{formatDate(fixture.dateTime)}</div>
-                          <div className="flex items-center mt-1 text-xs text-gray-500">
-                            <MapPin className="w-3 h-3 mr-1" />
-                            {fixture.venue || "TBD"}
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col items-center w-1/3">
-                          <img src={getLogo(fixture.awayTeam)} alt={fixture.awayTeam?.name} className="w-16 h-16 object-contain" />
-                          <span className="mt-2 text-center text-sm sm:text-base font-medium">{fixture.awayTeam?.shortName}</span>
-                        </div>
-                      </div>
-
-                      {fixture.tags && fixture.tags.length > 0 && (
-                        <div className="flex flex-wrap justify-center gap-2 mt-2">
-                          {fixture.tags.map((tag, idx) => (
-                            <span
-                              key={idx}
-                              className="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-700 border border-purple-200"
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <div className="text-xs sm:text-sm font-semibold text-purple-600 bg-white px-2 py-1 rounded-full">
+                      Matchweek {currentFixture.matchWeek}
                     </div>
-                  );
-                })()}
+                    <div className="text-xs sm:text-sm text-gray-500">{currentFixture.competition?.name}</div>
+                  </div>
+
+                  <div className="flex justify-around items-center">
+                    <div className="flex flex-col items-center w-1/3">
+                      <img
+                        src={getLogo(currentFixture.homeTeam)}
+                        alt={currentFixture.homeTeam?.name}
+                        className="w-16 h-16 object-contain"
+                      />
+                      <span className="mt-2 text-center text-sm sm:text-base font-medium">
+                        {currentFixture.homeTeam?.shortName}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col items-center w-1/3">
+                      <div className="text-lg sm:text-xl font-bold text-purple-700">vs</div>
+                      <div className="mt-2 text-sm font-medium text-purple-600">{formatDate(currentFixture.dateTime)}</div>
+                      <div className="flex items-center mt-1 text-xs text-gray-500">
+                        <MapPin className="w-3 h-3 mr-1" />
+                        {currentFixture.venue || "TBD"}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col items-center w-1/3">
+                      <img
+                        src={getLogo(currentFixture.awayTeam)}
+                        alt={currentFixture.awayTeam?.name}
+                        className="w-16 h-16 object-contain"
+                      />
+                      <span className="mt-2 text-center text-sm sm:text-base font-medium">
+                        {currentFixture.awayTeam?.shortName}
+                      </span>
+                    </div>
+                  </div>
+
+                  {currentFixture.tags?.length ? (
+                    <div className="flex flex-wrap justify-center gap-2 mt-2">
+                      {currentFixture.tags.map((tag, idx) => (
+                        <span
+                          key={idx}
+                          className="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-700 border border-purple-200"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
               </div>
             </motion.div>
-          ) : null}
+          )}
         </AnimatePresence>
 
-        {/* Arrows (desktop only) */}
+        {/* Arrows */}
         <div className="absolute inset-y-0 left-0 flex items-center pl-2 sm:pl-4">
           <button
             onClick={goToPrevious}
@@ -187,7 +192,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* Dots indicator */}
+      {/* Dots */}
       <div className="flex justify-center space-x-2 pb-4 mt-2">
         {fixtures.map((_, idx) => (
           <button
@@ -204,4 +209,3 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 };
 
 export default OptimizedFeaturedGamesCarousel;
-
