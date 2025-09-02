@@ -133,14 +133,6 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [goToPrev, goToNext, isMobile]);
 
-  // Badge
-  const getImportanceBadge = (importance: number) => {
-    if (importance >= 8) return { text: 'BIG MATCH', style: 'bg-red-600 text-white' };
-    if (importance >= 6) return { text: 'KEY MATCH', style: 'bg-orange-500 text-white' };
-    if (importance >= 4) return { text: 'IMPORTANT', style: 'bg-blue-500 text-white' };
-    return null;
-  };
-
   // Get week number from fixture date
   const getWeekNumber = (fixture: FeaturedFixtureWithImportance) => {
     const dateStr = fixture.dateTime;
