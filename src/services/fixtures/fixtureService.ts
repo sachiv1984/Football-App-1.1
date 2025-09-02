@@ -1,19 +1,19 @@
 // src/services/fixtures/fixtureService.ts
 import type { FeaturedFixtureWithImportance } from '../../types';
 
-interface FootballDataMatch {
+interface RawMatch {
   id: number;
   utcDate: string;
   status: string;
   matchday: number;
-  venue?: string;
+  stage: string;
   homeTeam: { id: number; name: string; shortName?: string; tla?: string; crest?: string };
   awayTeam: { id: number; name: string; shortName?: string; tla?: string; crest?: string };
-  competition: { id: string; code: string; name: string; emblem?: string };
-  stage: string;
+  venue?: string;
+  competition: { id: number; code: string; name: string; emblem?: string };
 }
 
-interface FootballDataStanding {
+interface RawStanding {
   team: { id: number };
   form?: string;
   position: number;
@@ -29,10 +29,8 @@ interface TeamWithForm {
 }
 
 export class FixtureService {
-  private matchesCache: FootballDataMatch[] = [];
-  private standingsCache: FootballDataStanding[] = [];
-  private matchesCacheTime = 0;
-  private standingsCacheTime = 0;
+  private matchesCache: FeaturedFixtureWithImportance[] = [];
+  private cacheTime = 0;
   private readonly cacheTimeout = 10 * 60 * 1000; // 10 min
 
   // -------------------------
@@ -52,7 +50,7 @@ export class FixtureService {
 
   private parseForm(formString?: string): ('W' | 'D' | 'L')[] {
     if (!formString) return [];
-    return formString.split('') as ('W' | 'D' | 'L')[];
+    return formString.split(',').map(f => (['W', 'D', 'L'].includes(f.trim()) ? f.trim() as 'W' | 'D' | 'L' : 'D'));
   }
 
   private isDerby(home: string, away: string): boolean {
@@ -68,7 +66,7 @@ export class FixtureService {
     return derbies.some(d => d.includes(home) && d.includes(away));
   }
 
-  private calculateImportance(match: FootballDataMatch, standings?: FootballDataStanding[]): number {
+  private calculateImportance(match: RawMatch, standings?: RawStanding[]): number {
     let importance = 3;
 
     // Matchday weighting
@@ -97,7 +95,7 @@ export class FixtureService {
     return Math.min(importance, 10);
   }
 
-  private generateTags(match: FootballDataMatch, importance: number): string[] {
+  private generateTags(match: RawMatch, importance: number): string[] {
     const tags: string[] = [];
     const md = match.matchday;
 
@@ -118,7 +116,7 @@ export class FixtureService {
     return tags;
   }
 
-  private mapStatus(status: FootballDataMatch['status']): 'scheduled' | 'live' | 'finished' | 'postponed' | 'upcoming' {
+  private mapStatus(status: RawMatch['status']): 'scheduled' | 'live' | 'finished' | 'postponed' | 'upcoming' {
     switch (status) {
       case 'SCHEDULED': return 'upcoming';
       case 'LIVE':
@@ -134,38 +132,21 @@ export class FixtureService {
     }
   }
 
-  // -------------------------
-  // Caching and API fetching
-  // -------------------------
-  private async getStandings(): Promise<FootballDataStanding[]> {
-    const now = Date.now();
-    if (this.standingsCache.length && now - this.standingsCacheTime < this.cacheTimeout) {
-      return this.standingsCache;
-    }
-
-    const res = await fetch('/api/standings');
-    if (!res.ok) throw new Error('Failed to fetch standings');
-    this.standingsCache = await res.json();
-    this.standingsCacheTime = now;
-    return this.standingsCache;
-  }
-
-  private async getMatches(): Promise<FootballDataMatch[]> {
-    const now = Date.now();
-    if (this.matchesCache.length && now - this.matchesCacheTime < this.cacheTimeout) {
-      return this.matchesCache;
-    }
-
+  private async fetchMatches(): Promise<RawMatch[]> {
     const res = await fetch('/api/matches');
     if (!res.ok) throw new Error('Failed to fetch matches');
-    this.matchesCache = await res.json();
-    this.matchesCacheTime = now;
-    return this.matchesCache;
+    return res.json();
   }
 
-  private async getTeamDetails(team: FootballDataMatch['homeTeam'] | FootballDataMatch['awayTeam']): Promise<TeamWithForm> {
+  private async fetchStandings(): Promise<RawStanding[]> {
+    const res = await fetch('/api/standings');
+    if (!res.ok) throw new Error('Failed to fetch standings');
+    return res.json();
+  }
+
+  private async getTeamDetails(team: RawMatch['homeTeam'] | RawMatch['awayTeam']): Promise<TeamWithForm> {
     try {
-      const standings = await this.getStandings();
+      const standings = await this.fetchStandings();
       const teamStanding = standings.find(s => s.team.id === team.id);
       return {
         id: team.id.toString(),
@@ -187,8 +168,8 @@ export class FixtureService {
     }
   }
 
-  private async transformMatch(match: FootballDataMatch): Promise<FeaturedFixtureWithImportance> {
-    const standings = await this.getStandings();
+  private async transformMatch(match: RawMatch): Promise<FeaturedFixtureWithImportance> {
+    const standings = await this.fetchStandings();
     const [homeTeam, awayTeam] = await Promise.all([
       this.getTeamDetails(match.homeTeam),
       this.getTeamDetails(match.awayTeam),
@@ -220,21 +201,33 @@ export class FixtureService {
   // Public Methods
   // -------------------------
   async getFeaturedFixtures(limit: number = 8): Promise<FeaturedFixtureWithImportance[]> {
-    const matches = await this.getMatches();
+    const now = Date.now();
+    if (this.matchesCache.length && now - this.cacheTime < this.cacheTimeout) {
+      return this.matchesCache.slice(0, limit);
+    }
+
+    const matches = await this.fetchMatches();
     const transformed = await Promise.all(matches.slice(0, 15).map(m => this.transformMatch(m)));
-    return transformed.sort((a, b) => b.importance - a.importance).slice(0, limit);
+    this.matchesCache = transformed.sort((a, b) => b.importance - a.importance);
+    this.cacheTime = now;
+    return this.matchesCache.slice(0, limit);
   }
 
   async getAllFixtures(): Promise<FeaturedFixtureWithImportance[]> {
-    const matches = await this.getMatches();
+    const now = Date.now();
+    if (this.matchesCache.length && now - this.cacheTime < this.cacheTimeout) {
+      return this.matchesCache;
+    }
+
+    const matches = await this.fetchMatches();
     const transformed = await Promise.all(matches.map(m => this.transformMatch(m)));
-    return transformed.sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime());
+    this.matchesCache = transformed.sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime());
+    this.cacheTime = now;
+    return this.matchesCache;
   }
 
   clearCache() {
     this.matchesCache = [];
-    this.standingsCache = [];
-    this.matchesCacheTime = 0;
-    this.standingsCacheTime = 0;
+    this.cacheTime = 0;
   }
 }
