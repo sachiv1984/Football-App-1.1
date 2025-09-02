@@ -1,29 +1,32 @@
-            className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-white p-3 rounded-full shadow-lg hover:shadow-xl border border-gray-200"
-            onClick={goToNext}
-          >
-            <svg className="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-            </svg>
-          </button>
-        </>
-      )}
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import type { FeaturedFixtureWithImportance } from '../../../types';
+import { getTeamLogo, getCompetitionLogo } from '../../../utils/teamUtils';
+import { useFixtures } from '../../../hooks/useFixtures';
 
-      {/* Pagination dots - only show on mobile */}
-      {isMobile && (
-        <div className="flex justify-center mt-4 space-x-2">
-          {featuredFixtures.map((_, idx) => (
-            <button
-              key={idx}
-              className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                idx === (currentIndex < 0 ? realCount - 1 : currentIndex % realCount)
-                  ? 'bg-purple-600 w-4'
-                  : 'bg-gray-300 hover:bg-gray-400'
-              }`}
-              onClick={() => setCurrentIndex(idx)}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
+interface Props {
+  fixtures?: FeaturedFixtureWithImportance[];
+  onGameSelect?: (fixture: FeaturedFixtureWithImportance) => void;
+  autoRotate?: boolean;
+  rotateInterval?: number;
+  className?: string;
+}
+
+export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
+  onGameSelect,
+  autoRotate = true,
+  rotateInterval = 5000,
+  className = '',
+}) => {
+  const { featuredFixtures, loading, error } = useFixtures();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const [touchStart, setTouchStart] = useState(0);
+  const [touchEnd, setTouchEnd] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
+
+  const realCount = featuredFixtures.length;
+
+  // Check if mobile
+  useEffect(() => {
+    const checkMobile = () => {
