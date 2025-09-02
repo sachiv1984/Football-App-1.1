@@ -144,35 +144,22 @@ export class FixtureService {
     return res.json();
   }
 
-  private async getTeamDetails(team: RawMatch['homeTeam'] | RawMatch['awayTeam']): Promise<TeamWithForm> {
-    try {
-      const standings = await this.fetchStandings();
-      const teamStanding = standings.find(s => s.team.id === team.id);
-      return {
-        id: team.id.toString(),
-        name: team.name,
-        shortName: team.shortName || team.tla || team.name,
-        logo: team.crest,
-        colors: this.getTeamColors(team.name),
-        form: this.parseForm(teamStanding?.form),
-      };
-    } catch {
-      return {
-        id: team.id.toString(),
-        name: team.name,
-        shortName: team.shortName || team.tla || team.name,
-        logo: team.crest,
-        colors: {},
-        form: [],
-      };
-    }
+  private async getTeamDetails(team: RawMatch['homeTeam'] | RawMatch['awayTeam'], standings: RawStanding[]): Promise<TeamWithForm> {
+    const teamStanding = standings.find(s => s.team.id === team.id);
+    return {
+      id: team.id.toString(),
+      name: team.name,
+      shortName: team.shortName || team.tla || team.name,
+      logo: team.crest || '',
+      colors: this.getTeamColors(team.name),
+      form: this.parseForm(teamStanding?.form),
+    };
   }
 
-  private async transformMatch(match: RawMatch): Promise<FeaturedFixtureWithImportance> {
-    const standings = await this.fetchStandings();
+  private async transformMatch(match: RawMatch, standings: RawStanding[]): Promise<FeaturedFixtureWithImportance> {
     const [homeTeam, awayTeam] = await Promise.all([
-      this.getTeamDetails(match.homeTeam),
-      this.getTeamDetails(match.awayTeam),
+      this.getTeamDetails(match.homeTeam, standings),
+      this.getTeamDetails(match.awayTeam, standings),
     ]);
     const importance = this.calculateImportance(match, standings);
     const tags = this.generateTags(match, importance);
@@ -186,7 +173,7 @@ export class FixtureService {
       competition: {
         id: match.competition.code,
         name: match.competition.name,
-        logo: match.competition.emblem,
+        logo: match.competition.emblem || '',
       },
       matchWeek: match.matchday,
       importance,
@@ -206,8 +193,9 @@ export class FixtureService {
       return this.matchesCache.slice(0, limit);
     }
 
-    const matches = await this.fetchMatches();
-    const transformed = await Promise.all(matches.slice(0, 15).map(m => this.transformMatch(m)));
+    const [matches, standings] = await Promise.all([this.fetchMatches(), this.fetchStandings()]);
+    const transformed = await Promise.all(matches.slice(0, 15).map(m => this.transformMatch(m, standings)));
+
     this.matchesCache = transformed.sort((a, b) => b.importance - a.importance);
     this.cacheTime = now;
     return this.matchesCache.slice(0, limit);
@@ -219,9 +207,12 @@ export class FixtureService {
       return this.matchesCache;
     }
 
-    const matches = await this.fetchMatches();
-    const transformed = await Promise.all(matches.map(m => this.transformMatch(m)));
-    this.matchesCache = transformed.sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime());
+    const [matches, standings] = await Promise.all([this.fetchMatches(), this.fetchStandings()]);
+    const transformed = await Promise.all(matches.map(m => this.transformMatch(m, standings)));
+
+    this.matchesCache = transformed.sort(
+      (a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime()
+    );
     this.cacheTime = now;
     return this.matchesCache;
   }
