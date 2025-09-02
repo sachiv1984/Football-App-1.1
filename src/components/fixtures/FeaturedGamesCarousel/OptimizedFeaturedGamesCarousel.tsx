@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, MapPin, Star } from "lucide-react";
 import type { FeaturedFixtureWithImportance } from "@/types";
@@ -21,6 +21,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const intervalRef = useRef<NodeJS.Timer | null>(null);
 
   const minSwipeDistance = 50;
   const totalFixtures = fixtures.length;
@@ -34,12 +35,14 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     setCurrentIndex((prev) => (prev + 1) % totalFixtures);
   }, [totalFixtures]);
 
-  // Auto-rotate on mobile
+  // Auto-rotate
   useEffect(() => {
-    if (window.innerWidth < 640 && totalFixtures > 1) {
-      const interval = setInterval(goToNext, rotateInterval);
-      return () => clearInterval(interval);
-    }
+    if (totalFixtures <= 1) return;
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    intervalRef.current = setInterval(goToNext, rotateInterval);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
   }, [goToNext, rotateInterval, totalFixtures]);
 
   // Keyboard navigation
@@ -83,6 +86,8 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     team?.crest ||
     (team?.shortName ? `/team-logos/${team.shortName.replace(/\s+/g, "-").toLowerCase()}.png` : "/team-logos/default.png");
 
+  if (fixtures.length === 0) return null;
+
   return (
     <div
       className={`w-full bg-gradient-to-r from-purple-700 via-purple-600 to-purple-700 rounded-xl shadow-lg overflow-hidden relative ${className || ""}`}
@@ -98,9 +103,8 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
       </div>
 
       <div className="relative h-[360px] sm:h-[400px]">
-        {/* ✅ AnimatePresence fix: always returns valid JSX (null fallback) */}
         <AnimatePresence initial={false} custom={currentIndex}>
-          {fixtures.length > 0 ? (
+          {fixtures[currentIndex] && (
             <motion.div
               key={fixtures[currentIndex].id}
               className="absolute inset-0 flex items-center justify-center"
@@ -112,79 +116,87 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
               onClick={() => onGameSelect?.(fixtures[currentIndex])}
             >
               <div className="bg-white rounded-xl shadow-xl p-6 w-[95%] sm:w-[85%] max-w-2xl mx-auto">
-                {(() => {
-                  const fixture = fixtures[currentIndex];
-                  if (!fixture) return null;
-                  return (
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <div className="text-xs sm:text-sm font-semibold text-purple-600 bg-white px-2 py-1 rounded-full">
-                          Matchweek {fixture.matchWeek}
-                        </div>
-                        <div className="text-xs sm:text-sm text-gray-500">{fixture.competition?.name}</div>
-                      </div>
-
-                      <div className="flex justify-around items-center">
-                        <div className="flex flex-col items-center w-1/3">
-                          <img src={getLogo(fixture.homeTeam)} alt={fixture.homeTeam?.name} className="w-16 h-16 object-contain" />
-                          <span className="mt-2 text-center text-sm sm:text-base font-medium">{fixture.homeTeam?.shortName}</span>
-                        </div>
-
-                        <div className="flex flex-col items-center w-1/3">
-                          <div className="text-lg sm:text-xl font-bold text-purple-700">vs</div>
-                          <div className="mt-2 text-sm font-medium text-purple-600">{formatDate(fixture.dateTime)}</div>
-                          <div className="flex items-center mt-1 text-xs text-gray-500">
-                            <MapPin className="w-3 h-3 mr-1" />
-                            {fixture.venue || "TBD"}
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col items-center w-1/3">
-                          <img src={getLogo(fixture.awayTeam)} alt={fixture.awayTeam?.name} className="w-16 h-16 object-contain" />
-                          <span className="mt-2 text-center text-sm sm:text-base font-medium">{fixture.awayTeam?.shortName}</span>
-                        </div>
-                      </div>
-
-                      {fixture.tags && fixture.tags.length > 0 && (
-                        <div className="flex flex-wrap justify-center gap-2 mt-2">
-                          {fixture.tags.map((tag, idx) => (
-                            <span
-                              key={idx}
-                              className="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-700 border border-purple-200"
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <div className="text-xs sm:text-sm font-semibold text-purple-600 bg-white px-2 py-1 rounded-full">
+                      Matchweek {fixtures[currentIndex].matchWeek}
                     </div>
-                  );
-                })()}
+                    <div className="text-xs sm:text-sm text-gray-500">{fixtures[currentIndex].competition?.name}</div>
+                  </div>
+
+                  <div className="flex justify-around items-center">
+                    <div className="flex flex-col items-center w-1/3">
+                      <img
+                        src={getLogo(fixtures[currentIndex].homeTeam)}
+                        alt={fixtures[currentIndex].homeTeam?.name}
+                        className="w-16 h-16 object-contain"
+                      />
+                      <span className="mt-2 text-center text-sm sm:text-base font-medium">
+                        {fixtures[currentIndex].homeTeam?.shortName}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col items-center w-1/3">
+                      <div className="text-lg sm:text-xl font-bold text-purple-700">vs</div>
+                      <div className="mt-2 text-sm font-medium text-purple-600">
+                        {formatDate(fixtures[currentIndex].dateTime)}
+                      </div>
+                      <div className="flex items-center mt-1 text-xs text-gray-500">
+                        <MapPin className="w-3 h-3 mr-1" />
+                        {fixtures[currentIndex].venue || "TBD"}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col items-center w-1/3">
+                      <img
+                        src={getLogo(fixtures[currentIndex].awayTeam)}
+                        alt={fixtures[currentIndex].awayTeam?.name}
+                        className="w-16 h-16 object-contain"
+                      />
+                      <span className="mt-2 text-center text-sm sm:text-base font-medium">
+                        {fixtures[currentIndex].awayTeam?.shortName}
+                      </span>
+                    </div>
+                  </div>
+
+                  {fixtures[currentIndex].tags && fixtures[currentIndex].tags.length > 0 && (
+                    <div className="flex flex-wrap justify-center gap-2 mt-2">
+                      {fixtures[currentIndex].tags.map((tag, idx) => (
+                        <span
+                          key={idx}
+                          className="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-700 border border-purple-200"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </motion.div>
-          ) : null}
+          )}
         </AnimatePresence>
 
-        {/* Arrows (desktop only) */}
-        <div className="absolute inset-y-0 left-0 flex items-center pl-2 sm:pl-4">
-          <button
-            onClick={goToPrevious}
-            className="hidden sm:flex items-center justify-center w-10 h-10 rounded-full bg-purple-800 bg-opacity-60 text-white hover:bg-opacity-90 transition"
-          >
-            <ChevronLeft className="w-6 h-6" />
-          </button>
-        </div>
-        <div className="absolute inset-y-0 right-0 flex items-center pr-2 sm:pr-4">
-          <button
-            onClick={goToNext}
-            className="hidden sm:flex items-center justify-center w-10 h-10 rounded-full bg-purple-800 bg-opacity-60 text-white hover:bg-opacity-90 transition"
-          >
-            <ChevronRight className="w-6 h-6" />
-          </button>
-        </div>
+        {/* Arrows */}
+        {totalFixtures > 1 && (
+          <>
+            <button
+              onClick={goToPrevious}
+              className="absolute inset-y-0 left-2 sm:left-4 flex items-center justify-center w-10 h-10 rounded-full bg-purple-800 bg-opacity-60 text-white hover:bg-opacity-90 transition"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+            <button
+              onClick={goToNext}
+              className="absolute inset-y-0 right-2 sm:right-4 flex items-center justify-center w-10 h-10 rounded-full bg-purple-800 bg-opacity-60 text-white hover:bg-opacity-90 transition"
+            >
+              <ChevronRight className="w-6 h-6" />
+            </button>
+          </>
+        )}
       </div>
 
-      {/* Dots indicator */}
+      {/* Dots */}
       <div className="flex justify-center space-x-2 pb-4 mt-2">
         {fixtures.map((_, idx) => (
           <button
