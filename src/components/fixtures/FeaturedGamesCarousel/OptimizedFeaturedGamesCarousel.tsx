@@ -1,4 +1,3 @@
-// src/components/fixtures/FeaturedGamesCarousel
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import type { FeaturedFixtureWithImportance } from '../../../types';
 import { getTeamLogo, getCompetitionLogo } from '../../../utils/teamUtils';
@@ -143,8 +142,14 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   };
 
   // Get week number from fixture date
-  const getWeekNumber = (dateString: string) => {
-    const date = new Date(dateString);
+  const getWeekNumber = (fixture: FeaturedFixtureWithImportance) => {
+    // Try different possible date properties
+    const dateStr = fixture.utcDate || fixture.date || fixture.matchDate || fixture.kickoffTime;
+    if (!dateStr) return 1; // Default to week 1 if no date found
+    
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return 1; // Default to week 1 if invalid date
+    
     const startOfYear = new Date(date.getFullYear(), 0, 1);
     const pastDaysOfYear = (date.getTime() - startOfYear.getTime()) / 86400000;
     return Math.ceil((pastDaysOfYear + startOfYear.getDay() + 1) / 7);
@@ -196,7 +201,7 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
           const homeLogo = getTeamLogo(fixture.homeTeam);
           const awayLogo = getTeamLogo(fixture.awayTeam);
           const competitionLogo = getCompetitionLogo(fixture.competition.name, fixture.competition.logo);
-          const weekNumber = getWeekNumber(fixture.utcDate);
+          const weekNumber = getWeekNumber(fixture);
 
           // Debug for missing logos
           if (!homeLogo.logoPath) console.log('Missing home logo:', fixture.homeTeam.name);
@@ -235,13 +240,21 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                     {fixture.venue?.name || 'Venue TBD'}
                   </p>
                   <p className="text-xs sm:text-sm text-gray-500">
-                    {new Date(fixture.utcDate).toLocaleDateString('en-GB', {
-                      weekday: 'short',
-                      day: 'numeric',
-                      month: 'short',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
+                    {(() => {
+                      const dateStr = fixture.utcDate || fixture.date || fixture.matchDate || fixture.kickoffTime;
+                      if (!dateStr) return 'Date TBD';
+                      
+                      const date = new Date(dateStr);
+                      if (isNaN(date.getTime())) return 'Date TBD';
+                      
+                      return date.toLocaleDateString('en-GB', {
+                        weekday: 'short',
+                        day: 'numeric',
+                        month: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      });
+                    })()}
                   </p>
                 </div>
 
