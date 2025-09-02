@@ -143,9 +143,7 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
   // Get week number from fixture date
   const getWeekNumber = (fixture: FeaturedFixtureWithImportance) => {
-    // Try different possible date properties using type assertion
-    const fixtureAny = fixture as any;
-    const dateStr = fixtureAny.utcDate || fixtureAny.date || fixtureAny.matchDate || fixtureAny.kickoffTime;
+    const dateStr = fixture.dateTime;
     if (!dateStr) return 1; // Default to week 1 if no date found
     
     const date = new Date(dateStr);
@@ -238,12 +236,11 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                 {/* Venue information prominently displayed */}
                 <div className="px-4 py-2 bg-gradient-to-r from-gray-50 to-blue-50 text-center">
                   <p className="text-sm sm:text-base font-medium text-gray-700">
-                    {fixture.venue?.name || 'Venue TBD'}
+                    {fixture.venue || 'Venue TBD'}
                   </p>
                   <p className="text-xs sm:text-sm text-gray-500">
                     {(() => {
-                      const fixtureAny = fixture as any;
-                      const dateStr = fixtureAny.utcDate || fixtureAny.date || fixtureAny.matchDate || fixtureAny.kickoffTime;
+                      const dateStr = fixture.dateTime;
                       if (!dateStr) return 'Date TBD';
                       
                       const date = new Date(dateStr);
