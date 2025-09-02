@@ -1,5 +1,50 @@
 // api/matches.js
 
+// Helper function to calculate match importance
+function calculateMatchImportance(match) {
+  // Big 6 teams (higher importance when they play each other)
+  const big6Teams = [
+    'Arsenal FC', 'Chelsea FC', 'Liverpool FC', 
+    'Manchester City FC', 'Manchester United FC', 'Tottenham Hotspur FC'
+  ];
+  
+  const homeTeamName = match.homeTeam.name;
+  const awayTeamName = match.awayTeam.name;
+  
+  const homeIsBig6 = big6Teams.includes(homeTeamName);
+  const awayIsBig6 = big6Teams.includes(awayTeamName);
+  
+  // Both teams are Big 6 = high importance
+  if (homeIsBig6 && awayIsBig6) {
+    return 9;
+  }
+  
+  // One team is Big 6 = medium importance  
+  if (homeIsBig6 || awayIsBig6) {
+    return 7;
+  }
+  
+  // Derby matches or rivals (you can expand this)
+  const derbies = [
+    ['Manchester City FC', 'Manchester United FC'], // Manchester Derby
+    ['Arsenal FC', 'Tottenham Hotspur FC'], // North London Derby
+    ['Liverpool FC', 'Everton FC'], // Merseyside Derby
+    ['Chelsea FC', 'Arsenal FC'], // London rivalry
+  ];
+  
+  const isDerby = derbies.some(([team1, team2]) => 
+    (homeTeamName === team1 && awayTeamName === team2) ||
+    (homeTeamName === team2 && awayTeamName === team1)
+  );
+  
+  if (isDerby) {
+    return 8;
+  }
+  
+  // Default importance for other matches
+  return Math.floor(Math.random() * 3) + 4; // Random between 4-6
+}
+
 module.exports = async function handler(req, res) {
   try {
     console.log('=== API /matches called ===');
@@ -66,8 +111,10 @@ module.exports = async function handler(req, res) {
       id: match.id,
       utcDate: match.utcDate,
       date: match.utcDate, // Some services expect 'date' instead of 'utcDate'
+      dateTime: match.utcDate, // Your debug component uses this
       status: match.status,
       matchday: match.matchday,
+      matchWeek: match.matchday, // Your debug component uses this
       stage: match.stage || 'REGULAR_SEASON',
       homeTeam: {
         id: match.homeTeam.id,
@@ -89,13 +136,16 @@ module.exports = async function handler(req, res) {
         fullTime: { home: null, away: null }
       },
       venue: match.venue || '',
-      competition: match.competition || {
-        id: 2021,
-        name: 'Premier League',
-        code: 'PL',
-        type: 'LEAGUE',
-        emblem: ''
-      }
+      competition: {
+        id: match.competition?.id || 2021,
+        name: match.competition?.name || 'Premier League',
+        code: match.competition?.code || 'PL',
+        type: match.competition?.type || 'LEAGUE',
+        emblem: match.competition?.emblem || '',
+        logo: match.competition?.emblem || '' // Your debug component uses this
+      },
+      // Calculate importance based on team matchups or use a default
+      importance: calculateMatchImportance(match)
     })).filter(match => match.id != null); // Filter out any matches with null/undefined IDs
 
     console.log('Sending response with', matches.length, 'matches');
