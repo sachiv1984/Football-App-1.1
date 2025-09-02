@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef, Fragment } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, MapPin, Star } from "lucide-react";
 import type { FeaturedFixtureWithImportance } from "@/types";
@@ -35,7 +35,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     setCurrentIndex((prev) => (prev + 1) % totalFixtures);
   }, [totalFixtures]);
 
-  // Auto-rotate
   useEffect(() => {
     if (totalFixtures <= 1) return;
     if (intervalRef.current) window.clearInterval(intervalRef.current);
@@ -45,7 +44,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     };
   }, [goToNext, rotateInterval, totalFixtures]);
 
-  // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "ArrowLeft") goToPrevious();
@@ -55,7 +53,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [goToPrevious, goToNext]);
 
-  // Touch handlers
   const onTouchStart = (e: React.TouchEvent) => setTouchStart(e.targetTouches[0].clientX);
   const onTouchMove = (e: React.TouchEvent) => setTouchEnd(e.targetTouches[0].clientX);
   const onTouchEnd = () => {
@@ -100,79 +97,77 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
       </div>
 
       <div className="relative h-[360px] sm:h-[400px]">
-        <Fragment>
-          {currentFixture ? (
-            <AnimatePresence initial={false} custom={currentIndex}>
-              <motion.div
-                key={currentFixture.id}
-                className="absolute inset-0 flex items-center justify-center"
-                custom={currentIndex}
-                initial={{ opacity: 0, x: 100 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -100 }}
-                transition={{ duration: 0.5 }}
-                onClick={() => onGameSelect?.(currentFixture)}
-              >
-                <div className="bg-white rounded-xl shadow-xl p-6 w-[95%] sm:w-[85%] max-w-2xl mx-auto">
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <div className="text-xs sm:text-sm font-semibold text-purple-600 bg-white px-2 py-1 rounded-full">
-                        Matchweek {currentFixture.matchWeek}
-                      </div>
-                      <div className="text-xs sm:text-sm text-gray-500">{currentFixture.competition?.name}</div>
+        <AnimatePresence initial={false} custom={currentIndex}>
+          <motion.div
+            key={currentFixture?.id ?? "empty"}
+            className="absolute inset-0 flex items-center justify-center"
+            custom={currentIndex}
+            initial={{ opacity: 0, x: 100 }}
+            animate={{ opacity: currentFixture ? 1 : 0, x: currentFixture ? 0 : 0 }}
+            exit={{ opacity: 0, x: -100 }}
+            transition={{ duration: 0.5 }}
+            onClick={() => currentFixture && onGameSelect?.(currentFixture)}
+          >
+            {currentFixture ? (
+              <div className="bg-white rounded-xl shadow-xl p-6 w-[95%] sm:w-[85%] max-w-2xl mx-auto">
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <div className="text-xs sm:text-sm font-semibold text-purple-600 bg-white px-2 py-1 rounded-full">
+                      Matchweek {currentFixture.matchWeek}
                     </div>
-
-                    <div className="flex justify-around items-center">
-                      <div className="flex flex-col items-center w-1/3">
-                        <img
-                          src={getLogo(currentFixture.homeTeam)}
-                          alt={currentFixture.homeTeam?.name}
-                          className="w-16 h-16 object-contain"
-                        />
-                        <span className="mt-2 text-center text-sm sm:text-base font-medium">
-                          {currentFixture.homeTeam?.shortName}
-                        </span>
-                      </div>
-
-                      <div className="flex flex-col items-center w-1/3">
-                        <div className="text-lg sm:text-xl font-bold text-purple-700">vs</div>
-                        <div className="mt-2 text-sm font-medium text-purple-600">{formatDate(currentFixture.dateTime)}</div>
-                        <div className="flex items-center mt-1 text-xs text-gray-500">
-                          <MapPin className="w-3 h-3 mr-1" />
-                          {currentFixture.venue || "TBD"}
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col items-center w-1/3">
-                        <img
-                          src={getLogo(currentFixture.awayTeam)}
-                          alt={currentFixture.awayTeam?.name}
-                          className="w-16 h-16 object-contain"
-                        />
-                        <span className="mt-2 text-center text-sm sm:text-base font-medium">
-                          {currentFixture.awayTeam?.shortName}
-                        </span>
-                      </div>
-                    </div>
-
-                    {currentFixture.tags?.length ? (
-                      <div className="flex flex-wrap justify-center gap-2 mt-2">
-                        {currentFixture.tags.map((tag, idx) => (
-                          <span
-                            key={idx}
-                            className="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-700 border border-purple-200"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    ) : null}
+                    <div className="text-xs sm:text-sm text-gray-500">{currentFixture.competition?.name}</div>
                   </div>
+
+                  <div className="flex justify-around items-center">
+                    <div className="flex flex-col items-center w-1/3">
+                      <img
+                        src={getLogo(currentFixture.homeTeam)}
+                        alt={currentFixture.homeTeam?.name}
+                        className="w-16 h-16 object-contain"
+                      />
+                      <span className="mt-2 text-center text-sm sm:text-base font-medium">
+                        {currentFixture.homeTeam?.shortName}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col items-center w-1/3">
+                      <div className="text-lg sm:text-xl font-bold text-purple-700">vs</div>
+                      <div className="mt-2 text-sm font-medium text-purple-600">{formatDate(currentFixture.dateTime)}</div>
+                      <div className="flex items-center mt-1 text-xs text-gray-500">
+                        <MapPin className="w-3 h-3 mr-1" />
+                        {currentFixture.venue || "TBD"}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col items-center w-1/3">
+                      <img
+                        src={getLogo(currentFixture.awayTeam)}
+                        alt={currentFixture.awayTeam?.name}
+                        className="w-16 h-16 object-contain"
+                      />
+                      <span className="mt-2 text-center text-sm sm:text-base font-medium">
+                        {currentFixture.awayTeam?.shortName}
+                      </span>
+                    </div>
+                  </div>
+
+                  {currentFixture.tags?.length ? (
+                    <div className="flex flex-wrap justify-center gap-2 mt-2">
+                      {currentFixture.tags.map((tag, idx) => (
+                        <span
+                          key={idx}
+                          className="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-700 border border-purple-200"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
-              </motion.div>
-            </AnimatePresence>
-          ) : null}
-        </Fragment>
+              </div>
+            ) : null}
+          </motion.div>
+        </AnimatePresence>
 
         {/* Arrows */}
         <div className="absolute inset-y-0 left-0 flex items-center pl-2 sm:pl-4">
