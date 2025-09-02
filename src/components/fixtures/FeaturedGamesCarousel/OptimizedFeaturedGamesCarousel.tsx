@@ -18,33 +18,28 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   className = '',
 }) => {
   const { featuredFixtures, loading, error } = useFixtures();
-
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const [touchStart, setTouchStart] = useState(0);
-  const [touchEnd, setTouchEnd] = useState(0);
 
   const realCount = featuredFixtures.length;
+  const slides = realCount > 0
+    ? [featuredFixtures[realCount - 1], ...featuredFixtures, featuredFixtures[0]]
+    : [];
 
-  // Clone slides for infinite scroll
-  const slides =
-    realCount > 0
-      ? [featuredFixtures[realCount - 1], ...featuredFixtures, featuredFixtures[0]]
-      : [];
+  const scrollToIndex = useCallback(
+    (index: number, smooth = true) => {
+      if (!containerRef.current) return;
+      const slideWidth = containerRef.current.clientWidth;
+      containerRef.current.scrollTo({
+        left: (index + 1) * slideWidth,
+        behavior: smooth ? 'smooth' : 'auto',
+      });
+    },
+    []
+  );
 
-  // Scroll to a specific index
-  const scrollToIndex = useCallback((index: number, smooth = true) => {
-    if (!containerRef.current) return;
-    const slideWidth = containerRef.current.clientWidth;
-    containerRef.current.scrollTo({
-      left: (index + 1) * slideWidth,
-      behavior: smooth ? 'smooth' : 'auto',
-    });
-  }, []);
-
-  // Next / Prev
   const goToNext = useCallback(() => {
     if (isAnimating || realCount === 0) return;
     setIsAnimating(true);
@@ -57,18 +52,37 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     setCurrentIndex((prev) => prev - 1);
   }, [isAnimating, realCount]);
 
-  // Touch swipe
-  const handleTouchStart = (e: React.TouchEvent) => setTouchStart(e.targetTouches[0].clientX);
-  const handleTouchMove = (e: React.TouchEvent) => setTouchEnd(e.targetTouches[0].clientX);
-  const handleTouchEnd = () => {
-    const distance = touchStart - touchEnd;
-    if (distance > 50) goToNext();
-    if (distance < -50) goToPrev();
-    setTouchStart(0);
-    setTouchEnd(0);
-  };
+  useEffect(() => {
+    if (realCount === 0 || !containerRef.current) return;
+    const container = containerRef.current;
+    const slideWidth = container.clientWidth;
+    scrollToIndex(currentIndex);
 
-  // Keyboard
+    const handleScrollEnd = () => {
+      setIsAnimating(false);
+
+      if (currentIndex >= realCount) {
+        // Reset to first real slide without smooth scroll
+        setCurrentIndex(0);
+        scrollToIndex(0, false);
+      }
+      if (currentIndex < 0) {
+        // Reset to last real slide
+        setCurrentIndex(realCount - 1);
+        scrollToIndex(realCount - 1, false);
+      }
+    };
+
+    container.addEventListener('scroll', handleScrollEnd);
+    return () => container.removeEventListener('scroll', handleScrollEnd);
+  }, [currentIndex, realCount, scrollToIndex]);
+
+  useEffect(() => {
+    if (!autoRotate || isPaused || realCount === 0) return;
+    const interval = window.setInterval(goToNext, rotateInterval);
+    return () => clearInterval(interval);
+  }, [autoRotate, isPaused, goToNext, rotateInterval, realCount]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft') goToPrev();
@@ -77,163 +91,89 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [goToNext, goToPrev]);
+  }, [goToPrev, goToNext]);
 
-  // Auto rotate
-  useEffect(() => {
-    if (!autoRotate || isPaused || realCount === 0) return;
-    const interval = window.setInterval(goToNext, rotateInterval);
-    return () => clearInterval(interval);
-  }, [autoRotate, isPaused, goToNext, rotateInterval, realCount]);
-
-  // Infinite scroll & animation reset
-  useEffect(() => {
-    if (!containerRef.current || realCount === 0) return;
-
-    const container = containerRef.current;
-    const handleScrollEnd = () => {
-      setIsAnimating(false);
-      if (currentIndex >= realCount) {
-        setCurrentIndex(0);
-        scrollToIndex(0, false);
-      }
-      if (currentIndex < 0) {
-        setCurrentIndex(realCount - 1);
-        scrollToIndex(realCount - 1, false);
-      }
-    };
-
-    scrollToIndex(currentIndex, true);
-    container.addEventListener('scroll', handleScrollEnd);
-    return () => container.removeEventListener('scroll', handleScrollEnd);
-  }, [currentIndex, realCount, scrollToIndex]);
-
-  // Preload logos
-  useEffect(() => {
-    featuredFixtures.forEach((fixture) => {
-      [fixture.homeTeam, fixture.awayTeam].forEach((team) => {
-        const { logoPath } = getTeamLogo(team);
-        if (logoPath) {
-          const img = new Image();
-          img.src = logoPath;
-        }
-      });
-    });
-  }, [featuredFixtures]);
-
-  const getImportanceBadge = (importance: number) => {
-    if (importance >= 8) return { text: 'BIG MATCH', style: 'bg-red-600 text-white' };
-    if (importance >= 6) return { text: 'KEY MATCH', style: 'bg-orange-500 text-white' };
-    if (importance >= 4) return { text: 'IMPORTANT', style: 'bg-blue-500 text-white' };
-    return null;
-  };
-
-  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    e.currentTarget.style.display = 'none';
-    const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-    if (fallback) fallback.style.display = 'flex';
+  const handleImageError = (teamName: string, logoPath: string | null) => {
+    console.warn(`Logo missing for team: ${teamName}, attempted path: ${logoPath}`);
   };
 
   const getMatchDayLabel = (dateTime: string) => {
-    if (!dateTime || dateTime.includes('null')) return 'TBD';
+    if (!dateTime || dateTime === 'nullTnull' || dateTime === 'null') return 'TBD';
     const matchDate = new Date(dateTime);
     if (isNaN(matchDate.getTime())) return 'TBD';
+
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
+
     if (matchDate.toDateString() === today.toDateString()) return 'Today';
     if (matchDate.toDateString() === tomorrow.toDateString()) return 'Tomorrow';
     return matchDate.toLocaleDateString('en-GB', { weekday: 'short', month: 'short', day: 'numeric' });
   };
 
   const getMatchTime = (dateTime: string) => {
-    if (!dateTime || dateTime.includes('null')) return 'TBD';
+    if (!dateTime || dateTime === 'nullTnull' || dateTime === 'null') return 'TBD';
     const matchDate = new Date(dateTime);
     if (isNaN(matchDate.getTime())) return 'TBD';
     return matchDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  if (loading) return (
-    <div className={`${className} flex items-center justify-center h-64`}>
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-      <div>Loading Featured Games...</div>
-    </div>
-  );
-
+  if (loading) return <div className={`${className}`}>Loading...</div>;
   if (error) return <div className={`${className}`}>Error: {error}</div>;
   if (featuredFixtures.length === 0) return <div className={`${className}`}>No Featured Games</div>;
 
   return (
-    <div 
+    <div
       className={`relative overflow-hidden group ${className}`}
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      <div
-        ref={containerRef}
-        className="flex overflow-x-scroll scroll-smooth hide-scrollbar"
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-      >
+      <div ref={containerRef} className="flex overflow-x-scroll scroll-smooth hide-scrollbar">
         {slides.map((fixture, idx) => {
-          const importanceBadge = getImportanceBadge(fixture.importance);
           const homeLogo = getTeamLogo(fixture.homeTeam);
           const awayLogo = getTeamLogo(fixture.awayTeam);
-          const matchDayLabel = getMatchDayLabel(fixture.dateTime);
-          const matchTime = getMatchTime(fixture.dateTime);
           const competitionLogo = getCompetitionLogo(fixture.competition.name, fixture.competition.logo);
 
+          if (!homeLogo.logoPath) handleImageError(fixture.homeTeam.name, homeLogo.logoPath);
+          if (!awayLogo.logoPath) handleImageError(fixture.awayTeam.name, awayLogo.logoPath);
+          if (!competitionLogo) console.warn(`Competition logo missing: ${fixture.competition.name}`);
+
           return (
-            <div
-              key={idx}
-              className="min-w-full flex-shrink-0 p-2 cursor-pointer"
-              onClick={() => onGameSelect?.(fixture)}
-            >
-              {/* FULL FIXTURE CARD JSX */}
+            <div key={idx} className="min-w-full flex-shrink-0 p-2">
               <div className="fixture-card bg-white rounded-xl shadow-lg p-4">
-                <div className="flex justify-between items-center mb-2">
-                  {competitionLogo && <img src={competitionLogo} alt={fixture.competition.name} className="w-20 h-20 object-contain" />}
-                  {importanceBadge && <span className={`px-2 py-1 text-xs font-bold rounded-full ${importanceBadge.style}`}>{importanceBadge.text}</span>}
-                </div>
-                <div className="flex justify-between items-center mt-4">
-                  {/* Home */}
-                  <div className="flex flex-col items-center">
-                    <div className="w-16 h-16 relative">
-                      {homeLogo.logoPath ? (
-                        <>
-                          <img src={homeLogo.logoPath} alt={fixture.homeTeam.name} className="w-full h-full object-contain" onError={handleImageError} />
-                          <div className="absolute inset-0 hidden items-center justify-center text-gray-600 font-bold">{homeLogo.fallbackInitial}</div>
-                        </>
-                      ) : (
-                        <div className="w-full h-full bg-gray-200 flex items-center justify-center rounded-full">{homeLogo.fallbackInitial}</div>
-                      )}
-                    </div>
-                    <div className="text-center font-bold">{homeLogo.displayName}</div>
+                {/* Competition Logo */}
+                {competitionLogo && (
+                  <img src={competitionLogo} alt={fixture.competition.name} className="w-20 h-20 object-contain mb-2" />
+                )}
+
+                {/* Teams */}
+                <div className="flex items-center justify-between">
+                  <div className="text-center">
+                    {homeLogo.logoPath ? (
+                      <img src={homeLogo.logoPath} alt={fixture.homeTeam.name} className="w-14 h-14 object-contain" />
+                    ) : (
+                      <div className="w-14 h-14 flex items-center justify-center bg-gray-200 rounded-full">
+                        {homeLogo.fallbackInitial}
+                      </div>
+                    )}
+                    <div className="mt-1 font-bold">{homeLogo.displayName}</div>
                   </div>
 
-                  {/* VS */}
-                  <div className="flex flex-col items-center">
-                    <div className="font-bold text-gray-400 text-2xl">VS</div>
-                    <div className="text-center border rounded-lg p-2">
-                      <div className="font-bold">{matchTime}</div>
-                      <div className="text-sm">{matchDayLabel}</div>
-                    </div>
+                  <div className="text-center">
+                    <div>VS</div>
+                    <div>{getMatchTime(fixture.dateTime)}</div>
+                    <div>{getMatchDayLabel(fixture.dateTime)}</div>
                   </div>
 
-                  {/* Away */}
-                  <div className="flex flex-col items-center">
-                    <div className="w-16 h-16 relative">
-                      {awayLogo.logoPath ? (
-                        <>
-                          <img src={awayLogo.logoPath} alt={fixture.awayTeam.name} className="w-full h-full object-contain" onError={handleImageError} />
-                          <div className="absolute inset-0 hidden items-center justify-center text-gray-600 font-bold">{awayLogo.fallbackInitial}</div>
-                        </>
-                      ) : (
-                        <div className="w-full h-full bg-gray-200 flex items-center justify-center rounded-full">{awayLogo.fallbackInitial}</div>
-                      )}
-                    </div>
-                    <div className="text-center font-bold">{awayLogo.displayName}</div>
+                  <div className="text-center">
+                    {awayLogo.logoPath ? (
+                      <img src={awayLogo.logoPath} alt={fixture.awayTeam.name} className="w-14 h-14 object-contain" />
+                    ) : (
+                      <div className="w-14 h-14 flex items-center justify-center bg-gray-200 rounded-full">
+                        {awayLogo.fallbackInitial}
+                      </div>
+                    )}
+                    <div className="mt-1 font-bold">{awayLogo.displayName}</div>
                   </div>
                 </div>
               </div>
@@ -242,9 +182,15 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
         })}
       </div>
 
-      {/* Navigation arrows */}
-      <button onClick={goToPrev} className="absolute left-2 top-1/2 -translate-y-1/2">◀</button>
-      <button onClick={goToNext} className="absolute right-2 top-1/2 -translate-y-1/2">▶</button>
+      {/* Arrows (show on hover) */}
+      <button
+        className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 p-2 rounded-full opacity-0 group-hover:opacity-100 transition"
+        onClick={goToPrev}
+      >‹</button>
+      <button
+        className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 p-2 rounded-full opacity-0 group-hover:opacity-100 transition"
+        onClick={goToNext}
+      >›</button>
     </div>
   );
 };
