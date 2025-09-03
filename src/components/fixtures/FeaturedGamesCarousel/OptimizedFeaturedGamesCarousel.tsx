@@ -12,7 +12,7 @@ interface Props {
   className?: string;
 }
 
-export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
+export const InfiniteFeaturedGamesCarousel: React.FC<Props> = ({
   onGameSelect,
   autoRotate = true,
   rotateInterval = 5000,
@@ -20,10 +20,10 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 }) => {
   const { featuredFixtures, loading, error } = useFixtures();
   const containerRef = useRef<HTMLDivElement>(null);
-  const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const [cardWidth, setCardWidth] = useState<number>(0);
+  const [cardWidth, setCardWidth] = useState(0);
+  const [currentSlide, setCurrentSlide] = useState(0);
 
   // Update isMobile
   useEffect(() => {
@@ -32,11 +32,16 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Calculate card width & slides
-  const gap = 16; // Tailwind gap-4
   const cardsPerSlide = isMobile ? 1 : 2;
+  const gap = 16; // Tailwind gap-4
   const totalSlides = Math.ceil(featuredFixtures.length / cardsPerSlide);
 
+  // Prepare cloned slides for infinite loop
+  const clonedStart = featuredFixtures.slice(-cardsPerSlide);
+  const clonedEnd = featuredFixtures.slice(0, cardsPerSlide);
+  const slides = [...clonedStart, ...featuredFixtures, ...clonedEnd];
+
+  // Card width calculation
   useEffect(() => {
     const calculateCardWidth = () => {
       const containerWidth = containerRef.current?.clientWidth || window.innerWidth;
@@ -48,11 +53,21 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => window.removeEventListener('resize', calculateCardWidth);
   }, [isMobile, featuredFixtures.length]);
 
-  // Navigation
-  const goToSlide = useCallback((index: number) => {
-    const newIndex = (index + totalSlides) % totalSlides;
-    setCurrentSlide(newIndex);
-  }, [totalSlides]);
+  const slideWidth = cardWidth * cardsPerSlide + gap * (cardsPerSlide - 1);
+
+  // Go to slide
+  const goToSlide = useCallback(
+    (index: number) => {
+      setCurrentSlide(index);
+      if (containerRef.current) {
+        containerRef.current.scrollTo({
+          left: (index + cardsPerSlide) * slideWidth, // account for cloned start
+          behavior: 'smooth',
+        });
+      }
+    },
+    [slideWidth, cardsPerSlide]
+  );
 
   const goToNext = useCallback(() => goToSlide(currentSlide + 1), [currentSlide, goToSlide]);
   const goToPrev = useCallback(() => goToSlide(currentSlide - 1), [currentSlide, goToSlide]);
@@ -66,12 +81,28 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => clearInterval(interval);
   }, [autoRotate, isPaused, goToNext, rotateInterval]);
 
-  // Scroll to current slide
+  // Scroll handler for infinite loop
   useEffect(() => {
     if (!containerRef.current) return;
-    const scrollLeft = currentSlide * (cardWidth * cardsPerSlide + gap * (cardsPerSlide - 1));
-    containerRef.current.scrollTo({ left: scrollLeft, behavior: 'smooth' });
-  }, [currentSlide, cardWidth, cardsPerSlide]);
+
+    const handleScroll = () => {
+      if (!containerRef.current) return;
+      const scrollLeft = containerRef.current.scrollLeft;
+
+      // Jump to real slides if we are in cloned area
+      if (scrollLeft < slideWidth) {
+        // At cloned start
+        containerRef.current.scrollLeft = scrollLeft + totalSlides * slideWidth;
+      } else if (scrollLeft >= (totalSlides + cardsPerSlide) * slideWidth) {
+        // At cloned end
+        containerRef.current.scrollLeft = scrollLeft - totalSlides * slideWidth;
+      }
+    };
+
+    const container = containerRef.current;
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [slideWidth, totalSlides, cardsPerSlide]);
 
   // Touch swipe
   const touchStartRef = useRef(0);
@@ -119,14 +150,14 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      {/* Card Container */}
+      {/* Card Container with padding for arrows */}
       <div
         ref={containerRef}
-        className="flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory hide-scrollbar"
+        className="flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory hide-scrollbar px-12"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        {featuredFixtures.map((fixture, idx) => {
+        {slides.map((fixture, idx) => {
           const homeLogo = getTeamLogo(fixture.homeTeam);
           const awayLogo = getTeamLogo(fixture.awayTeam);
           const competitionLogo = getCompetitionLogo(fixture.competition.name, fixture.competition.logo);
@@ -135,7 +166,7 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             <div
               key={idx}
               style={{ flex: `0 0 ${cardWidth}px` }}
-              className="flex-shrink-0"
+              className="flex-shrink-0 snap-start"
               onClick={() => onGameSelect?.(fixture)}
               tabIndex={0}
               role="group"
@@ -189,7 +220,7 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
       {totalSlides > 1 && (
         <>
           <button
-            className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-white p-3 rounded-full shadow-md hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-600 border border-gray-200"
+            className="absolute left-2 top-1/2 -translate-y-1/2 bg-white p-3 rounded-full shadow-md hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-600 border border-gray-200"
             onClick={goToPrev}
             aria-label="Previous slide"
           >
@@ -198,7 +229,7 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             </svg>
           </button>
           <button
-            className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-white p-3 rounded-full shadow-md hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-600 border border-gray-200"
+            className="absolute right-2 top-1/2 -translate-y-1/2 bg-white p-3 rounded-full shadow-md hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-600 border border-gray-200"
             onClick={goToNext}
             aria-label="Next slide"
           >
