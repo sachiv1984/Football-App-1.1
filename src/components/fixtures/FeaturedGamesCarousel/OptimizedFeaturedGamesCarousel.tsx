@@ -30,7 +30,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     setCurrentSlide(index);
 
     if (trackRef.current) {
-      trackRef.current.style.setProperty('--carousel-offset', `-${index * 100}%`);
+      trackRef.current.style.transform = `translateX(-${index * 100}%)`;
     }
 
     setTimeout(() => setIsTransitioning(false), 400);
@@ -96,7 +96,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             return (
               <div key={fixture.id || index} className="carousel-slide" aria-hidden={currentSlide !== index}>
                 <div
-                  className="p-6 cursor-pointer"
+                  className="p-6 cursor-pointer carousel-card"
                   onClick={() => onGameSelect?.(fixture)}
                   tabIndex={currentSlide === index ? 0 : -1}
                   role="button"
