@@ -164,8 +164,14 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             >
               <div className="fixture-card card hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.05] overflow-hidden">
                 <div className="px-4 py-2 flex items-center justify-between border-b border-gray-100">
-                  {competitionLogo && (
-                    <img src={competitionLogo} alt={fixture.competition.name} className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />
+                 {competitionLogo && (
+                  <div className="inline-block p-1 rounded-full bg-gray-100 hover:scale-105 transition-transform duration-200">
+                  <img
+                  src={competitionLogo}
+                  alt={fixture.competition.name}
+                  className="w-10 h-10 sm:w-12 sm:h-12 object-contain"
+                    />
+                    </div>
                   )}
                   <div className="text-xs sm:text-sm font-semibold text-purple-600 bg-white px-2 py-1 rounded-full">
                     Week {fixture.matchWeek}
