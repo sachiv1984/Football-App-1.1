@@ -1,5 +1,4 @@
-// src/pages/HomePage.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '../components/common/Header/Header';
 import Footer from '../components/common/Footer/Footer';
 import TabNavigation from '../components/common/TabNavigation/TabNavigation';
@@ -12,7 +11,7 @@ import { FixturesDebugTable } from '../components/FixturesDebugTable';
 import { ErrorBoundary, CarouselErrorBoundary } from '../components/ErrorBoundary';
 
 // -------------------------
-// Example Teams
+// Example Teams (Mock fallback)
 // -------------------------
 const arsenal: Team = { id: 'arsenal', name: 'Arsenal', shortName: 'ARS', colors: { primary: '#EF0000', secondary: '#FFFF00' }, form: ['W','W','W','D','W'], position: 1 };
 const liverpool: Team = { id: 'liverpool', name: 'Liverpool', shortName: 'LIV', colors: { primary: '#C8102E', secondary: '#00B2A9' }, form: ['W','D','W','L','W'], position: 2 };
@@ -21,7 +20,7 @@ const manCity: Team = { id: 'man-city', name: 'Manchester City', shortName: 'MCI
 const manUtd: Team = { id: 'man-utd', name: 'Manchester United', shortName: 'MUN', colors: { primary: '#DC143C', secondary: '#FFD700' }, form: ['W','D','L','W','W'], position: 5 };
 
 // -------------------------
-// Mock Featured Fixtures
+// Mock Featured Fixtures (fallback)
 // -------------------------
 const featuredFixtures: FeaturedFixtureWithImportance[] = [
   {
@@ -76,16 +75,35 @@ const HomePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'fixtures' | 'standings'>('fixtures');
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showDebugTable, setShowDebugTable] = useState(true);
+  const [apiFixtures, setApiFixtures] = useState<FeaturedFixtureWithImportance[]>([]); // API data
 
   const handleToggleDarkMode = () => setIsDarkMode(!isDarkMode);
   const handleGameSelect = (fixture: FeaturedFixtureWithImportance) => console.log('Selected fixture:', fixture.id);
+
+  // -------------------------
+  // Fetch Featured Fixtures from API
+  // -------------------------
+  useEffect(() => {
+    const fetchFixtures = async () => {
+      try {
+        const response = await fetch('/api/featured-fixtures'); // replace with real API endpoint
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+        const data: FeaturedFixtureWithImportance[] = await response.json();
+        setApiFixtures(data);
+      } catch (err) {
+        console.error('Failed to fetch API fixtures:', err);
+        setApiFixtures([]); // fallback to empty array
+      }
+    };
+
+    fetchFixtures();
+  }, []);
 
   return (
     <ErrorBoundary>
       <div style={{ background: designTokens.colors.neutral.background, color: designTokens.colors.neutral.darkGrey, minHeight: '100vh' }}>
         <Header isDarkMode={isDarkMode} onToggleDarkMode={handleToggleDarkMode} />
 
-        {/* Spacer */}
         <div style={{ marginTop: '2rem' }} />
 
         {/* Debug Table */}
@@ -108,9 +126,9 @@ const HomePage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <CarouselErrorBoundary>
             <OptimizedFeaturedGamesCarousel
-              fixtures={featuredFixtures}
+              fixtures={apiFixtures.length ? apiFixtures : featuredFixtures} // use API if loaded
               onGameSelect={handleGameSelect}
-              className="my-8" // rotateInterval removed
+              className="my-8"
             />
           </CarouselErrorBoundary>
         </div>
@@ -121,7 +139,7 @@ const HomePage: React.FC = () => {
             activeTab={activeTab}
             onTabChange={(tabId: string) => setActiveTab(tabId as 'fixtures' | 'standings')}
             tabs={[
-              { label: 'Fixtures', id: 'fixtures', content: <FixturesList fixtures={featuredFixtures} /> },
+              { label: 'Fixtures', id: 'fixtures', content: <FixturesList fixtures={apiFixtures.length ? apiFixtures : featuredFixtures} /> },
               { label: 'Standings', id: 'standings', content: <LeagueTable rows={standings} /> },
             ]}
           />
