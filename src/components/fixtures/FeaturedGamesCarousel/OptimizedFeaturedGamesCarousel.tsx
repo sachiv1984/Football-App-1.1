@@ -1,3 +1,4 @@
+// src/components/OptimizedFeaturedGamesCarousel.tsx
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import type { FeaturedFixtureWithImportance } from '../../../types';
 import { getTeamLogo, getCompetitionLogo } from '../../../utils/teamUtils';
@@ -12,12 +13,13 @@ interface Props {
 }
 
 export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
+  fixtures,
   onGameSelect,
   autoRotate = true,
   rotateInterval = 5000,
   className = '',
 }) => {
-  const { featuredFixtures, loading, error } = useFixtures();
+  const { featuredFixtures: fetchedFixtures, loading, error } = useFixtures();
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -25,248 +27,114 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const [touchEnd, setTouchEnd] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
 
-  const realCount = featuredFixtures.length;
+  const data = fixtures || fetchedFixtures;
+  const realCount = data.length;
 
-  // Check if mobile
+  // --- Responsive: check mobile ---
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    
+    const checkMobile = () => setIsMobile(window.innerWidth <= 768);
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // For mobile: infinite loop with clones, for desktop: show 2 games
-  const slides = realCount > 0 && isMobile ? [
-    featuredFixtures[realCount - 1],
-    ...featuredFixtures,
-    featuredFixtures[0],
-  ] : featuredFixtures;
-
-  const slideWidth = containerRef.current?.clientWidth || 0;
-
-  // Scroll to a specific index
-  const scrollToIndex = useCallback((index: number, smooth = true) => {
-    if (!containerRef.current || !isMobile) return;
-    containerRef.current.scrollTo({
-      left: (index + 1) * slideWidth,
-      behavior: smooth ? 'smooth' : 'auto',
-    });
-  }, [slideWidth, isMobile]);
-
-  const goToNext = useCallback(() => {
-    if (realCount === 0 || !isMobile) return;
-    setCurrentIndex(prev => prev + 1);
-  }, [realCount, isMobile]);
-
-  const goToPrev = useCallback(() => {
-    if (realCount === 0 || !isMobile) return;
-    setCurrentIndex(prev => prev - 1);
-  }, [realCount, isMobile]);
-
-  // Auto rotate (only on mobile)
+  // --- Auto-rotation ---
   useEffect(() => {
-    if (!autoRotate || isPaused || realCount === 0 || !isMobile) return;
-    const interval = setInterval(goToNext, rotateInterval);
-    return () => clearInterval(interval);
-  }, [autoRotate, isPaused, goToNext, rotateInterval, realCount, isMobile]);
+    if (!autoRotate || isPaused || realCount === 0) return;
+    const timer = setInterval(() => {
+      setCurrentIndex(prev => (prev + 1) % realCount);
+    }, rotateInterval);
+    return () => clearInterval(timer);
+  }, [autoRotate, isPaused, rotateInterval, realCount]);
 
-  // Handle scroll & continuous loop
+  // --- Reset to first fixture on data change ---
   useEffect(() => {
-    if (!containerRef.current || realCount === 0 || !isMobile) return;
+    if (realCount > 0) {
+      setCurrentIndex(0);
+    }
+  }, [realCount]);
 
-    const container = containerRef.current;
-    scrollToIndex(currentIndex);
-
-    const handleScroll = () => {
-      if (currentIndex >= realCount) {
-        setCurrentIndex(0);
-        container.scrollLeft = slideWidth;
-      }
-      if (currentIndex < 0) {
-        setCurrentIndex(realCount - 1);
-        container.scrollLeft = realCount * slideWidth;
-      }
-    };
-
-    container.addEventListener('scroll', handleScroll);
-    return () => container.removeEventListener('scroll', handleScroll);
-  }, [currentIndex, realCount, slideWidth, scrollToIndex, isMobile]);
-
-  // Touch swipe
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (!isMobile) return;
-    setTouchStart(e.targetTouches[0].clientX);
-  };
-  
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isMobile) return;
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
-  
+  // --- Swipe handling ---
+  const handleTouchStart = (e: React.TouchEvent) => setTouchStart(e.targetTouches[0].clientX);
+  const handleTouchMove = (e: React.TouchEvent) => setTouchEnd(e.targetTouches[0].clientX);
   const handleTouchEnd = () => {
-    if (!isMobile) return;
-    const distance = touchStart - touchEnd;
-    if (distance > 50) goToNext();
-    if (distance < -50) goToPrev();
-    setTouchStart(0);
-    setTouchEnd(0);
+    if (touchStart - touchEnd > 50) {
+      setCurrentIndex(prev => (prev + 1) % realCount); // swipe left → next
+    }
+    if (touchEnd - touchStart > 50) {
+      setCurrentIndex(prev => (prev - 1 + realCount) % realCount); // swipe right → prev
+    }
   };
 
-  // Keyboard navigation
-  useEffect(() => {
-    if (!isMobile) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft') goToPrev();
-      if (e.key === 'ArrowRight') goToNext();
-      if (e.key === 'Escape') setIsPaused(true);
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [goToPrev, goToNext, isMobile]);
+  // --- Click handler ---
+  const handleGameClick = useCallback(
+    (fixture: FeaturedFixtureWithImportance) => {
+      if (onGameSelect) onGameSelect(fixture);
+    },
+    [onGameSelect]
+  );
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center p-8">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
-      </div>
-    );
-  }
-  
-  if (error) {
-    return (
-      <div className="text-red-600 text-center p-4 bg-red-50 rounded-lg">
-        Error loading fixtures: {error}
-      </div>
-    );
-  }
-  
-  if (featuredFixtures.length === 0) {
-    return (
-      <div className="text-gray-600 text-center p-8 bg-gray-50 rounded-lg">
-        No Featured Games Available
-      </div>
-    );
-  }
+  if (loading) return <div>Loading fixtures...</div>;
+  if (error) return <div>Error loading fixtures: {error}</div>;
+  if (realCount === 0) return <div>No fixtures available</div>;
+
+  const fixture = data[currentIndex];
 
   return (
     <div
-      className={`relative overflow-hidden group ${className}`}
-      onMouseEnter={() => isMobile && setIsPaused(true)}
-      onMouseLeave={() => isMobile && setIsPaused(false)}
+      className={`featured-carousel ${className}`}
+      ref={containerRef}
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
       <div
-        ref={containerRef}
-        className={`flex ${
-          isMobile 
-            ? 'overflow-x-scroll scroll-smooth hide-scrollbar' 
-            : 'grid md:grid-cols-2 gap-6'
-        }`}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
+        className="carousel-slide"
+        onClick={() => handleGameClick(fixture)}
+        style={{ cursor: onGameSelect ? 'pointer' : 'default' }}
       >
-        {slides.map((fixture, idx) => {
-          const homeLogo = getTeamLogo(fixture.homeTeam);
-          const awayLogo = getTeamLogo(fixture.awayTeam);
-          const competitionLogo = getCompetitionLogo(fixture.competition.name, fixture.competition.logo);
+        {/* Competition */}
+        <div className="competition">
+          <img
+            src={getCompetitionLogo(fixture.competition.logo)}
+            alt={fixture.competition.name}
+            className="competition-logo"
+          />
+          <span>{fixture.competition.name}</span>
+        </div>
 
-          return (
-            <div 
-              key={idx} 
-              className={`${isMobile ? 'min-w-full' : 'w-full'} p-3 cursor-pointer`} 
-              onClick={() => onGameSelect?.(fixture)}
-            >
-              <div className="fixture-card bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] overflow-hidden">
-                {/* Header */}
-                <div className="bg-gradient-to-r from-purple-50 to-blue-50 px-4 py-3 flex justify-between items-center border-b border-gray-100">
-                  <div className="flex items-center">
-                    {competitionLogo && (
-                      <img 
-                        src={competitionLogo} 
-                        alt={fixture.competition.name} 
-                        className="w-8 h-8 sm:w-10 sm:h-10 object-contain"
-                      />
-                    )}
-                  </div>
-                  
-                  {/* ✅ Correct matchweek from service */}
-                  <div className="text-xs sm:text-sm font-semibold text-purple-600 bg-white px-2 py-1 rounded-full">
-                    Matchweek {fixture.matchWeek}
-                  </div>
-                </div>
+        {/* Teams */}
+        <div className="teams">
+          <div className="team">
+            <img src={getTeamLogo(fixture.homeTeam.logo)} alt={fixture.homeTeam.name} />
+            <span>{fixture.homeTeam.shortName}</span>
+          </div>
+          <span className="vs">vs</span>
+          <div className="team">
+            <img src={getTeamLogo(fixture.awayTeam.logo)} alt={fixture.awayTeam.name} />
+            <span>{fixture.awayTeam.shortName}</span>
+          </div>
+        </div>
 
-                {/* Teams section */}
-                <div className="p-4 sm:p-6">
-                  {/* Home vs Away */}
-                  <div className="flex justify-between items-center mb-4">
-                    <div className="flex flex-col items-center flex-1">
-                      <div className="w-16 h-16 sm:w-20 sm:h-20 mb-3 bg-white rounded-full shadow-md flex items-center justify-center ring-2 ring-gray-100">
-                        <img 
-                          src={homeLogo.logoPath || ''} 
-                          alt={homeLogo.displayName} 
-                          className="w-12 h-12 sm:w-16 sm:h-16 object-contain"
-                        />
-                      </div>
-                      <span className="text-sm sm:text-base font-semibold text-center text-gray-800 leading-tight">
-                        {homeLogo.displayName}
-                      </span>
-                    </div>
-                    
-                    <div className="flex flex-col items-center mx-4 min-w-[80px]">
-                      <span className="text-xl sm:text-2xl font-bold text-purple-600 mb-2">VS</span>
-                      <div className="bg-gradient-to-r from-purple-100 to-blue-100 px-3 py-2 rounded-lg text-center border border-purple-200">
-                        <div className="text-xs sm:text-sm font-bold text-purple-700">
-                          {(() => {
-                            const dateStr = fixture.dateTime;
-                            if (!dateStr) return 'TBD';
-                            const date = new Date(dateStr);
-                            if (isNaN(date.getTime())) return 'TBD';
-                            return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-                          })()}
-                        </div>
-                        <div className="text-xs sm:text-sm font-semibold text-gray-600 mt-1">
-                          {(() => {
-                            const dateStr = fixture.dateTime;
-                            if (!dateStr) return 'TBD';
-                            const date = new Date(dateStr);
-                            if (isNaN(date.getTime())) return 'TBD';
-                            return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-                          })()}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex flex-col items-center flex-1">
-                      <div className="w-16 h-16 sm:w-20 sm:h-20 mb-3 bg-white rounded-full shadow-md flex items-center justify-center ring-2 ring-gray-100">
-                        <img 
-                          src={awayLogo.logoPath || ''} 
-                          alt={awayLogo.displayName} 
-                          className="w-12 h-12 sm:w-16 sm:h-16 object-contain"
-                        />
-                      </div>
-                      <span className="text-sm sm:text-base font-semibold text-center text-gray-800 leading-tight">
-                        {awayLogo.displayName}
-                      </span>
-                    </div>
-                  </div>
+        {/* Fixture meta */}
+        <div className="fixture-meta">
+          <div>Matchweek: {fixture.matchWeek}</div>
+          <div>Venue: {fixture.venue || 'TBD'}</div>
+          <div>{new Date(fixture.dateTime).toLocaleString()}</div>
+        </div>
+      </div>
 
-                  {/* ✅ Venue display */}
-                  <div className="flex justify-center mt-4 pt-3 border-t border-gray-100">
-                    <div className="text-center">
-                      <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Venue</div>
-                      <div className="text-sm font-medium text-gray-700">
-                        {fixture.venue || 'TBD'}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        })}
+      {/* Dots navigation */}
+      <div className="dots">
+        {data.map((_, i) => (
+          <span
+            key={i}
+            className={`dot ${i === currentIndex ? 'active' : ''}`}
+            onClick={() => setCurrentIndex(i)}
+          />
+        ))}
       </div>
     </div>
   );
