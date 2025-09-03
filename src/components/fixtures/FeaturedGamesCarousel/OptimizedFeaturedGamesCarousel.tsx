@@ -21,7 +21,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const { featuredFixtures, loading, error } = useFixtures();
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPaused, setIsPaused] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isMobile] = useState(window.innerWidth < 768); // only read
   const [cardWidth, setCardWidth] = useState(0);
   const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -79,13 +79,10 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     const container = containerRef.current;
 
     const handleScroll = () => {
-      const scrollLeft = container.scrollLeft;
-      // If scroll reaches clones at start
       if (currentSlide < 0) {
         container.scrollLeft = totalSlides * slideWidth;
         setCurrentSlide(totalSlides - 1);
       }
-      // If scroll reaches clones at end
       if (currentSlide >= totalSlides) {
         container.scrollLeft = slideWidth;
         setCurrentSlide(0);
@@ -115,12 +112,33 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [goToPrev, goToNext]);
 
-  if (loading) return <div className="flex justify-center items-center p-8"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div></div>;
-  if (error) return <div className="text-red-600 text-center p-4 bg-red-50 rounded-lg">Error loading fixtures: {error}</div>;
-  if (featuredFixtures.length === 0) return <div className="text-gray-600 text-center p-8 bg-gray-50 rounded-lg">No Featured Games Available</div>;
+  if (loading)
+    return (
+      <div className="flex justify-center items-center p-8">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      </div>
+    );
+  if (error)
+    return (
+      <div className="text-red-600 text-center p-4 bg-red-50 rounded-lg">
+        Error loading fixtures: {error}
+      </div>
+    );
+  if (featuredFixtures.length === 0)
+    return (
+      <div className="text-gray-600 text-center p-8 bg-gray-50 rounded-lg">
+        No Featured Games Available
+      </div>
+    );
 
   return (
-    <div className={clsx('relative group', className)} role="region" aria-label="Featured Games Carousel" onMouseEnter={() => setIsPaused(true)} onMouseLeave={() => setIsPaused(false)}>
+    <div
+      className={clsx('relative group', className)}
+      role="region"
+      aria-label="Featured Games Carousel"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+    >
       {/* Scroll container with padding to prevent arrow overlap */}
       <div
         ref={containerRef}
@@ -146,8 +164,12 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             >
               <div className="fixture-card card hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.05] overflow-hidden">
                 <div className="px-4 py-2 flex items-center justify-between border-b border-gray-100">
-                  {competitionLogo && <img src={competitionLogo} alt={fixture.competition.name} className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />}
-                  <div className="text-xs sm:text-sm font-semibold text-purple-600 bg-white px-2 py-1 rounded-full">Week {fixture.matchWeek}</div>
+                  {competitionLogo && (
+                    <img src={competitionLogo} alt={fixture.competition.name} className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />
+                  )}
+                  <div className="text-xs sm:text-sm font-semibold text-purple-600 bg-white px-2 py-1 rounded-full">
+                    Week {fixture.matchWeek}
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between px-4 py-4">
@@ -157,8 +179,12 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                   </div>
 
                   <div className="flex flex-col items-center justify-center text-center mx-4">
-                    <span className="text-sm font-semibold text-gray-900">{new Date(fixture.dateTime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
-                    <span className="text-sm font-medium text-gray-700 mt-1">{new Date(fixture.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
+                    <span className="text-sm font-semibold text-gray-900">
+                      {new Date(fixture.dateTime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                    </span>
+                    <span className="text-sm font-medium text-gray-700 mt-1">
+                      {new Date(fixture.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
                   </div>
 
                   <div className="flex flex-col items-center">
@@ -167,7 +193,9 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                   </div>
                 </div>
 
-                <div className="mt-2 px-4 py-2 text-center text-sm font-medium text-gray-700 bg-gray-100 rounded-b-lg">{fixture.venue?.trim() || 'TBD'}</div>
+                <div className="mt-2 px-4 py-2 text-center text-sm font-medium text-gray-700 bg-gray-100 rounded-b-lg">
+                  {fixture.venue?.trim() || 'TBD'}
+                </div>
               </div>
             </div>
           );
@@ -182,14 +210,26 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             onClick={goToPrev}
             aria-label="Previous slide"
           >
-            <svg className="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
+            <svg className="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fillRule="evenodd"
+                d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                clipRule="evenodd"
+              />
+            </svg>
           </button>
           <button
             className="absolute right-2 top-1/2 -translate-y-1/2 bg-white p-3 rounded-full shadow-md hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-600 border border-gray-200"
             onClick={goToNext}
             aria-label="Next slide"
           >
-            <svg className="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/></svg>
+            <svg className="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fillRule="evenodd"
+                d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                clipRule="evenodd"
+              />
+            </svg>
           </button>
         </>
       )}
