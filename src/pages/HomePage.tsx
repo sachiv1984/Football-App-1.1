@@ -110,8 +110,7 @@ const HomePage: React.FC = () => {
             <OptimizedFeaturedGamesCarousel
               fixtures={featuredFixtures}
               onGameSelect={handleGameSelect}
-              rotateInterval={5000}
-              className="my-8"
+              className="my-8" // rotateInterval removed
             />
           </CarouselErrorBoundary>
         </div>
