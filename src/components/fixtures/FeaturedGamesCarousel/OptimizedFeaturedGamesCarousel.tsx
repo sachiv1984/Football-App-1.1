@@ -114,46 +114,47 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelec
                     </div>
                   </div>
 
-                  {/* Teams: Always horizontal */}
-                  <div className="flex items-center justify-between w-full">
-                    {/* Home */}
-                    <div className="flex flex-col items-center flex-1">
-                      {homeLogo.logoPath && (
-                        <img
-                          src={homeLogo.logoPath}
-                          alt={homeLogo.displayName}
-                          className="w-20 h-20 object-contain mb-2"
-                        />
-                      )}
-                      <span className="text-base font-semibold text-gray-900 text-center">
-                        {homeLogo.displayName}
-                      </span>
-                    </div>
+               {/* Teams: Always horizontal */}
+<div className="flex items-center justify-between w-full">
+  {/* Home */}
+  <div className="flex flex-col items-center flex-1">
+    {homeLogo.logoPath && (
+      <img
+        src={homeLogo.logoPath}
+        alt={homeLogo.displayName}
+        className="w-20 h-20 object-contain mb-2"
+      />
+    )}
+    <span className="text-base font-semibold text-gray-900 text-center">
+      {homeLogo.displayName}
+    </span>
+  </div>
 
-                    {/* Kick-off */}
-                    <div className="flex flex-col items-center px-4 flex-1 text-center">
-                      <div className="text-lg font-semibold text-gray-900">
-                        {new Date(fixture.dateTime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                      </div>
-                      <div className="text-base text-gray-600 mt-1">
-                        {new Date(fixture.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                    </div>
+  {/* Kick-off / Date */}
+  <div className="flex flex-col items-center flex-1 text-center">
+    <div className="text-lg font-semibold text-gray-900">
+      {new Date(fixture.dateTime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+    </div>
+    <div className="text-base text-gray-600 mt-1">
+      {new Date(fixture.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+    </div>
+  </div>
 
-                    {/* Away */}
-                    <div className="flex flex-col items-center flex-1">
-                      {awayLogo.logoPath && (
-                        <img
-                          src={awayLogo.logoPath}
-                          alt={awayLogo.displayName}
-                          className="w-20 h-20 object-contain mb-2"
-                        />
-                      )}
-                      <span className="text-base font-semibold text-gray-900 text-center">
-                        {awayLogo.displayName}
-                      </span>
-                    </div>
-                  </div>
+  {/* Away */}
+  <div className="flex flex-col items-center flex-1">
+    {awayLogo.logoPath && (
+      <img
+        src={awayLogo.logoPath}
+        alt={awayLogo.displayName}
+        className="w-20 h-20 object-contain mb-2"
+      />
+    )}
+    <span className="text-base font-semibold text-gray-900 text-center">
+      {awayLogo.displayName}
+    </span>
+  </div>
+</div>
+
 
                   {/* Venue */}
                   <div className="mt-6 pt-4 border-t border-gray-100 w-full text-center text-sm font-medium text-gray-600">
