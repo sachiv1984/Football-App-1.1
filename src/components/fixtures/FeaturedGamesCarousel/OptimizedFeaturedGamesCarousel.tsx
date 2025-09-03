@@ -21,7 +21,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const { featuredFixtures, loading, error } = useFixtures();
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPaused, setIsPaused] = useState(false);
-  const [isMobile] = useState(window.innerWidth < 768); // only read once
+  const [isMobile] = useState(window.innerWidth < 768);
   const [cardWidth, setCardWidth] = useState(0);
   const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -29,12 +29,12 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const gap = 16;
   const totalSlides = featuredFixtures.length;
 
-  // === Calculate clones for seamless infinite loop ===
+  // === Clone slides for seamless infinite loop ===
   const clonedStart = featuredFixtures.slice(-1); // last card clone at start
   const clonedEnd = featuredFixtures.slice(0, 1); // first card clone at end
-  const slides = [...clonedStart, ...featuredFixtures, ...clonedEnd]; // full render array
+  const slides = [...clonedStart, ...featuredFixtures, ...clonedEnd];
 
-  // === Card width calculation ===
+  // === Calculate card width ===
   useEffect(() => {
     const calculateCardWidth = () => {
       const containerWidth = containerRef.current?.clientWidth || window.innerWidth;
@@ -46,14 +46,14 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => window.removeEventListener('resize', calculateCardWidth);
   }, [isMobile, featuredFixtures.length]);
 
-  // === Helper: scroll to slide index (with seamless wrap) ===
+  // === Scroll to slide helper ===
   const scrollToSlide = useCallback(
     (index: number, smooth = true) => {
       if (!containerRef.current) return;
       const container = containerRef.current;
 
-      // Adjust index for clones (real slides start at index 1)
-      const scrollIndex = index + 1; // 0 = cloned start
+      // Adjust index for cloned start
+      const scrollIndex = index + 1;
       container.scrollTo({
         left: scrollIndex * (cardWidth + gap),
         behavior: smooth ? 'smooth' : 'auto',
@@ -64,13 +64,8 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     [cardWidth, gap]
   );
 
-  const goToNext = useCallback(() => {
-    scrollToSlide(currentSlide + 1);
-  }, [currentSlide, scrollToSlide]);
-
-  const goToPrev = useCallback(() => {
-    scrollToSlide(currentSlide - 1);
-  }, [currentSlide, scrollToSlide]);
+  const goToNext = useCallback(() => scrollToSlide(currentSlide + 1), [currentSlide, scrollToSlide]);
+  const goToPrev = useCallback(() => scrollToSlide(currentSlide - 1), [currentSlide, scrollToSlide]);
 
   // === Auto rotate ===
   useEffect(() => {
@@ -81,22 +76,27 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => clearInterval(interval);
   }, [autoRotate, isPaused, goToNext, rotateInterval]);
 
-  // === Infinite loop correction after scroll ===
+  // === Infinite loop seamless handling ===
   useEffect(() => {
     if (!containerRef.current) return;
     const container = containerRef.current;
 
     const handleScrollEnd = () => {
+      const cardStep = cardWidth + gap;
       const scrollLeft = container.scrollLeft;
-      const index = Math.round(scrollLeft / (cardWidth + gap));
+      const index = Math.round(scrollLeft / cardStep);
 
-      // At cloned start
+      // Reached cloned start
       if (index === 0) {
-        container.scrollLeft = totalSlides * (cardWidth + gap);
+        container.scrollLeft = totalSlides * cardStep;
+        setCurrentSlide(totalSlides - 1);
       }
-      // At cloned end
-      if (index === slides.length - 1) {
-        container.scrollLeft = 1 * (cardWidth + gap);
+      // Reached cloned end
+      else if (index === slides.length - 1) {
+        container.scrollLeft = 1 * cardStep;
+        setCurrentSlide(0);
+      } else {
+        setCurrentSlide(index - 1); // adjust for cloned start
       }
     };
 
@@ -238,7 +238,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
       {totalSlides > 1 && (
         <>
           <button
-            className="absolute -left-6 top-1/2 -translate-y-1/2 bg-white p-3 rounded-full shadow-md hover:scale-110 transition-transform focus:outline-none focus:ring-2 focus:ring-purple-600 border border-gray-200 z-10"
+            className="absolute left-4 top-1/2 -translate-y-1/2 bg-white p-3 rounded-full shadow-md hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-600 border border-gray-200"
             onClick={goToPrev}
             aria-label="Previous slide"
           >
@@ -251,7 +251,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             </svg>
           </button>
           <button
-            className="absolute -right-6 top-1/2 -translate-y-1/2 bg-white p-3 rounded-full shadow-md hover:scale-110 transition-transform focus:outline-none focus:ring-2 focus:ring-purple-600 border border-gray-200 z-10"
+            className="absolute right-4 top-1/2 -translate-y-1/2 bg-white p-3 rounded-full shadow-md hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-600 border border-gray-200"
             onClick={goToNext}
             aria-label="Next slide"
           >
@@ -265,7 +265,8 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
           </button>
         </>
       )}
-      {/* Pagination dots (real slides only) */}
+
+      {/* Pagination dots */}
       {totalSlides > 1 && (
         <div className="flex justify-center mt-4 space-x-2">
           {Array.from({ length: totalSlides }).map((_, idx) => (
