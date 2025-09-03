@@ -21,7 +21,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const { featuredFixtures, loading, error } = useFixtures();
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPaused, setIsPaused] = useState(false);
-  const [isMobile] = useState(window.innerWidth < 768); // only read
+  const [isMobile] = useState(window.innerWidth < 768); // only read once
   const [cardWidth, setCardWidth] = useState(0);
   const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -50,15 +50,13 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
   const goToSlide = useCallback(
     (index: number, smooth = true) => {
-      if (!containerRef.current) return;
-
-      const container = containerRef.current;
       setCurrentSlide(index);
-
-      container.style.scrollBehavior = smooth ? 'smooth' : 'auto';
-      container.scrollTo({
-        left: (index + cardsPerSlide) * slideWidth,
-      });
+      if (containerRef.current) {
+        containerRef.current.style.scrollBehavior = smooth ? 'smooth' : 'auto';
+        containerRef.current.scrollTo({
+          left: (index + cardsPerSlide) * slideWidth,
+        });
+      }
     },
     [slideWidth, cardsPerSlide]
   );
@@ -75,20 +73,18 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => clearInterval(interval);
   }, [autoRotate, isPaused, goToNext, rotateInterval]);
 
-  // Infinite loop handling with transition reset
+  // Infinite loop handling (transition-based, smoother than scroll jump)
   useEffect(() => {
     if (!containerRef.current) return;
     const container = containerRef.current;
 
     const handleTransitionEnd = () => {
       if (currentSlide === -1) {
-        // jumped to cloned start → reset to last real slide
         setCurrentSlide(totalSlides - 1);
         container.style.scrollBehavior = 'auto';
         container.scrollLeft = totalSlides * slideWidth;
       }
       if (currentSlide === totalSlides) {
-        // jumped to cloned end → reset to first real slide
         setCurrentSlide(0);
         container.style.scrollBehavior = 'auto';
         container.scrollLeft = slideWidth;
@@ -171,9 +167,11 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
               <div className="fixture-card card hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.05] overflow-hidden">
                 <div className="px-4 py-2 flex items-center justify-between border-b border-gray-100">
                   {competitionLogo && (
-                    <div className="inline-block p-1 rounded-full bg-gray-100 hover:scale-105 transition-transform duration-200">
-                      <img src={competitionLogo} alt={fixture.competition.name} className="w-10 h-10 sm:w-12 sm:h-12 object-contain" />
-                    </div>
+                    <img
+                      src={competitionLogo}
+                      alt={fixture.competition.name}
+                      className="w-10 h-10 sm:w-12 sm:h-12 object-contain"
+                    />
                   )}
                   <div className="text-xs sm:text-sm font-semibold text-purple-600 bg-white px-2 py-1 rounded-full">
                     Week {fixture.matchWeek}
@@ -182,21 +180,35 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
                 <div className="flex items-center justify-between px-4 py-4">
                   <div className="flex flex-col items-center">
-                    <img src={homeLogo.logoPath || ''} alt={homeLogo.displayName} className="w-16 h-16 sm:w-20 sm:h-20 object-contain" />
+                    <img
+                      src={homeLogo.logoPath || ''}
+                      alt={homeLogo.displayName}
+                      className="w-16 h-16 sm:w-20 sm:h-20 object-contain"
+                    />
                     <span className="text-sm font-semibold text-gray-800 mt-2">{homeLogo.displayName}</span>
                   </div>
 
                   <div className="flex flex-col items-center justify-center text-center mx-4">
                     <span className="text-sm font-semibold text-gray-900">
-                      {new Date(fixture.dateTime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                      {new Date(fixture.dateTime).toLocaleDateString('en-GB', {
+                        day: 'numeric',
+                        month: 'short',
+                      })}
                     </span>
                     <span className="text-sm font-medium text-gray-700 mt-1">
-                      {new Date(fixture.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                      {new Date(fixture.dateTime).toLocaleTimeString('en-GB', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
                     </span>
                   </div>
 
                   <div className="flex flex-col items-center">
-                    <img src={awayLogo.logoPath || ''} alt={awayLogo.displayName} className="w-16 h-16 sm:w-20 sm:h-20 object-contain" />
+                    <img
+                      src={awayLogo.logoPath || ''}
+                      alt={awayLogo.displayName}
+                      className="w-16 h-16 sm:w-20 sm:h-20 object-contain"
+                    />
                     <span className="text-sm font-semibold text-gray-800 mt-2">{awayLogo.displayName}</span>
                   </div>
                 </div>
@@ -214,7 +226,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
       {totalSlides > 1 && (
         <>
           <button
-            className="absolute -left-6 top-1/2 -translate-y-1/2 bg-white p-3 rounded-full shadow-md hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-600 border border-gray-200"
+            className="absolute left-2 top-1/2 -translate-y-1/2 bg-white p-3 rounded-full shadow-md hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-600 border border-gray-200"
             onClick={goToPrev}
             aria-label="Previous slide"
           >
@@ -227,7 +239,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             </svg>
           </button>
           <button
-            className="absolute -right-6 top-1/2 -translate-y-1/2 bg-white p-3 rounded-full shadow-md hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-600 border border-gray-200"
+            className="absolute right-2 top-1/2 -translate-y-1/2 bg-white p-3 rounded-full shadow-md hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-600 border border-gray-200"
             onClick={goToNext}
             aria-label="Next slide"
           >
