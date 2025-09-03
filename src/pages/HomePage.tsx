@@ -19,7 +19,7 @@ const HomePage: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showDebugTable, setShowDebugTable] = useState(true);
 
-  const { featuredFixtures, allFixtures, loading, error, refetch } = useFixtures();
+  const { featuredFixtures, allFixtures, loading, error } = useFixtures();
 
   const handleToggleDarkMode = () => setIsDarkMode(!isDarkMode);
   const handleGameSelect = (fixture: typeof featuredFixtures[number]) => {
