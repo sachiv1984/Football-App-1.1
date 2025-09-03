@@ -9,7 +9,7 @@ interface Props {
   className?: string;
 }
 
-const SingleCardCarousel: React.FC<Props> = ({ fixtures, onGameSelect, className = '' }) => {
+  const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelect, className = '' }) => {
   const trackRef = useRef<HTMLDivElement>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -204,4 +204,4 @@ const SingleCardCarousel: React.FC<Props> = ({ fixtures, onGameSelect, className
   );
 };
 
-export default SingleCardCarousel;
+export default OptimizedFeaturedGamesCarousel;
