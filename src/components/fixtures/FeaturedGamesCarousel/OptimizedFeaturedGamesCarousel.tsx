@@ -34,7 +34,7 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   // --- Determine cards per slide ---
   const cardsPerSlide = isMobile ? 1 : Math.min(4, Math.max(2, Math.floor(window.innerWidth / 320)));
 
-  // --- Group cards into slides for desktop, single card slides for mobile ---
+  // --- Group cards into slides ---
   const slides = useMemo(() => {
     if (isMobile) return featuredFixtures.map(f => [f]);
     const grouped: FeaturedFixtureWithImportance[][] = [];
@@ -60,7 +60,7 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     []
   );
 
-  // --- Go next/prev slide ---
+  // --- Navigation ---
   const goToNext = useCallback(() => setCurrentIndex(prev => (prev + 1) % totalSlides), [totalSlides]);
   const goToPrev = useCallback(() => setCurrentIndex(prev => (prev - 1 + totalSlides) % totalSlides), [totalSlides]);
 
@@ -73,17 +73,14 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => clearInterval(interval);
   }, [autoRotate, isPaused, goToNext, rotateInterval]);
 
-  // --- Sync scroll with currentIndex ---
-  useEffect(() => {
-    scrollToIndex(currentIndex);
-  }, [currentIndex, scrollToIndex]);
+  // --- Sync scroll ---
+  useEffect(() => scrollToIndex(currentIndex), [currentIndex, scrollToIndex]);
 
   // --- Touch swipe ---
   const touchStartRef = useRef(0);
   const handleTouchStart = (e: React.TouchEvent) => (touchStartRef.current = e.targetTouches[0].clientX);
   const handleTouchEnd = (e: React.TouchEvent) => {
-    const touchEnd = e.changedTouches[0].clientX;
-    const distance = touchStartRef.current - touchEnd;
+    const distance = touchStartRef.current - e.changedTouches[0].clientX;
     if (distance > 30) goToNext();
     if (distance < -30) goToPrev();
   };
@@ -98,23 +95,13 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [goToPrev, goToNext]);
 
-  // --- Early returns AFTER hooks ---
-  if (loading)
-    return (
-      <div className="flex justify-center items-center p-8">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600" />
-      </div>
-    );
+  // --- Early returns ---
+  if (loading) return <div className="flex justify-center items-center p-8"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600" /></div>;
+  if (error) return <div className="text-red-600 text-center p-4 bg-red-50 rounded-lg">Error loading fixtures: {error}</div>;
+  if (featuredFixtures.length === 0) return <div className="text-gray-600 text-center p-8 bg-gray-50 rounded-lg">No Featured Games Available</div>;
 
-  if (error)
-    return (
-      <div className="text-red-600 text-center p-4 bg-red-50 rounded-lg">
-        Error loading fixtures: {error}
-      </div>
-    );
-
-  if (featuredFixtures.length === 0)
-    return <div className="text-gray-600 text-center p-8 bg-gray-50 rounded-lg">No Featured Games Available</div>;
+  // --- Card width ---
+  const cardWidth = isMobile ? '100%' : `${100 / cardsPerSlide}%`;
 
   return (
     <div
@@ -133,7 +120,7 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
         {slides.map((slideGroup, idx) => (
           <div
             key={idx}
-            className="flex flex-shrink-0 w-full gap-4 snap-start"
+            className="flex gap-4 flex-shrink-0 w-full snap-start"
             role="group"
             aria-roledescription="slide"
             aria-label={`Slide ${idx + 1} of ${totalSlides}`}
@@ -146,57 +133,43 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
               return (
                 <div
                   key={i}
-                  className="flex-1 cursor-pointer"
+                  className="cursor-pointer"
                   onClick={() => onGameSelect?.(fixture)}
+                  style={{ minWidth: cardWidth }}
                   tabIndex={0}
                 >
                   <div className="fixture-card card hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.05] overflow-hidden">
                     <div className="bg-gradient-to-r from-purple-50 to-blue-50 px-4 py-3 flex justify-between items-center border-b border-gray-100">
-                      {competitionLogo && (
-                        <img src={competitionLogo} alt={fixture.competition.name} className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />
-                      )}
+                      {competitionLogo && <img src={competitionLogo} alt={fixture.competition.name} className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />}
                       <div className="text-xs sm:text-sm font-semibold text-purple-600 bg-white px-2 py-1 rounded-full">
                         Week {fixture.matchWeek}
                       </div>
                     </div>
-                    <div className="p-4 sm:p-6">
-                      <div className="flex justify-between items-center mb-4">
-                        {/* Home team */}
-                        <div className="flex flex-col items-center flex-1">
-                          <div className="w-16 h-16 sm:w-20 sm:h-20 mb-3 bg-white rounded-full shadow-md flex items-center justify-center ring-2 ring-gray-100">
-                            <img src={homeLogo.logoPath || ''} alt={homeLogo.displayName} className="w-12 h-12 sm:w-16 sm:h-16 object-contain" />
-                          </div>
-                          <span className="text-sm sm:text-base font-semibold text-center text-gray-800 leading-tight">
-                            {homeLogo.displayName}
-                          </span>
-                        </div>
+                    <div className="p-4 sm:p-6 flex flex-col items-center">
+                      {/* Home Team */}
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 mb-3 bg-white rounded-full shadow-md flex items-center justify-center ring-2 ring-gray-100">
+                        <img src={homeLogo.logoPath || ''} alt={homeLogo.displayName} className="w-12 h-12 sm:w-16 sm:h-16 object-contain" />
+                      </div>
+                      <span className="text-sm sm:text-base font-semibold text-center text-gray-800 leading-tight">{homeLogo.displayName}</span>
 
-                        {/* VS + Date */}
-                        <div className="flex flex-col items-center mx-4 min-w-[80px]">
-                          <span className="text-xl sm:text-2xl font-bold text-purple-600 mb-2">VS</span>
-                          <div className="bg-gradient-to-r from-purple-100 to-blue-100 px-3 py-2 rounded-lg text-center border border-purple-200">
-                            <div className="text-sm sm:text-base font-bold text-gray-900">
-                              {new Date(fixture.dateTime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                            </div>
-                            <div className="text-sm sm:text-base font-semibold text-gray-800 mt-1">
-                              {new Date(fixture.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-                            </div>
-                          </div>
-                        </div>
+                      {/* Away Team */}
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 mt-4 mb-3 bg-white rounded-full shadow-md flex items-center justify-center ring-2 ring-gray-100">
+                        <img src={awayLogo.logoPath || ''} alt={awayLogo.displayName} className="w-12 h-12 sm:w-16 sm:h-16 object-contain" />
+                      </div>
+                      <span className="text-sm sm:text-base font-semibold text-center text-gray-800 leading-tight">{awayLogo.displayName}</span>
 
-                        {/* Away team */}
-                        <div className="flex flex-col items-center flex-1">
-                          <div className="w-16 h-16 sm:w-20 sm:h-20 mb-3 bg-white rounded-full shadow-md flex items-center justify-center ring-2 ring-gray-100">
-                            <img src={awayLogo.logoPath || ''} alt={awayLogo.displayName} className="w-12 h-12 sm:w-16 sm:h-16 object-contain" />
-                          </div>
-                          <span className="text-sm sm:text-base font-semibold text-center text-gray-800 leading-tight">
-                            {awayLogo.displayName}
-                          </span>
+                      {/* Date */}
+                      <div className="bg-gradient-to-r from-purple-100 to-blue-100 px-3 py-2 rounded-lg text-center border border-purple-200 mt-3">
+                        <div className="text-sm sm:text-base font-bold text-gray-900">
+                          {new Date(fixture.dateTime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                        </div>
+                        <div className="text-sm sm:text-base font-semibold text-gray-800 mt-1">
+                          {new Date(fixture.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                         </div>
                       </div>
 
                       {/* Venue */}
-                      <div className="flex justify-center mt-4 pt-3 border-t border-gray-100">
+                      <div className="mt-4 pt-3 border-t border-gray-100 text-center">
                         <div className="inline-block px-2 py-1 bg-gray-100 text-gray-800 rounded-lg text-sm font-semibold">
                           {fixture.venue?.trim() || 'TBD'}
                         </div>
@@ -240,10 +213,7 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
           {slides.map((_, idx) => (
             <button
               key={idx}
-              className={clsx(
-                'w-2 h-2 rounded-full transition-all duration-300',
-                idx === currentIndex ? 'bg-purple-600 w-4 h-4' : 'bg-gray-300 hover:bg-gray-400'
-              )}
+              className={clsx('w-2 h-2 rounded-full transition-all duration-300', idx === currentIndex ? 'bg-purple-600 w-4 h-4' : 'bg-gray-300 hover:bg-gray-400')}
               onClick={() => setCurrentIndex(idx)}
               aria-label={`Go to slide ${idx + 1}`}
               tabIndex={0}
