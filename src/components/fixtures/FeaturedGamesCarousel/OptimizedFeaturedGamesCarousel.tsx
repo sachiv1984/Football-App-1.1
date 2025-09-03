@@ -12,7 +12,7 @@ interface Props {
   className?: string;
 }
 
-export const InfiniteFeaturedGamesCarousel: React.FC<Props> = ({
+const InfiniteFeaturedGamesCarousel: React.FC<Props> = ({
   onGameSelect,
   autoRotate = true,
   rotateInterval = 5000,
@@ -25,7 +25,6 @@ export const InfiniteFeaturedGamesCarousel: React.FC<Props> = ({
   const [cardWidth, setCardWidth] = useState(0);
   const [currentSlide, setCurrentSlide] = useState(0);
 
-  // Update isMobile
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
@@ -33,15 +32,13 @@ export const InfiniteFeaturedGamesCarousel: React.FC<Props> = ({
   }, []);
 
   const cardsPerSlide = isMobile ? 1 : 2;
-  const gap = 16; // Tailwind gap-4
+  const gap = 16;
   const totalSlides = Math.ceil(featuredFixtures.length / cardsPerSlide);
 
-  // Prepare cloned slides for infinite loop
   const clonedStart = featuredFixtures.slice(-cardsPerSlide);
   const clonedEnd = featuredFixtures.slice(0, cardsPerSlide);
   const slides = [...clonedStart, ...featuredFixtures, ...clonedEnd];
 
-  // Card width calculation
   useEffect(() => {
     const calculateCardWidth = () => {
       const containerWidth = containerRef.current?.clientWidth || window.innerWidth;
@@ -55,13 +52,12 @@ export const InfiniteFeaturedGamesCarousel: React.FC<Props> = ({
 
   const slideWidth = cardWidth * cardsPerSlide + gap * (cardsPerSlide - 1);
 
-  // Go to slide
   const goToSlide = useCallback(
     (index: number) => {
       setCurrentSlide(index);
       if (containerRef.current) {
         containerRef.current.scrollTo({
-          left: (index + cardsPerSlide) * slideWidth, // account for cloned start
+          left: (index + cardsPerSlide) * slideWidth,
           behavior: 'smooth',
         });
       }
@@ -72,7 +68,6 @@ export const InfiniteFeaturedGamesCarousel: React.FC<Props> = ({
   const goToNext = useCallback(() => goToSlide(currentSlide + 1), [currentSlide, goToSlide]);
   const goToPrev = useCallback(() => goToSlide(currentSlide - 1), [currentSlide, goToSlide]);
 
-  // Auto-rotate
   useEffect(() => {
     if (!autoRotate) return;
     const interval = setInterval(() => {
@@ -81,30 +76,21 @@ export const InfiniteFeaturedGamesCarousel: React.FC<Props> = ({
     return () => clearInterval(interval);
   }, [autoRotate, isPaused, goToNext, rotateInterval]);
 
-  // Scroll handler for infinite loop
   useEffect(() => {
     if (!containerRef.current) return;
-
     const handleScroll = () => {
-      if (!containerRef.current) return;
-      const scrollLeft = containerRef.current.scrollLeft;
-
-      // Jump to real slides if we are in cloned area
+      const scrollLeft = containerRef.current!.scrollLeft;
       if (scrollLeft < slideWidth) {
-        // At cloned start
-        containerRef.current.scrollLeft = scrollLeft + totalSlides * slideWidth;
+        containerRef.current!.scrollLeft = scrollLeft + totalSlides * slideWidth;
       } else if (scrollLeft >= (totalSlides + cardsPerSlide) * slideWidth) {
-        // At cloned end
-        containerRef.current.scrollLeft = scrollLeft - totalSlides * slideWidth;
+        containerRef.current!.scrollLeft = scrollLeft - totalSlides * slideWidth;
       }
     };
-
     const container = containerRef.current;
     container.addEventListener('scroll', handleScroll);
     return () => container.removeEventListener('scroll', handleScroll);
   }, [slideWidth, totalSlides, cardsPerSlide]);
 
-  // Touch swipe
   const touchStartRef = useRef(0);
   const handleTouchStart = (e: React.TouchEvent) => (touchStartRef.current = e.targetTouches[0].clientX);
   const handleTouchEnd = (e: React.TouchEvent) => {
@@ -113,7 +99,6 @@ export const InfiniteFeaturedGamesCarousel: React.FC<Props> = ({
     if (distance < -30) goToPrev();
   };
 
-  // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft') goToPrev();
@@ -123,68 +108,26 @@ export const InfiniteFeaturedGamesCarousel: React.FC<Props> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [goToPrev, goToNext]);
 
-  if (loading)
-    return (
-      <div className="flex justify-center items-center p-8">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600" />
-      </div>
-    );
-  if (error)
-    return (
-      <div className="text-red-600 text-center p-4 bg-red-50 rounded-lg">
-        Error loading fixtures: {error}
-      </div>
-    );
-  if (featuredFixtures.length === 0)
-    return (
-      <div className="text-gray-600 text-center p-8 bg-gray-50 rounded-lg">
-        No Featured Games Available
-      </div>
-    );
+  if (loading) return <div className="flex justify-center items-center p-8"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div></div>;
+  if (error) return <div className="text-red-600 text-center p-4 bg-red-50 rounded-lg">Error loading fixtures: {error}</div>;
+  if (featuredFixtures.length === 0) return <div className="text-gray-600 text-center p-8 bg-gray-50 rounded-lg">No Featured Games Available</div>;
 
   return (
-    <div
-      className={clsx('relative overflow-hidden group', className)}
-      role="region"
-      aria-label="Featured Games Carousel"
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
-    >
-      {/* Card Container with padding for arrows */}
-      <div
-        ref={containerRef}
-        className="flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory hide-scrollbar px-12"
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-      >
+    <div className={clsx('relative overflow-hidden group', className)} role="region" aria-label="Featured Games Carousel" onMouseEnter={() => setIsPaused(true)} onMouseLeave={() => setIsPaused(false)}>
+      <div ref={containerRef} className="flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory hide-scrollbar px-12" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
         {slides.map((fixture, idx) => {
           const homeLogo = getTeamLogo(fixture.homeTeam);
           const awayLogo = getTeamLogo(fixture.awayTeam);
           const competitionLogo = getCompetitionLogo(fixture.competition.name, fixture.competition.logo);
 
           return (
-            <div
-              key={idx}
-              style={{ flex: `0 0 ${cardWidth}px` }}
-              className="flex-shrink-0 snap-start"
-              onClick={() => onGameSelect?.(fixture)}
-              tabIndex={0}
-              role="group"
-              aria-roledescription="slide"
-              aria-label={`Match ${idx + 1} of ${featuredFixtures.length}`}
-            >
+            <div key={idx} style={{ flex: `0 0 ${cardWidth}px` }} className="flex-shrink-0 snap-start" onClick={() => onGameSelect?.(fixture)} tabIndex={0} role="group" aria-roledescription="slide" aria-label={`Match ${idx + 1} of ${featuredFixtures.length}`}>
               <div className="fixture-card card hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.05] overflow-hidden">
-                {/* Competition / Week */}
                 <div className="px-4 py-2 flex items-center justify-between border-b border-gray-100">
-                  {competitionLogo && (
-                    <img src={competitionLogo} alt={fixture.competition.name} className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />
-                  )}
-                  <div className="text-xs sm:text-sm font-semibold text-purple-600 bg-white px-2 py-1 rounded-full">
-                    Week {fixture.matchWeek}
-                  </div>
+                  {competitionLogo && <img src={competitionLogo} alt={fixture.competition.name} className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />}
+                  <div className="text-xs sm:text-sm font-semibold text-purple-600 bg-white px-2 py-1 rounded-full">Week {fixture.matchWeek}</div>
                 </div>
 
-                {/* Horizontal Home-Date-Away */}
                 <div className="flex items-center justify-between px-4 py-4">
                   <div className="flex flex-col items-center">
                     <img src={homeLogo.logoPath || ''} alt={homeLogo.displayName} className="w-16 h-16 sm:w-20 sm:h-20 object-contain" />
@@ -192,12 +135,8 @@ export const InfiniteFeaturedGamesCarousel: React.FC<Props> = ({
                   </div>
 
                   <div className="flex flex-col items-center justify-center text-center mx-4">
-                    <span className="text-sm font-semibold text-gray-900">
-                      {new Date(fixture.dateTime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                    </span>
-                    <span className="text-sm font-medium text-gray-700 mt-1">
-                      {new Date(fixture.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-                    </span>
+                    <span className="text-sm font-semibold text-gray-900">{new Date(fixture.dateTime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
+                    <span className="text-sm font-medium text-gray-700 mt-1">{new Date(fixture.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
                   </div>
 
                   <div className="flex flex-col items-center">
@@ -206,56 +145,33 @@ export const InfiniteFeaturedGamesCarousel: React.FC<Props> = ({
                   </div>
                 </div>
 
-                {/* Venue */}
-                <div className="mt-2 px-4 py-2 text-center text-sm font-medium text-gray-700 bg-gray-100 rounded-b-lg">
-                  {fixture.venue?.trim() || 'TBD'}
-                </div>
+                <div className="mt-2 px-4 py-2 text-center text-sm font-medium text-gray-700 bg-gray-100 rounded-b-lg">{fixture.venue?.trim() || 'TBD'}</div>
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Arrows */}
       {totalSlides > 1 && (
         <>
-          <button
-            className="absolute left-2 top-1/2 -translate-y-1/2 bg-white p-3 rounded-full shadow-md hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-600 border border-gray-200"
-            onClick={goToPrev}
-            aria-label="Previous slide"
-          >
-            <svg className="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
-            </svg>
+          <button className="absolute left-2 top-1/2 -translate-y-1/2 bg-white p-3 rounded-full shadow-md hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-600 border border-gray-200" onClick={goToPrev} aria-label="Previous slide">
+            <svg className="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
           </button>
-          <button
-            className="absolute right-2 top-1/2 -translate-y-1/2 bg-white p-3 rounded-full shadow-md hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-600 border border-gray-200"
-            onClick={goToNext}
-            aria-label="Next slide"
-          >
-            <svg className="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-            </svg>
+          <button className="absolute right-2 top-1/2 -translate-y-1/2 bg-white p-3 rounded-full shadow-md hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-600 border border-gray-200" onClick={goToNext} aria-label="Next slide">
+            <svg className="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/></svg>
           </button>
         </>
       )}
 
-      {/* Pagination Dots */}
       {totalSlides > 1 && (
         <div className="flex justify-center mt-4 space-x-2">
           {Array.from({ length: totalSlides }).map((_, idx) => (
-            <button
-              key={idx}
-              className={clsx(
-                'w-2 h-2 rounded-full transition-all duration-300',
-                currentSlide === idx ? 'bg-purple-600 w-4 h-4' : 'bg-gray-300 hover:bg-gray-400'
-              )}
-              onClick={() => goToSlide(idx)}
-              aria-label={`Go to slide ${idx + 1}`}
-            />
+            <button key={idx} className={clsx('w-2 h-2 rounded-full transition-all duration-300', currentSlide === idx ? 'bg-purple-600 w-4 h-4' : 'bg-gray-300 hover:bg-gray-400')} onClick={() => goToSlide(idx)} aria-label={`Go to slide ${idx + 1}`} />
           ))}
         </div>
       )}
     </div>
   );
 };
+
+export default InfiniteFeaturedGamesCarousel;
