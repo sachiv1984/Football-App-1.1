@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import type { FeaturedFixtureWithImportance } from '../../../types';
 import { getTeamLogo, getCompetitionLogo } from '../../../utils/teamUtils';
 import { useFixtures } from '../../../hooks/useFixtures';
@@ -25,23 +25,23 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [cardWidth, setCardWidth] = useState<number>(0);
 
-  // --- Update isMobile on resize ---
+  // Update isMobile on resize
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // --- Recalculate card width on resize or container change ---
+  // Calculate card width
   useEffect(() => {
     const calculateCardWidth = () => {
       if (!containerRef.current) return;
       const containerWidth = containerRef.current.clientWidth;
-      const gapPx = 16; // Tailwind gap-4
+      const gap = 16; // Tailwind gap-4
       const cardsPerSlide = isMobile ? 1 : Math.min(4, Math.max(2, Math.floor(containerWidth / 320)));
       const width = isMobile
         ? containerWidth
-        : (containerWidth - gapPx * (cardsPerSlide - 1)) / cardsPerSlide;
+        : (containerWidth - gap * (cardsPerSlide - 1)) / cardsPerSlide;
       setCardWidth(width);
     };
     calculateCardWidth();
@@ -49,40 +49,16 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => window.removeEventListener('resize', calculateCardWidth);
   }, [isMobile]);
 
-  // --- Determine cards per slide ---
-  const cardsPerSlide = isMobile ? 1 : Math.min(4, Math.max(2, Math.floor((containerRef.current?.clientWidth || window.innerWidth) / 320)));
+  // Navigation
+  const goToNext = useCallback(() => {
+    setCurrentIndex(prev => (prev + 1) % featuredFixtures.length);
+  }, [featuredFixtures.length]);
 
-  // --- Group slides for desktop ---
-  const slides = useMemo(() => {
-    if (isMobile) return featuredFixtures.map(f => [f]);
-    const grouped: FeaturedFixtureWithImportance[][] = [];
-    for (let i = 0; i < featuredFixtures.length; i += cardsPerSlide) {
-      grouped.push(featuredFixtures.slice(i, i + cardsPerSlide));
-    }
-    return grouped;
-  }, [featuredFixtures, cardsPerSlide, isMobile]);
+  const goToPrev = useCallback(() => {
+    setCurrentIndex(prev => (prev - 1 + featuredFixtures.length) % featuredFixtures.length);
+  }, [featuredFixtures.length]);
 
-  const totalSlides = slides.length;
-
-  // --- Scroll to current slide ---
-  const scrollToIndex = useCallback(
-    (index: number, smooth = true) => {
-      if (!containerRef.current) return;
-      const container = containerRef.current;
-      const slideWidth = container.clientWidth;
-      container.scrollTo({
-        left: index * slideWidth,
-        behavior: smooth ? 'smooth' : 'auto',
-      });
-    },
-    []
-  );
-
-  // --- Navigation ---
-  const goToNext = useCallback(() => setCurrentIndex(prev => (prev + 1) % totalSlides), [totalSlides]);
-  const goToPrev = useCallback(() => setCurrentIndex(prev => (prev - 1 + totalSlides) % totalSlides), [totalSlides]);
-
-  // --- Auto-rotate ---
+  // Auto-rotate
   useEffect(() => {
     if (!autoRotate) return;
     const interval = setInterval(() => {
@@ -91,10 +67,16 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => clearInterval(interval);
   }, [autoRotate, isPaused, goToNext, rotateInterval]);
 
-  // --- Sync scroll ---
-  useEffect(() => scrollToIndex(currentIndex), [currentIndex, scrollToIndex]);
+  // Scroll to current card
+  useEffect(() => {
+    if (!containerRef.current) return;
+    containerRef.current.scrollTo({
+      left: currentIndex * (cardWidth + 16), // include gap
+      behavior: 'smooth',
+    });
+  }, [currentIndex, cardWidth]);
 
-  // --- Touch swipe ---
+  // Touch swipe
   const touchStartRef = useRef(0);
   const handleTouchStart = (e: React.TouchEvent) => (touchStartRef.current = e.targetTouches[0].clientX);
   const handleTouchEnd = (e: React.TouchEvent) => {
@@ -103,7 +85,7 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     if (distance < -30) goToPrev();
   };
 
-  // --- Keyboard navigation ---
+  // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft') goToPrev();
@@ -113,7 +95,7 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [goToPrev, goToNext]);
 
-  // --- Early returns ---
+  // Loading / error / empty states
   if (loading)
     return (
       <div className="flex justify-center items-center p-8">
@@ -143,81 +125,74 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     >
       <div
         ref={containerRef}
-        className="flex overflow-x-hidden scroll-smooth snap-x snap-mandatory"
+        className="flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory hide-scrollbar"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        {slides.map((slideGroup, idx) => (
-          <div
-            key={idx}
-            className="flex gap-4 flex-shrink-0 w-full snap-start"
-            role="group"
-            aria-roledescription="slide"
-            aria-label={`Slide ${idx + 1} of ${totalSlides}`}
-          >
-            {slideGroup.map((fixture, i) => {
-              const homeLogo = getTeamLogo(fixture.homeTeam);
-              const awayLogo = getTeamLogo(fixture.awayTeam);
-              const competitionLogo = getCompetitionLogo(fixture.competition.name, fixture.competition.logo);
+        {featuredFixtures.map((fixture, idx) => {
+          const homeLogo = getTeamLogo(fixture.homeTeam);
+          const awayLogo = getTeamLogo(fixture.awayTeam);
+          const competitionLogo = getCompetitionLogo(fixture.competition.name, fixture.competition.logo);
 
-              return (
-                <div
-                  key={i}
-                  className="cursor-pointer"
-                  style={{ flex: `0 0 ${cardWidth}px` }}
-                  onClick={() => onGameSelect?.(fixture)}
-                  tabIndex={0}
-                >
-                  <div className="fixture-card card hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.05] overflow-hidden">
-                    {/* Competition / Week */}
-                    <div className="px-4 py-2 flex items-center justify-between border-b border-gray-100">
-                      {competitionLogo && (
-                        <img src={competitionLogo} alt={fixture.competition.name} className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />
-                      )}
-                      <div className="text-xs sm:text-sm font-semibold text-purple-600 bg-white px-2 py-1 rounded-full">
-                        Week {fixture.matchWeek}
-                      </div>
-                    </div>
-
-                    {/* Horizontal layout: Home / Date / Away */}
-                    <div className="flex items-center justify-between px-4 py-4">
-                      {/* Home Team */}
-                      <div className="flex flex-col items-center">
-                        <img src={homeLogo.logoPath || ''} alt={homeLogo.displayName} className="w-16 h-16 sm:w-20 sm:h-20 object-contain" />
-                        <span className="text-sm font-semibold text-gray-800 mt-2">{homeLogo.displayName}</span>
-                      </div>
-
-                      {/* Date / Time */}
-                      <div className="flex flex-col items-center justify-center text-center mx-4">
-                        <span className="text-sm font-semibold text-gray-900">
-                          {new Date(fixture.dateTime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                        </span>
-                        <span className="text-sm font-medium text-gray-700 mt-1">
-                          {new Date(fixture.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
-
-                      {/* Away Team */}
-                      <div className="flex flex-col items-center">
-                        <img src={awayLogo.logoPath || ''} alt={awayLogo.displayName} className="w-16 h-16 sm:w-20 sm:h-20 object-contain" />
-                        <span className="text-sm font-semibold text-gray-800 mt-2">{awayLogo.displayName}</span>
-                      </div>
-                    </div>
-
-                    {/* Venue */}
-                    <div className="mt-2 px-4 py-2 text-center text-sm font-medium text-gray-700 bg-gray-100 rounded-b-lg">
-                      {fixture.venue?.trim() || 'TBD'}
-                    </div>
+          return (
+            <div
+              key={idx}
+              className="flex-shrink-0"
+              style={{ minWidth: cardWidth }}
+              onClick={() => onGameSelect?.(fixture)}
+              tabIndex={0}
+              role="group"
+              aria-roledescription="slide"
+              aria-label={`Match ${idx + 1} of ${featuredFixtures.length}`}
+            >
+              <div className="fixture-card card hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.05] overflow-hidden">
+                {/* Competition / Week */}
+                <div className="px-4 py-2 flex items-center justify-between border-b border-gray-100">
+                  {competitionLogo && (
+                    <img src={competitionLogo} alt={fixture.competition.name} className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />
+                  )}
+                  <div className="text-xs sm:text-sm font-semibold text-purple-600 bg-white px-2 py-1 rounded-full">
+                    Week {fixture.matchWeek}
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        ))}
+
+                {/* Horizontal layout: Home / Date / Away */}
+                <div className="flex items-center justify-between px-4 py-4">
+                  {/* Home Team */}
+                  <div className="flex flex-col items-center">
+                    <img src={homeLogo.logoPath || ''} alt={homeLogo.displayName} className="w-16 h-16 sm:w-20 sm:h-20 object-contain" />
+                    <span className="text-sm font-semibold text-gray-800 mt-2">{homeLogo.displayName}</span>
+                  </div>
+
+                  {/* Date / Time */}
+                  <div className="flex flex-col items-center justify-center text-center mx-4">
+                    <span className="text-sm font-semibold text-gray-900">
+                      {new Date(fixture.dateTime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                    </span>
+                    <span className="text-sm font-medium text-gray-700 mt-1">
+                      {new Date(fixture.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+
+                  {/* Away Team */}
+                  <div className="flex flex-col items-center">
+                    <img src={awayLogo.logoPath || ''} alt={awayLogo.displayName} className="w-16 h-16 sm:w-20 sm:h-20 object-contain" />
+                    <span className="text-sm font-semibold text-gray-800 mt-2">{awayLogo.displayName}</span>
+                  </div>
+                </div>
+
+                {/* Venue */}
+                <div className="mt-2 px-4 py-2 text-center text-sm font-medium text-gray-700 bg-gray-100 rounded-b-lg">
+                  {fixture.venue?.trim() || 'TBD'}
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Arrows */}
-      {totalSlides > 1 && (
+      {featuredFixtures.length > 1 && (
         <>
           <button
             className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-white p-3 rounded-full shadow-md hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-600 border border-gray-200"
@@ -238,21 +213,6 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             </svg>
           </button>
         </>
-      )}
-
-      {/* Pagination dots */}
-      {totalSlides > 1 && (
-        <div className="flex justify-center mt-4 space-x-2">
-          {slides.map((_, idx) => (
-            <button
-              key={idx}
-              className={clsx('w-2 h-2 rounded-full transition-all duration-300', idx === currentIndex ? 'bg-purple-600 w-4 h-4' : 'bg-gray-300 hover:bg-gray-400')}
-              onClick={() => setCurrentIndex(idx)}
-              aria-label={`Go to slide ${idx + 1}`}
-              tabIndex={0}
-            />
-          ))}
-        </div>
       )}
     </div>
   );
