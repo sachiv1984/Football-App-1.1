@@ -9,7 +9,7 @@ interface Props {
   className?: string;
 }
 
-  const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelect, className = '' }) => {
+const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelect, className = '' }) => {
   const trackRef = useRef<HTMLDivElement>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -83,75 +83,65 @@ interface Props {
           className="carousel-track flex transition-transform duration-400 ease-in-out"
           style={{ width: `${totalSlides * 100}%` }}
         >
-          {fixtures.map((fixture, index) => (
-            <div
-              key={fixture.id || index}
-              className="carousel-slide flex-shrink-0 w-full"
-              aria-hidden={currentSlide !== index}
-            >
-              <div
-                className="carousel-card p-6 md:p-8 flex flex-col items-center justify-center cursor-pointer"
-                style={{ maxWidth: '500px', margin: '0 auto' }}
-                onClick={() => onGameSelect?.(fixture)}
-                tabIndex={currentSlide === index ? 0 : -1}
-                role="button"
-                aria-label={`View match between ${getTeamLogo(fixture.homeTeam).displayName} and ${getTeamLogo(fixture.awayTeam).displayName}`}
-              >
-                {/* Competition header */}
-                <div className="flex flex-col md:flex-row items-center justify-between mb-6 pb-4 border-b border-gray-100 w-full">
-                  {getCompetitionLogo(fixture.competition.name, fixture.competition.logo) && (
-                    <img
-                      src={getCompetitionLogo(fixture.competition.name, fixture.competition.logo)}
-                      alt={fixture.competition.name}
-                      className="w-12 h-12 object-contain mb-2 md:mb-0"
-                    />
-                  )}
-                  <div className="bg-gray-100 px-3 py-1 rounded-full mt-2 md:mt-0">
-                    <span className="text-sm font-medium text-gray-700">Week {fixture.matchWeek}</span>
-                  </div>
-                </div>
+          {fixtures.map((fixture, index) => {
+            const homeLogo = getTeamLogo(fixture.homeTeam);
+            const awayLogo = getTeamLogo(fixture.awayTeam);
+            const competitionLogo = getCompetitionLogo(fixture.competition.name, fixture.competition.logo);
 
-                {/* Teams */}
-                <div className="flex flex-col md:flex-row items-center justify-between w-full">
-                  <div className="flex flex-col items-center flex-1 mb-4 md:mb-0">
-                    <img
-                      src={getTeamLogo(fixture.homeTeam).logoPath || ''}
-                      alt={getTeamLogo(fixture.homeTeam).displayName}
-                      className="w-20 h-20 object-contain mb-3"
-                    />
-                    <span className="text-base font-semibold text-gray-900 text-center">
-                      {getTeamLogo(fixture.homeTeam).displayName}
-                    </span>
-                  </div>
-
-                  <div className="flex flex-col items-center px-6 flex-1 text-center mb-4 md:mb-0">
-                    <div className="text-lg font-semibold text-gray-900">
-                      {new Date(fixture.dateTime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                    </div>
-                    <div className="text-base text-gray-600 mt-1">
-                      {new Date(fixture.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+            return (
+              <div key={fixture.id || index} className="carousel-slide flex-shrink-0 w-full" aria-hidden={currentSlide !== index}>
+                <div
+                  className="carousel-card p-6 md:p-8 flex flex-col items-center justify-center cursor-pointer"
+                  style={{ maxWidth: '500px', margin: '0 auto' }}
+                  onClick={() => onGameSelect?.(fixture)}
+                  tabIndex={currentSlide === index ? 0 : -1}
+                  role="button"
+                  aria-label={`View match between ${homeLogo.displayName} and ${awayLogo.displayName}`}
+                >
+                  {/* Competition header */}
+                  <div className="flex flex-col md:flex-row items-center justify-between mb-6 pb-4 border-b border-gray-100 w-full">
+                    {competitionLogo && (
+                      <img
+                        src={competitionLogo}
+                        alt={fixture.competition.name}
+                        className="w-12 h-12 object-contain mb-2 md:mb-0"
+                      />
+                    )}
+                    <div className="bg-gray-100 px-3 py-1 rounded-full mt-2 md:mt-0">
+                      <span className="text-sm font-medium text-gray-700">Week {fixture.matchWeek}</span>
                     </div>
                   </div>
 
-                  <div className="flex flex-col items-center flex-1">
-                    <img
-                      src={getTeamLogo(fixture.awayTeam).logoPath || ''}
-                      alt={getTeamLogo(fixture.awayTeam).displayName}
-                      className="w-20 h-20 object-contain mb-3"
-                    />
-                    <span className="text-base font-semibold text-gray-900 text-center">
-                      {getTeamLogo(fixture.awayTeam).displayName}
-                    </span>
-                  </div>
-                </div>
+                  {/* Teams */}
+                  <div className="flex flex-col md:flex-row items-center justify-between w-full">
+                    <div className="flex flex-col items-center flex-1 mb-4 md:mb-0">
+                      {homeLogo.logoPath && <img src={homeLogo.logoPath} alt={homeLogo.displayName} className="w-20 h-20 object-contain mb-3" />}
+                      <span className="text-base font-semibold text-gray-900 text-center">{homeLogo.displayName}</span>
+                    </div>
 
-                {/* Venue */}
-                <div className="mt-6 pt-4 border-t border-gray-100 w-full text-center text-sm font-medium text-gray-600">
-                  📍 {fixture.venue?.trim() || 'TBD'}
+                    <div className="flex flex-col items-center px-6 flex-1 text-center mb-4 md:mb-0">
+                      <div className="text-lg font-semibold text-gray-900">
+                        {new Date(fixture.dateTime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                      </div>
+                      <div className="text-base text-gray-600 mt-1">
+                        {new Date(fixture.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col items-center flex-1">
+                      {awayLogo.logoPath && <img src={awayLogo.logoPath} alt={awayLogo.displayName} className="w-20 h-20 object-contain mb-3" />}
+                      <span className="text-base font-semibold text-gray-900 text-center">{awayLogo.displayName}</span>
+                    </div>
+                  </div>
+
+                  {/* Venue */}
+                  <div className="mt-6 pt-4 border-t border-gray-100 w-full text-center text-sm font-medium text-gray-600">
+                    📍 {fixture.venue?.trim() || 'TBD'}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Arrows */}
