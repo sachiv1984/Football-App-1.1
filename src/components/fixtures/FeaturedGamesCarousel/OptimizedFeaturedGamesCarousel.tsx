@@ -81,21 +81,28 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   }, [autoRotate, isPaused, goToNext, rotateInterval]);
 
   // Infinite loop scroll fix
-  useEffect(() => {
-    if (!containerRef.current) return;
-    const container = containerRef.current;
+useEffect(() => {
+  if (!containerRef.current) return;
+  const container = containerRef.current;
 
-    const handleTransitionEnd = () => {
-      if (currentSlide < 0) {
-        container.scrollLeft = totalSlides * slideWidth;
-      } else if (currentSlide >= totalSlides) {
-        container.scrollLeft = 0;
-      }
-    };
+  const handleScroll = () => {
+    const scrollLeft = container.scrollLeft;
+    const maxScroll = totalSlides * slideWidth;
 
-    container.addEventListener('scroll', handleTransitionEnd);
-    return () => container.removeEventListener('scroll', handleTransitionEnd);
-  }, [currentSlide, slideWidth, totalSlides]);
+    // When reaching the cloned end (after last real slide)
+    if (scrollLeft >= (totalSlides + cardsPerSlide) * slideWidth) {
+      container.scrollLeft = cardsPerSlide * slideWidth; // jump to first real slide
+    }
+
+    // When reaching the cloned start (before first real slide)
+    if (scrollLeft <= 0) {
+      container.scrollLeft = totalSlides * slideWidth; // jump to last real slide
+    }
+  };
+
+  container.addEventListener('scroll', handleScroll);
+  return () => container.removeEventListener('scroll', handleScroll);
+}, [slideWidth, totalSlides, cardsPerSlide]);
 
   // Touch swipe
   const touchStartRef = useRef(0);
