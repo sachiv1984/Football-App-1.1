@@ -121,7 +121,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelec
   {/* Home Team */}
   <div className="flex flex-col items-center flex-1">
     <TeamLogo
-      logo={homeLogo.logoPath}
+      logo={homeLogo.logoPath ?? undefined}
       name={homeLogo.displayName}
       size={80}            // consistent width & height
       background="white"   // optional background
@@ -145,7 +145,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelec
   {/* Away Team */}
   <div className="flex flex-col items-center flex-1">
     <TeamLogo
-      logo={awayLogo.logoPath}
+      logo={awayLogo.logoPath ?? undefined}
       name={awayLogo.displayName}
       size={80}            // consistent width & height
       background="white"   // optional background
