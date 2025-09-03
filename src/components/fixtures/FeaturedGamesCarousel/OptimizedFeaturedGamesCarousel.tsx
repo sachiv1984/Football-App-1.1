@@ -265,8 +265,24 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
           </button>
         </>
       )}
-
       {/* Pagination dots (real slides only) */}
       {totalSlides > 1 && (
         <div className="flex justify-center mt-4 space-x-2">
-          {Array.from
+          {Array.from({ length: totalSlides }).map((_, idx) => (
+            <button
+              key={idx}
+              className={clsx(
+                'w-2 h-2 rounded-full transition-all duration-300',
+                currentSlide === idx ? 'bg-purple-600 w-4 h-4' : 'bg-gray-300 hover:bg-gray-400'
+              )}
+              onClick={() => scrollToSlide(idx)}
+              aria-label={`Go to slide ${idx + 1}`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default OptimizedFeaturedGamesCarousel;
