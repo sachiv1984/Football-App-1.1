@@ -81,7 +81,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelec
         <div
           ref={trackRef}
           className="carousel-track flex transition-transform duration-400 ease-in-out"
-          style={{ width: `${totalSlides * 100}%` }}
         >
           {fixtures.map((fixture, index) => {
             const homeLogo = getTeamLogo(fixture.homeTeam);
@@ -95,7 +94,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelec
                 aria-hidden={currentSlide !== index}
               >
                 <div
-                  className="carousel-card w-full max-w-xl p-4 md:p-6 flex flex-col items-center justify-center cursor-pointer"
+                  className="carousel-card w-full max-w-xl p-6 md:p-8 flex flex-col items-center justify-center cursor-pointer"
                   onClick={() => onGameSelect?.(fixture)}
                   tabIndex={currentSlide === index ? 0 : -1}
                   role="button"
@@ -111,59 +110,47 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelec
                       />
                     )}
                     <div className="bg-gray-100 px-3 py-1 rounded-full">
-                      <span className="text-sm font-medium text-gray-700">
-                        Week {fixture.matchWeek}
-                      </span>
+                      <span className="text-sm font-medium text-gray-700">Week {fixture.matchWeek}</span>
                     </div>
                   </div>
 
-                  {/* Teams + Kick-off */}
-                  <div className="flex flex-col md:flex-row items-center justify-between w-full">
-                    {/* Home Team */}
+                  {/* Teams: Always horizontal */}
+                  <div className="flex items-center justify-between w-full">
+                    {/* Home */}
                     <div className="flex flex-col items-center flex-1">
                       {homeLogo.logoPath && (
                         <img
                           src={homeLogo.logoPath}
                           alt={homeLogo.displayName}
-                          className="w-16 h-16 md:w-20 md:h-20 object-contain mb-2"
+                          className="w-20 h-20 object-contain mb-2"
                         />
                       )}
-                      <span className="text-base font-semibold text-gray-900 text-center truncate">
-                        {homeLogo.displayName.length > 12
-                          ? homeLogo.shortName || homeLogo.displayName.slice(0, 12)
-                          : homeLogo.displayName}
+                      <span className="text-base font-semibold text-gray-900 text-center">
+                        {homeLogo.displayName}
                       </span>
                     </div>
 
-                    {/* Kick-off / Date */}
+                    {/* Kick-off */}
                     <div className="flex flex-col items-center px-4 flex-1 text-center">
                       <div className="text-lg font-semibold text-gray-900">
-                        {new Date(fixture.dateTime).toLocaleDateString('en-GB', {
-                          day: 'numeric',
-                          month: 'short',
-                        })}
+                        {new Date(fixture.dateTime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                       </div>
                       <div className="text-base text-gray-600 mt-1">
-                        {new Date(fixture.dateTime).toLocaleTimeString('en-GB', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
+                        {new Date(fixture.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </div>
 
-                    {/* Away Team */}
+                    {/* Away */}
                     <div className="flex flex-col items-center flex-1">
                       {awayLogo.logoPath && (
                         <img
                           src={awayLogo.logoPath}
                           alt={awayLogo.displayName}
-                          className="w-16 h-16 md:w-20 md:h-20 object-contain mb-2"
+                          className="w-20 h-20 object-contain mb-2"
                         />
                       )}
-                      <span className="text-base font-semibold text-gray-900 text-center truncate">
-                        {awayLogo.displayName.length > 12
-                          ? awayLogo.shortName || awayLogo.displayName.slice(0, 12)
-                          : awayLogo.displayName}
+                      <span className="text-base font-semibold text-gray-900 text-center">
+                        {awayLogo.displayName}
                       </span>
                     </div>
                   </div>
