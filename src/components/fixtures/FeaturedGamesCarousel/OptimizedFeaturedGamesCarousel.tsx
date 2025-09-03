@@ -81,6 +81,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelec
         <div
           ref={trackRef}
           className="carousel-track flex transition-transform duration-400 ease-in-out"
+          style={{ width: `${totalSlides * 100}%` }}
         >
           {fixtures.map((fixture, index) => {
             const homeLogo = getTeamLogo(fixture.homeTeam);
@@ -94,44 +95,48 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelec
                 aria-hidden={currentSlide !== index}
               >
                 <div
-                  className="carousel-card w-full max-w-md p-6 md:p-8 flex flex-col items-center justify-center cursor-pointer"
+                  className="carousel-card w-full max-w-xl p-4 md:p-6 flex flex-col items-center justify-center cursor-pointer"
                   onClick={() => onGameSelect?.(fixture)}
                   tabIndex={currentSlide === index ? 0 : -1}
                   role="button"
                   aria-label={`View match between ${homeLogo.displayName} and ${awayLogo.displayName}`}
                 >
-                {/* Competition header */}
-<div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100 w-full">
-  {/* Competition logo on the left */}
-  {competitionLogo && (
-    <img
-      src={competitionLogo}
-      alt={fixture.competition.name}
-      className="w-15 h-15 object-contain"
-    />
-  )}
+                  {/* Competition header */}
+                  <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100 w-full">
+                    {competitionLogo && (
+                      <img
+                        src={competitionLogo}
+                        alt={fixture.competition.name}
+                        className="w-12 h-12 object-contain"
+                      />
+                    )}
+                    <div className="bg-gray-100 px-3 py-1 rounded-full">
+                      <span className="text-sm font-medium text-gray-700">
+                        Week {fixture.matchWeek}
+                      </span>
+                    </div>
+                  </div>
 
-  {/* Game week on the right */}
-  <div className="bg-gray-100 px-3 py-1 rounded-full">
-    <span className="text-sm font-medium text-gray-700">Week {fixture.matchWeek}</span>
-  </div>
-</div>
-
-
-                  {/* Teams */}
+                  {/* Teams + Kick-off */}
                   <div className="flex flex-col md:flex-row items-center justify-between w-full">
-                    <div className="flex flex-col items-center flex-1 mb-4 md:mb-0">
+                    {/* Home Team */}
+                    <div className="flex flex-col items-center flex-1">
                       {homeLogo.logoPath && (
                         <img
                           src={homeLogo.logoPath}
                           alt={homeLogo.displayName}
-                          className="w-20 h-20 object-contain mb-3"
+                          className="w-16 h-16 md:w-20 md:h-20 object-contain mb-2"
                         />
                       )}
-                      <span className="text-base font-semibold text-gray-900 text-center">{homeLogo.displayName}</span>
+                      <span className="text-base font-semibold text-gray-900 text-center truncate">
+                        {homeLogo.displayName.length > 12
+                          ? homeLogo.shortName || homeLogo.displayName.slice(0, 12)
+                          : homeLogo.displayName}
+                      </span>
                     </div>
 
-                    <div className="flex flex-col items-center px-6 flex-1 text-center mb-4 md:mb-0">
+                    {/* Kick-off / Date */}
+                    <div className="flex flex-col items-center px-4 flex-1 text-center">
                       <div className="text-lg font-semibold text-gray-900">
                         {new Date(fixture.dateTime).toLocaleDateString('en-GB', {
                           day: 'numeric',
@@ -146,15 +151,20 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelec
                       </div>
                     </div>
 
+                    {/* Away Team */}
                     <div className="flex flex-col items-center flex-1">
                       {awayLogo.logoPath && (
                         <img
                           src={awayLogo.logoPath}
                           alt={awayLogo.displayName}
-                          className="w-20 h-20 object-contain mb-3"
+                          className="w-16 h-16 md:w-20 md:h-20 object-contain mb-2"
                         />
                       )}
-                      <span className="text-base font-semibold text-gray-900 text-center">{awayLogo.displayName}</span>
+                      <span className="text-base font-semibold text-gray-900 text-center truncate">
+                        {awayLogo.displayName.length > 12
+                          ? awayLogo.shortName || awayLogo.displayName.slice(0, 12)
+                          : awayLogo.displayName}
+                      </span>
                     </div>
                   </div>
 
