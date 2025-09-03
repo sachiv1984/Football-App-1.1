@@ -109,7 +109,12 @@
   max-width: 100%;
 }
 
-  .carousel-card { @apply bg-white shadow-md rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer; }
+.carousel-card {
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
   .carousel-dots { @apply absolute bottom-2 w-full flex justify-center gap-2; }
   .carousel-dot { @apply w-3 h-3 rounded-full bg-gray-300 transition-colors duration-200; }
   .carousel-dot.active { @apply bg-blue-600; }
