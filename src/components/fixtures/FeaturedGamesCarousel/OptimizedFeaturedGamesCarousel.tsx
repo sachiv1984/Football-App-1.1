@@ -1,4 +1,3 @@
-// src/components/OptimizedFeaturedGamesCarousel.tsx
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import type { FeaturedFixtureWithImportance } from '../../../types';
 import { getTeamLogo, getCompetitionLogo } from '../../../utils/teamUtils';
@@ -13,130 +12,189 @@ interface Props {
 }
 
 export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
-  fixtures,
   onGameSelect,
   autoRotate = true,
   rotateInterval = 5000,
   className = '',
 }) => {
-  const { featuredFixtures: fetchedFixtures, loading, error } = useFixtures();
+  const { featuredFixtures, loading, error } = useFixtures();
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [touchStart, setTouchStart] = useState(0);
   const [touchEnd, setTouchEnd] = useState(0);
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768); // Initialize properly
 
-  const data = fixtures || fetchedFixtures;
-  const realCount = data.length;
+  const realCount = featuredFixtures.length;
 
-  // --- Responsive: check mobile ---
+  // Check if mobile on resize
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth <= 768);
-    checkMobile();
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // --- Auto-rotation ---
-  useEffect(() => {
-    if (!autoRotate || isPaused || realCount === 0) return;
-    const timer = setInterval(() => {
-      setCurrentIndex(prev => (prev + 1) % realCount);
-    }, rotateInterval);
-    return () => clearInterval(timer);
-  }, [autoRotate, isPaused, rotateInterval, realCount]);
+  // Mobile: clone slides for infinite loop
+  const slides = realCount > 0 && isMobile
+    ? [featuredFixtures[realCount - 1], ...featuredFixtures, featuredFixtures[0]]
+    : featuredFixtures;
 
-  // --- Reset to first fixture on data change ---
-  useEffect(() => {
-    if (realCount > 0) {
-      setCurrentIndex(0);
-    }
-  }, [realCount]);
+  const slideWidth = containerRef.current?.clientWidth || 0;
 
-  // --- Swipe handling ---
-  const handleTouchStart = (e: React.TouchEvent) => setTouchStart(e.targetTouches[0].clientX);
-  const handleTouchMove = (e: React.TouchEvent) => setTouchEnd(e.targetTouches[0].clientX);
+  // Scroll to specific index (mobile only)
+  const scrollToIndex = useCallback((index: number, smooth = true) => {
+    if (!containerRef.current || !isMobile) return;
+    containerRef.current.scrollTo({
+      left: (index + 1) * slideWidth,
+      behavior: smooth ? 'smooth' : 'auto',
+    });
+  }, [slideWidth, isMobile]);
+
+  const goToNext = useCallback(() => {
+    if (realCount === 0 || !isMobile) return;
+    setCurrentIndex(prev => prev + 1);
+  }, [realCount, isMobile]);
+
+  const goToPrev = useCallback(() => {
+    if (realCount === 0 || !isMobile) return;
+    setCurrentIndex(prev => prev - 1);
+  }, [realCount, isMobile]);
+
+  // Auto-rotate (mobile only)
+  useEffect(() => {
+    if (!autoRotate || isPaused || realCount === 0 || !isMobile) return;
+    const interval = setInterval(goToNext, rotateInterval);
+    return () => clearInterval(interval);
+  }, [autoRotate, isPaused, goToNext, rotateInterval, realCount, isMobile]);
+
+  // Handle mobile infinite loop scroll
+  useEffect(() => {
+    if (!containerRef.current || realCount === 0 || !isMobile) return;
+
+    const container = containerRef.current;
+    scrollToIndex(currentIndex, false);
+
+    const handleScroll = () => {
+      if (currentIndex >= realCount) {
+        setCurrentIndex(0);
+        container.scrollLeft = slideWidth;
+      } else if (currentIndex < 0) {
+        setCurrentIndex(realCount - 1);
+        container.scrollLeft = realCount * slideWidth;
+      }
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [currentIndex, realCount, slideWidth, scrollToIndex, isMobile]);
+
+  // Touch swipe (mobile)
+  const handleTouchStart = (e: React.TouchEvent) => { if (isMobile) setTouchStart(e.targetTouches[0].clientX); };
+  const handleTouchMove = (e: React.TouchEvent) => { if (isMobile) setTouchEnd(e.targetTouches[0].clientX); };
   const handleTouchEnd = () => {
-    if (touchStart - touchEnd > 50) {
-      setCurrentIndex(prev => (prev + 1) % realCount); // swipe left → next
-    }
-    if (touchEnd - touchStart > 50) {
-      setCurrentIndex(prev => (prev - 1 + realCount) % realCount); // swipe right → prev
-    }
+    if (!isMobile) return;
+    const distance = touchStart - touchEnd;
+    if (distance > 50) goToNext();
+    if (distance < -50) goToPrev();
+    setTouchStart(0);
+    setTouchEnd(0);
   };
 
-  // --- Click handler ---
-  const handleGameClick = useCallback(
-    (fixture: FeaturedFixtureWithImportance) => {
-      if (onGameSelect) onGameSelect(fixture);
-    },
-    [onGameSelect]
-  );
+  // Keyboard navigation (mobile only)
+  useEffect(() => {
+    if (!isMobile) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') goToPrev();
+      if (e.key === 'ArrowRight') goToNext();
+      if (e.key === 'Escape') setIsPaused(true);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [goToPrev, goToNext, isMobile]);
 
-  if (loading) return <div>Loading fixtures...</div>;
-  if (error) return <div>Error loading fixtures: {error}</div>;
-  if (realCount === 0) return <div>No fixtures available</div>;
-
-  const fixture = data[currentIndex];
+  if (loading) return <div className="flex justify-center items-center p-8"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div></div>;
+  if (error) return <div className="text-red-600 text-center p-4 bg-red-50 rounded-lg">Error loading fixtures: {error}</div>;
+  if (featuredFixtures.length === 0) return <div className="text-gray-600 text-center p-8 bg-gray-50 rounded-lg">No Featured Games Available</div>;
 
   return (
     <div
-      className={`featured-carousel ${className}`}
-      ref={containerRef}
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
+      className={`relative overflow-hidden group ${className}`}
+      onMouseEnter={() => isMobile && setIsPaused(true)}
+      onMouseLeave={() => isMobile && setIsPaused(false)}
     >
       <div
-        className="carousel-slide"
-        onClick={() => handleGameClick(fixture)}
-        style={{ cursor: onGameSelect ? 'pointer' : 'default' }}
+        ref={containerRef}
+        className={`flex ${isMobile ? 'overflow-x-scroll scroll-smooth hide-scrollbar' : 'grid md:grid-cols-2 gap-6'}`}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
-        {/* Competition */}
-        <div className="competition">
-          <img
-            src={getCompetitionLogo(fixture.competition.logo)}
-            alt={fixture.competition.name}
-            className="competition-logo"
-          />
-          <span>{fixture.competition.name}</span>
-        </div>
-
-        {/* Teams */}
-        <div className="teams">
-          <div className="team">
-            <img src={getTeamLogo(fixture.homeTeam.logo)} alt={fixture.homeTeam.name} />
-            <span>{fixture.homeTeam.shortName}</span>
-          </div>
-          <span className="vs">vs</span>
-          <div className="team">
-            <img src={getTeamLogo(fixture.awayTeam.logo)} alt={fixture.awayTeam.name} />
-            <span>{fixture.awayTeam.shortName}</span>
-          </div>
-        </div>
-
-        {/* Fixture meta */}
-        <div className="fixture-meta">
-          <div>Matchweek: {fixture.matchWeek}</div>
-          <div>Venue: {fixture.venue || 'TBD'}</div>
-          <div>{new Date(fixture.dateTime).toLocaleString()}</div>
-        </div>
+        {slides.map((fixture, idx) => {
+          const homeLogo = getTeamLogo(fixture.homeTeam);
+          const awayLogo = getTeamLogo(fixture.awayTeam);
+          const competitionLogo = getCompetitionLogo(fixture.competition.name, fixture.competition.logo);
+          return (
+            <div key={idx} className={`${isMobile ? 'min-w-full' : 'w-full'} p-3 cursor-pointer`} onClick={() => onGameSelect?.(fixture)}>
+              <div className="fixture-card bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] overflow-hidden">
+                <div className="bg-gradient-to-r from-purple-50 to-blue-50 px-4 py-3 flex justify-between items-center border-b border-gray-100">
+                  <div className="flex items-center">{competitionLogo && <img src={competitionLogo} alt={fixture.competition.name} className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />}</div>
+                  <div className="text-xs sm:text-sm font-semibold text-purple-600 bg-white px-2 py-1 rounded-full">Week {fixture.matchWeek}</div>
+                </div>
+                <div className="p-4 sm:p-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <div className="flex flex-col items-center flex-1">
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 mb-3 bg-white rounded-full shadow-md flex items-center justify-center ring-2 ring-gray-100">
+                        <img src={homeLogo.logoPath || ''} alt={homeLogo.displayName} className="w-12 h-12 sm:w-16 sm:h-16 object-contain" />
+                      </div>
+                      <span className="text-sm sm:text-base font-semibold text-center text-gray-800 leading-tight">{homeLogo.displayName}</span>
+                    </div>
+                    <div className="flex flex-col items-center mx-4 min-w-[80px]">
+                      <span className="text-xl sm:text-2xl font-bold text-purple-600 mb-2">VS</span>
+                      <div className="bg-gradient-to-r from-purple-100 to-blue-100 px-3 py-2 rounded-lg text-center border border-purple-200">
+                        <div className="text-xs sm:text-sm font-bold text-purple-700">{new Date(fixture.dateTime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</div>
+                        <div className="text-xs sm:text-sm font-semibold text-gray-600 mt-1">{new Date(fixture.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</div>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-center flex-1">
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 mb-3 bg-white rounded-full shadow-md flex items-center justify-center ring-2 ring-gray-100">
+                        <img src={awayLogo.logoPath || ''} alt={awayLogo.displayName} className="w-12 h-12 sm:w-16 sm:h-16 object-contain" />
+                      </div>
+                      <span className="text-sm sm:text-base font-semibold text-center text-gray-800 leading-tight">{awayLogo.displayName}</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-center mt-4 pt-3 border-t border-gray-100">
+                    <div className="text-center">
+                      <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Venue</div>
+                      <div className="text-sm font-medium text-gray-700">{fixture.venue || 'TBD'}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      {/* Dots navigation */}
-      <div className="dots">
-        {data.map((_, i) => (
-          <span
-            key={i}
-            className={`dot ${i === currentIndex ? 'active' : ''}`}
-            onClick={() => setCurrentIndex(i)}
-          />
-        ))}
-      </div>
+      {/* Mobile navigation arrows */}
+      {isMobile && (
+        <>
+          <button className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-white p-3 rounded-full shadow-lg hover:shadow-xl border border-gray-200" onClick={goToPrev}>
+            <svg className="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
+          </button>
+          <button className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-white p-3 rounded-full shadow-lg hover:shadow-xl border border-gray-200" onClick={goToNext}>
+            <svg className="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/></svg>
+          </button>
+        </>
+      )}
+
+      {/* Mobile pagination dots */}
+      {isMobile && (
+        <div className="flex justify-center mt-4 space-x-2">
+          {featuredFixtures.map((_, idx) => (
+            <button key={idx} className={`w-2 h-2 rounded-full transition-all duration-300 ${idx === (currentIndex < 0 ? realCount - 1 : currentIndex % realCount) ? 'bg-purple-600 w-4' : 'bg-gray-300 hover:bg-gray-400'}`} onClick={() => setCurrentIndex(idx)} />
+          ))}
+        </div>
+      )}
     </div>
   );
 };
-
