@@ -7,7 +7,7 @@ import FixturesList from '../components/fixtures/FixturesList/FixturesList';
 import LeagueTable from '../components/league/LeagueTable/LeagueTable';
 import { designTokens } from '../styles/designTokens';
 import { Team, LeagueTableRow, FeaturedFixtureWithImportance } from '../types';
-import {OptimizedFeaturedGamesCarousel} from '../components/fixtures/FeaturedGamesCarousel/OptimizedFeaturedGamesCarousel';
+import OptimizedFeaturedGamesCarousel from '../components/fixtures/FeaturedGamesCarousel/OptimizedFeaturedGamesCarousel';
 import { FixturesDebugTable } from '../components/FixturesDebugTable';
 import { ErrorBoundary, CarouselErrorBoundary } from '../components/ErrorBoundary';
 
