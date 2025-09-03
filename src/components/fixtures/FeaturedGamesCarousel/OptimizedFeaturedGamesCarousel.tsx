@@ -2,7 +2,7 @@ import React, { useRef, useState, useCallback, useEffect } from 'react';
 import type { FeaturedFixtureWithImportance } from '../../../types';
 import { getTeamLogo, getCompetitionLogo } from '../../../utils/teamUtils';
 import clsx from 'clsx';
-import { TeamLogo } from '../../common/logo/TeamLogo'; // adjust path if needed
+import { TeamLogo } from '../../common/Logo/TeamLogo';
 
 
 interface Props {
