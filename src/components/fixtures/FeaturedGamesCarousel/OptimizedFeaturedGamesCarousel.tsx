@@ -27,6 +27,7 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   const realCount = featuredFixtures.length;
+  if (realCount === 0) return null;
 
   // Update mobile/desktop on resize
   useEffect(() => {
@@ -35,64 +36,69 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const slides = realCount > 0 && isMobile
-    ? [featuredFixtures[realCount - 1], ...featuredFixtures, featuredFixtures[0]]
-    : featuredFixtures;
+  // Clone slides for infinite loop
+  const slides = [...featuredFixtures, ...featuredFixtures];
 
-  const slideWidth = containerRef.current?.clientWidth || 0;
+  const cardWidth = isMobile ? window.innerWidth : 320; // desktop ~320px
+  const totalSlides = slides.length;
 
   const scrollToIndex = useCallback((index: number, smooth = true) => {
     if (!containerRef.current) return;
-    const width = isMobile ? slideWidth : 320; // Desktop card width approx
     containerRef.current.scrollTo({
-      left: index * width,
+      left: index * cardWidth,
       behavior: smooth ? 'smooth' : 'auto',
     });
-  }, [slideWidth, isMobile]);
+  }, [cardWidth]);
 
   const goToNext = useCallback(() => {
-    if (realCount === 0) return;
-    setCurrentIndex(prev => (prev + 1) % realCount);
-  }, [realCount]);
+    setCurrentIndex(prev => prev + 1);
+  }, []);
 
   const goToPrev = useCallback(() => {
-    if (realCount === 0) return;
-    setCurrentIndex(prev => (prev - 1 + realCount) % realCount);
-  }, [realCount]);
+    setCurrentIndex(prev => prev - 1);
+  }, []);
 
   // Auto-rotate
   useEffect(() => {
-    if (!autoRotate || isPaused || realCount === 0) return;
+    if (!autoRotate || isPaused) return;
     const interval = setInterval(goToNext, rotateInterval);
     return () => clearInterval(interval);
-  }, [autoRotate, isPaused, goToNext, rotateInterval, realCount]);
+  }, [autoRotate, isPaused, goToNext, rotateInterval]);
 
-  // Handle scroll for desktop & mobile
+  // Infinite loop scroll effect
   useEffect(() => {
-    if (!containerRef.current || realCount === 0) return;
-    scrollToIndex(currentIndex, true);
-  }, [currentIndex, scrollToIndex, realCount]);
+    if (!containerRef.current) return;
+    const container = containerRef.current;
+
+    const maxIndex = realCount * 2 - 1;
+    if (currentIndex > maxIndex - 1) {
+      setTimeout(() => {
+        container.scrollLeft -= realCount * cardWidth;
+        setCurrentIndex(prev => prev - realCount);
+      }, 300); // match transition
+    }
+    if (currentIndex < 0) {
+      setTimeout(() => {
+        container.scrollLeft += realCount * cardWidth;
+        setCurrentIndex(prev => prev + realCount);
+      }, 300);
+    }
+
+    scrollToIndex(currentIndex);
+  }, [currentIndex, scrollToIndex, cardWidth, realCount]);
 
   // Touch swipe
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStart(e.targetTouches[0].clientX);
-  };
-  const handleTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-    if (containerRef.current) {
-      containerRef.current.style.transform = `translateX(${touchStart - e.targetTouches[0].clientX}px)`;
-    }
-  };
+  const handleTouchStart = (e: React.TouchEvent) => setTouchStart(e.targetTouches[0].clientX);
+  const handleTouchMove = (e: React.TouchEvent) => setTouchEnd(e.targetTouches[0].clientX);
   const handleTouchEnd = () => {
     const distance = touchStart - touchEnd;
     if (distance > 30) goToNext();
     if (distance < -30) goToPrev();
     setTouchStart(0);
     setTouchEnd(0);
-    if (containerRef.current) containerRef.current.style.transform = 'translateX(0)';
   };
 
-  // Keyboard navigation (desktop + mobile)
+  // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft') goToPrev();
@@ -103,21 +109,15 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [goToPrev, goToNext]);
 
+  // Loading/error states
   if (loading) return (
     <div className="flex justify-center items-center p-8">
       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600" />
     </div>
   );
-
   if (error) return (
     <div className="text-red-600 text-center p-4 bg-red-50 rounded-lg">
       Error loading fixtures: {error}
-    </div>
-  );
-
-  if (featuredFixtures.length === 0) return (
-    <div className="text-gray-600 text-center p-8 bg-gray-50 rounded-lg">
-      No Featured Games Available
     </div>
   );
 
@@ -129,14 +129,9 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      {/* Carousel container */}
       <div
         ref={containerRef}
-        className={clsx(
-          'flex transition-transform duration-300',
-          'overflow-x-auto hide-scrollbar snap-x snap-mandatory',
-          !isMobile && 'cursor-grab'
-        )}
+        className="flex overflow-x-auto scroll-smooth hide-scrollbar snap-x snap-mandatory"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -148,16 +143,14 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
           return (
             <div
               key={idx}
-              className={clsx(
-                'snap-start flex-shrink-0 min-w-[300px] sm:min-w-[350px] md:min-w-[400px] p-3 cursor-pointer'
-              )}
+              className="snap-start flex-shrink-0 w-[300px] sm:w-[320px] md:w-[320px] p-3 cursor-pointer"
               onClick={() => onGameSelect?.(fixture)}
               role="group"
               aria-roledescription="slide"
-              aria-label={`Match ${idx + 1} of ${slides.length}`}
+              aria-label={`Match ${idx + 1} of ${totalSlides}`}
               tabIndex={0}
             >
-              <div className="fixture-card card hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] overflow-hidden">
+              <div className="fixture-card card hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.05] overflow-hidden">
                 <div className="bg-gradient-to-r from-purple-50 to-blue-50 px-4 py-3 flex justify-between items-center border-b border-gray-100">
                   {competitionLogo && <img src={competitionLogo} alt={fixture.competition.name} className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />}
                   <div className="text-xs sm:text-sm font-semibold text-purple-600 bg-white px-2 py-1 rounded-full">Week {fixture.matchWeek}</div>
@@ -196,7 +189,7 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
         })}
       </div>
 
-      {/* Arrows */}
+      {/* Navigation arrows */}
       {realCount > 1 && (
         <>
           <button
@@ -220,17 +213,15 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
         </>
       )}
 
-      {/* Pagination dots */}
-      {isMobile && realCount > 1 && (
+      {/* Pagination dots (desktop + mobile) */}
+      {realCount > 1 && (
         <div className="flex justify-center mt-4 space-x-2">
           {featuredFixtures.map((_, idx) => (
             <button
               key={idx}
               className={clsx(
                 'w-2 h-2 rounded-full transition-all duration-300',
-                idx === (currentIndex < 0 ? realCount - 1 : currentIndex % realCount)
-                  ? 'bg-purple-600 w-4 h-4'
-                  : 'bg-gray-300 hover:bg-gray-400'
+                idx === (currentIndex % realCount) ? 'bg-purple-600 w-4 h-4' : 'bg-gray-300 hover:bg-gray-400'
               )}
               onClick={() => setCurrentIndex(idx)}
               aria-label={`Go to slide ${idx + 1}`}
