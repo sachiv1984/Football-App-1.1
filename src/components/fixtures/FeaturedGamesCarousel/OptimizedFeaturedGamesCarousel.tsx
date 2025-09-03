@@ -20,43 +20,42 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 }) => {
   const { featuredFixtures, loading, error } = useFixtures();
   const containerRef = useRef<HTMLDivElement>(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [cardWidth, setCardWidth] = useState<number>(0);
 
-  // Update isMobile on resize
+  // Update isMobile
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Calculate card width
+  // Calculate card width & slides
+  const gap = 16; // Tailwind gap-4
+  const cardsPerSlide = isMobile ? 1 : 2;
+  const totalSlides = Math.ceil(featuredFixtures.length / cardsPerSlide);
+
   useEffect(() => {
     const calculateCardWidth = () => {
-      if (!containerRef.current) return;
-      const containerWidth = containerRef.current.clientWidth;
-      const gap = 16; // Tailwind gap-4
-      const cardsPerSlide = isMobile ? 1 : Math.min(4, Math.max(2, Math.floor(containerWidth / 320)));
-      const width = isMobile
-        ? containerWidth
-        : (containerWidth - gap * (cardsPerSlide - 1)) / cardsPerSlide;
+      const containerWidth = containerRef.current?.clientWidth || window.innerWidth;
+      const width = (containerWidth - gap * (cardsPerSlide - 1)) / cardsPerSlide;
       setCardWidth(width);
     };
     calculateCardWidth();
     window.addEventListener('resize', calculateCardWidth);
     return () => window.removeEventListener('resize', calculateCardWidth);
-  }, [isMobile]);
+  }, [isMobile, featuredFixtures.length]);
 
   // Navigation
-  const goToNext = useCallback(() => {
-    setCurrentIndex(prev => (prev + 1) % featuredFixtures.length);
-  }, [featuredFixtures.length]);
+  const goToSlide = useCallback((index: number) => {
+    const newIndex = (index + totalSlides) % totalSlides;
+    setCurrentSlide(newIndex);
+  }, [totalSlides]);
 
-  const goToPrev = useCallback(() => {
-    setCurrentIndex(prev => (prev - 1 + featuredFixtures.length) % featuredFixtures.length);
-  }, [featuredFixtures.length]);
+  const goToNext = useCallback(() => goToSlide(currentSlide + 1), [currentSlide, goToSlide]);
+  const goToPrev = useCallback(() => goToSlide(currentSlide - 1), [currentSlide, goToSlide]);
 
   // Auto-rotate
   useEffect(() => {
@@ -67,14 +66,12 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => clearInterval(interval);
   }, [autoRotate, isPaused, goToNext, rotateInterval]);
 
-  // Scroll to current card
+  // Scroll to current slide
   useEffect(() => {
     if (!containerRef.current) return;
-    containerRef.current.scrollTo({
-      left: currentIndex * (cardWidth + 16), // include gap
-      behavior: 'smooth',
-    });
-  }, [currentIndex, cardWidth]);
+    const scrollLeft = currentSlide * (cardWidth * cardsPerSlide + gap * (cardsPerSlide - 1));
+    containerRef.current.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+  }, [currentSlide, cardWidth, cardsPerSlide]);
 
   // Touch swipe
   const touchStartRef = useRef(0);
@@ -95,7 +92,6 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [goToPrev, goToNext]);
 
-  // Loading / error / empty states
   if (loading)
     return (
       <div className="flex justify-center items-center p-8">
@@ -123,6 +119,7 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
+      {/* Card Container */}
       <div
         ref={containerRef}
         className="flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory hide-scrollbar"
@@ -137,8 +134,8 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
           return (
             <div
               key={idx}
+              style={{ flex: `0 0 ${cardWidth}px` }}
               className="flex-shrink-0"
-              style={{ minWidth: cardWidth }}
               onClick={() => onGameSelect?.(fixture)}
               tabIndex={0}
               role="group"
@@ -156,15 +153,13 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                   </div>
                 </div>
 
-                {/* Horizontal layout: Home / Date / Away */}
+                {/* Horizontal Home-Date-Away */}
                 <div className="flex items-center justify-between px-4 py-4">
-                  {/* Home Team */}
                   <div className="flex flex-col items-center">
                     <img src={homeLogo.logoPath || ''} alt={homeLogo.displayName} className="w-16 h-16 sm:w-20 sm:h-20 object-contain" />
                     <span className="text-sm font-semibold text-gray-800 mt-2">{homeLogo.displayName}</span>
                   </div>
 
-                  {/* Date / Time */}
                   <div className="flex flex-col items-center justify-center text-center mx-4">
                     <span className="text-sm font-semibold text-gray-900">
                       {new Date(fixture.dateTime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
@@ -174,7 +169,6 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                     </span>
                   </div>
 
-                  {/* Away Team */}
                   <div className="flex flex-col items-center">
                     <img src={awayLogo.logoPath || ''} alt={awayLogo.displayName} className="w-16 h-16 sm:w-20 sm:h-20 object-contain" />
                     <span className="text-sm font-semibold text-gray-800 mt-2">{awayLogo.displayName}</span>
@@ -192,7 +186,7 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
       </div>
 
       {/* Arrows */}
-      {featuredFixtures.length > 1 && (
+      {totalSlides > 1 && (
         <>
           <button
             className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-white p-3 rounded-full shadow-md hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-600 border border-gray-200"
@@ -213,6 +207,23 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             </svg>
           </button>
         </>
+      )}
+
+      {/* Pagination Dots */}
+      {totalSlides > 1 && (
+        <div className="flex justify-center mt-4 space-x-2">
+          {Array.from({ length: totalSlides }).map((_, idx) => (
+            <button
+              key={idx}
+              className={clsx(
+                'w-2 h-2 rounded-full transition-all duration-300',
+                currentSlide === idx ? 'bg-purple-600 w-4 h-4' : 'bg-gray-300 hover:bg-gray-400'
+              )}
+              onClick={() => goToSlide(idx)}
+              aria-label={`Go to slide ${idx + 1}`}
+            />
+          ))}
+        </div>
       )}
     </div>
   );
