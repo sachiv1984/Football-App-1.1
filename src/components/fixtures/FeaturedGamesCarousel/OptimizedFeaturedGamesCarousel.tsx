@@ -25,20 +25,16 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const [cardWidth, setCardWidth] = useState(0);
   const [currentSlide, setCurrentSlide] = useState(0);
 
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
   const cardsPerSlide = isMobile ? 1 : 2;
   const gap = 16;
-  const totalSlides = Math.ceil(featuredFixtures.length / cardsPerSlide);
 
+  // Clone slides for smooth infinite loop
   const clonedStart = featuredFixtures.slice(-cardsPerSlide);
   const clonedEnd = featuredFixtures.slice(0, cardsPerSlide);
   const slides = [...clonedStart, ...featuredFixtures, ...clonedEnd];
+  const totalSlides = featuredFixtures.length;
 
+  // Resize observer for card width
   useEffect(() => {
     const calculateCardWidth = () => {
       const containerWidth = containerRef.current?.clientWidth || window.innerWidth;
@@ -53,12 +49,12 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const slideWidth = cardWidth * cardsPerSlide + gap * (cardsPerSlide - 1);
 
   const goToSlide = useCallback(
-    (index: number) => {
+    (index: number, smooth = true) => {
       setCurrentSlide(index);
       if (containerRef.current) {
         containerRef.current.scrollTo({
           left: (index + cardsPerSlide) * slideWidth,
-          behavior: 'smooth',
+          behavior: smooth ? 'smooth' : 'auto',
         });
       }
     },
@@ -68,6 +64,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const goToNext = useCallback(() => goToSlide(currentSlide + 1), [currentSlide, goToSlide]);
   const goToPrev = useCallback(() => goToSlide(currentSlide - 1), [currentSlide, goToSlide]);
 
+  // Auto rotate
   useEffect(() => {
     if (!autoRotate) return;
     const interval = setInterval(() => {
@@ -76,21 +73,30 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => clearInterval(interval);
   }, [autoRotate, isPaused, goToNext, rotateInterval]);
 
+  // Infinite loop handling
   useEffect(() => {
     if (!containerRef.current) return;
+    const container = containerRef.current;
+
     const handleScroll = () => {
-      const scrollLeft = containerRef.current!.scrollLeft;
-      if (scrollLeft < slideWidth) {
-        containerRef.current!.scrollLeft = scrollLeft + totalSlides * slideWidth;
-      } else if (scrollLeft >= (totalSlides + cardsPerSlide) * slideWidth) {
-        containerRef.current!.scrollLeft = scrollLeft - totalSlides * slideWidth;
+      const scrollLeft = container.scrollLeft;
+      // If scroll reaches clones at start
+      if (currentSlide < 0) {
+        container.scrollLeft = totalSlides * slideWidth;
+        setCurrentSlide(totalSlides - 1);
+      }
+      // If scroll reaches clones at end
+      if (currentSlide >= totalSlides) {
+        container.scrollLeft = slideWidth;
+        setCurrentSlide(0);
       }
     };
-    const container = containerRef.current;
+
     container.addEventListener('scroll', handleScroll);
     return () => container.removeEventListener('scroll', handleScroll);
-  }, [slideWidth, totalSlides, cardsPerSlide]);
+  }, [currentSlide, slideWidth, totalSlides]);
 
+  // Touch swipe
   const touchStartRef = useRef(0);
   const handleTouchStart = (e: React.TouchEvent) => (touchStartRef.current = e.targetTouches[0].clientX);
   const handleTouchEnd = (e: React.TouchEvent) => {
@@ -99,6 +105,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     if (distance < -30) goToPrev();
   };
 
+  // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft') goToPrev();
@@ -113,15 +120,30 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   if (featuredFixtures.length === 0) return <div className="text-gray-600 text-center p-8 bg-gray-50 rounded-lg">No Featured Games Available</div>;
 
   return (
-    <div className={clsx('relative overflow-hidden group', className)} role="region" aria-label="Featured Games Carousel" onMouseEnter={() => setIsPaused(true)} onMouseLeave={() => setIsPaused(false)}>
-      <div ref={containerRef} className="flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory hide-scrollbar px-12" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+    <div className={clsx('relative group', className)} role="region" aria-label="Featured Games Carousel" onMouseEnter={() => setIsPaused(true)} onMouseLeave={() => setIsPaused(false)}>
+      {/* Scroll container with padding to prevent arrow overlap */}
+      <div
+        ref={containerRef}
+        className="flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory hide-scrollbar px-8"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         {slides.map((fixture, idx) => {
           const homeLogo = getTeamLogo(fixture.homeTeam);
           const awayLogo = getTeamLogo(fixture.awayTeam);
           const competitionLogo = getCompetitionLogo(fixture.competition.name, fixture.competition.logo);
 
           return (
-            <div key={idx} style={{ flex: `0 0 ${cardWidth}px` }} className="flex-shrink-0 snap-start" onClick={() => onGameSelect?.(fixture)} tabIndex={0} role="group" aria-roledescription="slide" aria-label={`Match ${idx + 1} of ${featuredFixtures.length}`}>
+            <div
+              key={idx}
+              style={{ flex: `0 0 ${cardWidth}px` }}
+              className="flex-shrink-0 snap-start"
+              onClick={() => onGameSelect?.(fixture)}
+              tabIndex={0}
+              role="group"
+              aria-roledescription="slide"
+              aria-label={`Match ${idx + 1} of ${featuredFixtures.length}`}
+            >
               <div className="fixture-card card hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.05] overflow-hidden">
                 <div className="px-4 py-2 flex items-center justify-between border-b border-gray-100">
                   {competitionLogo && <img src={competitionLogo} alt={fixture.competition.name} className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />}
@@ -152,21 +174,36 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
         })}
       </div>
 
+      {/* Navigation arrows */}
       {totalSlides > 1 && (
         <>
-          <button className="absolute left-2 top-1/2 -translate-y-1/2 bg-white p-3 rounded-full shadow-md hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-600 border border-gray-200" onClick={goToPrev} aria-label="Previous slide">
+          <button
+            className="absolute left-2 top-1/2 -translate-y-1/2 bg-white p-3 rounded-full shadow-md hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-600 border border-gray-200"
+            onClick={goToPrev}
+            aria-label="Previous slide"
+          >
             <svg className="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
           </button>
-          <button className="absolute right-2 top-1/2 -translate-y-1/2 bg-white p-3 rounded-full shadow-md hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-600 border border-gray-200" onClick={goToNext} aria-label="Next slide">
+          <button
+            className="absolute right-2 top-1/2 -translate-y-1/2 bg-white p-3 rounded-full shadow-md hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-600 border border-gray-200"
+            onClick={goToNext}
+            aria-label="Next slide"
+          >
             <svg className="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/></svg>
           </button>
         </>
       )}
 
+      {/* Pagination dots */}
       {totalSlides > 1 && (
         <div className="flex justify-center mt-4 space-x-2">
           {Array.from({ length: totalSlides }).map((_, idx) => (
-            <button key={idx} className={clsx('w-2 h-2 rounded-full transition-all duration-300', currentSlide === idx ? 'bg-purple-600 w-4 h-4' : 'bg-gray-300 hover:bg-gray-400')} onClick={() => goToSlide(idx)} aria-label={`Go to slide ${idx + 1}`} />
+            <button
+              key={idx}
+              className={clsx('w-2 h-2 rounded-full transition-all duration-300', currentSlide === idx ? 'bg-purple-600 w-4 h-4' : 'bg-gray-300 hover:bg-gray-400')}
+              onClick={() => goToSlide(idx)}
+              aria-label={`Go to slide ${idx + 1}`}
+            />
           ))}
         </div>
       )}
