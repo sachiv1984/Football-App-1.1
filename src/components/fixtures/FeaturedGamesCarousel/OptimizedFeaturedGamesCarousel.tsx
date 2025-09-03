@@ -23,6 +23,7 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [cardWidth, setCardWidth] = useState<number>(0);
 
   // --- Update isMobile on resize ---
   useEffect(() => {
@@ -31,10 +32,27 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // --- Determine cards per slide ---
-  const cardsPerSlide = isMobile ? 1 : Math.min(4, Math.max(2, Math.floor(window.innerWidth / 320)));
+  // --- Recalculate card width on resize or container change ---
+  useEffect(() => {
+    const calculateCardWidth = () => {
+      if (!containerRef.current) return;
+      const containerWidth = containerRef.current.clientWidth;
+      const gapPx = 16; // Tailwind gap-4
+      const cardsPerSlide = isMobile ? 1 : Math.min(4, Math.max(2, Math.floor(containerWidth / 320)));
+      const width = isMobile
+        ? containerWidth
+        : (containerWidth - gapPx * (cardsPerSlide - 1)) / cardsPerSlide;
+      setCardWidth(width);
+    };
+    calculateCardWidth();
+    window.addEventListener('resize', calculateCardWidth);
+    return () => window.removeEventListener('resize', calculateCardWidth);
+  }, [isMobile]);
 
-  // --- Group cards into slides ---
+  // --- Determine cards per slide ---
+  const cardsPerSlide = isMobile ? 1 : Math.min(4, Math.max(2, Math.floor((containerRef.current?.clientWidth || window.innerWidth) / 320)));
+
+  // --- Group slides for desktop ---
   const slides = useMemo(() => {
     if (isMobile) return featuredFixtures.map(f => [f]);
     const grouped: FeaturedFixtureWithImportance[][] = [];
@@ -115,9 +133,6 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
       </div>
     );
 
-  // --- Card width ---
-  const cardWidth = isMobile ? '100%' : `${100 / cardsPerSlide}%`;
-
   return (
     <div
       className={clsx('relative overflow-hidden group', className)}
@@ -149,12 +164,12 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                 <div
                   key={i}
                   className="cursor-pointer"
-                  style={{ minWidth: cardWidth }}
+                  style={{ flex: `0 0 ${cardWidth}px` }}
                   onClick={() => onGameSelect?.(fixture)}
                   tabIndex={0}
                 >
                   <div className="fixture-card card hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.05] overflow-hidden">
-                    {/* Optional: Competition / Week */}
+                    {/* Competition / Week */}
                     <div className="px-4 py-2 flex items-center justify-between border-b border-gray-100">
                       {competitionLogo && (
                         <img src={competitionLogo} alt={fixture.competition.name} className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />
