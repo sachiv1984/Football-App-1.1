@@ -78,14 +78,46 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   );
 
   const goToNext = useCallback(() => {
-    const nextIndex = (currentSlide + 1) % totalSlides;
-    goToSlide(nextIndex);
-  }, [currentSlide, goToSlide, totalSlides]);
+    if (!containerRef.current) return;
+    
+    const container = containerRef.current;
+    const nextIndex = currentSlide + 1;
+    
+    // If we're going from the last slide (7) to first slide (0)
+    if (currentSlide === totalSlides - 1) {
+      // Scroll to the first cloned slide at the end smoothly
+      const scrollLeft = (totalSlides + cardsPerSlide) * slideWidth;
+      container.scrollTo({
+        left: scrollLeft,
+        behavior: 'smooth'
+      });
+      // The handleTransitionEnd will handle jumping back to real slide 0
+    } else {
+      // Normal forward navigation
+      goToSlide(nextIndex);
+    }
+  }, [currentSlide, goToSlide, totalSlides, slideWidth, cardsPerSlide]);
 
   const goToPrev = useCallback(() => {
-    const prevIndex = (currentSlide - 1 + totalSlides) % totalSlides;
-    goToSlide(prevIndex);
-  }, [currentSlide, goToSlide, totalSlides]);
+    if (!containerRef.current) return;
+    
+    const container = containerRef.current;
+    
+    // If we're going from the first slide (0) to last slide (7)
+    if (currentSlide === 0) {
+      // Scroll to the last cloned slide at the beginning smoothly  
+      const scrollLeft = (cardsPerSlide - 1) * slideWidth;
+      container.scrollTo({
+        left: scrollLeft,
+        behavior: 'smooth'
+      });
+      // The handleTransitionEnd will handle jumping back to real slide 7
+    } else {
+      // Normal backward navigation
+      const prevIndex = currentSlide - 1;
+      goToSlide(prevIndex);
+    }
+  }, [currentSlide, goToSlide, totalSlides, slideWidth, cardsPerSlide]);
 
   // Initialize carousel position on mount/data change
   useEffect(() => {
