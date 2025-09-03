@@ -27,10 +27,14 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
   const cardsPerSlide = isMobile ? 1 : 2;
   const gap = 16;
-
   const totalSlides = featuredFixtures.length;
 
-  // Resize observer for card width
+  // === Calculate clones for seamless infinite loop ===
+  const clonedStart = featuredFixtures.slice(-1); // last card clone at start
+  const clonedEnd = featuredFixtures.slice(0, 1); // first card clone at end
+  const slides = [...clonedStart, ...featuredFixtures, ...clonedEnd]; // full render array
+
+  // === Card width calculation ===
   useEffect(() => {
     const calculateCardWidth = () => {
       const containerWidth = containerRef.current?.clientWidth || window.innerWidth;
@@ -42,28 +46,33 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => window.removeEventListener('resize', calculateCardWidth);
   }, [isMobile, featuredFixtures.length]);
 
-  // Looping helpers: index adjustments
-  const goToSlide = useCallback(
+  // === Helper: scroll to slide index (with seamless wrap) ===
+  const scrollToSlide = useCallback(
     (index: number, smooth = true) => {
       if (!containerRef.current) return;
       const container = containerRef.current;
-      container.style.scrollBehavior = smooth ? 'smooth' : 'auto';
 
-      let scrollIndex = index;
-      // clamp for infinite loop logic
-      if (index < 0) scrollIndex = totalSlides - 1;
-      if (index >= totalSlides) scrollIndex = 0;
+      // Adjust index for clones (real slides start at index 1)
+      const scrollIndex = index + 1; // 0 = cloned start
+      container.scrollTo({
+        left: scrollIndex * (cardWidth + gap),
+        behavior: smooth ? 'smooth' : 'auto',
+      });
 
-      setCurrentSlide(scrollIndex);
-      container.scrollTo({ left: scrollIndex * (cardWidth + gap), behavior: smooth ? 'smooth' : 'auto' });
+      setCurrentSlide(index);
     },
-    [cardWidth, gap, totalSlides]
+    [cardWidth, gap]
   );
 
-  const goToNext = useCallback(() => goToSlide(currentSlide + 1), [currentSlide, goToSlide]);
-  const goToPrev = useCallback(() => goToSlide(currentSlide - 1), [currentSlide, goToSlide]);
+  const goToNext = useCallback(() => {
+    scrollToSlide(currentSlide + 1);
+  }, [currentSlide, scrollToSlide]);
 
-  // Auto rotate
+  const goToPrev = useCallback(() => {
+    scrollToSlide(currentSlide - 1);
+  }, [currentSlide, scrollToSlide]);
+
+  // === Auto rotate ===
   useEffect(() => {
     if (!autoRotate) return;
     const interval = setInterval(() => {
@@ -72,7 +81,30 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => clearInterval(interval);
   }, [autoRotate, isPaused, goToNext, rotateInterval]);
 
-  // Touch swipe
+  // === Infinite loop correction after scroll ===
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const container = containerRef.current;
+
+    const handleScrollEnd = () => {
+      const scrollLeft = container.scrollLeft;
+      const index = Math.round(scrollLeft / (cardWidth + gap));
+
+      // At cloned start
+      if (index === 0) {
+        container.scrollLeft = totalSlides * (cardWidth + gap);
+      }
+      // At cloned end
+      if (index === slides.length - 1) {
+        container.scrollLeft = 1 * (cardWidth + gap);
+      }
+    };
+
+    container.addEventListener('scroll', handleScrollEnd);
+    return () => container.removeEventListener('scroll', handleScrollEnd);
+  }, [cardWidth, gap, slides.length, totalSlides]);
+
+  // === Touch swipe ===
   const touchStartRef = useRef(0);
   const handleTouchStart = (e: React.TouchEvent) => (touchStartRef.current = e.targetTouches[0].clientX);
   const handleTouchEnd = (e: React.TouchEvent) => {
@@ -81,7 +113,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     if (distance < -30) goToPrev();
   };
 
-  // Keyboard navigation
+  // === Keyboard navigation ===
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft') goToPrev();
@@ -91,6 +123,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [goToPrev, goToNext]);
 
+  // === Loading/Error states ===
   if (loading)
     return (
       <div className="flex justify-center items-center p-8">
@@ -125,7 +158,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        {featuredFixtures.map((fixture, idx) => {
+        {slides.map((fixture, idx) => {
           const homeLogo = getTeamLogo(fixture.homeTeam);
           const awayLogo = getTeamLogo(fixture.awayTeam);
           const competitionLogo = getCompetitionLogo(fixture.competition.name, fixture.competition.logo);
@@ -236,21 +269,4 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
       {/* Pagination dots (real slides only) */}
       {totalSlides > 1 && (
         <div className="flex justify-center mt-4 space-x-2">
-          {Array.from({ length: totalSlides }).map((_, idx) => (
-            <button
-              key={idx}
-              className={clsx(
-                'w-2 h-2 rounded-full transition-all duration-300',
-                currentSlide === idx ? 'bg-purple-600 w-4 h-4' : 'bg-gray-300 hover:bg-gray-400'
-              )}
-              onClick={() => goToSlide(idx)}
-              aria-label={`Go to slide ${idx + 1}`}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default OptimizedFeaturedGamesCarousel;
+          {Array.from
