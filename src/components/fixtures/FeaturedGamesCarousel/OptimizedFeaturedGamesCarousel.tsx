@@ -22,7 +22,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const isMobile = window.innerWidth < 768;
   const [cardWidth, setCardWidth] = useState(0);
 
   const cardsPerSlide = isMobile ? 1 : 2;
