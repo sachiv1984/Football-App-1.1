@@ -9,7 +9,7 @@ interface Props {
   className?: string;
 }
 
-const FeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelect, className = '' }) => {
+const SingleCardCarousel: React.FC<Props> = ({ fixtures, onGameSelect, className = '' }) => {
   const trackRef = useRef<HTMLDivElement>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -21,17 +21,14 @@ const FeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelect, classN
   const canGoPrev = currentSlide > 0;
   const canGoNext = currentSlide < totalSlides - 1;
 
-  // Go to specific slide
   const goToSlide = useCallback(
     (index: number) => {
       if (index < 0 || index >= totalSlides || isTransitioning) return;
       setIsTransitioning(true);
       setCurrentSlide(index);
-
       if (trackRef.current) {
         trackRef.current.style.transform = `translateX(-${index * 100}%)`;
       }
-
       setTimeout(() => setIsTransitioning(false), 400);
     },
     [totalSlides, isTransitioning]
@@ -40,7 +37,6 @@ const FeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelect, classN
   const goToNext = useCallback(() => canGoNext && goToSlide(currentSlide + 1), [canGoNext, currentSlide, goToSlide]);
   const goToPrev = useCallback(() => canGoPrev && goToSlide(currentSlide - 1), [canGoPrev, currentSlide, goToSlide]);
 
-  // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft') goToPrev();
@@ -50,7 +46,6 @@ const FeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelect, classN
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [goToPrev, goToNext]);
 
-  // Touch handlers
   const handleTouchStart = (e: React.TouchEvent) => (touchStartX.current = e.targetTouches[0].clientX);
   const handleTouchMove = (e: React.TouchEvent) => (touchEndX.current = e.targetTouches[0].clientX);
   const handleTouchEnd = () => {
@@ -79,7 +74,11 @@ const FeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelect, classN
         onTouchEnd={handleTouchEnd}
       >
         {/* Track */}
-        <div ref={trackRef} className="carousel-track">
+        <div
+          ref={trackRef}
+          className="carousel-track flex transition-transform duration-400 ease-in-out"
+          style={{ width: `${totalSlides * 100}%` }}
+        >
           {fixtures.map((fixture, index) => {
             const homeLogo = getTeamLogo(fixture.homeTeam);
             const awayLogo = getTeamLogo(fixture.awayTeam);
@@ -88,11 +87,11 @@ const FeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelect, classN
             return (
               <div
                 key={fixture.id || index}
-                className="carousel-slide w-full"
+                className="carousel-slide flex-shrink-0 w-full"
                 aria-hidden={currentSlide !== index}
               >
                 <div
-                  className="p-6 carousel-card flex flex-col items-center justify-center cursor-pointer"
+                  className="carousel-card p-6 flex flex-col items-center justify-center cursor-pointer"
                   onClick={() => onGameSelect?.(fixture)}
                   tabIndex={currentSlide === index ? 0 : -1}
                   role="button"
@@ -109,7 +108,7 @@ const FeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelect, classN
                   {/* Teams */}
                   <div className="flex items-center justify-between w-full">
                     <div className="flex flex-col items-center flex-1">
-                      <img src={homeLogo.logoPath || ''} alt={homeLogo.displayName} className="w-20 h-20 object-contain mb-3"/>
+                      <img src={homeLogo.logoPath || ''} alt={homeLogo.displayName} className="w-20 h-20 object-contain mb-3" />
                       <span className="text-base font-semibold text-gray-900 text-center">{homeLogo.displayName}</span>
                     </div>
 
@@ -123,7 +122,7 @@ const FeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelect, classN
                     </div>
 
                     <div className="flex flex-col items-center flex-1">
-                      <img src={awayLogo.logoPath || ''} alt={awayLogo.displayName} className="w-20 h-20 object-contain mb-3"/>
+                      <img src={awayLogo.logoPath || ''} alt={awayLogo.displayName} className="w-20 h-20 object-contain mb-3" />
                       <span className="text-base font-semibold text-gray-900 text-center">{awayLogo.displayName}</span>
                     </div>
                   </div>
@@ -142,7 +141,9 @@ const FeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelect, classN
         {totalSlides > 1 && (
           <>
             <button
-              className={clsx('carousel-arrow carousel-arrow-left absolute top-1/2 -translate-y-1/2 left-2 z-10', { 'opacity-30 cursor-not-allowed': !canGoPrev })}
+              className={clsx('carousel-arrow carousel-arrow-left absolute top-1/2 -translate-y-1/2 left-2 z-10', {
+                'opacity-30 cursor-not-allowed': !canGoPrev,
+              })}
               onClick={goToPrev}
               disabled={!canGoPrev}
               aria-label="Previous slide"
@@ -153,7 +154,9 @@ const FeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelect, classN
             </button>
 
             <button
-              className={clsx('carousel-arrow carousel-arrow-right absolute top-1/2 -translate-y-1/2 right-2 z-10', { 'opacity-30 cursor-not-allowed': !canGoNext })}
+              className={clsx('carousel-arrow carousel-arrow-right absolute top-1/2 -translate-y-1/2 right-2 z-10', {
+                'opacity-30 cursor-not-allowed': !canGoNext,
+              })}
               onClick={goToNext}
               disabled={!canGoNext}
               aria-label="Next slide"
@@ -184,4 +187,4 @@ const FeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelect, classN
   );
 };
 
-export default FeaturedGamesCarousel;
+export default SingleCardCarousel;
