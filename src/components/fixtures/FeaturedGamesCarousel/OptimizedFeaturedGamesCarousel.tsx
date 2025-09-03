@@ -73,18 +73,20 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => clearInterval(interval);
   }, [autoRotate, isPaused, goToNext, rotateInterval]);
 
-  // Infinite loop handling (transition-based, smoother than scroll jump)
+  // Infinite loop handling (transition-based reset)
   useEffect(() => {
     if (!containerRef.current) return;
     const container = containerRef.current;
 
     const handleTransitionEnd = () => {
-      if (currentSlide === -1) {
+      // If we moved to the cloned-before-first (index -1), snap to last real slide
+      if (currentSlide === -1 && totalSlides > 0) {
         setCurrentSlide(totalSlides - 1);
         container.style.scrollBehavior = 'auto';
         container.scrollLeft = totalSlides * slideWidth;
       }
-      if (currentSlide === totalSlides) {
+      // If we moved to the cloned-after-last (index === totalSlides), snap to first real slide
+      if (currentSlide === totalSlides && totalSlides > 0) {
         setCurrentSlide(0);
         container.style.scrollBehavior = 'auto';
         container.scrollLeft = slideWidth;
@@ -167,11 +169,13 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
               <div className="fixture-card card hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.05] overflow-hidden">
                 <div className="px-4 py-2 flex items-center justify-between border-b border-gray-100">
                   {competitionLogo && (
-                    <img
-                      src={competitionLogo}
-                      alt={fixture.competition.name}
-                      className="w-10 h-10 sm:w-12 sm:h-12 object-contain"
-                    />
+                    <div className="inline-block p-1 rounded-full bg-gray-100 hover:scale-105 transition-transform duration-200">
+                      <img
+                        src={competitionLogo}
+                        alt={fixture.competition.name}
+                        className="w-10 h-10 sm:w-12 sm:h-12 object-contain"
+                      />
+                    </div>
                   )}
                   <div className="text-xs sm:text-sm font-semibold text-purple-600 bg-white px-2 py-1 rounded-full">
                     Week {fixture.matchWeek}
@@ -222,11 +226,11 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
         })}
       </div>
 
-      {/* Navigation arrows */}
+      {/* Navigation arrows (offset outside carousel so they don't overlap logos) */}
       {totalSlides > 1 && (
         <>
           <button
-            className="absolute left-2 top-1/2 -translate-y-1/2 bg-white p-3 rounded-full shadow-md hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-600 border border-gray-200"
+            className="absolute -left-6 top-1/2 -translate-y-1/2 bg-white p-3 rounded-full shadow-md hover:scale-110 transition-transform focus:outline-none focus:ring-2 focus:ring-purple-600 border border-gray-200 z-10"
             onClick={goToPrev}
             aria-label="Previous slide"
           >
@@ -239,7 +243,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             </svg>
           </button>
           <button
-            className="absolute right-2 top-1/2 -translate-y-1/2 bg-white p-3 rounded-full shadow-md hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-600 border border-gray-200"
+            className="absolute -right-6 top-1/2 -translate-y-1/2 bg-white p-3 rounded-full shadow-md hover:scale-110 transition-transform focus:outline-none focus:ring-2 focus:ring-purple-600 border border-gray-200 z-10"
             onClick={goToNext}
             aria-label="Next slide"
           >
