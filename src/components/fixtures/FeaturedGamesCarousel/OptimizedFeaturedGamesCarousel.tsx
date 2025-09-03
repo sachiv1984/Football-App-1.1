@@ -100,19 +100,23 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelec
                   role="button"
                   aria-label={`View match between ${homeLogo.displayName} and ${awayLogo.displayName}`}
                 >
-                  {/* Competition header */}
-                  <div className="flex flex-col md:flex-row items-center justify-between mb-6 pb-4 border-b border-gray-100 w-full">
-                    {competitionLogo && (
-                      <img
-                        src={competitionLogo}
-                        alt={fixture.competition.name}
-                        className="w-12 h-12 object-contain mb-2 md:mb-0"
-                      />
-                    )}
-                    <div className="bg-gray-100 px-3 py-1 rounded-full mt-2 md:mt-0">
-                      <span className="text-sm font-medium text-gray-700">Week {fixture.matchWeek}</span>
-                    </div>
-                  </div>
+                {/* Competition header */}
+<div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100 w-full">
+  {/* Competition logo on the left */}
+  {competitionLogo && (
+    <img
+      src={competitionLogo}
+      alt={fixture.competition.name}
+      className="w-12 h-12 object-contain"
+    />
+  )}
+
+  {/* Game week on the right */}
+  <div className="bg-gray-100 px-3 py-1 rounded-full">
+    <span className="text-sm font-medium text-gray-700">Week {fixture.matchWeek}</span>
+  </div>
+</div>
+
 
                   {/* Teams */}
                   <div className="flex flex-col md:flex-row items-center justify-between w-full">
