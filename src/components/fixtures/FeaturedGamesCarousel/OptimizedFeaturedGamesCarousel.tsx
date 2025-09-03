@@ -12,7 +12,7 @@ interface Props {
   className?: string;
 }
 
-const InfiniteFeaturedGamesCarousel: React.FC<Props> = ({
+const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   onGameSelect,
   autoRotate = true,
   rotateInterval = 5000,
@@ -174,4 +174,4 @@ const InfiniteFeaturedGamesCarousel: React.FC<Props> = ({
   );
 };
 
-export default InfiniteFeaturedGamesCarousel;
+export default OptimizedFeaturedGamesCarousel;
