@@ -1,4 +1,4 @@
-/* src/styles/globals.css - Enhanced with Design System */
+/* src/styles/globals.css - Complete with Design System & Carousel Fixes */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -31,10 +31,21 @@
 }
 
 @layer base {
-  html { font-family: Inter, system-ui, sans-serif; scroll-behavior: smooth; }
-  body { @apply bg-gray-50 text-gray-900 antialiased; font-feature-settings: 'cv02','cv03','cv04','cv11'; }
+  html {
+    font-family: Inter, system-ui, sans-serif;
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-gray-50 text-gray-900 antialiased;
+    font-feature-settings: 'cv02','cv03','cv04','cv11';
+  }
 
-  h1,h2,h3,h4,h5,h6 { font-family: Poppins, system-ui, sans-serif; font-weight: 600; line-height: 1.25; letter-spacing: -0.025em; }
+  h1,h2,h3,h4,h5,h6 {
+    font-family: Poppins, system-ui, sans-serif;
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: -0.025em;
+  }
   h1 { @apply text-4xl lg:text-5xl; }
   h2 { @apply text-3xl lg:text-4xl; }
   h3 { @apply text-2xl lg:text-3xl; }
@@ -49,7 +60,9 @@
 
 @layer components {
   /* Buttons */
-  .btn { @apply inline-flex items-center justify-center font-semibold rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed; }
+  .btn {
+    @apply inline-flex items-center justify-center font-semibold rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
   .btn-primary { @apply btn bg-electric-yellow text-gray-900 hover:bg-yellow-400 focus:ring-electric-yellow shadow-sm hover:shadow-md; }
   .btn-secondary { @apply btn bg-deep-blue text-white hover:bg-blue-700 focus:ring-deep-blue shadow-sm hover:shadow-md; }
   .btn-outline { @apply btn border-2 border-deep-blue text-deep-blue hover:bg-deep-blue hover:text-white focus:ring-deep-blue; }
@@ -81,9 +94,14 @@
 
   /* Carousel */
   .carousel-container { @apply relative w-full overflow-hidden; }
-  .carousel-track { @apply flex transition-transform duration-500 ease-in-out; }
-  .carousel-slide { @apply flex-none w-full snap-start p-4; }
-  .carousel-card { @apply bg-white shadow-md rounded-lg p-4 flex flex-col items-center justify-center hover:shadow-lg cursor-pointer; }
+  .carousel-track {
+    display: flex;
+    flex-wrap: nowrap;
+    transition: transform 0.5s ease-in-out;
+    will-change: transform;
+  }
+  .carousel-slide { @apply flex-none w-full; scroll-snap-align: start; }
+  .carousel-card { @apply bg-white shadow-md rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer; }
   .carousel-dots { @apply absolute bottom-2 w-full flex justify-center gap-2; }
   .carousel-dot { @apply w-3 h-3 rounded-full bg-gray-300 transition-colors duration-200; }
   .carousel-dot.active { @apply bg-blue-600; }
