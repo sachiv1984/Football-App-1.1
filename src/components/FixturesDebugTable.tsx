@@ -8,8 +8,8 @@ export const FixturesDebugTable: React.FC = () => {
 
   const currentFixtures = activeTab === 'featured' ? featuredFixtures : allFixtures;
 
-  const formatDate = (dateTime: string) => {
-    return new Date(dateTime).toLocaleDateString('en-GB', {
+  const formatDate = (dateTime: string) =>
+    new Date(dateTime).toLocaleDateString('en-GB', {
       weekday: 'short',
       day: 'numeric',
       month: 'short',
@@ -17,7 +17,6 @@ export const FixturesDebugTable: React.FC = () => {
       hour: '2-digit',
       minute: '2-digit'
     });
-  };
 
   const toggleRowExpansion = (index: number) => {
     setExpandedRow(expandedRow === index ? null : index);
@@ -25,26 +24,14 @@ export const FixturesDebugTable: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow-lg p-6">
-        <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mr-3"></div>
-          <span className="text-lg font-medium text-gray-600">Loading fixtures data...</span>
-        </div>
+      <div className="bg-white rounded-lg shadow-lg p-6 flex justify-center items-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mr-3"></div>
+        <span className="text-lg font-medium text-gray-600">Loading fixtures data...</span>
       </div>
     );
   }
 
   if (error) {
-    // TypeScript-safe error handling
-    const errorMessage =
-      typeof error === 'string'
-        ? error
-        : error && typeof (error as any).message === 'string'
-        ? (error as any).message
-        : JSON.stringify(error);
-
-    console.error('Fixtures API error:', error);
-
     return (
       <div className="bg-white rounded-lg shadow-lg p-6">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -52,7 +39,7 @@ export const FixturesDebugTable: React.FC = () => {
             <span className="text-red-500 text-xl mr-2">⚠️</span>
             <h3 className="text-lg font-semibold text-red-800">API Error</h3>
           </div>
-          <p className="text-red-700 mb-4">{errorMessage}</p>
+          <p className="text-red-700 mb-4">{error}</p>
           <button
             onClick={() => refetch()}
             className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors"
@@ -66,7 +53,7 @@ export const FixturesDebugTable: React.FC = () => {
 
   return (
     <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-      {/* Header with tabs and stats */}
+      {/* Header */}
       <div className="bg-gray-50 border-b border-gray-200 p-4">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-gray-900">API Data Debug Table</h2>
@@ -77,7 +64,7 @@ export const FixturesDebugTable: React.FC = () => {
             Refresh Data
           </button>
         </div>
-        
+
         {/* Tabs */}
         <div className="flex space-x-1 mb-4">
           <button
@@ -150,7 +137,7 @@ export const FixturesDebugTable: React.FC = () => {
               </tr>
             ) : (
               currentFixtures.map((fixture, index) => (
-                <React.Fragment key={index}>
+                <React.Fragment key={fixture.id}>
                   <tr 
                     className={`border-b hover:bg-gray-50 transition-colors ${
                       expandedRow === index ? 'bg-blue-50' : ''
@@ -184,23 +171,15 @@ export const FixturesDebugTable: React.FC = () => {
                         <div className="text-xs text-gray-500">({fixture.awayTeam.shortName})</div>
                       )}
                     </td>
-                    <td className="p-3">
-                      <div className="text-sm font-medium text-gray-900">
-                        {formatDate(fixture.dateTime)}
-                      </div>
-                    </td>
-                    <td className="p-3">
-                      <div className="text-sm text-gray-900">{fixture.venue}</div>
-                    </td>
-                    <td className="p-3">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm font-medium text-gray-900">{fixture.importance}/10</span>
-                        <div className={`w-3 h-3 rounded-full ${
-                          fixture.importance >= 8 ? 'bg-red-500' :
-                          fixture.importance >= 6 ? 'bg-orange-500' :
-                          fixture.importance >= 4 ? 'bg-blue-500' : 'bg-gray-300'
-                        }`}></div>
-                      </div>
+                    <td className="p-3 text-sm font-medium text-gray-900">{formatDate(fixture.dateTime)}</td>
+                    <td className="p-3 text-sm text-gray-900">{fixture.venue}</td>
+                    <td className="p-3 flex items-center space-x-2">
+                      <span className="text-sm font-medium text-gray-900">{fixture.importance}/10</span>
+                      <div className={`w-3 h-3 rounded-full ${
+                        fixture.importance >= 8 ? 'bg-red-500' :
+                        fixture.importance >= 6 ? 'bg-orange-500' :
+                        fixture.importance >= 4 ? 'bg-blue-500' : 'bg-gray-300'
+                      }`}></div>
                     </td>
                     <td className="p-3">
                       <button
@@ -211,8 +190,7 @@ export const FixturesDebugTable: React.FC = () => {
                       </button>
                     </td>
                   </tr>
-                  
-                  {/* Expanded row details */}
+
                   {expandedRow === index && (
                     <tr className="bg-blue-50 border-b">
                       <td colSpan={8} className="p-4">
