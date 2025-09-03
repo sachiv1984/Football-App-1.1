@@ -107,7 +107,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelec
     <img
       src={competitionLogo}
       alt={fixture.competition.name}
-      className="w-12 h-12 object-contain"
+      className="w-15 h-15 object-contain"
     />
   )}
 
