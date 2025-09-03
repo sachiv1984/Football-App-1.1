@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import type { FeaturedFixtureWithImportance } from '../../../types';
 import { getTeamLogo, getCompetitionLogo } from '../../../utils/teamUtils';
 import { useFixtures } from '../../../hooks/useFixtures';
+import clsx from 'clsx';
 
 interface Props {
   fixtures?: FeaturedFixtureWithImportance[];
@@ -23,25 +24,23 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const [isPaused, setIsPaused] = useState(false);
   const [touchStart, setTouchStart] = useState(0);
   const [touchEnd, setTouchEnd] = useState(0);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768); // Initialize properly
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   const realCount = featuredFixtures.length;
 
-  // Check if mobile on resize
+  // Update mobile status on resize
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Mobile: clone slides for infinite loop
   const slides = realCount > 0 && isMobile
     ? [featuredFixtures[realCount - 1], ...featuredFixtures, featuredFixtures[0]]
     : featuredFixtures;
 
   const slideWidth = containerRef.current?.clientWidth || 0;
 
-  // Scroll to specific index (mobile only)
   const scrollToIndex = useCallback((index: number, smooth = true) => {
     if (!containerRef.current || !isMobile) return;
     containerRef.current.scrollTo({
@@ -51,23 +50,23 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   }, [slideWidth, isMobile]);
 
   const goToNext = useCallback(() => {
-    if (realCount === 0 || !isMobile) return;
-    setCurrentIndex(prev => prev + 1);
-  }, [realCount, isMobile]);
+    if (realCount === 0) return;
+    setCurrentIndex(prev => (prev + 1) % realCount);
+  }, [realCount]);
 
   const goToPrev = useCallback(() => {
-    if (realCount === 0 || !isMobile) return;
-    setCurrentIndex(prev => prev - 1);
-  }, [realCount, isMobile]);
+    if (realCount === 0) return;
+    setCurrentIndex(prev => (prev - 1 + realCount) % realCount);
+  }, [realCount]);
 
-  // Auto-rotate (mobile only)
+  // Auto-rotate
   useEffect(() => {
-    if (!autoRotate || isPaused || realCount === 0 || !isMobile) return;
+    if (!autoRotate || isPaused || realCount === 0) return;
     const interval = setInterval(goToNext, rotateInterval);
     return () => clearInterval(interval);
-  }, [autoRotate, isPaused, goToNext, rotateInterval, realCount, isMobile]);
+  }, [autoRotate, isPaused, goToNext, rotateInterval, realCount]);
 
-  // Handle mobile infinite loop scroll
+  // Handle mobile scroll & infinite loop
   useEffect(() => {
     if (!containerRef.current || realCount === 0 || !isMobile) return;
 
@@ -88,21 +87,30 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => container.removeEventListener('scroll', handleScroll);
   }, [currentIndex, realCount, slideWidth, scrollToIndex, isMobile]);
 
-  // Touch swipe (mobile)
-  const handleTouchStart = (e: React.TouchEvent) => { if (isMobile) setTouchStart(e.targetTouches[0].clientX); };
-  const handleTouchMove = (e: React.TouchEvent) => { if (isMobile) setTouchEnd(e.targetTouches[0].clientX); };
+  // Touch swipe
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!isMobile) return;
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isMobile) return;
+    setTouchEnd(e.targetTouches[0].clientX);
+    if (containerRef.current) {
+      containerRef.current.style.transform = `translateX(${touchStart - e.targetTouches[0].clientX}px)`;
+    }
+  };
   const handleTouchEnd = () => {
     if (!isMobile) return;
     const distance = touchStart - touchEnd;
-    if (distance > 50) goToNext();
-    if (distance < -50) goToPrev();
+    if (distance > 30) goToNext();
+    if (distance < -30) goToPrev();
     setTouchStart(0);
     setTouchEnd(0);
+    if (containerRef.current) containerRef.current.style.transform = 'translateX(0)';
   };
 
-  // Keyboard navigation (mobile only)
+  // Keyboard navigation (desktop + mobile)
   useEffect(() => {
-    if (!isMobile) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft') goToPrev();
       if (e.key === 'ArrowRight') goToNext();
@@ -110,21 +118,41 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [goToPrev, goToNext, isMobile]);
+  }, [goToPrev, goToNext]);
 
-  if (loading) return <div className="flex justify-center items-center p-8"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div></div>;
-  if (error) return <div className="text-red-600 text-center p-4 bg-red-50 rounded-lg">Error loading fixtures: {error}</div>;
-  if (featuredFixtures.length === 0) return <div className="text-gray-600 text-center p-8 bg-gray-50 rounded-lg">No Featured Games Available</div>;
+  if (loading) return (
+    <div className="flex justify-center items-center p-8">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600" />
+    </div>
+  );
+
+  if (error) return (
+    <div className="text-red-600 text-center p-4 bg-red-50 rounded-lg">
+      Error loading fixtures: {error}
+    </div>
+  );
+
+  if (featuredFixtures.length === 0) return (
+    <div className="text-gray-600 text-center p-8 bg-gray-50 rounded-lg">
+      No Featured Games Available
+    </div>
+  );
 
   return (
     <div
-      className={`relative overflow-hidden group ${className}`}
-      onMouseEnter={() => isMobile && setIsPaused(true)}
-      onMouseLeave={() => isMobile && setIsPaused(false)}
+      className={clsx('relative overflow-hidden group', className)}
+      role="region"
+      aria-label="Featured Games Carousel"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
     >
+      {/* Slides */}
       <div
         ref={containerRef}
-        className={`flex ${isMobile ? 'overflow-x-scroll scroll-smooth hide-scrollbar' : 'grid md:grid-cols-2 gap-6'}`}
+        className={clsx(
+          'flex transition-transform duration-300',
+          isMobile ? 'overflow-x-scroll scroll-smooth hide-scrollbar' : 'grid md:grid-cols-2 gap-6'
+        )}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -134,10 +162,18 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
           const awayLogo = getTeamLogo(fixture.awayTeam);
           const competitionLogo = getCompetitionLogo(fixture.competition.name, fixture.competition.logo);
           return (
-            <div key={idx} className={`${isMobile ? 'min-w-full' : 'w-full'} p-3 cursor-pointer`} onClick={() => onGameSelect?.(fixture)}>
-              <div className="fixture-card bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] overflow-hidden">
+            <div
+              key={idx}
+              className={clsx(isMobile ? 'min-w-full' : 'w-full', 'p-3 cursor-pointer')}
+              onClick={() => onGameSelect?.(fixture)}
+              role="group"
+              aria-roledescription="slide"
+              aria-label={`Match ${idx + 1} of ${slides.length}`}
+              tabIndex={0}
+            >
+              <div className="fixture-card card hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] overflow-hidden">
                 <div className="bg-gradient-to-r from-purple-50 to-blue-50 px-4 py-3 flex justify-between items-center border-b border-gray-100">
-                  <div className="flex items-center">{competitionLogo && <img src={competitionLogo} alt={fixture.competition.name} className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />}</div>
+                  {competitionLogo && <img src={competitionLogo} alt={fixture.competition.name} className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />}
                   <div className="text-xs sm:text-sm font-semibold text-purple-600 bg-white px-2 py-1 rounded-full">Week {fixture.matchWeek}</div>
                 </div>
                 <div className="p-4 sm:p-6">
@@ -175,23 +211,46 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
         })}
       </div>
 
-      {/* Mobile navigation arrows */}
-      {isMobile && (
+      {/* Arrows (desktop + mobile, hover only) */}
+      {realCount > 1 && (
         <>
-          <button className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-white p-3 rounded-full shadow-lg hover:shadow-xl border border-gray-200" onClick={goToPrev}>
-            <svg className="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
+          <button
+            className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-white p-3 rounded-full shadow-md hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-600 border border-gray-200"
+            onClick={goToPrev}
+            aria-label="Previous slide"
+          >
+            <svg className="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+            </svg>
           </button>
-          <button className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-white p-3 rounded-full shadow-lg hover:shadow-xl border border-gray-200" onClick={goToNext}>
-            <svg className="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/></svg>
+          <button
+            className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-white p-3 rounded-full shadow-md hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-600 border border-gray-200"
+            onClick={goToNext}
+            aria-label="Next slide"
+          >
+            <svg className="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+            </svg>
           </button>
         </>
       )}
 
-      {/* Mobile pagination dots */}
-      {isMobile && (
+      {/* Pagination dots (mobile) */}
+      {isMobile && realCount > 1 && (
         <div className="flex justify-center mt-4 space-x-2">
           {featuredFixtures.map((_, idx) => (
-            <button key={idx} className={`w-2 h-2 rounded-full transition-all duration-300 ${idx === (currentIndex < 0 ? realCount - 1 : currentIndex % realCount) ? 'bg-purple-600 w-4' : 'bg-gray-300 hover:bg-gray-400'}`} onClick={() => setCurrentIndex(idx)} />
+            <button
+              key={idx}
+              className={clsx(
+                'w-2 h-2 rounded-full transition-all duration-300',
+                idx === (currentIndex < 0 ? realCount - 1 : currentIndex % realCount)
+                  ? 'bg-purple-600 w-4 h-4'
+                  : 'bg-gray-300 hover:bg-gray-400'
+              )}
+              onClick={() => setCurrentIndex(idx)}
+              aria-label={`Go to slide ${idx + 1}`}
+              tabIndex={0}
+            />
           ))}
         </div>
       )}
