@@ -42,8 +42,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => window.removeEventListener('resize', calculateCardWidth);
   }, [isMobile, featuredFixtures.length]);
 
-  const slideWidth = cardWidth * cardsPerSlide + gap * (cardsPerSlide - 1);
-
   // Looping helpers: index adjustments
   const goToSlide = useCallback(
     (index: number, smooth = true) => {
