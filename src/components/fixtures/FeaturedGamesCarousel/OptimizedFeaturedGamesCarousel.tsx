@@ -50,13 +50,15 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
   const goToSlide = useCallback(
     (index: number, smooth = true) => {
+      if (!containerRef.current) return;
+
+      const container = containerRef.current;
       setCurrentSlide(index);
-      if (containerRef.current) {
-        containerRef.current.scrollTo({
-          left: (index + cardsPerSlide) * slideWidth,
-          behavior: smooth ? 'smooth' : 'auto',
-        });
-      }
+
+      container.style.scrollBehavior = smooth ? 'smooth' : 'auto';
+      container.scrollTo({
+        left: (index + cardsPerSlide) * slideWidth,
+      });
     },
     [slideWidth, cardsPerSlide]
   );
@@ -73,24 +75,28 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => clearInterval(interval);
   }, [autoRotate, isPaused, goToNext, rotateInterval]);
 
-  // Infinite loop handling
+  // Infinite loop handling with transition reset
   useEffect(() => {
     if (!containerRef.current) return;
     const container = containerRef.current;
 
-    const handleScroll = () => {
-      if (currentSlide < 0) {
-        container.scrollLeft = totalSlides * slideWidth;
+    const handleTransitionEnd = () => {
+      if (currentSlide === -1) {
+        // jumped to cloned start → reset to last real slide
         setCurrentSlide(totalSlides - 1);
+        container.style.scrollBehavior = 'auto';
+        container.scrollLeft = totalSlides * slideWidth;
       }
-      if (currentSlide >= totalSlides) {
-        container.scrollLeft = slideWidth;
+      if (currentSlide === totalSlides) {
+        // jumped to cloned end → reset to first real slide
         setCurrentSlide(0);
+        container.style.scrollBehavior = 'auto';
+        container.scrollLeft = slideWidth;
       }
     };
 
-    container.addEventListener('scroll', handleScroll);
-    return () => container.removeEventListener('scroll', handleScroll);
+    container.addEventListener('transitionend', handleTransitionEnd);
+    return () => container.removeEventListener('transitionend', handleTransitionEnd);
   }, [currentSlide, slideWidth, totalSlides]);
 
   // Touch swipe
@@ -164,13 +170,9 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             >
               <div className="fixture-card card hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.05] overflow-hidden">
                 <div className="px-4 py-2 flex items-center justify-between border-b border-gray-100">
-                 {competitionLogo && (
-                  <div className="inline-block p-1 rounded-full bg-gray-100 hover:scale-105 transition-transform duration-200">
-                  <img
-                  src={competitionLogo}
-                  alt={fixture.competition.name}
-                  className="w-10 h-10 sm:w-12 sm:h-12 object-contain"
-                    />
+                  {competitionLogo && (
+                    <div className="inline-block p-1 rounded-full bg-gray-100 hover:scale-105 transition-transform duration-200">
+                      <img src={competitionLogo} alt={fixture.competition.name} className="w-10 h-10 sm:w-12 sm:h-12 object-contain" />
                     </div>
                   )}
                   <div className="text-xs sm:text-sm font-semibold text-purple-600 bg-white px-2 py-1 rounded-full">
@@ -211,33 +213,32 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
       {/* Navigation arrows */}
       {totalSlides > 1 && (
         <>
-         <button
-  className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/50 p-3 rounded-full shadow-md hover:scale-110 transition-transform focus:outline-none focus:ring-2 focus:ring-purple-600"
-  onClick={goToPrev}
-  aria-label="Previous slide"
->
-  <svg className="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-    <path
-      fillRule="evenodd"
-      d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
-      clipRule="evenodd"
-    />
-  </svg>
-</button>
-
-<button
-  className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/50 p-3 rounded-full shadow-md hover:scale-110 transition-transform focus:outline-none focus:ring-2 focus:ring-purple-600"
-  onClick={goToNext}
-  aria-label="Next slide"
->
-  <svg className="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-    <path
-      fillRule="evenodd"
-      d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-      clipRule="evenodd"
-    />
-  </svg>
-</button>
+          <button
+            className="absolute -left-6 top-1/2 -translate-y-1/2 bg-white p-3 rounded-full shadow-md hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-600 border border-gray-200"
+            onClick={goToPrev}
+            aria-label="Previous slide"
+          >
+            <svg className="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fillRule="evenodd"
+                d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </button>
+          <button
+            className="absolute -right-6 top-1/2 -translate-y-1/2 bg-white p-3 rounded-full shadow-md hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-600 border border-gray-200"
+            onClick={goToNext}
+            aria-label="Next slide"
+          >
+            <svg className="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fillRule="evenodd"
+                d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </button>
         </>
       )}
 
@@ -247,7 +248,10 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
           {Array.from({ length: totalSlides }).map((_, idx) => (
             <button
               key={idx}
-              className={clsx('w-2 h-2 rounded-full transition-all duration-300', currentSlide === idx ? 'bg-purple-600 w-4 h-4' : 'bg-gray-300 hover:bg-gray-400')}
+              className={clsx(
+                'w-2 h-2 rounded-full transition-all duration-300',
+                currentSlide === idx ? 'bg-purple-600 w-4 h-4' : 'bg-gray-300 hover:bg-gray-400'
+              )}
               onClick={() => goToSlide(idx)}
               aria-label={`Go to slide ${idx + 1}`}
             />
