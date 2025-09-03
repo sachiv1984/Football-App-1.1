@@ -28,10 +28,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const cardsPerSlide = isMobile ? 1 : 2;
   const gap = 16;
 
-  // Clone slides for smooth infinite loop
-  const clonedStart = featuredFixtures.slice(-cardsPerSlide);
-  const clonedEnd = featuredFixtures.slice(0, cardsPerSlide);
-  const slides = [...clonedStart, ...featuredFixtures, ...clonedEnd];
   const totalSlides = featuredFixtures.length;
 
   // Resize observer for card width
@@ -48,17 +44,22 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
   const slideWidth = cardWidth * cardsPerSlide + gap * (cardsPerSlide - 1);
 
+  // Looping helpers: index adjustments
   const goToSlide = useCallback(
     (index: number, smooth = true) => {
-      setCurrentSlide(index);
-      if (containerRef.current) {
-        containerRef.current.style.scrollBehavior = smooth ? 'smooth' : 'auto';
-        containerRef.current.scrollTo({
-          left: (index + cardsPerSlide) * slideWidth,
-        });
-      }
+      if (!containerRef.current) return;
+      const container = containerRef.current;
+      container.style.scrollBehavior = smooth ? 'smooth' : 'auto';
+
+      let scrollIndex = index;
+      // clamp for infinite loop logic
+      if (index < 0) scrollIndex = totalSlides - 1;
+      if (index >= totalSlides) scrollIndex = 0;
+
+      setCurrentSlide(scrollIndex);
+      container.scrollTo({ left: scrollIndex * (cardWidth + gap), behavior: smooth ? 'smooth' : 'auto' });
     },
-    [slideWidth, cardsPerSlide]
+    [cardWidth, gap, totalSlides]
   );
 
   const goToNext = useCallback(() => goToSlide(currentSlide + 1), [currentSlide, goToSlide]);
@@ -72,30 +73,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     }, rotateInterval);
     return () => clearInterval(interval);
   }, [autoRotate, isPaused, goToNext, rotateInterval]);
-
-  // Infinite loop handling (transition-based reset)
-  useEffect(() => {
-    if (!containerRef.current) return;
-    const container = containerRef.current;
-
-    const handleTransitionEnd = () => {
-      // If we moved to the cloned-before-first (index -1), snap to last real slide
-      if (currentSlide === -1 && totalSlides > 0) {
-        setCurrentSlide(totalSlides - 1);
-        container.style.scrollBehavior = 'auto';
-        container.scrollLeft = totalSlides * slideWidth;
-      }
-      // If we moved to the cloned-after-last (index === totalSlides), snap to first real slide
-      if (currentSlide === totalSlides && totalSlides > 0) {
-        setCurrentSlide(0);
-        container.style.scrollBehavior = 'auto';
-        container.scrollLeft = slideWidth;
-      }
-    };
-
-    container.addEventListener('transitionend', handleTransitionEnd);
-    return () => container.removeEventListener('transitionend', handleTransitionEnd);
-  }, [currentSlide, slideWidth, totalSlides]);
 
   // Touch swipe
   const touchStartRef = useRef(0);
@@ -128,7 +105,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
         Error loading fixtures: {error}
       </div>
     );
-  if (featuredFixtures.length === 0)
+  if (totalSlides === 0)
     return (
       <div className="text-gray-600 text-center p-8 bg-gray-50 rounded-lg">
         No Featured Games Available
@@ -143,14 +120,14 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      {/* Scroll container with padding to prevent arrow overlap */}
+      {/* Scroll container */}
       <div
         ref={containerRef}
         className="flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory hide-scrollbar px-8"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        {slides.map((fixture, idx) => {
+        {featuredFixtures.map((fixture, idx) => {
           const homeLogo = getTeamLogo(fixture.homeTeam);
           const awayLogo = getTeamLogo(fixture.awayTeam);
           const competitionLogo = getCompetitionLogo(fixture.competition.name, fixture.competition.logo);
@@ -164,7 +141,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
               tabIndex={0}
               role="group"
               aria-roledescription="slide"
-              aria-label={`Match ${idx + 1} of ${featuredFixtures.length}`}
+              aria-label={`Match ${idx + 1} of ${totalSlides}`}
             >
               <div className="fixture-card card hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.05] overflow-hidden">
                 <div className="px-4 py-2 flex items-center justify-between border-b border-gray-100">
@@ -226,7 +203,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
         })}
       </div>
 
-      {/* Navigation arrows (offset outside carousel so they don't overlap logos) */}
+      {/* Navigation arrows */}
       {totalSlides > 1 && (
         <>
           <button
@@ -258,7 +235,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
         </>
       )}
 
-      {/* Pagination dots */}
+      {/* Pagination dots (real slides only) */}
       {totalSlides > 1 && (
         <div className="flex justify-center mt-4 space-x-2">
           {Array.from({ length: totalSlides }).map((_, idx) => (
