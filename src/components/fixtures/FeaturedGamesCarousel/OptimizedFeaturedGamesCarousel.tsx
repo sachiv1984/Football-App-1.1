@@ -139,3 +139,4 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     </div>
   );
 };
+
