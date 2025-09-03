@@ -46,7 +46,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => window.removeEventListener('resize', calculateCardWidth);
   }, [isMobile, featuredFixtures.length]);
 
-  // Create cloned slides for looping
+  // Clone slides for seamless loop
   const clonedStart = featuredFixtures.slice(-cardsPerSlide);
   const clonedEnd = featuredFixtures.slice(0, cardsPerSlide);
   const slides = [...clonedStart, ...featuredFixtures, ...clonedEnd];
@@ -54,16 +54,28 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
   const slideWidth = cardWidth + gap;
 
-  // Go to slide (with smooth scroll)
+  // ---------------------------
+  // LOOP LOGIC FIX
+  // ---------------------------
   const goToSlide = useCallback(
     (index: number, smooth = true) => {
       if (!containerRef.current) return;
-      const scrollLeft = (index + cardsPerSlide) * slideWidth;
+
+      const total = totalSlides;
+      let scrollIndex = index;
+
+      // Wrap index for real slide count
+      if (index < 0) scrollIndex = total - 1;
+      if (index >= total) scrollIndex = 0;
+
+      const scrollLeft = (scrollIndex + cardsPerSlide) * slideWidth;
+
       containerRef.current.scrollTo({
         left: scrollLeft,
         behavior: smooth ? 'smooth' : 'auto',
       });
-      setCurrentSlide((index + totalSlides) % totalSlides); // keep dots synced
+
+      setCurrentSlide((scrollIndex + total) % total);
     },
     [cardsPerSlide, slideWidth, totalSlides]
   );
@@ -80,29 +92,27 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => clearInterval(interval);
   }, [autoRotate, isPaused, goToNext, rotateInterval]);
 
-  // Infinite loop scroll fix
-useEffect(() => {
-  if (!containerRef.current) return;
-  const container = containerRef.current;
+  // Infinite loop jump after hitting cloned slides
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const container = containerRef.current;
 
-  const handleScroll = () => {
-    const scrollLeft = container.scrollLeft;
-    const maxScroll = totalSlides * slideWidth;
+    const handleScrollEnd = () => {
+      const scrollLeft = container.scrollLeft;
+      const totalWidth = totalSlides * slideWidth;
 
-    // When reaching the cloned end (after last real slide)
-    if (scrollLeft >= (totalSlides + cardsPerSlide) * slideWidth) {
-      container.scrollLeft = cardsPerSlide * slideWidth; // jump to first real slide
-    }
+      if (scrollLeft < cardsPerSlide * slideWidth) {
+        // cloned start: jump to real end
+        container.scrollLeft = totalWidth;
+      } else if (scrollLeft >= (totalSlides + cardsPerSlide) * slideWidth) {
+        // cloned end: jump to real start
+        container.scrollLeft = cardsPerSlide * slideWidth;
+      }
+    };
 
-    // When reaching the cloned start (before first real slide)
-    if (scrollLeft <= 0) {
-      container.scrollLeft = totalSlides * slideWidth; // jump to last real slide
-    }
-  };
-
-  container.addEventListener('scroll', handleScroll);
-  return () => container.removeEventListener('scroll', handleScroll);
-}, [slideWidth, totalSlides, cardsPerSlide]);
+    container.addEventListener('scroll', handleScrollEnd);
+    return () => container.removeEventListener('scroll', handleScrollEnd);
+  }, [slideWidth, totalSlides, cardsPerSlide]);
 
   // Touch swipe
   const touchStartRef = useRef(0);
@@ -123,6 +133,9 @@ useEffect(() => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [goToPrev, goToNext]);
 
+  // ---------------------------
+  // RENDER
+  // ---------------------------
   if (loading)
     return (
       <div className="flex justify-center items-center p-8">
