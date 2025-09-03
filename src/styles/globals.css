@@ -93,17 +93,20 @@
   .badge-info { @apply badge bg-blue-500 text-white; }
 
   /* Carousel */
-  .carousel-container { @apply relative w-full overflow-hidden; }
-  .carousel-track {
-  display: flex;
-  flex-wrap: nowrap;
-  transition: transform 0.4s ease-in-out;
+ .carousel-container {
   width: 100%;
+  overflow: hidden;
+  position: relative;
+}
+ .carousel-track {
+  display: flex;
+  transition: transform 0.4s ease-in-out;
+  will-change: transform;
 }
 
 .carousel-slide {
-  flex: 0 0 100%; /* Ensures each slide takes full width of the container */
-  scroll-snap-align: start;
+  flex: 0 0 100%; /* Each slide takes full width */
+  max-width: 100%;
 }
 
   .carousel-card { @apply bg-white shadow-md rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer; }
