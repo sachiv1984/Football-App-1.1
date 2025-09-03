@@ -55,7 +55,7 @@ const HomePage: React.FC = () => {
                 Hide Debug Table
               </button>
             </div>
-            <FixturesDebugTable fixtures={allFixtures} />
+            <FixturesDebugTable />
           </div>
         )}
 
