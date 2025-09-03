@@ -28,7 +28,7 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
   const realCount = featuredFixtures.length;
 
-  // Update mobile status on resize
+  // Update mobile/desktop on resize
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
@@ -42,9 +42,10 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const slideWidth = containerRef.current?.clientWidth || 0;
 
   const scrollToIndex = useCallback((index: number, smooth = true) => {
-    if (!containerRef.current || !isMobile) return;
+    if (!containerRef.current) return;
+    const width = isMobile ? slideWidth : 320; // Desktop card width approx
     containerRef.current.scrollTo({
-      left: (index + 1) * slideWidth,
+      left: index * width,
       behavior: smooth ? 'smooth' : 'auto',
     });
   }, [slideWidth, isMobile]);
@@ -66,41 +67,23 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => clearInterval(interval);
   }, [autoRotate, isPaused, goToNext, rotateInterval, realCount]);
 
-  // Handle mobile scroll & infinite loop
+  // Handle scroll for desktop & mobile
   useEffect(() => {
-    if (!containerRef.current || realCount === 0 || !isMobile) return;
-
-    const container = containerRef.current;
-    scrollToIndex(currentIndex, false);
-
-    const handleScroll = () => {
-      if (currentIndex >= realCount) {
-        setCurrentIndex(0);
-        container.scrollLeft = slideWidth;
-      } else if (currentIndex < 0) {
-        setCurrentIndex(realCount - 1);
-        container.scrollLeft = realCount * slideWidth;
-      }
-    };
-
-    container.addEventListener('scroll', handleScroll);
-    return () => container.removeEventListener('scroll', handleScroll);
-  }, [currentIndex, realCount, slideWidth, scrollToIndex, isMobile]);
+    if (!containerRef.current || realCount === 0) return;
+    scrollToIndex(currentIndex, true);
+  }, [currentIndex, scrollToIndex, realCount]);
 
   // Touch swipe
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (!isMobile) return;
     setTouchStart(e.targetTouches[0].clientX);
   };
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isMobile) return;
     setTouchEnd(e.targetTouches[0].clientX);
     if (containerRef.current) {
       containerRef.current.style.transform = `translateX(${touchStart - e.targetTouches[0].clientX}px)`;
     }
   };
   const handleTouchEnd = () => {
-    if (!isMobile) return;
     const distance = touchStart - touchEnd;
     if (distance > 30) goToNext();
     if (distance < -30) goToPrev();
@@ -146,12 +129,13 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      {/* Slides */}
+      {/* Carousel container */}
       <div
         ref={containerRef}
         className={clsx(
           'flex transition-transform duration-300',
-          isMobile ? 'overflow-x-scroll scroll-smooth hide-scrollbar' : 'grid md:grid-cols-2 gap-6'
+          'overflow-x-auto hide-scrollbar snap-x snap-mandatory',
+          !isMobile && 'cursor-grab'
         )}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -164,7 +148,9 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
           return (
             <div
               key={idx}
-              className={clsx(isMobile ? 'min-w-full' : 'w-full', 'p-3 cursor-pointer')}
+              className={clsx(
+                'snap-start flex-shrink-0 min-w-[300px] sm:min-w-[350px] md:min-w-[400px] p-3 cursor-pointer'
+              )}
               onClick={() => onGameSelect?.(fixture)}
               role="group"
               aria-roledescription="slide"
@@ -187,8 +173,8 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                     <div className="flex flex-col items-center mx-4 min-w-[80px]">
                       <span className="text-xl sm:text-2xl font-bold text-purple-600 mb-2">VS</span>
                       <div className="bg-gradient-to-r from-purple-100 to-blue-100 px-3 py-2 rounded-lg text-center border border-purple-200">
-                        <div className="text-xs sm:text-sm font-bold text-purple-700">{new Date(fixture.dateTime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</div>
-                        <div className="text-xs sm:text-sm font-semibold text-gray-600 mt-1">{new Date(fixture.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</div>
+                        <div className="text-sm sm:text-base font-bold text-gray-900">{new Date(fixture.dateTime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</div>
+                        <div className="text-sm sm:text-base font-semibold text-gray-800 mt-1">{new Date(fixture.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</div>
                       </div>
                     </div>
                     <div className="flex flex-col items-center flex-1">
@@ -199,9 +185,8 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                     </div>
                   </div>
                   <div className="flex justify-center mt-4 pt-3 border-t border-gray-100">
-                    <div className="text-center">
-                      <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Venue</div>
-                      <div className="text-sm font-medium text-gray-700">{fixture.venue || 'TBD'}</div>
+                    <div className="inline-block px-2 py-1 bg-gray-100 text-gray-800 rounded-lg text-sm font-semibold">
+                      {fixture.venue && fixture.venue.trim() !== '' ? fixture.venue : 'TBD'}
                     </div>
                   </div>
                 </div>
@@ -211,7 +196,7 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
         })}
       </div>
 
-      {/* Arrows (desktop + mobile, hover only) */}
+      {/* Arrows */}
       {realCount > 1 && (
         <>
           <button
@@ -235,7 +220,7 @@ export const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
         </>
       )}
 
-      {/* Pagination dots (mobile) */}
+      {/* Pagination dots */}
       {isMobile && realCount > 1 && (
         <div className="flex justify-center mt-4 space-x-2">
           {featuredFixtures.map((_, idx) => (
