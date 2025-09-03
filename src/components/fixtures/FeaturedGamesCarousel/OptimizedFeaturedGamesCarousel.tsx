@@ -81,7 +81,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelec
         <div
           ref={trackRef}
           className="carousel-track flex transition-transform duration-400 ease-in-out"
-          style={{ width: `${totalSlides * 100}%` }}
         >
           {fixtures.map((fixture, index) => {
             const homeLogo = getTeamLogo(fixture.homeTeam);
@@ -89,10 +88,13 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelec
             const competitionLogo = getCompetitionLogo(fixture.competition.name, fixture.competition.logo);
 
             return (
-              <div key={fixture.id || index} className="carousel-slide flex-shrink-0 w-full" aria-hidden={currentSlide !== index}>
+              <div
+                key={fixture.id || index}
+                className="carousel-slide flex-shrink-0 w-full flex justify-center"
+                aria-hidden={currentSlide !== index}
+              >
                 <div
-                  className="carousel-card p-6 md:p-8 flex flex-col items-center justify-center cursor-pointer"
-                  style={{ maxWidth: '500px', margin: '0 auto' }}
+                  className="carousel-card w-full max-w-md p-6 md:p-8 flex flex-col items-center justify-center cursor-pointer"
                   onClick={() => onGameSelect?.(fixture)}
                   tabIndex={currentSlide === index ? 0 : -1}
                   role="button"
@@ -115,21 +117,39 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelec
                   {/* Teams */}
                   <div className="flex flex-col md:flex-row items-center justify-between w-full">
                     <div className="flex flex-col items-center flex-1 mb-4 md:mb-0">
-                      {homeLogo.logoPath && <img src={homeLogo.logoPath} alt={homeLogo.displayName} className="w-20 h-20 object-contain mb-3" />}
+                      {homeLogo.logoPath && (
+                        <img
+                          src={homeLogo.logoPath}
+                          alt={homeLogo.displayName}
+                          className="w-20 h-20 object-contain mb-3"
+                        />
+                      )}
                       <span className="text-base font-semibold text-gray-900 text-center">{homeLogo.displayName}</span>
                     </div>
 
                     <div className="flex flex-col items-center px-6 flex-1 text-center mb-4 md:mb-0">
                       <div className="text-lg font-semibold text-gray-900">
-                        {new Date(fixture.dateTime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                        {new Date(fixture.dateTime).toLocaleDateString('en-GB', {
+                          day: 'numeric',
+                          month: 'short',
+                        })}
                       </div>
                       <div className="text-base text-gray-600 mt-1">
-                        {new Date(fixture.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(fixture.dateTime).toLocaleTimeString('en-GB', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
                       </div>
                     </div>
 
                     <div className="flex flex-col items-center flex-1">
-                      {awayLogo.logoPath && <img src={awayLogo.logoPath} alt={awayLogo.displayName} className="w-20 h-20 object-contain mb-3" />}
+                      {awayLogo.logoPath && (
+                        <img
+                          src={awayLogo.logoPath}
+                          alt={awayLogo.displayName}
+                          className="w-20 h-20 object-contain mb-3"
+                        />
+                      )}
                       <span className="text-base font-semibold text-gray-900 text-center">{awayLogo.displayName}</span>
                     </div>
                   </div>
@@ -148,9 +168,10 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelec
         {totalSlides > 1 && (
           <>
             <button
-              className={clsx('carousel-arrow carousel-arrow-left absolute top-1/2 -translate-y-1/2 left-2 z-10', {
-                'opacity-30 cursor-not-allowed': !canGoPrev,
-              })}
+              className={clsx(
+                'carousel-arrow carousel-arrow-left absolute top-1/2 -translate-y-1/2 left-2 z-10',
+                { 'opacity-30 cursor-not-allowed': !canGoPrev }
+              )}
               onClick={goToPrev}
               disabled={!canGoPrev}
               aria-label="Previous slide"
@@ -161,9 +182,10 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelec
             </button>
 
             <button
-              className={clsx('carousel-arrow carousel-arrow-right absolute top-1/2 -translate-y-1/2 right-2 z-10', {
-                'opacity-30 cursor-not-allowed': !canGoNext,
-              })}
+              className={clsx(
+                'carousel-arrow carousel-arrow-right absolute top-1/2 -translate-y-1/2 right-2 z-10',
+                { 'opacity-30 cursor-not-allowed': !canGoNext }
+              )}
               onClick={goToNext}
               disabled={!canGoNext}
               aria-label="Next slide"
