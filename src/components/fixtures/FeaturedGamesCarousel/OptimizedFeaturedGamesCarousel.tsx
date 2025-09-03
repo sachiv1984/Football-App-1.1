@@ -55,63 +55,94 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const slideWidth = cardWidth + gap;
 
   // ---------------------------
-  // LOOP LOGIC FIX
+  // FIXED LOOP LOGIC
   // ---------------------------
   const goToSlide = useCallback(
     (index: number, smooth = true) => {
-      if (!containerRef.current) return;
+      if (!containerRef.current || totalSlides === 0) return;
 
-      const total = totalSlides;
-      let scrollIndex = index;
-
-      // Wrap index for real slide count
-      if (index < 0) scrollIndex = total - 1;
-      if (index >= total) scrollIndex = 0;
-
-      const scrollLeft = (scrollIndex + cardsPerSlide) * slideWidth;
+      // Normalize the index to be within bounds
+      const normalizedIndex = ((index % totalSlides) + totalSlides) % totalSlides;
+      
+      // Calculate scroll position (add cardsPerSlide offset for cloned start slides)
+      const scrollLeft = (normalizedIndex + cardsPerSlide) * slideWidth;
 
       containerRef.current.scrollTo({
         left: scrollLeft,
         behavior: smooth ? 'smooth' : 'auto',
       });
 
-      setCurrentSlide((scrollIndex + total) % total);
+      setCurrentSlide(normalizedIndex);
     },
     [cardsPerSlide, slideWidth, totalSlides]
   );
 
-  const goToNext = useCallback(() => goToSlide(currentSlide + 1), [currentSlide, goToSlide]);
-  const goToPrev = useCallback(() => goToSlide(currentSlide - 1), [currentSlide, goToSlide]);
+  const goToNext = useCallback(() => {
+    const nextIndex = (currentSlide + 1) % totalSlides;
+    goToSlide(nextIndex);
+  }, [currentSlide, goToSlide, totalSlides]);
+
+  const goToPrev = useCallback(() => {
+    const prevIndex = (currentSlide - 1 + totalSlides) % totalSlides;
+    goToSlide(prevIndex);
+  }, [currentSlide, goToSlide, totalSlides]);
+
+  // Initialize carousel position on mount/data change
+  useEffect(() => {
+    if (featuredFixtures.length > 0 && containerRef.current) {
+      // Start at slide 0 (which shows cards 1+2)
+      goToSlide(0, false);
+    }
+  }, [featuredFixtures.length, slideWidth, goToSlide]);
 
   // Auto rotate
   useEffect(() => {
-    if (!autoRotate) return;
+    if (!autoRotate || totalSlides <= 1) return;
     const interval = setInterval(() => {
       if (!isPaused) goToNext();
     }, rotateInterval);
     return () => clearInterval(interval);
-  }, [autoRotate, isPaused, goToNext, rotateInterval]);
+  }, [autoRotate, isPaused, goToNext, rotateInterval, totalSlides]);
 
   // Infinite loop jump after hitting cloned slides
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || totalSlides === 0) return;
     const container = containerRef.current;
 
     const handleScrollEnd = () => {
       const scrollLeft = container.scrollLeft;
-      const totalWidth = totalSlides * slideWidth;
-
-      if (scrollLeft < cardsPerSlide * slideWidth) {
-        // cloned start: jump to real end
-        container.scrollLeft = totalWidth;
-      } else if (scrollLeft >= (totalSlides + cardsPerSlide) * slideWidth) {
-        // cloned end: jump to real start
-        container.scrollLeft = cardsPerSlide * slideWidth;
+      const slidePosition = Math.round(scrollLeft / slideWidth);
+      
+      // If we're in the cloned start area (before real slides)
+      if (slidePosition < cardsPerSlide) {
+        const realPosition = totalSlides + slidePosition - cardsPerSlide;
+        container.scrollLeft = (realPosition + cardsPerSlide) * slideWidth;
+        setCurrentSlide(realPosition);
+      }
+      // If we're in the cloned end area (after real slides)
+      else if (slidePosition >= totalSlides + cardsPerSlide) {
+        const realPosition = slidePosition - totalSlides - cardsPerSlide;
+        container.scrollLeft = (realPosition + cardsPerSlide) * slideWidth;
+        setCurrentSlide(realPosition);
+      }
+      // If we're in the real slides area, update current slide
+      else {
+        const realPosition = slidePosition - cardsPerSlide;
+        setCurrentSlide(realPosition);
       }
     };
 
-    container.addEventListener('scroll', handleScrollEnd);
-    return () => container.removeEventListener('scroll', handleScrollEnd);
+    let scrollTimeout: NodeJS.Timeout;
+    const handleScroll = () => {
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(handleScrollEnd, 100);
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      clearTimeout(scrollTimeout);
+    };
   }, [slideWidth, totalSlides, cardsPerSlide]);
 
   // Touch swipe
