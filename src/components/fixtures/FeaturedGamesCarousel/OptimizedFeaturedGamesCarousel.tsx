@@ -2,6 +2,8 @@ import React, { useRef, useState, useCallback, useEffect } from 'react';
 import type { FeaturedFixtureWithImportance } from '../../../types';
 import { getTeamLogo, getCompetitionLogo } from '../../../utils/teamUtils';
 import clsx from 'clsx';
+import { TeamLogo } from '../../common/logo/TeamLogo'; // adjust path if needed
+
 
 interface Props {
   fixtures: FeaturedFixtureWithImportance[];
@@ -114,17 +116,17 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelec
                     </div>
                   </div>
 
-               {/* Teams: Always horizontal */}
-<div className="flex items-center justify-between w-full">
-  {/* Home */}
+{/* Teams Section */}
+<div className="flex items-center justify-between w-full mt-4">
+  {/* Home Team */}
   <div className="flex flex-col items-center flex-1">
-    {homeLogo.logoPath && (
-      <img
-        src={homeLogo.logoPath}
-        alt={homeLogo.displayName}
-        className="w-20 h-20 object-contain mb-2"
-      />
-    )}
+    <TeamLogo
+      logo={homeLogo.logoPath}
+      name={homeLogo.displayName}
+      size={80}            // consistent width & height
+      background="white"   // optional background
+      className="mb-2"
+    />
     <span className="text-base font-semibold text-gray-900 text-center">
       {homeLogo.displayName}
     </span>
@@ -140,20 +142,21 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelec
     </div>
   </div>
 
-  {/* Away */}
+  {/* Away Team */}
   <div className="flex flex-col items-center flex-1">
-    {awayLogo.logoPath && (
-      <img
-        src={awayLogo.logoPath}
-        alt={awayLogo.displayName}
-        className="w-20 h-20 object-contain mb-2"
-      />
-    )}
+    <TeamLogo
+      logo={awayLogo.logoPath}
+      name={awayLogo.displayName}
+      size={80}            // consistent width & height
+      background="white"   // optional background
+      className="mb-2"
+    />
     <span className="text-base font-semibold text-gray-900 text-center">
       {awayLogo.displayName}
     </span>
   </div>
 </div>
+
 
 
                   {/* Venue */}
