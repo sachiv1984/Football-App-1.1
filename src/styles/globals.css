@@ -126,6 +126,26 @@
 
   .text-gradient { background: linear-gradient(135deg, var(--color-electric-yellow), var(--color-neon-green)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
   .text-gradient-secondary { background: linear-gradient(135deg, var(--color-deep-blue), var(--color-navy)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+/* Add these utilities to your globals.css file in the @layer utilities section */
+  
+  /* Custom sizing for 88px logos (hover state) */
+  .w-22 { width: 5.5rem; } /* 88px */
+  .h-22 { height: 5.5rem; } /* 88px */
+  
+  /* Logo container utilities */
+  .logo-container {
+    @apply relative flex items-center justify-center;
+  }
+  
+  .logo-background {
+    @apply absolute inset-0 bg-white rounded-full shadow-sm;
+  }
+  
+  .logo-background-hover {
+    @apply absolute inset-0 bg-white rounded-full shadow-md;
+  }
+}
+  
 }
 
 /* Keyframes */
