@@ -126,8 +126,7 @@
 
   .text-gradient { background: linear-gradient(135deg, var(--color-electric-yellow), var(--color-neon-green)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
   .text-gradient-secondary { background: linear-gradient(135deg, var(--color-deep-blue), var(--color-navy)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-/* Add these utilities to your globals.css file in the @layer utilities section */
-  
+  .scale-102 { transform: scale(1.02); }
   /* Custom sizing for 88px logos (hover state) */
   .w-22 { width: 5.5rem; } /* 88px */
   .h-22 { height: 5.5rem; } /* 88px */
