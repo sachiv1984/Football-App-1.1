@@ -37,8 +37,8 @@ const HomePage: React.FC = () => {
       >
         <Header isDarkMode={isDarkMode} onToggleDarkMode={handleToggleDarkMode} />
 
-        {/* Spacer */}
-        <div style={{ marginTop: '2rem' }} />
+        {/* Header to Carousel Spacing - spacing.md mobile, spacing.lg desktop */}
+        <div className="mt-4 lg:mt-6" />
 
         {/* Debug Table */}
         {showDebugTable && (
@@ -59,18 +59,36 @@ const HomePage: React.FC = () => {
           </div>
         )}
 
-        {/* Carousel */}
+        {/* Featured Fixtures Section */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Section Heading */}
+          <div className="mb-4 lg:mb-6">
+            <h2 className="text-2xl lg:text-3xl font-semibold text-gray-900 text-center">
+              Featured Fixtures
+            </h2>
+          </div>
+
+          {/* Carousel */}
           <CarouselErrorBoundary>
             {loading ? (
-              <p className="text-center py-8">Loading fixtures...</p>
+              <div className="text-center py-12">
+                <div className="inline-flex items-center space-x-2">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                  <span className="text-gray-600">Loading fixtures...</span>
+                </div>
+              </div>
             ) : error ? (
-              <p className="text-center py-8 text-red-600">Error loading fixtures: {error}</p>
+              <div className="text-center py-12">
+                <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md mx-auto">
+                  <div className="text-red-600 font-medium mb-2">⚠️ Error Loading Fixtures</div>
+                  <p className="text-red-700 text-sm">{error}</p>
+                </div>
+              </div>
             ) : (
               <OptimizedFeaturedGamesCarousel
                 fixtures={featuredFixtures}
                 onGameSelect={handleGameSelect}
-                className="my-8"
+                className="mb-8 lg:mb-12"
               />
             )}
           </CarouselErrorBoundary>
@@ -98,6 +116,8 @@ const HomePage: React.FC = () => {
           />
         </div>
 
+        {/* Footer Spacing */}
+        <div className="mt-12 lg:mt-16" />
         <Footer />
       </div>
     </ErrorBoundary>
