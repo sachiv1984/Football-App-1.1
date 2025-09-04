@@ -3,7 +3,7 @@ import React from 'react';
 
 interface CompetitionHeaderProps {
   competitionName: string;
-  competitionLogo?: string;
+  competitionLogo?: string | null;
   matchWeek: number;
 }
 
