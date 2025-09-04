@@ -43,41 +43,48 @@ const CarouselSlide: React.FC<CarouselSlideProps> = ({
         />
 
         {/* Teams Section */}
-        <div className="flex items-center justify-between w-full mt-4">
+        <div className="flex items-center justify-between w-full mt-6">
           {/* Home Team */}
-          <div className="flex flex-col items-center flex-1">
-            <TeamLogo
-              logo={homeLogo.logoPath ?? undefined}
-              name={homeLogo.displayName}
-              size={80}
-              background="white"
-              className="mb-2"
-            />
-            <span className="text-base font-semibold text-gray-900 text-center">
+          <div className="flex flex-col items-center flex-1 min-w-0 px-2">
+            <div className="mb-3 flex items-center justify-center w-20 h-20">
+              <TeamLogo
+                logo={homeLogo.logoPath ?? undefined}
+                name={homeLogo.displayName}
+                size={80}
+                background="white"
+                className="drop-shadow-sm"
+              />
+            </div>
+            <span className="text-sm md:text-base font-semibold text-gray-900 text-center leading-tight">
               {homeLogo.displayName}
             </span>
           </div>
 
           {/* Kick-off / Date */}
-          <div className="flex flex-col items-center flex-1 text-center">
-            <div className="text-lg font-semibold text-gray-900">
+          <div className="flex flex-col items-center flex-1 text-center px-4">
+            <div className="text-lg md:text-xl font-semibold text-gray-900 mb-1">
               {new Date(fixture.dateTime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
             </div>
-            <div className="text-base text-gray-600 mt-1">
+            <div className="text-sm md:text-base text-gray-600">
               {new Date(fixture.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+            </div>
+            <div className="text-xs text-gray-500 mt-1 uppercase tracking-wide font-medium">
+              Kick-off
             </div>
           </div>
 
           {/* Away Team */}
-          <div className="flex flex-col items-center flex-1">
-            <TeamLogo
-              logo={awayLogo.logoPath ?? undefined}
-              name={awayLogo.displayName}
-              size={80}
-              background="white"
-              className="mb-2"
-            />
-            <span className="text-base font-semibold text-gray-900 text-center">
+          <div className="flex flex-col items-center flex-1 min-w-0 px-2">
+            <div className="mb-3 flex items-center justify-center w-20 h-20">
+              <TeamLogo
+                logo={awayLogo.logoPath ?? undefined}
+                name={awayLogo.displayName}
+                size={80}
+                background="white"
+                className="drop-shadow-sm"
+              />
+            </div>
+            <span className="text-sm md:text-base font-semibold text-gray-900 text-center leading-tight">
               {awayLogo.displayName}
             </span>
           </div>
