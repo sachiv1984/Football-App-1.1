@@ -1,9 +1,7 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import type { FeaturedFixtureWithImportance } from '../../../types';
-import { getTeamLogo, getCompetitionLogo } from '../../../utils/teamUtils';
 import clsx from 'clsx';
-import { TeamLogo } from '../../common/Logo/TeamLogo';
-
+import CarouselSlide from './CarouselSlide';
 
 interface Props {
   fixtures: FeaturedFixtureWithImportance[];
@@ -11,7 +9,11 @@ interface Props {
   className?: string;
 }
 
-const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelect, className = '' }) => {
+const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ 
+  fixtures, 
+  onGameSelect, 
+  className = '' 
+}) => {
   const trackRef = useRef<HTMLDivElement>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -84,92 +86,18 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelec
           ref={trackRef}
           className="carousel-track flex transition-transform duration-400 ease-in-out"
         >
-          {fixtures.map((fixture, index) => {
-            const homeLogo = getTeamLogo(fixture.homeTeam);
-            const awayLogo = getTeamLogo(fixture.awayTeam);
-            const competitionLogo = getCompetitionLogo(fixture.competition.name, fixture.competition.logo);
-
-            return (
-              <div
-                key={fixture.id || index}
-                className="carousel-slide flex-shrink-0 w-full flex justify-center"
-                aria-hidden={currentSlide !== index}
-              >
-                <div
-                  className="carousel-card w-full max-w-xl p-6 md:p-8 flex flex-col items-center justify-center cursor-pointer"
-                  onClick={() => onGameSelect?.(fixture)}
-                  tabIndex={currentSlide === index ? 0 : -1}
-                  role="button"
-                  aria-label={`View match between ${homeLogo.displayName} and ${awayLogo.displayName}`}
-                >
-                  {/* Competition header */}
-                  <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100 w-full">
-                    {competitionLogo && (
-                      <img
-                        src={competitionLogo}
-                        alt={fixture.competition.name}
-                        className="w-12 h-12 object-contain"
-                      />
-                    )}
-                    <div className="bg-gray-100 px-3 py-1 rounded-full">
-                      <span className="text-sm font-medium text-gray-700">Week {fixture.matchWeek}</span>
-                    </div>
-                  </div>
-
-{/* Teams Section */}
-<div className="flex items-center justify-between w-full mt-4">
-  {/* Home Team */}
-  <div className="flex flex-col items-center flex-1">
-    <TeamLogo
-      logo={homeLogo.logoPath ?? undefined}
-      name={homeLogo.displayName}
-      size={80}            // consistent width & height
-      background="white"   // optional background
-      className="mb-2"
-    />
-    <span className="text-base font-semibold text-gray-900 text-center">
-      {homeLogo.displayName}
-    </span>
-  </div>
-
-  {/* Kick-off / Date */}
-  <div className="flex flex-col items-center flex-1 text-center">
-    <div className="text-lg font-semibold text-gray-900">
-      {new Date(fixture.dateTime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-    </div>
-    <div className="text-base text-gray-600 mt-1">
-      {new Date(fixture.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-    </div>
-  </div>
-
-  {/* Away Team */}
-  <div className="flex flex-col items-center flex-1">
-    <TeamLogo
-      logo={awayLogo.logoPath ?? undefined}
-      name={awayLogo.displayName}
-      size={80}            // consistent width & height
-      background="white"   // optional background
-      className="mb-2"
-    />
-    <span className="text-base font-semibold text-gray-900 text-center">
-      {awayLogo.displayName}
-    </span>
-  </div>
-</div>
-
-
-
-                  {/* Venue */}
-                  <div className="mt-6 pt-4 border-t border-gray-100 w-full text-center text-sm font-medium text-gray-600">
-                    📍 {fixture.venue?.trim() || 'TBD'}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+          {fixtures.map((fixture, index) => (
+            <CarouselSlide
+              key={fixture.id || index}
+              fixture={fixture}
+              index={index}
+              isActive={currentSlide === index}
+              onGameSelect={onGameSelect}
+            />
+          ))}
         </div>
 
-        {/* Arrows */}
+        {/* Navigation Arrows */}
         {totalSlides > 1 && (
           <>
             <button
@@ -203,7 +131,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelec
         )}
       </div>
 
-      {/* Dots */}
+      {/* Pagination Dots */}
       {totalSlides > 1 && (
         <div className="carousel-dots">
           {fixtures.map((_, index) => (
