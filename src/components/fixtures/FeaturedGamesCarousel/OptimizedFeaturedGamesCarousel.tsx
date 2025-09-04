@@ -1,3 +1,4 @@
+// src/components/fixtures/FeaturedGamesCarousel/OptimizedFeaturedGamesCarousel.tsx
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import type { FeaturedFixtureWithImportance } from '../../../types';
 import clsx from 'clsx';
