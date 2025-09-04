@@ -1,4 +1,4 @@
-
+// src/components/fixtures/FeaturedGamesCarousel/CompetitionHeader.tsx
 import React from 'react';
 
 interface CompetitionHeaderProps {
