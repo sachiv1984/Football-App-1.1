@@ -24,7 +24,13 @@ const CompetitionHeader: React.FC<CompetitionHeaderProps> = ({
         )}
       </div>
       <div className="bg-gray-100 px-3 py-1.5 rounded-full">
-        <span className="text-xs md:text-sm font-medium text-gray-700">
+        <span 
+          className="text-xs md:text-sm font-medium"
+          style={{
+            color: '#6B7280',
+            fontFamily: 'Inter, system-ui, sans-serif'
+          }}
+        >
           Week {matchWeek}
         </span>
       </div>
