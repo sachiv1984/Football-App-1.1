@@ -33,7 +33,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
       if (trackRef.current) {
         trackRef.current.style.transform = `translateX(-${index * 100}%)`;
       }
-      setTimeout(() => setIsTransitioning(false), 400);
+      setTimeout(() => setIsTransitioning(false), 400); // 0.4s = 400ms
     },
     [totalSlides, isTransitioning]
   );
