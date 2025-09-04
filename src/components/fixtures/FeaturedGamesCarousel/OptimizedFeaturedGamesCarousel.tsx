@@ -10,11 +10,7 @@ interface Props {
   className?: string;
 }
 
-const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ 
-  fixtures, 
-  onGameSelect, 
-  className = '' 
-}) => {
+const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelect, className = '' }) => {
   const trackRef = useRef<HTMLDivElement>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -31,27 +27,17 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
       if (index < 0 || index >= totalSlides || isTransitioning) return;
       setIsTransitioning(true);
       setCurrentSlide(index);
-      if (trackRef.current) {
-        trackRef.current.style.transform = `translateX(-${index * 100}%)`;
-      }
-      setTimeout(() => setIsTransitioning(false), 400); // 0.4s = 400ms
+      if (trackRef.current) trackRef.current.style.transform = `translateX(-${index * 100}%)`;
+      setTimeout(() => setIsTransitioning(false), 400);
     },
     [totalSlides, isTransitioning]
   );
 
-  const goToNext = useCallback(() => {
-    if (canGoNext) goToSlide(currentSlide + 1);
-  }, [canGoNext, currentSlide, goToSlide]);
-
-  const goToPrev = useCallback(() => {
-    if (canGoPrev) goToSlide(currentSlide - 1);
-  }, [canGoPrev, currentSlide, goToSlide]);
+  const goToNext = useCallback(() => { if (canGoNext) goToSlide(currentSlide + 1); }, [canGoNext, currentSlide, goToSlide]);
+  const goToPrev = useCallback(() => { if (canGoPrev) goToSlide(currentSlide - 1); }, [canGoPrev, currentSlide, goToSlide]);
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft') goToPrev();
-      if (e.key === 'ArrowRight') goToNext();
-    };
+    const handleKeyDown = (e: KeyboardEvent) => { if (e.key === 'ArrowLeft') goToPrev(); if (e.key === 'ArrowRight') goToNext(); };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [goToPrev, goToNext]);
@@ -60,33 +46,28 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const handleTouchMove = (e: React.TouchEvent) => (touchEndX.current = e.targetTouches[0].clientX);
   const handleTouchEnd = () => {
     const distance = touchStartX.current - touchEndX.current;
-    const threshold = 50;
-    if (distance > threshold && canGoNext) goToNext();
-    else if (distance < -threshold && canGoPrev) goToPrev();
+    if (distance > 50 && canGoNext) goToNext();
+    else if (distance < -50 && canGoPrev) goToPrev();
     touchStartX.current = 0;
     touchEndX.current = 0;
   };
 
-  if (totalSlides === 0) {
+  if (totalSlides === 0)
     return (
       <div className="text-gray-600 text-center py-20 px-6">
         <p className="text-lg font-medium">No Featured Games Available</p>
       </div>
     );
-  }
 
   return (
     <div className={clsx('carousel-apple', className)} role="region" aria-label="Featured Games Carousel">
       <div
-        className="carousel-container w-full relative overflow-hidden"
+        className="carousel-container"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        <div
-          ref={trackRef}
-          className="carousel-track flex transition-transform duration-400 ease-in-out"
-        >
+        <div ref={trackRef} className="carousel-track">
           {fixtures.map((fixture, index) => (
             <CarouselSlide
               key={fixture.id || index}
@@ -98,33 +79,26 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
           ))}
         </div>
 
-        {/* Navigation Arrows */}
         {totalSlides > 1 && (
           <>
             <button
-              className={clsx(
-                'carousel-arrow carousel-arrow-left absolute top-1/2 -translate-y-1/2 left-2 z-10',
-                { 'opacity-30 cursor-not-allowed': !canGoPrev }
-              )}
+              className={clsx('carousel-nav-arrow carousel-nav-arrow-left', { 'opacity-50 cursor-not-allowed': !canGoPrev })}
               onClick={goToPrev}
               disabled={!canGoPrev}
               aria-label="Previous slide"
             >
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" className="w-6 h-6">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" className="w-6 h-6" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
             </button>
 
             <button
-              className={clsx(
-                'carousel-arrow carousel-arrow-right absolute top-1/2 -translate-y-1/2 right-2 z-10',
-                { 'opacity-30 cursor-not-allowed': !canGoNext }
-              )}
+              className={clsx('carousel-nav-arrow carousel-nav-arrow-right', { 'opacity-50 cursor-not-allowed': !canGoNext })}
               onClick={goToNext}
               disabled={!canGoNext}
               aria-label="Next slide"
             >
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" className="w-6 h-6">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" className="w-6 h-6" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
               </svg>
             </button>
@@ -132,16 +106,12 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
         )}
       </div>
 
-      {/* Pagination Dots */}
       {totalSlides > 1 && (
-        <div className="flex justify-center gap-2 mt-6">
+        <div className="carousel-pagination">
           {fixtures.map((_, index) => (
             <button
               key={index}
-              className="w-3 h-3 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-electric-yellow focus:ring-offset-2"
-              style={{
-                backgroundColor: currentSlide === index ? '#FFFF00' : '#D1D5DB'
-              }}
+              className={clsx('carousel-dot', currentSlide === index ? 'carousel-dot-active' : 'carousel-dot-inactive')}
               onClick={() => goToSlide(index)}
               aria-label={`Go to slide ${index + 1}`}
               aria-current={currentSlide === index ? 'true' : 'false'}
