@@ -85,7 +85,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
       >
         <div
           ref={trackRef}
-          className="carousel-track flex transition-transform duration-400 ease-in-out"
+          className="carousel-track flex gap-4 md:gap-6 px-4 md:px-6 transition-transform duration-400 ease-in-out"
         >
           {fixtures.map((fixture, index) => (
             <CarouselSlide
