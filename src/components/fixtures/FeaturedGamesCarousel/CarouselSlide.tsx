@@ -1,4 +1,4 @@
-
+// src/components/fixtures/FeaturedGamesCarousel
 import React from 'react';
 import type { FeaturedFixtureWithImportance } from '../../../types';
 import { getTeamLogo, getCompetitionLogo } from '../../../utils/teamUtils';
