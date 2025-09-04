@@ -10,7 +10,11 @@ interface Props {
   className?: string;
 }
 
-const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelect, className = '' }) => {
+const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ 
+  fixtures, 
+  onGameSelect, 
+  className = '' 
+}) => {
   const trackRef = useRef<HTMLDivElement>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -27,17 +31,27 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelec
       if (index < 0 || index >= totalSlides || isTransitioning) return;
       setIsTransitioning(true);
       setCurrentSlide(index);
-      if (trackRef.current) trackRef.current.style.transform = `translateX(-${index * 100}%)`;
-      setTimeout(() => setIsTransitioning(false), 400);
+      if (trackRef.current) {
+        trackRef.current.style.transform = `translateX(-${index * 100}%)`;
+      }
+      setTimeout(() => setIsTransitioning(false), 400); // 0.4s = 400ms
     },
     [totalSlides, isTransitioning]
   );
 
-  const goToNext = useCallback(() => { if (canGoNext) goToSlide(currentSlide + 1); }, [canGoNext, currentSlide, goToSlide]);
-  const goToPrev = useCallback(() => { if (canGoPrev) goToSlide(currentSlide - 1); }, [canGoPrev, currentSlide, goToSlide]);
+  const goToNext = useCallback(() => {
+    if (canGoNext) goToSlide(currentSlide + 1);
+  }, [canGoNext, currentSlide, goToSlide]);
+
+  const goToPrev = useCallback(() => {
+    if (canGoPrev) goToSlide(currentSlide - 1);
+  }, [canGoPrev, currentSlide, goToSlide]);
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => { if (e.key === 'ArrowLeft') goToPrev(); if (e.key === 'ArrowRight') goToNext(); };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') goToPrev();
+      if (e.key === 'ArrowRight') goToNext();
+    };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [goToPrev, goToNext]);
@@ -46,28 +60,33 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelec
   const handleTouchMove = (e: React.TouchEvent) => (touchEndX.current = e.targetTouches[0].clientX);
   const handleTouchEnd = () => {
     const distance = touchStartX.current - touchEndX.current;
-    if (distance > 50 && canGoNext) goToNext();
-    else if (distance < -50 && canGoPrev) goToPrev();
+    const threshold = 50;
+    if (distance > threshold && canGoNext) goToNext();
+    else if (distance < -threshold && canGoPrev) goToPrev();
     touchStartX.current = 0;
     touchEndX.current = 0;
   };
 
-  if (totalSlides === 0)
+  if (totalSlides === 0) {
     return (
       <div className="text-gray-600 text-center py-20 px-6">
         <p className="text-lg font-medium">No Featured Games Available</p>
       </div>
     );
+  }
 
   return (
     <div className={clsx('carousel-apple', className)} role="region" aria-label="Featured Games Carousel">
       <div
-        className="carousel-container"
+        className="carousel-container w-full relative overflow-hidden"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        <div ref={trackRef} className="carousel-track">
+        <div
+          ref={trackRef}
+          className="carousel-track flex transition-transform duration-400 ease-in-out"
+        >
           {fixtures.map((fixture, index) => (
             <CarouselSlide
               key={fixture.id || index}
@@ -79,26 +98,63 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelec
           ))}
         </div>
 
+        {/* Navigation Arrows */}
         {totalSlides > 1 && (
           <>
             <button
-              className={clsx('carousel-nav-arrow carousel-nav-arrow-left', { 'opacity-50 cursor-not-allowed': !canGoPrev })}
+              className={clsx(
+                'absolute top-1/2 -translate-y-1/2 left-4 z-10',
+                'w-10 h-10 flex items-center justify-center',
+                'bg-white/90 backdrop-blur-sm rounded-full shadow-md',
+                'border border-gray-200',
+                'text-gray-700 hover:text-gray-900',
+                'transition-all duration-200',
+                'focus:outline-none focus:ring-2 focus:ring-electric-yellow focus:ring-offset-2',
+                {
+                  'opacity-50 cursor-not-allowed': !canGoPrev,
+                  'hover:bg-gray-50 hover:shadow-lg transform hover:scale-105': canGoPrev
+                }
+              )}
               onClick={goToPrev}
               disabled={!canGoPrev}
               aria-label="Previous slide"
             >
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" className="w-6 h-6" strokeWidth={2}>
+              <svg 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24" 
+                className="w-6 h-6"
+                strokeWidth={2}
+              >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
             </button>
 
             <button
-              className={clsx('carousel-nav-arrow carousel-nav-arrow-right', { 'opacity-50 cursor-not-allowed': !canGoNext })}
+              className={clsx(
+                'absolute top-1/2 -translate-y-1/2 right-4 z-10',
+                'w-10 h-10 flex items-center justify-center',
+                'bg-white/90 backdrop-blur-sm rounded-full shadow-md',
+                'border border-gray-200',
+                'text-gray-700 hover:text-gray-900',
+                'transition-all duration-200',
+                'focus:outline-none focus:ring-2 focus:ring-electric-yellow focus:ring-offset-2',
+                {
+                  'opacity-50 cursor-not-allowed': !canGoNext,
+                  'hover:bg-gray-50 hover:shadow-lg transform hover:scale-105': canGoNext
+                }
+              )}
               onClick={goToNext}
               disabled={!canGoNext}
               aria-label="Next slide"
             >
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" className="w-6 h-6" strokeWidth={2}>
+              <svg 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24" 
+                className="w-6 h-6"
+                strokeWidth={2}
+              >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
               </svg>
             </button>
@@ -106,12 +162,23 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ fixtures, onGameSelec
         )}
       </div>
 
+      {/* Pagination Dots */}
       {totalSlides > 1 && (
-        <div className="carousel-pagination">
+        <div className="flex justify-center items-center gap-2 mt-6">
           {fixtures.map((_, index) => (
             <button
               key={index}
-              className={clsx('carousel-dot', currentSlide === index ? 'carousel-dot-active' : 'carousel-dot-inactive')}
+              className={clsx(
+                'transition-all duration-200 rounded-full',
+                'focus:outline-none focus:ring-2 focus:ring-electric-yellow focus:ring-offset-2',
+                'hover:scale-110',
+                {
+                  // Active dot - 24px pill shape with soft gold
+                  'w-6 h-2 bg-yellow-400': currentSlide === index,
+                  // Inactive dot - 8px circle
+                  'w-2 h-2 bg-gray-300 hover:bg-gray-400': currentSlide !== index
+                }
+              )}
               onClick={() => goToSlide(index)}
               aria-label={`Go to slide ${index + 1}`}
               aria-current={currentSlide === index ? 'true' : 'false'}
