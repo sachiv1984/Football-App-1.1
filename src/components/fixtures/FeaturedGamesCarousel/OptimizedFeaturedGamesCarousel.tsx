@@ -133,11 +133,14 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
       {/* Pagination Dots */}
       {totalSlides > 1 && (
-        <div className="carousel-dots">
+        <div className="flex justify-center gap-2 mt-6">
           {fixtures.map((_, index) => (
             <button
               key={index}
-              className={clsx('carousel-dot', { active: currentSlide === index })}
+              className="w-3 h-3 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-electric-yellow focus:ring-offset-2"
+              style={{
+                backgroundColor: currentSlide === index ? '#FFFF00' : '#D1D5DB'
+              }}
               onClick={() => goToSlide(index)}
               aria-label={`Go to slide ${index + 1}`}
               aria-current={currentSlide === index ? 'true' : 'false'}
