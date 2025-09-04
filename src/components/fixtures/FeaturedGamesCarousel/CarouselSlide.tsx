@@ -38,7 +38,7 @@ const CarouselSlide: React.FC<CarouselSlideProps> = ({
         {/* Competition header */}
         <CompetitionHeader
           competitionName={fixture.competition.name}
-          competitionLogo={competitionLogo}
+          competitionLogo={competitionLogo ?? undefined}
           matchWeek={fixture.matchWeek}
         />
 
