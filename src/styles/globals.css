@@ -58,8 +58,7 @@
 
   *:focus-visible { @apply outline-none ring-2 ring-electric-yellow ring-offset-2; }
 
-  ::selection,
-  ::-moz-selection { @apply bg-electric-yellow text-gray-900; }
+  ::selection { @apply bg-electric-yellow text-gray-900; }
 }
 
 /* -------------------------
@@ -83,9 +82,9 @@
   .btn-xl { @apply px-8 py-4 text-xl; }
 
   /* Cards */
-  .card { @apply bg-white rounded-xl border border-gray-100 transition-all duration-300; box-shadow: var(--shadow-card); }
+  .card { @apply bg-white rounded-xl border border-gray-100 transition-all duration-300 shadow-card; }
   .card-hover { @apply card cursor-pointer transform transition-transform duration-300; }
-  .card-hover:hover { @apply scale-102; box-shadow: var(--shadow-card-hover); }
+  .card-hover:hover { @apply scale-102 shadow-card-hover; }
 
   /* Badges */
   .badge { @apply inline-flex items-center font-medium rounded-full transition-colors duration-200; }
@@ -101,17 +100,16 @@
 
   /* Carousel */
   .carousel-container { @apply relative w-full overflow-hidden; }
-  .carousel-track { @apply flex transition-transform ease-in-out duration-300 will-change-transform; }
-  .carousel-slide { @apply flex-shrink-0 transition-opacity duration-300; }
+  .carousel-track { @apply flex transition-transform ease-in-out duration-300 will-change-transform gap-4 px-4; }
+  .carousel-slide { @apply flex-shrink-0 transition-opacity duration-300 opacity-75; }
+  .carousel-slide-active { @apply opacity-100; }
+
   .carousel-card {
-    @apply w-full bg-white cursor-pointer transition-all duration-300 ease-in-out rounded-xl;
+    @apply w-full bg-white cursor-pointer rounded-xl transition-all duration-300 ease-in-out p-6 shadow-card;
     aspect-ratio: 4 / 3;
-    box-shadow: var(--shadow-card);
-    will-change: transform, box-shadow;
   }
-  .carousel-card:hover { @apply scale-102; box-shadow: var(--shadow-card-hover); }
-  .carousel-slide-active .carousel-card { @apply scale-105; box-shadow: var(--shadow-card-hover); }
-  .carousel-slide:not(.carousel-slide-active) { @apply opacity-75; }
+  .carousel-card:hover,
+  .carousel-slide-active .carousel-card { @apply scale-105 shadow-card-hover; }
 
   /* Navigation arrows */
   .carousel-nav-arrow {
@@ -119,24 +117,29 @@
            bg-white/90 backdrop-blur-sm rounded-full shadow-md border border-gray-200
            text-gray-700 hover:text-gray-900 transition-all duration-200
            focus:outline-none focus:ring-2 focus:ring-electric-yellow focus:ring-offset-2;
-    will-change: transform;
   }
-  .carousel-nav-arrow:hover:not(:disabled) { @apply bg-gray-50 shadow-lg; transform: translateY(-50%) scale-105; }
+  .carousel-nav-arrow:hover:not(:disabled) { @apply bg-gray-50 shadow-lg scale-105; }
   .carousel-nav-arrow:disabled { @apply opacity-50 cursor-not-allowed; }
   .carousel-nav-arrow-left { @apply left-4; }
   .carousel-nav-arrow-right { @apply right-4; }
 
   /* Pagination dots */
   .carousel-pagination { @apply flex justify-center items-center gap-2 mt-6; }
-  .carousel-dot {
-    @apply rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-electric-yellow focus:ring-offset-2 hover:scale-110;
-  }
+  .carousel-dot { @apply rounded-full transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-electric-yellow focus:ring-offset-2; }
   .carousel-dot-active { @apply w-6 h-2 bg-yellow-400; }
   .carousel-dot-inactive { @apply w-2 h-2 bg-gray-300 hover:bg-gray-400; }
 
   /* Gradients */
-  .text-gradient { background: linear-gradient(135deg, var(--color-electric-yellow), var(--color-neon-green)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-  .text-gradient-secondary { background: linear-gradient(135deg, var(--color-deep-blue), var(--color-navy)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .text-gradient {
+    background: linear-gradient(135deg, var(--color-electric-yellow), var(--color-neon-green));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .text-gradient-secondary {
+    background: linear-gradient(135deg, var(--color-deep-blue), var(--color-navy));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
 }
 
 /* -------------------------
@@ -148,9 +151,8 @@
   .scale-102 { transform: scale(1.02); }
   .w-22 { width: 5.5rem; }
   .h-22 { height: 5.5rem; }
-  .animate-slideInLeft { animation: slideInLeft 0.4s ease-out; }
-  .animate-slideInRight { animation: slideInRight 0.4s ease-out; }
-  .animate-scaleIn { animation: scaleIn 0.3s ease-out; }
+  .shadow-card { box-shadow: var(--shadow-card); }
+  .shadow-card-hover { box-shadow: var(--shadow-card-hover); }
 }
 
 /* -------------------------
@@ -159,11 +161,6 @@
 @keyframes slideInLeft { from { transform: translateX(-20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 @keyframes slideInRight { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 @keyframes scaleIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-@keyframes dot-expand { from { width: 0.5rem; background-color: #D1D5DB; } to { width: 1.5rem; background-color: #FBBF24; } }
-@keyframes dot-contract { from { width: 1.5rem; background-color: #FBBF24; } to { width: 0.5rem; background-color: #D1D5DB; } }
-
-.carousel-dot-activating { animation: dot-expand 0.2s ease-out forwards; }
-.carousel-dot-deactivating { animation: dot-contract 0.2s ease-out forwards; }
 
 /* -------------------------
    Responsive Adjustments
@@ -173,4 +170,5 @@
   .carousel-nav-arrow svg { @apply w-5 h-5; }
   .carousel-nav-arrow-left { @apply left-2; }
   .carousel-nav-arrow-right { @apply right-2; }
+  .carousel-track { @apply px-2 gap-2; }
 }
