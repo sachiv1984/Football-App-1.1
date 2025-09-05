@@ -51,8 +51,8 @@ const CarouselSlide: React.FC<CarouselSlideProps> = ({
           // Responsive padding
           'p-6', // Mobile: 24px
           'md:p-8', // Tablet/Desktop: 32px
-          // Interactive states
-          'hover:shadow-lg hover:scale-[1.02]',
+          // Interactive states - removed scale on hover to prevent size inconsistencies
+          'hover:shadow-lg',
           'focus:outline-none focus:ring-2 focus:ring-[#FFD700] focus:ring-offset-2'
         )}
         onClick={() => onGameSelect?.(fixture)}
@@ -61,7 +61,10 @@ const CarouselSlide: React.FC<CarouselSlideProps> = ({
         aria-label={`View match between ${homeLogo.displayName} and ${awayLogo.displayName}`}
         style={{
           aspectRatio: '4 / 3',
-          boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)'
+          boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)',
+          // Force consistent sizing regardless of isActive state
+          transform: 'none',
+          minHeight: 'auto'
         }}
       >
         {/* Competition header */}
