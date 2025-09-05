@@ -90,19 +90,17 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
           </>
         )}
 
-        {/* Carousel wrapper with overflow hidden */}
-        <div className="carousel-wrapper">
-          <div ref={trackRef} className="carousel-track">
-            {fixtures.map((fixture, index) => (
-              <CarouselSlide
-                key={fixture.id || index}
-                fixture={fixture}
-                index={index}
-                onGameSelect={onGameSelect}
-                cardsPerView={cardsPerView}
-              />
-            ))}
-          </div>
+        {/* Carousel track - back to original structure */}
+        <div ref={trackRef} className="carousel-track">
+          {fixtures.map((fixture, index) => (
+            <CarouselSlide
+              key={fixture.id || index}
+              fixture={fixture}
+              index={index}
+              onGameSelect={onGameSelect}
+              cardsPerView={cardsPerView}
+            />
+          ))}
         </div>
       </div>
 
