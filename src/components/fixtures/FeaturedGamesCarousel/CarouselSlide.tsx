@@ -1,236 +1,284 @@
-// src/components/fixtures/FeaturedGamesCarousel/CarouselSlide.tsx
-import React, { useState } from 'react';
-import type { FeaturedFixtureWithImportance } from '../../../types';
-import { getTeamLogo, getCompetitionLogo } from '../../../utils/teamUtils';
-import { TeamLogo } from '../../common/Logo/TeamLogo';
-import CompetitionHeader from './CompetitionHeader';
-import clsx from 'clsx';
+import { useState, useRef, useEffect } from "react";
 
-interface CarouselSlideProps {
-  fixture: FeaturedFixtureWithImportance;
-  index: number;
-  isActive: boolean;
-  onGameSelect?: (fixture: FeaturedFixtureWithImportance) => void;
-  cardsPerView: number;
+interface Game {
+  id: string;
+  homeTeam: string;
+  awayTeam: string;
+  homeLogo?: string;
+  awayLogo?: string;
+  competitionLogo?: string;
+  kickoff: string;
+  venue: string;
 }
 
-const CarouselSlide: React.FC<CarouselSlideProps> = ({
-  fixture,
-  index,
-  isActive,
-  onGameSelect,
-  cardsPerView
-}) => {
-  const homeLogo = getTeamLogo(fixture.homeTeam);
-  const awayLogo = getTeamLogo(fixture.awayTeam);
-  const competitionLogo = getCompetitionLogo(fixture.competition.name, fixture.competition.logo);
+interface FeaturedGamesCarouselProps {
+  games?: Game[]; // optional to allow loading state
+  onGameSelect: (game: Game) => void;
+  isLoading?: boolean; // new prop for loading state
+}
 
-  // Calculate styles based on cards per view with max-width caps
-  const cardStyle = React.useMemo(() => {
-    switch (cardsPerView) {
-      case 3: 
-        return { maxWidth: 'min(calc((100% - 48px) / 3), 520px)' }; // Desktop: cap at 520px
-      case 2: 
-        return { maxWidth: 'min(calc((100% - 24px) / 2), 480px)' }; // Tablet: cap at 480px
-      case 1: 
-        return { maxWidth: 'min(100%, 360px)' }; // Mobile: cap at 360px
-      default: 
-        return { maxWidth: '100%' };
-    }
-  }, [cardsPerView]);
+export default function FeaturedGamesCarousel({
+  games = [],
+  onGameSelect,
+  isLoading = false,
+}: FeaturedGamesCarouselProps) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [cardsPerView, setCardsPerView] = useState(1);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Adjust cards per view based on window width
+  useEffect(() => {
+    const updateCardsPerView = () => {
+      if (window.innerWidth < 640) setCardsPerView(1);
+      else if (window.innerWidth < 1024) setCardsPerView(2);
+      else setCardsPerView(3);
+    };
+    updateCardsPerView();
+    window.addEventListener("resize", updateCardsPerView);
+    return () => window.removeEventListener("resize", updateCardsPerView);
+  }, []);
+
+  // Handle left/right arrow navigation
+  const prevSlide = () => setActiveIndex((prev) => Math.max(prev - 1, 0));
+  const nextSlide = () =>
+    setActiveIndex((prev) => Math.min(prev + 1, games.length - cardsPerView));
+
+  // Keyboard navigation
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "ArrowLeft") prevSlide();
+    if (e.key === "ArrowRight") nextSlide();
+  };
+
+  // Swipe support
+  const touchStartX = useRef(0);
+  const touchEndX = useRef(0);
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.changedTouches[0].screenX;
+  };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    touchEndX.current = e.changedTouches[0].screenX;
+    if (touchStartX.current - touchEndX.current > 50) nextSlide();
+    else if (touchEndX.current - touchStartX.current > 50) prevSlide();
+  };
+
+  const cardWidth = `${100 / cardsPerView}%`;
+
+  // Prefers-reduced-motion check
+  const [reduceMotion, setReduceMotion] = useState(false);
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReduceMotion(mediaQuery.matches);
+    const listener = (e: MediaQueryListEvent) => setReduceMotion(e.matches);
+    mediaQuery.addEventListener("change", listener);
+    return () => mediaQuery.removeEventListener("change", listener);
+  }, []);
+
+  // Render skeleton loader
+  if (isLoading) {
+    return (
+      <div className="flex gap-4 sm:gap-8">
+        {[...Array(cardsPerView)].map((_, idx) => (
+          <div
+            key={idx}
+            className="flex-shrink-0 bg-gray-200 animate-pulse rounded-xl w-full aspect-[4/3] p-6 sm:p-8"
+          />
+        ))}
+      </div>
+    );
+  }
+
+  // Render empty state
+  if (games.length === 0) {
+    return (
+      <div className="text-center py-16 text-gray-500">
+        <p className="mb-4">Check back later for featured games</p>
+        <button className="px-4 py-2 bg-yellow-400 text-white rounded hover:bg-yellow-500">
+          View All Fixtures
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div
-      className="carousel-slide flex-shrink-0 w-full"
-      style={cardStyle}
+      className="relative w-full"
+      onKeyDown={handleKeyDown}
+      tabIndex={0} // focusable
     >
       <div
-        className={clsx(
-          'carousel-card w-full bg-white rounded-xl cursor-pointer',
-          'transition-all duration-300 ease-in-out',
-          'p-6', // Mobile: 24px
-          'md:p-8', // Tablet/Desktop: 32px
-          'hover:shadow-lg',
-          'focus:outline-none focus:ring-2 focus:ring-[#FFD700] focus:ring-offset-2'
-        )}
-        onClick={() => onGameSelect?.(fixture)}
-        tabIndex={0}
-        role="button"
-        aria-label={`View match between ${homeLogo.displayName} and ${awayLogo.displayName}`}
-        style={{
-          aspectRatio: '4 / 3',
-          boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)',
-          transform: 'none',
-          minHeight: 'auto'
-        }}
+        ref={containerRef}
+        className="flex overflow-hidden gap-4 sm:gap-8"
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
       >
-        {/* Competition header */}
-        <CompetitionHeader
-          competitionName={fixture.competition.name}
-          competitionLogo={competitionLogo ?? undefined}
-          matchWeek={fixture.matchWeek}
-        />
-
-           {/* Teams Section */}
-        <div className="flex items-center justify-between w-full mt-4 md:mt-6">
-          {/* Home Team */}
-          <div className="flex flex-col items-center flex-1 min-w-0 px-2">
-            <div className="mb-3 flex items-center justify-center">
-              <div 
-                className="transition-all duration-300 ease-in-out hover:scale-105"
-                style={{
-                  width: '80px',
-                  height: '80px',
-                  borderRadius: '50%',
-                  backgroundColor: '#ffffff',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <TeamLogo
-                  logo={homeLogo.logoPath ?? undefined}
-                  name={homeLogo.displayName}
-                  size={60}
-                  background="transparent"
-                  className="transition-all duration-300"
-                />
-              </div>
-            </div>
-            <span className="text-xs md:text-sm font-semibold text-gray-900 text-center leading-tight">
-              {homeLogo.displayName}
-            </span>
-          </div>
-
-          {/* Kick-off Date & Time */}
-          <div className="flex flex-col items-center flex-1 text-center px-2 md:px-4">
-            <div className="flex items-center gap-2 mb-1">
-              {/* Optional clock icon */}
-              <svg 
-                width="16" 
-                height="16" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2" 
-                strokeLinecap="round" 
-                strokeLinejoin="round"
-                className="text-gray-500"
-              >
-                <circle cx="12" cy="12" r="10"/>
-                <polyline points="12,6 12,12 16,14"/>
-              </svg>
-              <div 
-                className="font-semibold"
-                style={{
-                  fontSize: '16px',
-                  lineHeight: '24px',
-                  color: '#374151',
-                  fontFamily: 'Inter, system-ui, sans-serif'
-                }}
-              >
-                <span className="md:text-lg">
-                  {new Date(fixture.dateTime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+        {games.map((game, idx) => {
+          const isActive = idx === activeIndex;
+          return (
+            <div
+              key={game.id}
+              role="button"
+              aria-label={`View match between ${game.homeTeam} and ${game.awayTeam}`}
+              aria-live={isActive ? "polite" : undefined}
+              onClick={() => onGameSelect(game)}
+              className={`
+                flex-shrink-0
+                bg-white
+                rounded-xl
+                shadow-card
+                hover:shadow-card-hover
+                ${reduceMotion ? "" : "transition-transform duration-300"}
+                ${isActive ? "scale-105 shadow-card-hover" : "opacity-90"}
+                p-6 sm:p-8
+              `}
+              style={{ width: cardWidth, aspectRatio: "4/3" }}
+            >
+              {/* Competition Header */}
+              <div className="flex items-center mb-4 space-x-3">
+                <div
+                  className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white shadow flex items-center justify-center transform ${
+                    reduceMotion ? "" : "transition-transform duration-300"
+                  } ${isActive ? "scale-100" : "scale-90"}`}
+                >
+                  {game.competitionLogo ? (
+                    <img
+                      src={game.competitionLogo}
+                      alt="Competition logo"
+                      className="w-12 h-12 sm:w-14 sm:h-14 object-contain"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <span className="text-gray-400 font-medium">
+                      {game.homeTeam[0] || "?"}
+                    </span>
+                  )}
+                </div>
+                <span className="text-gray-500 text-sm sm:text-base">
+                  {game.competitionLogo ? "" : game.homeTeam}
                 </span>
               </div>
-            </div>
-            <div 
-              className="font-medium"
-              style={{
-                fontSize: '16px',
-                lineHeight: '24px',
-                color: '#374151',
-                fontFamily: 'Inter, system-ui, sans-serif'
-              }}
-            >
-              <span className="md:text-lg">
-                {new Date(fixture.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-              </span>
-            </div>
-          </div>
 
-          {/* Away Team */}
-          <div className="flex flex-col items-center flex-1 min-w-0 px-2">
-            <div className="mb-3 flex items-center justify-center">
-              <div 
-                className="transition-all duration-300 ease-in-out hover:scale-105"
-                style={{
-                  width: '80px',
-                  height: '80px',
-                  borderRadius: '50%',
-                  backgroundColor: '#ffffff',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <TeamLogo
-                  logo={awayLogo.logoPath ?? undefined}
-                  name={awayLogo.displayName}
-                  size={60}
-                  background="transparent"
-                  className="transition-all duration-300"
-                />
+              {/* Team Logos & Kickoff */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-20 h-20 rounded-full bg-white shadow flex items-center justify-center">
+                  {game.homeLogo ? (
+                    <img
+                      src={game.homeLogo}
+                      alt={game.homeTeam}
+                      className="w-16 h-16 object-contain"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <span className="text-gray-400 font-medium">
+                      {game.homeTeam[0]}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-col items-center text-gray-700 text-base sm:text-lg">
+                  <span className="flex items-center space-x-1">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4 sm:h-4 sm:w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <span>
+                      {new Date(game.kickoff).toLocaleTimeString("en-GB", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </span>
+                </div>
+
+                <div className="w-20 h-20 rounded-full bg-white shadow flex items-center justify-center">
+                  {game.awayLogo ? (
+                    <img
+                      src={game.awayLogo}
+                      alt={game.awayTeam}
+                      className="w-16 h-16 object-contain"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <span className="text-gray-400 font-medium">
+                      {game.awayTeam[0]}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Venue */}
+              <div className="text-gray-500 text-sm sm:text-base truncate" title={game.venue}>
+                {game.venue}
               </div>
             </div>
-            <span className="text-xs md:text-sm font-semibold text-gray-900 text-center leading-tight">
-              {awayLogo.displayName}
-            </span>
-          </div>
-        </div>
+          );
+        })}
+      </div>
 
-        {/* Venue */}
-        <div className="mt-4 md:mt-6 pt-3 md:pt-4 border-t border-gray-100 w-full text-center">
-          <VenueWithTooltip venue={fixture.venue?.trim() || 'TBD'} />
-        </div>
+      {/* Arrows */}
+      <button
+        onClick={prevSlide}
+        disabled={activeIndex === 0}
+        className={`
+          absolute left-2 top-1/2 transform -translate-y-1/2 w-6 h-6 flex items-center justify-center
+          bg-white rounded-full shadow hover:bg-gray-100 transition-opacity
+          ${activeIndex === 0 ? "opacity-50 cursor-not-allowed" : "opacity-100"}
+        `}
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          className="w-6 h-6"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
+
+      <button
+        onClick={nextSlide}
+        disabled={activeIndex >= games.length - cardsPerView}
+        className={`
+          absolute right-2 top-1/2 transform -translate-y-1/2 w-6 h-6 flex items-center justify-center
+          bg-white rounded-full shadow hover:bg-gray-100 transition-opacity
+          ${activeIndex >= games.length - cardsPerView ? "opacity-50 cursor-not-allowed" : "opacity-100"}
+        `}
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          className="w-6 h-6"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+
+      {/* Pagination Dots */}
+      <div className="flex justify-center mt-4 space-x-2">
+        {games.map((_, idx) => (
+          <span
+            key={idx}
+            onClick={() => setActiveIndex(idx)}
+            className={`cursor-pointer transition-all duration-200 ${
+              idx === activeIndex ? "w-6 bg-yellow-400 rounded-full" : "w-2 bg-gray-300 rounded-full"
+            }`}
+            aria-current={idx === activeIndex ? "true" : undefined}
+          />
+        ))}
       </div>
     </div>
   );
-};
-
-// Venue component with tooltip for truncated names
-const VenueWithTooltip: React.FC<{ venue: string }> = ({ venue }) => {
-  const [showTooltip, setShowTooltip] = useState(false);
-  const [isTextTruncated, setIsTextTruncated] = useState(false);
-  const textRef = React.useRef<HTMLSpanElement>(null);
-
-  React.useEffect(() => {
-    if (textRef.current) {
-      setIsTextTruncated(textRef.current.scrollWidth > textRef.current.clientWidth);
-    }
-  }, [venue]);
-
-  return (
-    <div 
-      className="relative flex items-center justify-center gap-1"
-      onMouseEnter={() => setShowTooltip(true)}
-      onMouseLeave={() => setShowTooltip(false)}
-    >
-      <span className="text-sm">📍</span>
-      <span 
-        ref={textRef}
-        className="font-medium truncate max-w-[200px] md:max-w-[250px]"
-        style={{
-          fontSize: '14px',
-          lineHeight: '20px',
-          color: '#6B7280',
-          fontFamily: 'Inter, system-ui, sans-serif'
-        }}
-      >
-        <span className="md:text-base">{venue}</span>
-      </span>
-      
-      {/* Tooltip */}
-      {showTooltip && isTextTruncated && (
-        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg shadow-lg whitespace-nowrap z-10">
-          {venue}
-          <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default CarouselSlide;
+}
