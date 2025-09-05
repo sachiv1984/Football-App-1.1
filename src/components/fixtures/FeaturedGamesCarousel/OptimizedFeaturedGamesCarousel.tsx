@@ -9,7 +9,6 @@ interface Props {
   onGameSelect?: (fixture: FeaturedFixtureWithImportance) => void;
   cardsPerView: number;
 }
-}
 
 const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ 
   fixtures, 
