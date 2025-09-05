@@ -204,8 +204,8 @@
 ------------------------- */
 @media (max-width: 768px) {
   .carousel-container {
-    padding-left: 50px;
-    padding-right: 50px;
+    padding-left: 60px;
+    padding-right: 60px;
   }
   
   .carousel-nav-arrow { 
@@ -217,11 +217,11 @@
   }
   
   .carousel-nav-arrow-left { 
-    left: 8px; 
+    left: 12px; 
   }
   
   .carousel-nav-arrow-right { 
-    right: 8px; 
+    right: 12px; 
   }
   
   .carousel-track { 
@@ -231,8 +231,8 @@
 
 @media (max-width: 640px) {
   .carousel-container {
-    padding-left: 45px;
-    padding-right: 45px;
+    padding-left: 55px;
+    padding-right: 55px;
   }
   
   .carousel-nav-arrow { 
@@ -240,10 +240,10 @@
   }
   
   .carousel-nav-arrow-left { 
-    left: 6px; 
+    left: 10px; 
   }
   
   .carousel-nav-arrow-right { 
-    right: 6px; 
+    right: 10px; 
   }
 }
