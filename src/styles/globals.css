@@ -1,3 +1,4 @@
+// src/styles/globals.css
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -98,73 +99,82 @@
   .badge-error     { @apply badge bg-red-500 text-white; }
   .badge-info      { @apply badge bg-blue-500 text-white; }
 
-  /* Carousel - UPDATED */
+  /* Carousel - UPDATED TO MATCH SPEC */
   .carousel-container { 
     @apply relative w-full overflow-hidden;
-    /* Add padding to make room for arrows */
     padding-left: 60px;
     padding-right: 60px;
   }
   
   .carousel-track { 
     @apply flex transition-transform ease-in-out duration-300 will-change-transform gap-4;
-    /* Remove px-4 padding since container now handles spacing */
   }
   
   .carousel-slide { 
-    @apply flex-shrink-0 transition-opacity duration-300 opacity-75; 
+    @apply flex-shrink-0 transition-opacity duration-300 opacity-90;
+    animation: slideFadeUp 0.4s ease-in-out;
   }
   
   .carousel-slide-active { 
-    @apply opacity-100;
-    /* REMOVED: scale-105 to prevent card #5 from being enlarged */
+    @apply opacity-100 shadow-card-hover;
+    transform: scale(1.05);
   }
 
   .carousel-card {
     @apply w-full bg-white cursor-pointer rounded-xl transition-all duration-300 ease-in-out p-6 shadow-card;
     aspect-ratio: 4 / 3;
-    /* Ensure consistent sizing */
     transform: none;
   }
   
-  /* Only apply hover effect on actual hover, not on active slide */
   .carousel-card:hover { 
-    @apply shadow-card-hover; 
-    /* Subtle hover effect without scaling */
-    transform: translateY(-2px);
+    @apply shadow-card-hover;
+    transform: scale(1.02);
   }
 
-  /* Navigation arrows - UPDATED */
+  /* Navigation arrows - SPEC MATCH */
   .carousel-nav-arrow {
-    @apply absolute top-1/2 -translate-y-1/2 z-20 w-12 h-12 flex items-center justify-center
-           bg-white/95 backdrop-blur-sm rounded-full shadow-lg border border-gray-200
+    @apply absolute top-1/2 -translate-y-1/2 z-20 flex items-center justify-center
            text-gray-700 hover:text-gray-900 transition-all duration-200
-           focus:outline-none focus:ring-2 focus:ring-electric-yellow focus:ring-offset-2;
+           focus:outline-none focus:ring-2 focus:ring-[#FFD700] focus:ring-offset-2;
+    width: 24px;
+    height: 24px;
+    background: white;
+    border-radius: 50%;
   }
   
   .carousel-nav-arrow:hover:not(:disabled) { 
-    @apply bg-white shadow-xl;
-    transform: translateY(-50%) scale(1.05);
+    background-color: #F5F5F5;
   }
   
   .carousel-nav-arrow:disabled { 
     @apply opacity-50 cursor-not-allowed; 
   }
   
-  /* Position arrows outside the card area */
-  .carousel-nav-arrow-left { 
-    left: 12px; /* Position within the container padding */
+  .carousel-nav-arrow-left { left: 8px; }
+  .carousel-nav-arrow-right { right: 8px; }
+
+  /* Pagination dots - SPEC MATCH */
+  .carousel-pagination { 
+    @apply flex justify-center items-center mt-6;
+    gap: 8px;
   }
   
-  .carousel-nav-arrow-right { 
-    right: 12px; /* Position within the container padding */
+  .carousel-dot { 
+    @apply rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#FFD700] focus:ring-offset-2; 
+    height: 8px;
   }
-
-  /* Pagination dots */
-  .carousel-pagination { @apply flex justify-center items-center gap-2 mt-6; }
-  .carousel-dot { @apply rounded-full transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-electric-yellow focus:ring-offset-2; }
-  .carousel-dot-active { @apply w-6 h-2 bg-yellow-400; }
-  .carousel-dot-inactive { @apply w-2 h-2 bg-gray-300 hover:bg-gray-400; }
+  
+  .carousel-dot-inactive {
+    width: 8px;
+    background-color: #D1D5DB;
+  }
+  
+  .carousel-dot-active {
+    width: 24px; 
+    background-color: #FFD700;
+    border-radius: 9999px;
+    transition: all 0.2s ease-in-out;
+  }
 
   /* Gradients */
   .text-gradient {
@@ -195,9 +205,10 @@
 /* -------------------------
    Keyframes
 ------------------------- */
-@keyframes slideInLeft { from { transform: translateX(-20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-@keyframes slideInRight { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(20px); opacity: 1; } }
-@keyframes scaleIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes slideFadeUp {
+  from { transform: translateY(12px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
 
 /* -------------------------
    Responsive Adjustments
@@ -208,42 +219,12 @@
     padding-right: 60px;
   }
   
-  .carousel-nav-arrow { 
-    @apply w-10 h-10; 
-  }
-  
-  .carousel-nav-arrow svg { 
-    @apply w-5 h-5; 
-  }
-  
-  .carousel-nav-arrow-left { 
-    left: 12px; 
-  }
-  
-  .carousel-nav-arrow-right { 
-    right: 12px; 
-  }
-  
-  .carousel-track { 
-    @apply gap-2; 
-  }
+  .carousel-track { @apply gap-2; }
 }
 
 @media (max-width: 640px) {
   .carousel-container {
     padding-left: 55px;
     padding-right: 55px;
-  }
-  
-  .carousel-nav-arrow { 
-    @apply w-9 h-9; 
-  }
-  
-  .carousel-nav-arrow-left { 
-    left: 10px; 
-  }
-  
-  .carousel-nav-arrow-right { 
-    right: 10px; 
   }
 }
