@@ -1,153 +1,115 @@
-import React, { useRef, useState, useCallback, useEffect } from 'react';
-import CarouselSlide from './CarouselSlide';
-import type { FeaturedFixtureWithImportance } from '../../../types';
+import { useState, useRef, useEffect } from "react";
+import { GameCard } from "./GameCard"; // Your card component
+import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
 
-interface Props {
-  fixtures: FeaturedFixtureWithImportance[];
-  onGameSelect?: (fixture: FeaturedFixtureWithImportance) => void;
-  className?: string;
+interface Game {
+  id: string;
+  homeTeam: string;
+  awayTeam: string;
+  kickOff: string;
+  venue: string;
+  competition: { name: string; logo?: string };
 }
 
-const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ 
-  fixtures, 
-  onGameSelect, 
-  className = '' 
-}) => {
+interface CarouselProps {
+  games: Game[];
+  onGameSelect: (game: Game) => void;
+}
+
+export const FeaturedGamesCarousel = ({ games, onGameSelect }: CarouselProps) => {
+  const [activeIndex, setActiveIndex] = useState(0);
   const trackRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
 
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [cardsPerView, setCardsPerView] = useState(1);
-
-  // --- Responsive calculation of cards per view ---
-  const getCardsPerView = useCallback(() => {
-    if (!containerRef.current) return 1;
-    const width = containerRef.current.offsetWidth;
-    if (width >= 1024) return 3; // Desktop
-    if (width >= 640) return 2;  // Tablet
-    return 1; // Mobile
-  }, []);
-
-  useEffect(() => {
-    const updateCardsPerView = () => setCardsPerView(getCardsPerView());
-    updateCardsPerView();
-    window.addEventListener('resize', updateCardsPerView);
-    return () => window.removeEventListener('resize', updateCardsPerView);
-  }, [getCardsPerView]);
-
-  const totalSlides = fixtures.length;
-  const maxIndex = Math.max(0, totalSlides - cardsPerView);
-
-  const goToIndex = (index: number) => {
-    if (index < 0 || index > maxIndex) return;
-    setCurrentIndex(index);
-    if (trackRef.current) {
-      const cardWidth = trackRef.current.children[0]?.getBoundingClientRect().width || 0;
-      const gap = 24; // must match CSS gap
-      const translateX = -(index * (cardWidth + gap));
-      trackRef.current.style.transform = `translateX(${translateX}px)`;
-    }
+  const prevSlide = () => {
+    setActiveIndex((prev) => Math.max(prev - 1, 0));
+    scrollToSlide(activeIndex - 1);
   };
 
-  const goToNext = () => { if (currentIndex < maxIndex) goToIndex(currentIndex + 1); };
-  const goToPrev = () => { if (currentIndex > 0) goToIndex(currentIndex - 1); };
+  const nextSlide = () => {
+    setActiveIndex((prev) => Math.min(prev + 1, games.length - 1));
+    scrollToSlide(activeIndex + 1);
+  };
 
-  // --- Empty State ---
-  if (totalSlides === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center text-center py-20 px-6">
-        {/* Optional illustration */}
-        <div className="mb-6">
-          <svg
-            width="120"
-            height="120"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="#6B7280"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="mx-auto opacity-80"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <path d="M8 12h8M12 8v8" />
-          </svg>
-        </div>
-        <p className="text-lg font-medium text-gray-700 mb-4">
-          Check back later for featured games
-        </p>
-        <button
-          className="px-6 py-2 rounded-lg font-semibold transition-all duration-200 shadow-sm
-                     bg-[#FFD700] text-gray-900 hover:bg-yellow-400"
-        >
-          View All Fixtures
-        </button>
-      </div>
-    );
-  }
+  const scrollToSlide = (index: number) => {
+    if (!trackRef.current) return;
+    const slide = trackRef.current.children[index] as HTMLElement;
+    slide?.scrollIntoView({ behavior: "smooth", inline: "start" });
+  };
+
+  // Keyboard navigation placeholder
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") prevSlide();
+      if (e.key === "ArrowRight") nextSlide();
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [activeIndex]);
 
   return (
-    <div className={`carousel-apple ${className}`} role="region" aria-label="Featured Games Carousel">
-      <div ref={containerRef} className="carousel-container">
-        <div ref={trackRef} className="carousel-track">
-          {fixtures.map((fixture, index) => (
-            <CarouselSlide
-              key={fixture.id || index}
-              fixture={fixture}
-              index={index}
-              isActive={index === currentIndex}
-              onGameSelect={onGameSelect}
-              cardsPerView={cardsPerView}
-            />
-          ))}
-        </div>
-
-        {/* Navigation Arrows */}
-        {totalSlides > cardsPerView && (
-          <>
-            <button
-              className="carousel-nav-arrow carousel-nav-arrow-left"
-              onClick={goToPrev}
-              disabled={currentIndex === 0}
-              aria-label="Previous slides"
-            >
-              <svg width="24" height="24" viewBox="0 0 24 24">
-                <path d="M15 18l-6-6 6-6" stroke="currentColor" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-
-            <button
-              className="carousel-nav-arrow carousel-nav-arrow-right"
-              onClick={goToNext}
-              disabled={currentIndex >= maxIndex}
-              aria-label="Next slides"
-            >
-              <svg width="24" height="24" viewBox="0 0 24 24">
-                <path d="M9 6l6 6-6 6" stroke="currentColor" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-          </>
-        )}
+    <div className="relative w-full">
+      {/* Carousel Track */}
+      <div
+        ref={trackRef}
+        className="flex flex-row gap-4 md:gap-8 overflow-x-auto scroll-smooth scrollbar-hide"
+      >
+        {games.map((game, index) => (
+          <div
+            key={game.id}
+            className={`
+              flex-shrink-0 
+              w-full max-w-[360px] md:w-[48%] md:max-w-[480px] lg:w-[32%] lg:max-w-[520px] 
+              aspect-[4/3] p-6 md:p-8
+              bg-white rounded-xl shadow-card hover:shadow-card-hover
+              transition-transform duration-300 ease-in-out
+              ${activeIndex === index ? "scale-105 shadow-card-active" : "opacity-90"}
+              focus:ring-2 focus:ring-[#FFD700] outline-none
+            `}
+            role="button"
+            aria-label={`View match between ${game.homeTeam} and ${game.awayTeam}`}
+            tabIndex={0}
+            onClick={() => onGameSelect(game)}
+          >
+            <GameCard game={game} />
+          </div>
+        ))}
       </div>
 
+      {/* Left/Right Arrows */}
+      <button
+        className="absolute left-2 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 rounded-full flex items-center justify-center"
+        onClick={prevSlide}
+        disabled={activeIndex === 0}
+        aria-label="Previous slide"
+      >
+        <ChevronLeftIcon className="w-6 h-6 stroke-current" />
+      </button>
+      <button
+        className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 rounded-full flex items-center justify-center"
+        onClick={nextSlide}
+        disabled={activeIndex === games.length - 1}
+        aria-label="Next slide"
+      >
+        <ChevronRightIcon className="w-6 h-6 stroke-current" />
+      </button>
+
       {/* Pagination Dots */}
-      {totalSlides > cardsPerView && (
-        <div className="carousel-pagination">
-          {Array.from({ length: maxIndex + 1 }, (_, index) => (
-            <button
-              key={index}
-              className={`carousel-dot ${
-                currentIndex === index ? 'carousel-dot-active' : 'carousel-dot-inactive'
-              }`}
-              onClick={() => goToIndex(index)}
-              aria-label={`Go to slide ${index + 1}`}
-              aria-current={currentIndex === index ? 'true' : 'false'}
-            />
-          ))}
-        </div>
-      )}
+      <div className="flex justify-center gap-2 mt-4">
+        {games.map((_, index) => (
+          <button
+            key={index}
+            className={`h-2 rounded-full transition-all duration-200 ${
+              activeIndex === index
+                ? "w-6 bg-[#FFD700]"
+                : "w-2 bg-[#D1D5DB]"
+            }`}
+            onClick={() => setActiveIndex(index)}
+            aria-current={activeIndex === index ? "true" : undefined}
+            aria-label={`Go to slide ${index + 1}`}
+          />
+        ))}
+      </div>
     </div>
   );
 };
 
-export default OptimizedFeaturedGamesCarousel;
