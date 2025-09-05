@@ -275,8 +275,8 @@ export default function FeaturedGamesCarousel({
           <span
             key={idx}
             onClick={() => setActiveIndex(idx)}
-            className={`cursor-pointer transition-all duration-200 ${
-              idx === activeIndex ? "w-6 bg-yellow-400 rounded-full" : "w-2 bg-gray-300 rounded-full"
+            className={`cursor-pointer transition-all duration-200 h-2 ${
+            idx === activeIndex ? "w-6 bg-yellow-400 rounded-full" : "w-2 bg-gray-300 rounded-full"
             }`}
             aria-current={idx === activeIndex ? "true" : undefined}
           />
