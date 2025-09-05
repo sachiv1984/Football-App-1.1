@@ -1,5 +1,5 @@
 // src/components/fixtures/FeaturedGamesCarousel/CarouselSlide.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import type { FeaturedFixtureWithImportance } from '../../../types';
 import { getTeamLogo, getCompetitionLogo } from '../../../utils/teamUtils';
 import { TeamLogo } from '../../common/Logo/TeamLogo';
@@ -103,16 +103,50 @@ const CarouselSlide: React.FC<CarouselSlideProps> = ({
             </span>
           </div>
 
-          {/* Kick-off / Date */}
+          {/* Kick-off Date & Time */}
           <div className="flex flex-col items-center flex-1 text-center px-2 md:px-4">
-            <div className="text-base md:text-lg font-semibold text-gray-900 mb-1">
-              {new Date(fixture.dateTime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+            <div className="flex items-center gap-2 mb-1">
+              {/* Optional clock icon */}
+              <svg 
+                width="16" 
+                height="16" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+                className="text-gray-500"
+              >
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12,6 12,12 16,14"/>
+              </svg>
+              <div 
+                className="font-semibold"
+                style={{
+                  fontSize: '16px',
+                  lineHeight: '24px',
+                  color: '#374151',
+                  fontFamily: 'Inter, system-ui, sans-serif'
+                }}
+              >
+                <span className="md:text-lg">
+                  {new Date(fixture.dateTime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                </span>
+              </div>
             </div>
-            <div className="text-xs md:text-sm text-gray-600">
-              {new Date(fixture.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-            </div>
-            <div className="text-xs text-gray-500 mt-1 uppercase tracking-wide font-medium">
-              Kick-off
+            <div 
+              className="font-medium"
+              style={{
+                fontSize: '16px',
+                lineHeight: '24px',
+                color: '#374151',
+                fontFamily: 'Inter, system-ui, sans-serif'
+              }}
+            >
+              <span className="md:text-lg">
+                {new Date(fixture.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+              </span>
             </div>
           </div>
 
@@ -149,12 +183,52 @@ const CarouselSlide: React.FC<CarouselSlideProps> = ({
 
         {/* Venue */}
         <div className="mt-4 md:mt-6 pt-3 md:pt-4 border-t border-gray-100 w-full text-center">
-          <div className="text-xs md:text-sm font-medium text-gray-600 flex items-center justify-center gap-1">
-            <span className="text-sm">📍</span>
-            <span>{fixture.venue?.trim() || 'TBD'}</span>
-          </div>
+          <VenueWithTooltip venue={fixture.venue?.trim() || 'TBD'} />
         </div>
       </div>
+    </div>
+  );
+};
+
+// Venue component with tooltip for truncated names
+const VenueWithTooltip: React.FC<{ venue: string }> = ({ venue }) => {
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [isTextTruncated, setIsTextTruncated] = useState(false);
+  const textRef = React.useRef<HTMLSpanElement>(null);
+
+  React.useEffect(() => {
+    if (textRef.current) {
+      setIsTextTruncated(textRef.current.scrollWidth > textRef.current.clientWidth);
+    }
+  }, [venue]);
+
+  return (
+    <div 
+      className="relative flex items-center justify-center gap-1"
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
+    >
+      <span className="text-sm">📍</span>
+      <span 
+        ref={textRef}
+        className="font-medium truncate max-w-[200px] md:max-w-[250px]"
+        style={{
+          fontSize: '14px',
+          lineHeight: '20px',
+          color: '#6B7280',
+          fontFamily: 'Inter, system-ui, sans-serif'
+        }}
+      >
+        <span className="md:text-base">{venue}</span>
+      </span>
+      
+      {/* Tooltip */}
+      {showTooltip && isTextTruncated && (
+        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg shadow-lg whitespace-nowrap z-10">
+          {venue}
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+        </div>
+      )}
     </div>
   );
 };
