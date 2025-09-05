@@ -1,11 +1,14 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import CarouselSlide from './CarouselSlide';
+import type { FeaturedFixtureWithImportance } from '../../../types';
 
 interface Props {
-  fixture,
-  index,
-  onGameSelect,
-  cardsPerView
+  interface Props {
+  fixture: FeaturedFixtureWithImportance;
+  index: number;
+  onGameSelect?: (fixture: FeaturedFixtureWithImportance) => void;
+  cardsPerView: number;
+}
 }
 
 const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ 
