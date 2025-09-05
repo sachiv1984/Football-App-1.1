@@ -14,13 +14,15 @@ const CompetitionHeader: React.FC<CompetitionHeaderProps> = ({
 }) => {
   return (
     <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100 w-full">
-      <div className="flex items-center">
+      <div className="flex items-center justify-center">
         {competitionLogo && (
-          <img
-            src={competitionLogo}
-            alt={competitionName}
-            className="w-10 h-10 md:w-12 md:h-12 object-contain"
-          />
+          <div className="w-20 h-20 bg-white rounded-full shadow-lg flex items-center justify-center transition-transform duration-200 hover:scale-105 hover:shadow-xl active:scale-102">
+            <img
+              src={competitionLogo}
+              alt={competitionName}
+              className="w-12 h-12 object-contain"
+            />
+          </div>
         )}
       </div>
       <div className="bg-gray-100 px-3 py-1.5 rounded-full">
