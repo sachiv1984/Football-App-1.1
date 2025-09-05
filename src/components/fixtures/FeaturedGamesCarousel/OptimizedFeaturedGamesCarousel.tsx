@@ -3,7 +3,6 @@ import CarouselSlide from './CarouselSlide';
 import type { FeaturedFixtureWithImportance } from '../../../types';
 
 interface Props {
-  interface Props {
   fixture: FeaturedFixtureWithImportance;
   index: number;
   onGameSelect?: (fixture: FeaturedFixtureWithImportance) => void;
