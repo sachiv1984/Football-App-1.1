@@ -25,23 +25,24 @@ const CarouselSlide: React.FC<CarouselSlideProps> = ({
   const awayLogo = getTeamLogo(fixture.awayTeam);
   const competitionLogo = getCompetitionLogo(fixture.competition.name, fixture.competition.logo);
 
-  // Calculate card width based on cards per view
-  const getCardWidth = () => {
+  // Calculate styles based on cards per view
+  const cardStyle = React.useMemo(() => {
     switch (cardsPerView) {
-      case 3: return 'w-full max-w-[320px]'; // Desktop: ~32% with gaps
-      case 2: return 'w-full max-w-[400px]'; // Tablet: ~48% with gaps  
-      case 1: return 'w-full max-w-[360px]'; // Mobile: 100%
-      default: return 'w-full max-w-[360px]';
+      case 3: 
+        return { maxWidth: 'calc((100% - 48px) / 3)' }; // Account for 2 gaps of 24px each
+      case 2: 
+        return { maxWidth: 'calc((100% - 24px) / 2)' }; // Account for 1 gap of 24px
+      case 1: 
+        return { maxWidth: '100%' };
+      default: 
+        return { maxWidth: '100%' };
     }
-  };
+  }, [cardsPerView]);
 
   return (
     <div
-      className={clsx(
-        'carousel-slide flex-shrink-0',
-        getCardWidth()
-      )}
-      style={getMaxWidth()}
+      className="carousel-slide flex-shrink-0 w-full"
+      style={cardStyle}
     >
       <div
         className={clsx(
