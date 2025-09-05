@@ -15,8 +15,8 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 }) => {
   const trackRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
 
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [cardsPerView, setCardsPerView] = useState(1);
 
   // --- Responsive calculation of cards per view ---
@@ -52,10 +52,36 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const goToNext = () => { if (currentIndex < maxIndex) goToIndex(currentIndex + 1); };
   const goToPrev = () => { if (currentIndex > 0) goToIndex(currentIndex - 1); };
 
+  // --- Empty State ---
   if (totalSlides === 0) {
     return (
-      <div className="text-gray-600 text-center py-20 px-6">
-        <p className="text-lg font-medium">No Featured Games Available</p>
+      <div className="flex flex-col items-center justify-center text-center py-20 px-6">
+        {/* Optional illustration */}
+        <div className="mb-6">
+          <svg
+            width="120"
+            height="120"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#6B7280"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="mx-auto opacity-80"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <path d="M8 12h8M12 8v8" />
+          </svg>
+        </div>
+        <p className="text-lg font-medium text-gray-700 mb-4">
+          Check back later for featured games
+        </p>
+        <button
+          className="px-6 py-2 rounded-lg font-semibold transition-all duration-200 shadow-sm
+                     bg-[#FFD700] text-gray-900 hover:bg-yellow-400"
+        >
+          View All Fixtures
+        </button>
       </div>
     );
   }
