@@ -41,6 +41,7 @@ const CarouselSlide: React.FC<CarouselSlideProps> = ({
         'carousel-slide flex-shrink-0',
         getCardWidth()
       )}
+      style={getMaxWidth()}
     >
       <div
         className={clsx(
