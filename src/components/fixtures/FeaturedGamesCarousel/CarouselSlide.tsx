@@ -11,34 +11,36 @@ interface CarouselSlideProps {
   index: number;
   isActive: boolean;
   onGameSelect?: (fixture: FeaturedFixtureWithImportance) => void;
+  cardsPerView: number;
 }
 
 const CarouselSlide: React.FC<CarouselSlideProps> = ({
   fixture,
   index,
   isActive,
-  onGameSelect
+  onGameSelect,
+  cardsPerView
 }) => {
   const homeLogo = getTeamLogo(fixture.homeTeam);
   const awayLogo = getTeamLogo(fixture.awayTeam);
   const competitionLogo = getCompetitionLogo(fixture.competition.name, fixture.competition.logo);
 
+  // Calculate card width based on cards per view
+  const getCardWidth = () => {
+    switch (cardsPerView) {
+      case 3: return 'w-full max-w-[320px]'; // Desktop: ~32% with gaps
+      case 2: return 'w-full max-w-[400px]'; // Tablet: ~48% with gaps  
+      case 1: return 'w-full max-w-[360px]'; // Mobile: 100%
+      default: return 'w-full max-w-[360px]';
+    }
+  };
+
   return (
     <div
-      key={fixture.id || index}
       className={clsx(
         'carousel-slide flex-shrink-0',
-        // Responsive widths
-        'w-full max-w-[360px]', // Mobile: 100% width, max 360px
-        'sm:w-[48%] sm:max-w-[480px]', // Tablet: 48% width, max 480px
-        'lg:w-[32%] lg:max-w-[520px]', // Desktop: 32% width, max 520px
-        // Opacity for inactive slides
-        {
-          'opacity-100': isActive,
-          'opacity-75': !isActive
-        }
+        getCardWidth()
       )}
-      aria-hidden={!isActive}
     >
       <div
         className={clsx(
@@ -47,26 +49,17 @@ const CarouselSlide: React.FC<CarouselSlideProps> = ({
           // Responsive padding
           'p-6', // Mobile: 24px
           'md:p-8', // Tablet/Desktop: 32px
-          // Base shadow
-          'shadow-card',
           // Interactive states
-          'hover:shadow-card-hover hover:scale-[1.02]',
-          'focus:outline-none focus:ring-2 focus:ring-[#FFD700] focus:ring-offset-2',
-          // Active slide styling
-          {
-            'scale-105 shadow-card-hover': isActive,
-            'scale-100': !isActive
-          }
+          'hover:shadow-lg hover:scale-[1.02]',
+          'focus:outline-none focus:ring-2 focus:ring-[#FFD700] focus:ring-offset-2'
         )}
         onClick={() => onGameSelect?.(fixture)}
-        tabIndex={isActive ? 0 : -1}
+        tabIndex={0}
         role="button"
         aria-label={`View match between ${homeLogo.displayName} and ${awayLogo.displayName}`}
         style={{
           aspectRatio: '4 / 3',
-          boxShadow: isActive 
-            ? 'var(--shadow-card-hover)' 
-            : 'var(--shadow-card)'
+          boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)'
         }}
       >
         {/* Competition header */}
@@ -80,14 +73,28 @@ const CarouselSlide: React.FC<CarouselSlideProps> = ({
         <div className="flex items-center justify-between w-full mt-4 md:mt-6">
           {/* Home Team */}
           <div className="flex flex-col items-center flex-1 min-w-0 px-2">
-            <div className="mb-3 flex items-center justify-center w-16 h-16 md:w-20 md:h-20">
-              <TeamLogo
-                logo={homeLogo.logoPath ?? undefined}
-                name={homeLogo.displayName}
-                size={isActive ? 80 : 72}
-                background="white"
-                className="drop-shadow-sm transition-all duration-300"
-              />
+            <div className="mb-3 flex items-center justify-center">
+              <div 
+                className="transition-all duration-300 ease-in-out hover:scale-105"
+                style={{
+                  width: '80px',
+                  height: '80px',
+                  borderRadius: '50%',
+                  backgroundColor: '#ffffff',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <TeamLogo
+                  logo={homeLogo.logoPath ?? undefined}
+                  name={homeLogo.displayName}
+                  size={60}
+                  background="transparent"
+                  className="transition-all duration-300"
+                />
+              </div>
             </div>
             <span className="text-xs md:text-sm font-semibold text-gray-900 text-center leading-tight">
               {homeLogo.displayName}
@@ -109,14 +116,28 @@ const CarouselSlide: React.FC<CarouselSlideProps> = ({
 
           {/* Away Team */}
           <div className="flex flex-col items-center flex-1 min-w-0 px-2">
-            <div className="mb-3 flex items-center justify-center w-16 h-16 md:w-20 md:h-20">
-              <TeamLogo
-                logo={awayLogo.logoPath ?? undefined}
-                name={awayLogo.displayName}
-                size={isActive ? 80 : 72}
-                background="white"
-                className="drop-shadow-sm transition-all duration-300"
-              />
+            <div className="mb-3 flex items-center justify-center">
+              <div 
+                className="transition-all duration-300 ease-in-out hover:scale-105"
+                style={{
+                  width: '80px',
+                  height: '80px',
+                  borderRadius: '50%',
+                  backgroundColor: '#ffffff',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <TeamLogo
+                  logo={awayLogo.logoPath ?? undefined}
+                  name={awayLogo.displayName}
+                  size={60}
+                  background="transparent"
+                  className="transition-all duration-300"
+                />
+              </div>
             </div>
             <span className="text-xs md:text-sm font-semibold text-gray-900 text-center leading-tight">
               {awayLogo.displayName}
