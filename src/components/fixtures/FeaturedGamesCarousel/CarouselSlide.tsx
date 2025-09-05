@@ -9,6 +9,7 @@ import clsx from 'clsx';
 interface CarouselSlideProps {
   fixture: FeaturedFixtureWithImportance;
   index: number;
+  isActive: boolean;
   onGameSelect?: (fixture: FeaturedFixtureWithImportance) => void;
   cardsPerView: number;
 }
@@ -16,6 +17,7 @@ interface CarouselSlideProps {
 const CarouselSlide: React.FC<CarouselSlideProps> = ({
   fixture,
   index,
+  isActive,
   onGameSelect,
   cardsPerView
 }) => {
