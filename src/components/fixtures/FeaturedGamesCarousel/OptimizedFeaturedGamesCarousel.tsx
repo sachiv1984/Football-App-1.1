@@ -63,18 +63,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   return (
     <div className={`carousel-apple ${className}`} role="region" aria-label="Featured Games Carousel">
       <div ref={containerRef} className="carousel-container">
-        <div ref={trackRef} className="carousel-track">
-          {fixtures.map((fixture, index) => (
-            <CarouselSlide
-              key={fixture.id || index}
-              fixture={fixture}
-              index={index}
-              onGameSelect={onGameSelect}
-              cardsPerView={cardsPerView}
-            />
-          ))}
-        </div>
-
         {/* Navigation Arrows */}
         {totalSlides > cardsPerView && (
           <>
@@ -85,7 +73,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
               aria-label="Previous slides"
             >
               <svg width="24" height="24" viewBox="0 0 24 24">
-                <path d="M15 18l-6-6 6-6" stroke="currentColor" fill="none" />
+                <path d="M15 18l-6-6 6-6" stroke="currentColor" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
 
@@ -96,11 +84,26 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
               aria-label="Next slides"
             >
               <svg width="24" height="24" viewBox="0 0 24 24">
-                <path d="M9 6l6 6-6 6" stroke="currentColor" fill="none" />
+                <path d="M9 6l6 6-6 6" stroke="currentColor" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
           </>
         )}
+
+        {/* Carousel wrapper with overflow hidden */}
+        <div className="carousel-wrapper">
+          <div ref={trackRef} className="carousel-track">
+            {fixtures.map((fixture, index) => (
+              <CarouselSlide
+                key={fixture.id || index}
+                fixture={fixture}
+                index={index}
+                onGameSelect={onGameSelect}
+                cardsPerView={cardsPerView}
+              />
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Pagination Dots */}
