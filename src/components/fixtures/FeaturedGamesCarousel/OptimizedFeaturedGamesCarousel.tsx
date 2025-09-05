@@ -170,7 +170,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
             <button
               className={clsx(
-                'absolute top-1/2 -translate-y-1/2 right-4 z-10',
+                'absolute top-1/2 -translate-y-1/2 -right-2 z-10', // Position outside container padding
                 'w-10 h-10 flex items-center justify-center',
                 'bg-white/90 backdrop-blur-sm rounded-full shadow-md',
                 'border border-gray-200',
