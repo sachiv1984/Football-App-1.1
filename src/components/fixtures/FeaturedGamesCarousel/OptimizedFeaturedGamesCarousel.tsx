@@ -63,6 +63,19 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   return (
     <div className={`carousel-apple ${className}`} role="region" aria-label="Featured Games Carousel">
       <div ref={containerRef} className="carousel-container">
+        <div ref={trackRef} className="carousel-track">
+          {fixtures.map((fixture, index) => (
+            <CarouselSlide
+              key={fixture.id || index}
+              fixture={fixture}
+              index={index}
+              isActive={index === currentIndex}
+              onGameSelect={onGameSelect}
+              cardsPerView={cardsPerView}
+            />
+          ))}
+        </div>
+
         {/* Navigation Arrows */}
         {totalSlides > cardsPerView && (
           <>
@@ -89,19 +102,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             </button>
           </>
         )}
-
-        {/* Carousel track - back to original structure */}
-        <div ref={trackRef} className="carousel-track">
-          {fixtures.map((fixture, index) => (
-            <CarouselSlide
-              key={fixture.id || index}
-              fixture={fixture}
-              index={index}
-              onGameSelect={onGameSelect}
-              cardsPerView={cardsPerView}
-            />
-          ))}
-        </div>
       </div>
 
       {/* Pagination Dots */}
