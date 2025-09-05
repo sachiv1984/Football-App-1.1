@@ -3,10 +3,9 @@ import CarouselSlide from './CarouselSlide';
 import type { FeaturedFixtureWithImportance } from '../../../types';
 
 interface Props {
-  fixture: FeaturedFixtureWithImportance;
-  index: number;
+  fixtures: FeaturedFixtureWithImportance[];
   onGameSelect?: (fixture: FeaturedFixtureWithImportance) => void;
-  cardsPerView: number;
+  className?: string;
 }
 
 const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ 
