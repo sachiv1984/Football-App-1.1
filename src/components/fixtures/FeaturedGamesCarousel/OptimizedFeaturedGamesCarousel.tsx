@@ -16,36 +16,65 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   className = '' 
 }) => {
   const trackRef = useRef<HTMLDivElement>(null);
-  const [currentSlide, setCurrentSlide] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
 
-  const totalSlides = fixtures.length;
-  const canGoPrev = currentSlide > 0;
-  const canGoNext = currentSlide < totalSlides - 1;
+  // Calculate cards per view based on screen size
+  const getCardsPerView = useCallback(() => {
+    if (!containerRef.current) return { mobile: 1, tablet: 2, desktop: 3 };
+    const width = containerRef.current.offsetWidth;
+    if (width >= 1024) return 3; // Desktop
+    if (width >= 640) return 2;  // Tablet
+    return 1; // Mobile
+  }, []);
 
-  const goToSlide = useCallback(
+  const [cardsPerView, setCardsPerView] = useState(1);
+
+  useEffect(() => {
+    const updateCardsPerView = () => {
+      setCardsPerView(getCardsPerView());
+    };
+    
+    updateCardsPerView();
+    window.addEventListener('resize', updateCardsPerView);
+    return () => window.removeEventListener('resize', updateCardsPerView);
+  }, [getCardsPerView]);
+
+  const totalSlides = fixtures.length;
+  const maxIndex = Math.max(0, totalSlides - cardsPerView);
+  const canGoPrev = currentIndex > 0;
+  const canGoNext = currentIndex < maxIndex;
+
+  const goToIndex = useCallback(
     (index: number) => {
-      if (index < 0 || index >= totalSlides || isTransitioning) return;
+      if (index < 0 || index > maxIndex || isTransitioning) return;
       setIsTransitioning(true);
-      setCurrentSlide(index);
+      setCurrentIndex(index);
+      
       if (trackRef.current) {
-        trackRef.current.style.transform = `translateX(-${index * 100}%)`;
+        // Calculate translation based on card width + gap
+        const cardWidth = trackRef.current.children[0]?.getBoundingClientRect().width || 0;
+        const gap = 24; // 1.5rem = 24px
+        const translateX = -(index * (cardWidth + gap));
+        trackRef.current.style.transform = `translateX(${translateX}px)`;
       }
-      setTimeout(() => setIsTransitioning(false), 400); // 0.4s = 400ms
+      
+      setTimeout(() => setIsTransitioning(false), 400);
     },
-    [totalSlides, isTransitioning]
+    [maxIndex, isTransitioning]
   );
 
   const goToNext = useCallback(() => {
-    if (canGoNext) goToSlide(currentSlide + 1);
-  }, [canGoNext, currentSlide, goToSlide]);
+    if (canGoNext) goToIndex(currentIndex + 1);
+  }, [canGoNext, currentIndex, goToIndex]);
 
   const goToPrev = useCallback(() => {
-    if (canGoPrev) goToSlide(currentSlide - 1);
-  }, [canGoPrev, currentSlide, goToSlide]);
+    if (canGoPrev) goToIndex(currentIndex - 1);
+  }, [canGoPrev, currentIndex, goToIndex]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -67,6 +96,13 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     touchEndX.current = 0;
   };
 
+  // Reset index when cards per view changes
+  useEffect(() => {
+    if (currentIndex > maxIndex) {
+      goToIndex(maxIndex);
+    }
+  }, [currentIndex, maxIndex, goToIndex]);
+
   if (totalSlides === 0) {
     return (
       <div className="text-gray-600 text-center py-20 px-6">
@@ -78,6 +114,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   return (
     <div className={clsx('carousel-apple', className)} role="region" aria-label="Featured Games Carousel">
       <div
+        ref={containerRef}
         className="carousel-container w-full relative overflow-hidden"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -85,21 +122,22 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
       >
         <div
           ref={trackRef}
-          className="carousel-track flex gap-4 md:gap-6 px-4 md:px-6 transition-transform duration-400 ease-in-out"
+          className="carousel-track flex gap-6 transition-transform duration-400 ease-in-out"
         >
           {fixtures.map((fixture, index) => (
             <CarouselSlide
               key={fixture.id || index}
               fixture={fixture}
               index={index}
-              isActive={currentSlide === index}
+              isActive={true} // All visible cards are "active"
               onGameSelect={onGameSelect}
+              cardsPerView={cardsPerView}
             />
           ))}
         </div>
 
         {/* Navigation Arrows */}
-        {totalSlides > 1 && (
+        {totalSlides > cardsPerView && (
           <>
             <button
               className={clsx(
@@ -117,7 +155,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
               )}
               onClick={goToPrev}
               disabled={!canGoPrev}
-              aria-label="Previous slide"
+              aria-label="Previous slides"
             >
               <svg 
                 fill="none" 
@@ -146,7 +184,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
               )}
               onClick={goToNext}
               disabled={!canGoNext}
-              aria-label="Next slide"
+              aria-label="Next slides"
             >
               <svg 
                 fill="none" 
@@ -162,10 +200,10 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
         )}
       </div>
 
-      {/* Pagination Dots */}
-      {totalSlides > 1 && (
+      {/* Pagination Dots - Only show if more slides than visible */}
+      {totalSlides > cardsPerView && (
         <div className="flex justify-center items-center gap-2 mt-6">
-          {fixtures.map((_, index) => (
+          {Array.from({ length: maxIndex + 1 }, (_, index) => (
             <button
               key={index}
               className={clsx(
@@ -173,15 +211,19 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                 'focus:outline-none focus:ring-2 focus:ring-electric-yellow focus:ring-offset-2',
                 'hover:scale-110',
                 {
-                  // Active dot - 24px pill shape with soft gold
-                  'w-6 h-2 bg-yellow-400': currentSlide === index,
-                  // Inactive dot - 8px circle
-                  'w-2 h-2 bg-gray-300 hover:bg-gray-400': currentSlide !== index
+                  // Active dot - 24px wide × 8px tall pill with soft gold
+                  'w-6 h-2': currentIndex === index,
+                  // Inactive dot - 8px × 8px circle
+                  'w-2 h-2 bg-gray-300 hover:bg-gray-400': currentIndex !== index
                 }
               )}
-              onClick={() => goToSlide(index)}
+              style={{
+                borderRadius: currentIndex === index ? '4px' : '50%',
+                backgroundColor: currentIndex === index ? '#FFD700' : undefined
+              }}
+              onClick={() => goToIndex(index)}
               aria-label={`Go to slide ${index + 1}`}
-              aria-current={currentSlide === index ? 'true' : 'false'}
+              aria-current={currentIndex === index ? 'true' : 'false'}
             />
           ))}
         </div>
