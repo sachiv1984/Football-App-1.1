@@ -124,4 +124,3 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 };
 
 export default OptimizedFeaturedGamesCarousel;
-
