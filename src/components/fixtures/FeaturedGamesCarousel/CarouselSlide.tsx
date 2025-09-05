@@ -12,9 +12,9 @@ interface Game {
 }
 
 interface FeaturedGamesCarouselProps {
-  games?: Game[]; // optional to allow loading state
+  games?: Game[];
   onGameSelect: (game: Game) => void;
-  isLoading?: boolean; // new prop for loading state
+  isLoading?: boolean;
 }
 
 export default function FeaturedGamesCarousel({
@@ -26,24 +26,23 @@ export default function FeaturedGamesCarousel({
   const [cardsPerView, setCardsPerView] = useState(1);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Adjust cards per view based on window width
+  // Responsive cards per view
   useEffect(() => {
-    const updateCardsPerView = () => {
+    const updateCards = () => {
       if (window.innerWidth < 640) setCardsPerView(1);
       else if (window.innerWidth < 1024) setCardsPerView(2);
       else setCardsPerView(3);
     };
-    updateCardsPerView();
-    window.addEventListener("resize", updateCardsPerView);
-    return () => window.removeEventListener("resize", updateCardsPerView);
+    updateCards();
+    window.addEventListener("resize", updateCards);
+    return () => window.removeEventListener("resize", updateCards);
   }, []);
 
-  // Handle left/right arrow navigation
+  // Keyboard navigation
   const prevSlide = () => setActiveIndex((prev) => Math.max(prev - 1, 0));
   const nextSlide = () =>
     setActiveIndex((prev) => Math.min(prev + 1, games.length - cardsPerView));
 
-  // Keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === "ArrowLeft") prevSlide();
     if (e.key === "ArrowRight") nextSlide();
@@ -52,7 +51,6 @@ export default function FeaturedGamesCarousel({
   // Swipe support
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
-
   const onTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.changedTouches[0].screenX;
   };
@@ -64,7 +62,7 @@ export default function FeaturedGamesCarousel({
 
   const cardWidth = `${100 / cardsPerView}%`;
 
-  // Prefers-reduced-motion check
+  // Prefers-reduced-motion
   const [reduceMotion, setReduceMotion] = useState(false);
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -74,10 +72,10 @@ export default function FeaturedGamesCarousel({
     return () => mediaQuery.removeEventListener("change", listener);
   }, []);
 
-  // Render skeleton loader
+  // Skeleton loader
   if (isLoading) {
     return (
-      <div className="flex gap-4 sm:gap-8">
+      <div className="flex gap-4 sm:gap-8 overflow-hidden">
         {[...Array(cardsPerView)].map((_, idx) => (
           <div
             key={idx}
@@ -88,7 +86,7 @@ export default function FeaturedGamesCarousel({
     );
   }
 
-  // Render empty state
+  // Empty state
   if (games.length === 0) {
     return (
       <div className="text-center py-16 text-gray-500">
@@ -103,9 +101,10 @@ export default function FeaturedGamesCarousel({
   return (
     <div
       className="relative w-full"
+      tabIndex={0}
       onKeyDown={handleKeyDown}
-      tabIndex={0} // focusable
     >
+      {/* Carousel container */}
       <div
         ref={containerRef}
         className="flex overflow-hidden gap-4 sm:gap-8"
@@ -130,10 +129,11 @@ export default function FeaturedGamesCarousel({
                 ${reduceMotion ? "" : "transition-transform duration-300"}
                 ${isActive ? "scale-105 shadow-card-hover" : "opacity-90"}
                 p-6 sm:p-8
+                flex flex-col justify-between
               `}
               style={{ width: cardWidth, aspectRatio: "4/3" }}
             >
-              {/* Competition Header */}
+              {/* Competition header */}
               <div className="flex items-center mb-4 space-x-3">
                 <div
                   className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white shadow flex items-center justify-center transform ${
@@ -158,8 +158,9 @@ export default function FeaturedGamesCarousel({
                 </span>
               </div>
 
-              {/* Team Logos & Kickoff */}
+              {/* Teams & kickoff */}
               <div className="flex items-center justify-between mb-4">
+                {/* Home team */}
                 <div className="w-20 h-20 rounded-full bg-white shadow flex items-center justify-center">
                   {game.homeLogo ? (
                     <img
@@ -175,6 +176,7 @@ export default function FeaturedGamesCarousel({
                   )}
                 </div>
 
+                {/* Kickoff */}
                 <div className="flex flex-col items-center text-gray-700 text-base sm:text-lg">
                   <span className="flex items-center space-x-1">
                     <svg
@@ -200,6 +202,7 @@ export default function FeaturedGamesCarousel({
                   </span>
                 </div>
 
+                {/* Away team */}
                 <div className="w-20 h-20 rounded-full bg-white shadow flex items-center justify-center">
                   {game.awayLogo ? (
                     <img
@@ -266,7 +269,7 @@ export default function FeaturedGamesCarousel({
         </svg>
       </button>
 
-      {/* Pagination Dots */}
+      {/* Pagination */}
       <div className="flex justify-center mt-4 space-x-2">
         {games.map((_, idx) => (
           <span
