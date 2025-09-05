@@ -25,7 +25,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
   // Calculate cards per view based on screen size
   const getCardsPerView = useCallback(() => {
-    if (!containerRef.current) return { mobile: 1, tablet: 2, desktop: 3 };
+    if (!containerRef.current) return 1;
     const width = containerRef.current.offsetWidth;
     if (width >= 1024) return 3; // Desktop
     if (width >= 640) return 2;  // Tablet
