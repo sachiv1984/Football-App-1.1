@@ -15,6 +15,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   isLoading = false,
 }) => {
   const trackRef = useRef<HTMLDivElement>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [cardsPerView, setCardsPerView] = useState(3);
 
   // Responsive cards per view (hard-coded breakpoints)
@@ -34,6 +35,36 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   }, []);
 
   const totalSlides = fixtures.length;
+  const maxIndex = Math.max(0, totalSlides - cardsPerView);
+
+  // Scroll to card on navigation
+  useEffect(() => {
+    if (trackRef.current) {
+      const children = trackRef.current.children;
+      if (children.length > currentIndex) {
+        const card = children[currentIndex] as HTMLElement;
+        card.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
+      }
+    }
+  }, [currentIndex, cardsPerView, fixtures.length]);
+
+  const goToNext = () => {
+    if (currentIndex < maxIndex) {
+      setCurrentIndex(currentIndex + 1);
+    }
+  };
+
+  const goToPrev = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+    }
+  };
+
+  const goToIndex = (index: number) => {
+    if (index >= 0 && index <= maxIndex) {
+      setCurrentIndex(index);
+    }
+  };
 
   // Loading state
   if (isLoading) {
@@ -76,8 +107,40 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     );
   }
 
+  // Show navigation only if there are more items than can be displayed
+  const showNavigation = totalSlides > cardsPerView;
+
   return (
     <div className={`w-full ${className}`} role="region" aria-label="Featured Games Carousel">
+      {/* Navigation Header */}
+      {showNavigation && (
+        <div className="flex items-center justify-between mb-4 px-2">
+          <h2 className="text-lg font-semibold text-gray-800">Featured Games</h2>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={goToPrev}
+              disabled={currentIndex === 0}
+              className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              aria-label="Previous games"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
+            </button>
+            <button
+              onClick={goToNext}
+              disabled={currentIndex === maxIndex}
+              className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              aria-label="Next games"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M9 18l6-6-6-6" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="relative w-full overflow-x-auto">
         {/* Carousel Track */}
         <div
@@ -108,8 +171,9 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
+                width: cardsPerView === 1 ? 'calc(100% - 24px)' : cardsPerView === 2 ? 'calc(50% - 12px)' : 'calc(33.333% - 16px)',
+                minWidth: cardsPerView === 1 ? '280px' : '320px',
                 maxWidth: '360px',
-                width: '100%',
               }}
             >
               {/* Card Content */}
@@ -238,6 +302,22 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
           ))}
         </div>
       </div>
+
+      {/* Dot indicators */}
+      {showNavigation && maxIndex > 0 && (
+        <div className="flex justify-center mt-4 space-x-2">
+          {Array.from({ length: maxIndex + 1 }, (_, index) => (
+            <button
+              key={index}
+              onClick={() => goToIndex(index)}
+              className={`w-2 h-2 rounded-full transition-colors ${
+                currentIndex === index ? 'bg-blue-500' : 'bg-gray-300'
+              }`}
+              aria-label={`Go to slide ${index + 1}`}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };
