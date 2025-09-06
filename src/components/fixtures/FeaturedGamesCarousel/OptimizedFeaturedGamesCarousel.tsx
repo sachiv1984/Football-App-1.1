@@ -43,7 +43,9 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     if (index < 0 || index > maxIndex) return;
     setCurrentIndex(index);
     if (trackRef.current) {
-      const slideWidth = 100 / cardsPerView; // Percentage width per slide
+      const slideWidth = cardsPerView === 1 ? 100 : 
+                        cardsPerView === 2 ? 50 : 
+                        33.333;
       const translateX = -(index * slideWidth);
       trackRef.current.style.transform = `translateX(${translateX}%)`;
     }
