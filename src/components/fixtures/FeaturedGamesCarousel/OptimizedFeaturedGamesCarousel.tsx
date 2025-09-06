@@ -21,6 +21,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [cardWidth, setCardWidth] = useState(0);
+  const totalSlides = fixtures.length; // move this here, before totalPages
   const totalPages = Math.ceil(totalSlides / cardsPerView);
   const maxPageIndex = totalPages - 1;
 
