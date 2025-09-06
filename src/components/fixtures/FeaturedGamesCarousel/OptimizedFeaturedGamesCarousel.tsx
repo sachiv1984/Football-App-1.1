@@ -270,7 +270,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                     boxShadow: isActive 
                       ? '0 8px 25px rgba(0,0,0,0.15), 0 4px 10px rgba(0,0,0,0.1)' 
                       : 'var(--shadow-card, 0 4px 6px rgba(0,0,0,0.07))',
-                    padding: cardsPerView === 1 ? '24px' : '32px',
+                    padding: cardsPerView === 1 ? '16px' : '24px',
                     aspectRatio: '4/3',
                     display: 'flex',
                     flexDirection: 'column',
