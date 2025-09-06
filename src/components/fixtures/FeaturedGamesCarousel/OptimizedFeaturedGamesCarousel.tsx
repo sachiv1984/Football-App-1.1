@@ -42,8 +42,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => window.removeEventListener('resize', updateCardsPerView);
   }, []);
 
-  const maxIndex = Math.max(0, totalSlides - cardsPerView);
-
   // Calculate card width after render
   useEffect(() => {
     if (trackRef.current && trackRef.current.children.length > 0) {
