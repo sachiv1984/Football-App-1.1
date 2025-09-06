@@ -420,7 +420,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                           </span>
                         </div>
                         <div 
-                          className="text-xs text-gray-500"
+                          className={`${cardsPerView === 1 ? 'text-xs' : 'text-xs'} text-gray-500`}
                           style={{
                             fontFamily: 'Inter, system-ui, sans-serif',
                           }}
