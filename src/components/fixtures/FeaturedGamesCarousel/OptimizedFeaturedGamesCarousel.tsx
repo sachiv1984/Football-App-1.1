@@ -240,16 +240,17 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             onTouchEnd={onTouchEnd}
             style={{
               display: 'flex',
-              flexDirection: 'row',
-              gap: '24px',
-              overflowX: 'auto',
-              scrollSnapType: 'x mandatory',
-              WebkitOverflowScrolling: 'touch',
-              scrollBehavior: 'smooth',
-              paddingBottom: '8px',
-              flexWrap: 'nowrap',
-              scrollbarWidth: 'none',
-              msOverflowStyle: 'none',
+    flexDirection: 'row',
+    gap: '24px',
+    overflowX: 'auto',              // ✅ allows drag
+    scrollSnapType: 'x mandatory',  // ✅ keeps Netflix snap (use 'none' if you want free scroll)
+    WebkitOverflowScrolling: 'touch',
+    scrollBehavior: 'smooth',
+    paddingBottom: '8px',
+    flexWrap: 'nowrap',
+    scrollbarWidth: 'none',
+    msOverflowStyle: 'none',
+    touchAction: 'pan-y',           // ✅ prevents vertical drag conflicts
             }}
             className="[&::-webkit-scrollbar]:hidden"
           >
