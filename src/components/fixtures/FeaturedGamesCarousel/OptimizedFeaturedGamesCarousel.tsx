@@ -1,5 +1,4 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
-import CarouselSlide from './CarouselSlide';
 import type { FeaturedFixtureWithImportance } from '../../../types';
 
 interface Props {
