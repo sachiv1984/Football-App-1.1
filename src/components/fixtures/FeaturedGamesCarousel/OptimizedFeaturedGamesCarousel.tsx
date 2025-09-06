@@ -22,7 +22,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [cardWidth, setCardWidth] = useState(0);
   const totalSlides = fixtures.length; // move this here, before totalPages
-  const totalPages = Math.max(1, totalSlides - cardsPerView + 1); // Changed calculation
+  const totalPages = totalSlides > cardsPerView ? totalSlides - cardsPerView + 1 : 1;
   const maxIndex = Math.max(0, totalSlides - cardsPerView);
 
   const inactiveColor = '#D1D5DB';
@@ -56,8 +56,9 @@ const goToNext = useCallback(() => {
 }, [maxIndex]);
 
 const goToPrev = useCallback(() => {
-  setCurrentIndex(prev => Math.max(prev - 1, 0)); // Changed from Math.min(prev + 1, maxIndex)
-}, []);
+  setCurrentIndex(prev => Math.max(prev - 1, 0)); // Change from: Math.min(prev + 1, maxIndex)
+}, [maxIndex]); // Add maxIndex to dependencies
+
 
   const goToFirst = useCallback(() => setCurrentIndex(0), []);
   const goToLast = useCallback(() => setCurrentIndex(maxIndex), [maxIndex]);
@@ -258,28 +259,24 @@ const goToPrev = useCallback(() => {
       </div>
 
       {/* Pagination dots */}
-{showNavigation && totalPages > 1 && (
+{showNavigation && (
   <div className="flex justify-center mt-6 space-x-2">
-    {Array.from({ length: totalPages }, (_, index) => {
-      const isActive = index === currentIndex;
-      return (
-        <button
-          key={index}
-          onClick={() => setCurrentIndex(Math.min(index, maxIndex))}
-          className="transition-all duration-200"
-          style={{
-            width: isActive ? '24px' : '8px',
-            height: '8px',
-            borderRadius: isActive ? '9999px' : '50%',
-            backgroundColor: isActive ? activeColor : inactiveColor,
-          }}
-          aria-label={`Go to slide ${index + 1}`}
-        />
-      );
-    })}
+    {Array.from({ length: totalPages }, (_, index) => (
+      <button
+        key={index}
+        onClick={() => setCurrentIndex(index)}
+        className="transition-all duration-200"
+        style={{
+          width: currentIndex === index ? '24px' : '8px',
+          height: '8px',
+          borderRadius: currentIndex === index ? '9999px' : '50%',
+          backgroundColor: currentIndex === index ? activeColor : inactiveColor,
+        }}
+        aria-label={`Go to slide ${index + 1}`}
+      />
+    ))}
   </div>
 )}
-
       <div className="sr-only">
         Use arrow keys to navigate between slides, Home key for first slide, End key for last slide. On touch devices, swipe left or right to navigate.
       </div>
