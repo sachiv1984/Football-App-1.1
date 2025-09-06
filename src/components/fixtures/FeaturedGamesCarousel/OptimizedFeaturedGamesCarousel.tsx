@@ -320,35 +320,40 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                     }}
                   >
                     {/* Competition header - incorporating CompetitionHeader.tsx */}
-                    <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100 w-full">
-                      <div className="flex items-center justify-center">
-                        {fixture.competition.logo && (
-                          <div 
-                            className={`w-20 h-20 bg-white rounded-full shadow-lg flex items-center justify-center transition-all duration-300 ease-out hover:scale-105 hover:shadow-xl active:scale-102 ${
-                              isActive ? 'scale-100' : 'scale-90'
-                            }`}
-                          >
-                            <img
-                              src={fixture.competition.logo}
-                              alt={fixture.competition.name}
-                              className="w-12 h-12 object-contain"
-                              loading="lazy"
-                            />
-                          </div>
-                        )}
-                      </div>
-                      <div className="bg-gray-100 px-3 py-1.5 rounded-full">
-                        <span 
-                          className="text-xs md:text-sm font-medium"
-                          style={{
-                            color: '#6B7280',
-                            fontFamily: 'Inter, system-ui, sans-serif'
-                          }}
-                        >
-                          Week {fixture.matchWeek || 1}
-                        </span>
-                      </div>
-                    </div>
+<div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100 w-full">
+  <div className="flex items-center justify-center">
+    {fixture.competition.logo && (
+      <div 
+        className={`
+          bg-white rounded-full shadow-lg flex items-center justify-center
+          transition-all duration-300 ease-out
+          hover:scale-105 hover:shadow-xl active:scale-102
+          ${isActive ? 'scale-100' : 'scale-90'}
+          w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20
+        `}
+      >
+        <img
+          src={fixture.competition.logo}
+          alt={fixture.competition.name}
+          className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 object-contain"
+          loading="lazy"
+        />
+      </div>
+    )}
+  </div>
+  <div className="bg-gray-100 px-3 py-1.5 rounded-full">
+    <span 
+      className="text-xs md:text-sm font-medium"
+      style={{
+        color: '#6B7280',
+        fontFamily: 'Inter, system-ui, sans-serif'
+      }}
+    >
+      Week {fixture.matchWeek || 1}
+    </span>
+  </div>
+</div>
+
 
                     {/* Teams & kickoff */}
                     <div className="flex items-center justify-between mb-4">
