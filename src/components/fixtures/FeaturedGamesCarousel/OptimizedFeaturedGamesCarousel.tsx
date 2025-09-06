@@ -63,10 +63,6 @@ const goToPrev = useCallback(() => {
   setCurrentIndex(prev => Math.max(prev - 1, 0));
 }, []);
 
-  const goToIndex = useCallback((page: number) => {
-  if (page >= 0 && page <= maxPageIndex) setCurrentIndex(page * cardsPerView);
-}, [cardsPerView, maxPageIndex]);
-
   const goToFirst = useCallback(() => setCurrentIndex(0), []);
   const goToLast = useCallback(() => setCurrentIndex(maxPageIndex * cardsPerView), [cardsPerView, maxPageIndex]);
 
