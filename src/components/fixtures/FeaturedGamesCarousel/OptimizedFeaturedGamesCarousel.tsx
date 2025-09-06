@@ -305,14 +305,18 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.transform = 'scale(1.03)';
-                      e.currentTarget.parentElement.style.boxShadow = '0 12px 32px rgba(0,0,0,0.18), 0 6px 12px rgba(0,0,0,0.12)';
+                      if (e.currentTarget.parentElement) {
+                        e.currentTarget.parentElement.style.boxShadow = '0 12px 32px rgba(0,0,0,0.18), 0 6px 12px rgba(0,0,0,0.12)';
+                      }
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.transform = 'scale(1)';
-                      const isActive = index >= currentIndex && index < currentIndex + cardsPerView;
-                      e.currentTarget.parentElement.style.boxShadow = isActive 
-                        ? '0 8px 25px rgba(0,0,0,0.15), 0 4px 10px rgba(0,0,0,0.1)' 
-                        : 'var(--shadow-card, 0 4px 6px rgba(0,0,0,0.07))';
+                      if (e.currentTarget.parentElement) {
+                        const isActive = index >= currentIndex && index < currentIndex + cardsPerView;
+                        e.currentTarget.parentElement.style.boxShadow = isActive 
+                          ? '0 8px 25px rgba(0,0,0,0.15), 0 4px 10px rgba(0,0,0,0.1)' 
+                          : 'var(--shadow-card, 0 4px 6px rgba(0,0,0,0.07))';
+                      }
                     }}
                   >
                     {/* Competition header - incorporating CompetitionHeader.tsx */}
