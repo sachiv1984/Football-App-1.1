@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import type { FeaturedFixtureWithImportance } from '../../../types';
 
 interface Props {
@@ -15,8 +15,11 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   isLoading = false,
 }) => {
   const trackRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [cardsPerView, setCardsPerView] = useState(3);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
   // Responsive cards per view (hard-coded breakpoints)
   useEffect(() => {
@@ -48,21 +51,84 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     }
   }, [currentIndex, cardsPerView, fixtures.length]);
 
-  const goToNext = () => {
+  const goToNext = useCallback(() => {
     if (currentIndex < maxIndex) {
       setCurrentIndex(currentIndex + 1);
     }
-  };
+  }, [currentIndex, maxIndex]);
 
-  const goToPrev = () => {
+  const goToPrev = useCallback(() => {
     if (currentIndex > 0) {
       setCurrentIndex(currentIndex - 1);
     }
-  };
+  }, [currentIndex]);
 
-  const goToIndex = (index: number) => {
+  const goToIndex = useCallback((index: number) => {
     if (index >= 0 && index <= maxIndex) {
       setCurrentIndex(index);
+    }
+  }, [maxIndex]);
+
+  const goToFirst = useCallback(() => {
+    setCurrentIndex(0);
+  }, []);
+
+  const goToLast = useCallback(() => {
+    setCurrentIndex(maxIndex);
+  }, [maxIndex]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!containerRef.current?.contains(event.target as Node)) return;
+      
+      switch (event.key) {
+        case 'ArrowLeft':
+          event.preventDefault();
+          goToPrev();
+          break;
+        case 'ArrowRight':
+          event.preventDefault();
+          goToNext();
+          break;
+        case 'Home':
+          event.preventDefault();
+          goToFirst();
+          break;
+        case 'End':
+          event.preventDefault();
+          goToLast();
+          break;
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [goToNext, goToPrev, goToFirst, goToLast]);
+
+  // Touch/swipe handlers
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe) {
+      goToNext();
+    } else if (isRightSwipe) {
+      goToPrev();
     }
   };
 
@@ -111,213 +177,256 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const showNavigation = totalSlides > cardsPerView;
 
   return (
-    <div className={`w-full ${className}`} role="region" aria-label="Featured Games Carousel">
-      {/* Navigation Header */}
-      {showNavigation && (
-        <div className="flex items-center justify-between mb-4 px-2">
-          <h2 className="text-lg font-semibold text-gray-800">Featured Games</h2>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={goToPrev}
-              disabled={currentIndex === 0}
-              className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              aria-label="Previous games"
+    <div 
+      ref={containerRef}
+      className={`w-full ${className}`} 
+      role="region" 
+      aria-label="Featured Games Carousel"
+      tabIndex={0}
+    >
+      <div className="relative">
+        {/* Left Arrow */}
+        {showNavigation && (
+          <button
+            onClick={goToPrev}
+            disabled={currentIndex === 0}
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+            style={{ width: '40px', height: '40px' }}
+            aria-label="Previous games"
+          >
+            <svg 
+              width="24" 
+              height="24" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2"
+              className="text-gray-600"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M15 18l-6-6 6-6" />
-              </svg>
-            </button>
-            <button
-              onClick={goToNext}
-              disabled={currentIndex === maxIndex}
-              className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              aria-label="Next games"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M9 18l6-6-6-6" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      )}
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </button>
+        )}
 
-      <div className="relative w-full overflow-x-auto">
-        {/* Carousel Track */}
-        <div
-          ref={trackRef}
-          style={{
-            display: 'flex',
-            flexDirection: 'row',
-            gap: '24px',
-            overflowX: 'auto',
-            scrollSnapType: 'x mandatory',
-            WebkitOverflowScrolling: 'touch',
-            scrollBehavior: 'smooth',
-            paddingBottom: '8px',
-            flexWrap: 'nowrap',
-          }}
-        >
-          {fixtures.map((fixture, index) => (
-            <div
-              key={fixture.id || index}
-              style={{
-                flex: '0 0 auto',
-                scrollSnapAlign: 'start',
-                background: '#fff',
-                borderRadius: '16px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-                padding: '16px',
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                width: cardsPerView === 1 ? 'calc(100% - 24px)' : cardsPerView === 2 ? 'calc(50% - 12px)' : 'calc(33.333% - 16px)',
-                minWidth: cardsPerView === 1 ? '280px' : '320px',
-                maxWidth: '360px',
-              }}
+        {/* Right Arrow */}
+        {showNavigation && (
+          <button
+            onClick={goToNext}
+            disabled={currentIndex === maxIndex}
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+            style={{ width: '40px', height: '40px' }}
+            aria-label="Next games"
+          >
+            <svg 
+              width="24" 
+              height="24" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2"
+              className="text-gray-600"
             >
-              {/* Card Content */}
+              <path d="M9 18l6-6-6-6" />
+            </svg>
+          </button>
+        )}
+
+        {/* Carousel Track */}
+        <div className="relative w-full overflow-hidden px-12">
+          <div
+            ref={trackRef}
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+            style={{
+              display: 'flex',
+              flexDirection: 'row',
+              gap: '24px',
+              overflowX: 'auto',
+              scrollSnapType: 'x mandatory',
+              WebkitOverflowScrolling: 'touch',
+              scrollBehavior: 'smooth',
+              paddingBottom: '8px',
+              flexWrap: 'nowrap',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+            }}
+            className="[&::-webkit-scrollbar]:hidden"
+          >
+            {fixtures.map((fixture, index) => (
               <div
-                role="button"
-                tabIndex={0}
-                aria-label={`View match between ${fixture.homeTeam.name} and ${fixture.awayTeam.name}`}
-                onClick={() => (onGameSelect ?? (() => {}))(fixture)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    (onGameSelect ?? (() => {}))(fixture);
-                  }
+                key={fixture.id || index}
+                style={{
+                  flex: '0 0 auto',
+                  scrollSnapAlign: 'start',
+                  background: '#fff',
+                  borderRadius: '16px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                  padding: '16px',
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  width: cardsPerView === 1 ? 'calc(100% - 24px)' : cardsPerView === 2 ? 'calc(50% - 12px)' : 'calc(33.333% - 16px)',
+                  minWidth: cardsPerView === 1 ? '280px' : '320px',
+                  maxWidth: '360px',
                 }}
               >
-                {/* Competition header */}
-                <div className="flex items-center mb-4 space-x-3">
-                  <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center">
-                    {fixture.competition.logo ? (
-                      <img
-                        src={fixture.competition.logo}
-                        alt={`${fixture.competition.name} logo`}
-                        className="w-10 h-10 object-contain"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <span className="text-gray-400 font-medium text-sm">
-                        {fixture.competition.name[0] || "?"}
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-gray-500 text-sm font-medium truncate">
-                    {fixture.competition.shortName || fixture.competition.name}
-                  </span>
-                </div>
-
-                {/* Teams & kickoff */}
-                <div className="flex items-center justify-between mb-4">
-                  {/* Home team */}
-                  <div className="text-center flex-1">
-                    <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mb-2 mx-auto">
-                      {fixture.homeTeam.logo ? (
+                {/* Card Content */}
+                <div
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`View match between ${fixture.homeTeam.name} and ${fixture.awayTeam.name}`}
+                  onClick={() => (onGameSelect ?? (() => {}))(fixture)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      (onGameSelect ?? (() => {}))(fixture);
+                    }
+                  }}
+                >
+                  {/* Competition header */}
+                  <div className="flex items-center mb-4 space-x-3">
+                    <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center">
+                      {fixture.competition.logo ? (
                         <img
-                          src={fixture.homeTeam.logo}
-                          alt={fixture.homeTeam.name}
-                          className="w-12 h-12 object-contain"
+                          src={fixture.competition.logo}
+                          alt={`${fixture.competition.name} logo`}
+                          className="w-10 h-10 object-contain"
                           loading="lazy"
                         />
                       ) : (
-                        <span className="text-gray-400 font-medium">
-                          {fixture.homeTeam.shortName?.[0] || fixture.homeTeam.name[0]}
+                        <span className="text-gray-400 font-medium text-sm">
+                          {fixture.competition.name[0] || "?"}
                         </span>
                       )}
                     </div>
-                    <div className="text-xs font-medium text-gray-700 truncate px-1">
-                      {fixture.homeTeam.shortName || fixture.homeTeam.name}
-                    </div>
-                  </div>
-
-                  {/* Kickoff */}
-                  <div className="flex flex-col items-center text-gray-700 px-3">
-                    <div className="flex items-center space-x-1 mb-1">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-4 w-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                      <span className="text-sm font-medium">
-                        {new Date(fixture.dateTime).toLocaleTimeString("en-GB", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                    </div>
-                    <div className="text-xs text-gray-500">vs</div>
-                  </div>
-
-                  {/* Away team */}
-                  <div className="text-center flex-1">
-                    <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mb-2 mx-auto">
-                      {fixture.awayTeam.logo ? (
-                        <img
-                          src={fixture.awayTeam.logo}
-                          alt={fixture.awayTeam.name}
-                          className="w-12 h-12 object-contain"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <span className="text-gray-400 font-medium">
-                          {fixture.awayTeam.shortName?.[0] || fixture.awayTeam.name[0]}
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-xs font-medium text-gray-700 truncate px-1">
-                      {fixture.awayTeam.shortName || fixture.awayTeam.name}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Venue */}
-                <div className="text-center">
-                  <div className="text-sm text-gray-500 truncate" title={fixture.venue}>
-                    📍 {fixture.venue}
-                  </div>
-                </div>
-
-                {/* Optional: Show importance indicator */}
-                {fixture.importance >= 80 && (
-                  <div className="mt-3 text-center">
-                    <span className="inline-block bg-yellow-400 text-gray-900 text-xs px-2 py-1 rounded-full font-medium">
-                      Featured
+                    <span className="text-gray-500 text-sm font-medium truncate">
+                      {fixture.competition.shortName || fixture.competition.name}
                     </span>
                   </div>
-                )}
+
+                  {/* Teams & kickoff */}
+                  <div className="flex items-center justify-between mb-4">
+                    {/* Home team */}
+                    <div className="text-center flex-1">
+                      <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mb-2 mx-auto">
+                        {fixture.homeTeam.logo ? (
+                          <img
+                            src={fixture.homeTeam.logo}
+                            alt={fixture.homeTeam.name}
+                            className="w-12 h-12 object-contain"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <span className="text-gray-400 font-medium">
+                            {fixture.homeTeam.shortName?.[0] || fixture.homeTeam.name[0]}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs font-medium text-gray-700 truncate px-1">
+                        {fixture.homeTeam.shortName || fixture.homeTeam.name}
+                      </div>
+                    </div>
+
+                    {/* Kickoff */}
+                    <div className="flex flex-col items-center text-gray-700 px-3">
+                      <div className="flex items-center space-x-1 mb-1">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                        <span className="text-sm font-medium">
+                          {new Date(fixture.dateTime).toLocaleTimeString("en-GB", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                      <div className="text-xs text-gray-500">vs</div>
+                    </div>
+
+                    {/* Away team */}
+                    <div className="text-center flex-1">
+                      <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mb-2 mx-auto">
+                        {fixture.awayTeam.logo ? (
+                          <img
+                            src={fixture.awayTeam.logo}
+                            alt={fixture.awayTeam.name}
+                            className="w-12 h-12 object-contain"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <span className="text-gray-400 font-medium">
+                            {fixture.awayTeam.shortName?.[0] || fixture.awayTeam.name[0]}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs font-medium text-gray-700 truncate px-1">
+                        {fixture.awayTeam.shortName || fixture.awayTeam.name}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Venue */}
+                  <div className="text-center">
+                    <div className="text-sm text-gray-500 truncate" title={fixture.venue}>
+                      📍 {fixture.venue}
+                    </div>
+                  </div>
+
+                  {/* Optional: Show importance indicator */}
+                  {fixture.importance >= 80 && (
+                    <div className="mt-3 text-center">
+                      <span className="inline-block bg-yellow-400 text-gray-900 text-xs px-2 py-1 rounded-full font-medium">
+                        Featured
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Dot indicators */}
+      {/* Pagination dots */}
       {showNavigation && maxIndex > 0 && (
-        <div className="flex justify-center mt-4 space-x-2">
+        <div className="flex justify-center mt-6 space-x-2">
           {Array.from({ length: maxIndex + 1 }, (_, index) => (
             <button
               key={index}
               onClick={() => goToIndex(index)}
-              className={`w-2 h-2 rounded-full transition-colors ${
-                currentIndex === index ? 'bg-blue-500' : 'bg-gray-300'
+              className={`transition-all duration-200 ${
+                currentIndex === index 
+                  ? 'bg-yellow-400 rounded-full' 
+                  : 'bg-gray-300 rounded-full hover:bg-gray-400'
               }`}
+              style={{
+                width: currentIndex === index ? '24px' : '8px',
+                height: '8px',
+              }}
               aria-label={`Go to slide ${index + 1}`}
             />
           ))}
         </div>
       )}
+
+      {/* Accessibility instructions */}
+      <div className="sr-only">
+        Use arrow keys to navigate between slides, Home key for first slide, End key for last slide.
+        On touch devices, swipe left or right to navigate.
+      </div>
     </div>
   );
 };
