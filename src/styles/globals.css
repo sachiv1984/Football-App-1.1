@@ -21,18 +21,6 @@
   --carousel-gap-tablet: 32px;
   --carousel-gap-desktop: 32px;
 
-  /* Card sizes */
-  --carousel-card-width-mobile: 100%;
-  --carousel-card-max-width-mobile: 360px;
-  --carousel-card-width-tablet: 48%;
-  --carousel-card-max-width-tablet: 480px;
-  --carousel-card-width-desktop: 32%;
-  --carousel-card-max-width-desktop: 520px;
-
-  /* Scale */
-  --carousel-hover-scale: 1.02;
-  --carousel-active-scale: 1.05;
-
   /* Shadows */
   --shadow-card: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
   --shadow-card-hover: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
@@ -77,7 +65,11 @@
            focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
-  /* Carousel */
+  /* FIXED: Carousel Layout */
+  .carousel-apple {
+    @apply w-full;
+  }
+  
   .carousel-container { 
     @apply relative w-full overflow-hidden;
     padding-left: var(--carousel-gap-desktop);
@@ -85,30 +77,62 @@
   }
   
   .carousel-track { 
-    @apply flex flex-row transition-transform ease-in-out duration-300 will-change-transform;
+    @apply flex transition-transform ease-in-out duration-300 will-change-transform;
+    /* CRITICAL: Ensure horizontal layout */
+    flex-direction: row !important;
     gap: var(--carousel-gap-desktop);
+    /* Prevent wrapping */
+    flex-wrap: nowrap;
   }
   
   .carousel-slide { 
     @apply flex-shrink-0 transition-opacity duration-300 opacity-90;
     animation: slideFadeUp 0.4s ease-in-out;
-    flex-basis: var(--carousel-card-width-desktop);
-    max-width: var(--carousel-card-max-width-desktop);
+    /* FIXED: Use proper flex properties for horizontal layout */
+    min-width: 0; /* Prevents flex item from overflowing */
+  }
+  
+  /* Responsive card widths */
+  @media (min-width: 1024px) {
+    .carousel-slide {
+      width: calc(33.333% - (var(--carousel-gap-desktop) * 2 / 3));
+      max-width: 520px;
+    }
+  }
+  
+  @media (min-width: 640px) and (max-width: 1023px) {
+    .carousel-slide {
+      width: calc(50% - (var(--carousel-gap-tablet) / 2));
+      max-width: 480px;
+    }
+  }
+  
+  @media (max-width: 639px) {
+    .carousel-slide {
+      width: calc(100% - var(--carousel-gap-mobile));
+      max-width: 360px;
+    }
   }
   
   .carousel-slide-active { 
-    @apply opacity-100 shadow-card-hover;
-    transform: scale(var(--carousel-active-scale));
+    @apply opacity-100;
+    box-shadow: var(--shadow-card-hover);
+    transform: scale(1.02);
   }
 
   .carousel-card {
-    @apply w-full bg-white cursor-pointer rounded-xl transition-all duration-300 ease-in-out p-8 shadow-card;
+    @apply w-full bg-white cursor-pointer rounded-xl transition-all duration-300 ease-in-out p-6 sm:p-8;
     aspect-ratio: 4 / 3;
+    box-shadow: var(--shadow-card);
+    /* Ensure the card content doesn't break layout */
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
   }
   
   .carousel-card:hover, .carousel-card:focus {
-    transform: scale(var(--carousel-hover-scale));
-    @apply shadow-card-hover;
+    transform: scale(1.02);
+    box-shadow: var(--shadow-card-hover);
   }
 
   /* Navigation arrows */
@@ -116,18 +140,20 @@
     @apply absolute top-1/2 -translate-y-1/2 z-20 flex items-center justify-center
            text-gray-700 hover:text-gray-900 transition-all duration-200
            focus:outline-none focus:ring-2 focus:ring-[#FFD700] focus:ring-offset-2;
-    width: 24px;
-    height: 24px;
+    width: 48px;
+    height: 48px;
     background: white;
     border-radius: 50%;
+    box-shadow: var(--shadow-card);
   }
   
   .carousel-nav-arrow:hover:not(:disabled) { 
-    background-color: #F5F5F5;
+    background-color: #F9FAFB;
+    box-shadow: var(--shadow-card-hover);
   }
   
   .carousel-nav-arrow:disabled { 
-    @apply opacity-50 cursor-not-allowed; 
+    @apply opacity-30 cursor-not-allowed; 
   }
   
   .carousel-nav-arrow-left { left: 8px; }
@@ -169,13 +195,21 @@
    Responsive Adjustments
 ------------------------- */
 @media (max-width: 1023px) {
-  .carousel-container { padding-left: var(--carousel-gap-tablet); padding-right: var(--carousel-gap-tablet); }
-  .carousel-track { gap: var(--carousel-gap-tablet); }
-  .carousel-slide { flex-basis: var(--carousel-card-width-tablet); max-width: var(--carousel-card-max-width-tablet); }
+  .carousel-container { 
+    padding-left: var(--carousel-gap-tablet); 
+    padding-right: var(--carousel-gap-tablet); 
+  }
+  .carousel-track { 
+    gap: var(--carousel-gap-tablet); 
+  }
 }
 
 @media (max-width: 639px) {
-  .carousel-container { padding-left: var(--carousel-gap-mobile); padding-right: var(--carousel-gap-mobile); }
-  .carousel-track { gap: var(--carousel-gap-mobile); }
-  .carousel-slide { flex-basis: var(--carousel-card-width-mobile); max-width: var(--carousel-card-max-width-mobile); }
+  .carousel-container { 
+    padding-left: var(--carousel-gap-mobile); 
+    padding-right: var(--carousel-gap-mobile); 
+  }
+  .carousel-track { 
+    gap: var(--carousel-gap-mobile); 
+  }
 }
