@@ -7,7 +7,7 @@ type Fixture = {
   homeTeam: Team;
   awayTeam: Team;
   competition: Competition;
-  dateTime: Date;
+  dateTime: string;
   venue: string;
   importance: number;
 };
