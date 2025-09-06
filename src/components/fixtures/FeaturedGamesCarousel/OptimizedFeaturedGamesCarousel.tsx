@@ -23,7 +23,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const [cardWidth, setCardWidth] = useState(0);
   const totalSlides = fixtures.length; // move this here, before totalPages
   const totalPages = Math.ceil(fixtures.length / cardsPerView);
-  const maxIndex = Math.max(0, totalSlides - 1); // max index of the last card
+  const maxIndex = Math.max(0, totalSlides - cardsPerView);
 
   const inactiveColor = '#D1D5DB';
   const activeColor = '#FFD700';
@@ -52,11 +52,9 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     }
   }, [cardsPerView, fixtures.length]);
 
-
 const goToNext = useCallback(() => {
   setCurrentIndex(prev => Math.min(prev + 1, maxIndex));
 }, [maxIndex]);
-
 
 const goToPrev = useCallback(() => {
   setCurrentIndex(prev => Math.max(prev - 1, 0));
