@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import type { FeaturedFixtureWithImportance } from '../../../types';
 
 interface Props {
