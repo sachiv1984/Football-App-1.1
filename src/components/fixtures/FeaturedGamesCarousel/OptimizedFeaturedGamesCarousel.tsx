@@ -245,11 +245,10 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             style={{
             display: 'flex',
             gap: '24px',
-            overflowX: 'hidden',  // allow scrolling
-            scrollSnapType: 'x mandatory',
-            WebkitOverflowScrolling: 'touch',
-            scrollBehavior: 'smooth',
-            scrollbarWidth: 'none',
+            transform: `translateX(-${currentIndex * cardWidth}px)`,
+            transition: 'transform 0.3s ease',
+            flexWrap: 'nowrap',
+            cursor: 'grab',
             }}
             className="[&::-webkit-scrollbar]:hidden"
           >
