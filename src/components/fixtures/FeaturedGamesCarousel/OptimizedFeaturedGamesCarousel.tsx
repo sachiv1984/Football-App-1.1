@@ -15,10 +15,12 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   isLoading = false,
 }) => {
   const trackRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [cardsPerView, setCardsPerView] = useState(3);
-  const [slideWidth, setSlideWidth] = useState(0);
+  const [cardWidth, setCardWidth] = useState(0);
+  const [gap, setGap] = useState(0);
 
   // Responsive cardsPerView
   useEffect(() => {
@@ -36,12 +38,15 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => window.removeEventListener('resize', updateCardsPerView);
   }, []);
 
-  // Measure the visible area for one "slide"
+  // Measure card width and gap dynamically
   useEffect(() => {
+    // Wait for DOM paint
     setTimeout(() => {
-      if (trackRef.current) {
-        const trackW = trackRef.current.offsetWidth;
-        setSlideWidth(trackW / cardsPerView);
+      if (cardRef.current && trackRef.current) {
+        const cardW = cardRef.current.offsetWidth;
+        const computedGap = parseInt(window.getComputedStyle(trackRef.current).gap || "0", 10);
+        setCardWidth(cardW);
+        setGap(computedGap);
       }
     }, 0);
   }, [cardsPerView, fixtures.length]);
@@ -108,8 +113,8 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     );
   }
 
-  // Calculate transform based on slide width
-  const transformX = -(currentIndex * slideWidth);
+  // Calculate transform: always scroll by (cardWidth + gap)
+  const transformX = -(currentIndex * (cardWidth + gap));
 
   return (
     <div className={`w-full ${className}`} role="region" aria-label="Featured Games Carousel">
@@ -125,7 +130,9 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
           {fixtures.map((fixture, index) => (
             <div
               key={fixture.id || index}
+              ref={index === 0 ? cardRef : undefined}
               className="flex-none carousel-slide"
+              // Let global CSS handle width/max-width!
             >
               {/* Card Content */}
               <div
