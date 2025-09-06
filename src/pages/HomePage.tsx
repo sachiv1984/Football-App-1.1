@@ -10,6 +10,7 @@ import OptimizedFeaturedGamesCarousel from '../components/fixtures/FeaturedGames
 import { FixturesDebugTable } from '../components/FixturesDebugTable';
 import { ErrorBoundary, CarouselErrorBoundary } from '../components/ErrorBoundary';
 import { useFixtures } from '../hooks/useFixtures';
+import { FeaturedFixtureWithImportance } from '../types'; // Add this import
 
 // -------------------------
 // HomePage Component
@@ -22,8 +23,12 @@ const HomePage: React.FC = () => {
   const { featuredFixtures, allFixtures, loading, error } = useFixtures();
 
   const handleToggleDarkMode = () => setIsDarkMode(!isDarkMode);
-  const handleGameSelect = (fixture: typeof featuredFixtures[number]) => {
+  
+  // Fix: Use the proper type instead of typeof
+  const handleGameSelect = (fixture: FeaturedFixtureWithImportance) => {
     console.log('Selected fixture:', fixture.id);
+    // Add any additional logic you need when a fixture is selected
+    // For example, navigate to fixture details, open modal, etc.
   };
 
   return (
@@ -88,6 +93,7 @@ const HomePage: React.FC = () => {
               <OptimizedFeaturedGamesCarousel
                 fixtures={featuredFixtures}
                 onGameSelect={handleGameSelect}
+                isLoading={loading}
                 className="mb-8 lg:mb-12"
               />
             )}
