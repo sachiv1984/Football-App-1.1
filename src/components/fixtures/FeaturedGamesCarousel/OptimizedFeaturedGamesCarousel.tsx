@@ -15,12 +15,10 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   isLoading = false,
 }) => {
   const trackRef = useRef<HTMLDivElement>(null);
-  const cardRef = useRef<HTMLDivElement>(null);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [cardsPerView, setCardsPerView] = useState(3);
-  const [cardWidth, setCardWidth] = useState(0);
-  const [gap, setGap] = useState(0);
+  const [slideWidth, setSlideWidth] = useState(0);
 
   // Responsive cardsPerView
   useEffect(() => {
@@ -38,15 +36,13 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => window.removeEventListener('resize', updateCardsPerView);
   }, []);
 
-  // Measure card width and gap dynamically
+  // Measure the visible area for one "slide"
   useEffect(() => {
-    if (cardRef.current && trackRef.current) {
-      const cardEl = cardRef.current;
-      const trackEl = trackRef.current;
-      const cardW = cardEl.offsetWidth;
-      const computedGap = parseInt(window.getComputedStyle(trackEl).gap || "0", 10);
-      setCardWidth(cardW);
-      setGap(computedGap);
+    if (trackRef.current) {
+      setTimeout(() => {
+        const trackW = trackRef.current.offsetWidth;
+        setSlideWidth(trackW / cardsPerView);
+      }, 0);
     }
   }, [cardsPerView, fixtures.length]);
 
@@ -112,9 +108,8 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     );
   }
 
-  // Calculate transform based on pixel width and gap
-  // Don't add gap after the last card, so use (cardWidth + gap) * index
-  const transformX = -(currentIndex * (cardWidth + gap));
+  // Calculate transform based on slide width
+  const transformX = -(currentIndex * slideWidth);
 
   return (
     <div className={`w-full ${className}`} role="region" aria-label="Featured Games Carousel">
@@ -130,11 +125,8 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
           {fixtures.map((fixture, index) => (
             <div
               key={fixture.id || index}
-              ref={index === 0 ? cardRef : undefined}
-              className="flex-none"
-              style={{
-                // Let global CSS handle width and max-width
-              }}
+              className="flex-none carousel-slide"
+              // Let CSS handle width/max-width!
             >
               {/* Card Content */}
               <div
