@@ -18,8 +18,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [cardsPerView, setCardsPerView] = useState(3);
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
   // Responsive cards per view (hard-coded breakpoints)
   useEffect(() => {
