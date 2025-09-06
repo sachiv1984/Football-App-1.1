@@ -345,7 +345,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                             fontFamily: 'Inter, system-ui, sans-serif'
                           }}
                         >
-                          Week {fixture.matchWeek || fixture.gameWeek || fixture.week || 1}
+                          Week {fixture.matchWeek || fixture.week || 1}
                         </span>
                       </div>
                     </div>
