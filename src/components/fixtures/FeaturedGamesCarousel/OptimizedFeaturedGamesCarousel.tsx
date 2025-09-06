@@ -21,7 +21,11 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
-  // Responsive cards per view (hard-coded breakpoints)
+    // <-- Dot colours -->
+  const inactiveColor = '#D1D5DB';
+  const activeColor = '#FFD700';
+
+// Responsive cards per view (hard-coded breakpoints)
   useEffect(() => {
     const calculateCardsPerView = () => {
       const width = window.innerWidth;
@@ -507,24 +511,23 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
       {/* Pagination dots */}
       {showNavigation && maxIndex > 0 && (
-        <div className="flex justify-center mt-6 space-x-2">
-          {Array.from({ length: maxIndex + 1 }, (_, index) => (
-            <button
-              key={index}
-              onClick={() => goToIndex(index)}
-              className={`transition-all duration-200 ${
-                currentIndex === index 
-                  ? 'bg-yellow-400 rounded-full' 
-                  : 'bg-gray-300 rounded-full hover:bg-gray-400'
-              }`}
-              style={{
-                width: currentIndex === index ? '24px' : '8px',
-                height: '8px',
-              }}
-              aria-label={`Go to slide ${index + 1}`}
-            />
-          ))}
-        </div>
+    <div className="flex justify-center mt-6 space-x-2">
+  {Array.from({ length: maxIndex + 1 }, (_, index) => (
+    <button
+      key={index}
+      onClick={() => goToIndex(index)}
+      className="transition-all duration-200"
+      style={{
+        width: currentIndex === index ? '24px' : '8px',
+        height: '8px',
+        borderRadius: currentIndex === index ? '9999px' : '50%',
+        backgroundColor: currentIndex === index ? activeColor : inactiveColor,
+      }}
+      aria-label={`Go to slide ${index + 1}`}
+    />
+  ))}
+</div>
+
       )}
 
       {/* Accessibility instructions */}
