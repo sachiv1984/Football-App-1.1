@@ -20,6 +20,8 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const [cardsPerView, setCardsPerView] = useState(3);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [cardWidth, setCardWidth] = useState(0);
+
 
     // <-- Dot colours -->
   const inactiveColor = '#D1D5DB';
@@ -46,14 +48,13 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
   // Scroll to card on navigation
   useEffect(() => {
-    if (trackRef.current) {
-      const children = trackRef.current.children;
-      if (children.length > currentIndex) {
-        const card = children[currentIndex] as HTMLElement;
-        card.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
-      }
-    }
-  }, [currentIndex, cardsPerView, fixtures.length]);
+  if (trackRef.current && trackRef.current.children.length > 0) {
+    const firstCard = trackRef.current.children[0] as HTMLElement;
+    const style = getComputedStyle(firstCard);
+    const gap = parseInt(style.marginRight || '24', 10);
+    setCardWidth(firstCard.offsetWidth + gap);
+  }
+}, [cardsPerView, fixtures.length]);
 
   const goToNext = useCallback(() => {
     if (currentIndex < maxIndex) {
