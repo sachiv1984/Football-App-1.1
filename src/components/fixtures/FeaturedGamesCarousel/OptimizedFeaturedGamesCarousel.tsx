@@ -1,20 +1,9 @@
 import React from 'react';
-
-type Team = { name: string, shortName?: string, logo?: string };
-type Competition = { name: string, shortName?: string, logo?: string };
-type Fixture = {
-  id: number | string;
-  homeTeam: Team;
-  awayTeam: Team;
-  competition: Competition;
-  dateTime: string;
-  venue: string;
-  importance: number;
-};
+import type { FeaturedFixtureWithImportance } from '../../../types';
 
 interface Props {
-  fixtures: Fixture[];
-  onGameSelect?: (fixture: Fixture) => void;
+  fixtures: FeaturedFixtureWithImportance[];
+  onGameSelect?: (fixture: FeaturedFixtureWithImportance) => void;
   className?: string;
   isLoading?: boolean;
 }
