@@ -22,7 +22,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [cardWidth, setCardWidth] = useState(0);
   const totalSlides = fixtures.length; // move this here, before totalPages
-  const totalPages = Math.ceil(totalSlides / cardsPerView);
+  const totalPages = Math.ceil(fixtures.length / cardsPerView);
   const maxPageIndex = totalPages - 1;
 
   const inactiveColor = '#D1D5DB';
@@ -54,13 +54,14 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     }
   }, [cardsPerView, fixtures.length]);
 
+
 const goToNext = useCallback(() => {
-  setCurrentIndex(prev => Math.min(prev + cardsPerView, maxIndex));
-}, [cardsPerView, maxIndex]);
+  setCurrentIndex(prev => Math.min(prev + 1, maxPageIndex));
+}, [maxPageIndex]);
 
 const goToPrev = useCallback(() => {
-  setCurrentIndex(prev => Math.max(prev - cardsPerView, 0));
-}, [cardsPerView]);
+  setCurrentIndex(prev => Math.max(prev - 1, 0));
+}, []);
 
   const goToIndex = useCallback((page: number) => {
   if (page >= 0 && page <= maxPageIndex) setCurrentIndex(page * cardsPerView);
@@ -152,7 +153,7 @@ const goToPrev = useCallback(() => {
             style={{
               display: 'flex',
               gap: '24px',
-              transform: `translateX(-${cardWidth ? currentIndex * cardWidth : 0}px)`,
+              transform: `translateX(-${cardWidth * cardsPerView * currentIndex}px)`,
               transition: 'transform 0.3s ease',
               flexWrap: 'nowrap',
               cursor: 'grab',
@@ -267,10 +268,10 @@ const goToPrev = useCallback(() => {
       {/* Pagination dots */}
     {showNavigation && totalPages > 1 && (
   <div className="flex justify-center mt-6 space-x-2">
-    {Array.from({ length: totalPages }, (_, page) => (
+    {Array.from({ length: totalPages }, (_, index) => (
       <button
         key={page}
-        onClick={() => goToIndex(page)}
+        onClick={() => setCurrentIndex(index)}
         className="transition-all duration-200"
         style={{
           width: Math.floor(currentIndex / cardsPerView) === page ? '24px' : '8px',
