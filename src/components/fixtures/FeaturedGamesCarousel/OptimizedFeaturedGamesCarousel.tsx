@@ -15,10 +15,16 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   isLoading = false
 }) => {
   const trackRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [cardsPerView, setCardsPerView] = useState(3);
+  const [cardWidth, setCardWidth] = useState(0);
 
-  // Calculate cards per view based on screen size
+  // Tailwind gap-6 = 1.5rem = 24px
+  const gap = 24;
+
+  // Responsive cardsPerView
   useEffect(() => {
     const calculateCardsPerView = () => {
       const width = window.innerWidth;
@@ -35,6 +41,17 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     window.addEventListener('resize', updateCardsPerView);
     return () => window.removeEventListener('resize', updateCardsPerView);
   }, []);
+
+  // Measure card width (including margin/gap)
+  useEffect(() => {
+    if (cardRef.current) {
+      const style = window.getComputedStyle(cardRef.current);
+      const width = cardRef.current.offsetWidth;
+      // For pixel-perfect scroll, include gap except on last card
+      const marginRight = parseInt(style.marginRight || "0", 10);
+      setCardWidth(width + marginRight);
+    }
+  }, [cardsPerView, fixtures.length]);
 
   const totalSlides = fixtures.length;
   const maxIndex = Math.max(0, totalSlides - cardsPerView);
@@ -57,7 +74,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     }
   };
 
-  // Loading state
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
@@ -71,7 +87,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     );
   }
 
-  // Empty state
   if (totalSlides === 0) {
     return (
       <div className="flex flex-col items-center justify-center text-center py-20 px-6">
@@ -98,8 +113,8 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     );
   }
 
-  // Calculate transform based on current index
-  const transformX = -(currentIndex * (100 / cardsPerView));
+  // Pixel-based transform for accuracy
+  const transformX = -(currentIndex * cardWidth);
 
   return (
     <div className={`w-full ${className}`} role="region" aria-label="Featured Games Carousel">
@@ -109,15 +124,16 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
           ref={trackRef}
           className="flex transition-transform duration-300 ease-in-out gap-6"
           style={{
-            transform: `translateX(${transformX}%)`,
+            transform: `translateX(${transformX}px)`,
           }}
         >
           {fixtures.map((fixture, index) => (
             <div
               key={fixture.id || index}
+              ref={index === 0 ? cardRef : undefined}
               className="flex-none"
               style={{
-                width: `calc(${100 / cardsPerView}% - ${24 * (cardsPerView - 1) / cardsPerView}px)`,
+                width: `calc(${100 / cardsPerView}% - ${gap * (cardsPerView - 1) / cardsPerView}px)`,
               }}
             >
               {/* Card Content */}
