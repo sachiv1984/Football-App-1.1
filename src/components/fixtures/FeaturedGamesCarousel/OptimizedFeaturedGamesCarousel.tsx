@@ -211,7 +211,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
               display: 'flex',
     flexDirection: 'row',
     gap: '24px',
-    overflowX: 'auto',              // ✅ allows drag
+    overflowX: 'hidden',              // ✅ allows drag
     scrollSnapType: 'x mandatory',  // ✅ keeps Netflix snap (use 'none' if you want free scroll)
     WebkitOverflowScrolling: 'touch',
     scrollBehavior: 'smooth',
