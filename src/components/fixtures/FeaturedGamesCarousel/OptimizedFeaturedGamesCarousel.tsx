@@ -38,12 +38,12 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
   // Measure the visible area for one "slide"
   useEffect(() => {
-    if (trackRef.current) {
-      setTimeout(() => {
+    setTimeout(() => {
+      if (trackRef.current) {
         const trackW = trackRef.current.offsetWidth;
         setSlideWidth(trackW / cardsPerView);
-      }, 0);
-    }
+      }
+    }, 0);
   }, [cardsPerView, fixtures.length]);
 
   const totalSlides = fixtures.length;
@@ -126,7 +126,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             <div
               key={fixture.id || index}
               className="flex-none carousel-slide"
-              // Let CSS handle width/max-width!
             >
               {/* Card Content */}
               <div
