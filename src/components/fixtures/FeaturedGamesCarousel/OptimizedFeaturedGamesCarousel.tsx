@@ -20,12 +20,25 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const [cardsPerView, setCardsPerView] = useState(3);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
-  const totalSlides = fixtures.length; // move this here, before totalPages
+  const [announceText, setAnnounceText] = useState('');
+  
+  const totalSlides = fixtures.length;
   const totalPages = Math.ceil(fixtures.length / cardsPerView);
   const maxIndex = Math.max(0, totalSlides - cardsPerView);
 
+  // Check for reduced motion preference
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
   const inactiveColor = '#D1D5DB';
   const activeColor = '#FFD700';
+
+  // Announce slide changes for screen readers
+  const announceSlideChange = useCallback((index: number) => {
+    const fixture = fixtures[index];
+    if (fixture) {
+      setAnnounceText(`Showing match ${index + 1} of ${totalSlides}: ${fixture.homeTeam.name} vs ${fixture.awayTeam.name}`);
+    }
+  }, [fixtures, totalSlides]);
 
   // Responsive cards per view
   useEffect(() => {
@@ -45,56 +58,60 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const goToNext = useCallback(() => {
     const newIndex = Math.min(currentIndex + 1, maxIndex);
     setCurrentIndex(newIndex);
+    announceSlideChange(newIndex);
     
     // Scroll the specific card into view
     if (trackRef.current && trackRef.current.children[newIndex]) {
       const targetCard = trackRef.current.children[newIndex] as HTMLElement;
       targetCard.scrollIntoView({ 
-        behavior: 'smooth', 
+        behavior: prefersReducedMotion ? 'auto' : 'smooth', 
         block: 'nearest', 
         inline: 'start' 
       });
     }
-  }, [currentIndex, maxIndex]);
+  }, [currentIndex, maxIndex, announceSlideChange, prefersReducedMotion]);
 
   const goToPrev = useCallback(() => {
     const newIndex = Math.max(currentIndex - 1, 0);
     setCurrentIndex(newIndex);
+    announceSlideChange(newIndex);
     
     // Scroll the specific card into view
     if (trackRef.current && trackRef.current.children[newIndex]) {
       const targetCard = trackRef.current.children[newIndex] as HTMLElement;
       targetCard.scrollIntoView({ 
-        behavior: 'smooth', 
+        behavior: prefersReducedMotion ? 'auto' : 'smooth', 
         block: 'nearest', 
         inline: 'start' 
       });
     }
-  }, [currentIndex]);
+  }, [currentIndex, announceSlideChange, prefersReducedMotion]);
 
   const goToFirst = useCallback(() => {
     setCurrentIndex(0);
+    announceSlideChange(0);
     if (trackRef.current && trackRef.current.children[0]) {
       const targetCard = trackRef.current.children[0] as HTMLElement;
       targetCard.scrollIntoView({ 
-        behavior: 'smooth', 
+        behavior: prefersReducedMotion ? 'auto' : 'smooth', 
         block: 'nearest', 
         inline: 'start' 
       });
     }
-  }, []);
+  }, [announceSlideChange, prefersReducedMotion]);
 
   const goToLast = useCallback(() => {
     setCurrentIndex(maxIndex);
+    announceSlideChange(maxIndex);
     if (trackRef.current && trackRef.current.children[maxIndex]) {
       const targetCard = trackRef.current.children[maxIndex] as HTMLElement;
       targetCard.scrollIntoView({ 
-        behavior: 'smooth', 
+        behavior: prefersReducedMotion ? 'auto' : 'smooth', 
         block: 'nearest', 
         inline: 'start' 
       });
     }
-  }, [maxIndex]);
+  }, [maxIndex, announceSlideChange, prefersReducedMotion]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -111,11 +128,18 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [goToNext, goToPrev, goToFirst, goToLast]);
 
-  // Swipe handlers
+  // Swipe handlers - prevent default to stop dragging
   const minSwipeDistance = 50;
-  const onTouchStart = (e: React.TouchEvent) => { setTouchEnd(null); setTouchStart(e.targetTouches[0].clientX); };
-  const onTouchMove = (e: React.TouchEvent) => setTouchEnd(e.targetTouches[0].clientX);
-  const onTouchEnd = () => {
+  const onTouchStart = (e: React.TouchEvent) => { 
+    setTouchEnd(null); 
+    setTouchStart(e.targetTouches[0].clientX); 
+  };
+  const onTouchMove = (e: React.TouchEvent) => { 
+    e.preventDefault(); // Prevent default scrolling/dragging
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    e.preventDefault(); // Prevent default behavior
     if (touchStart === null || touchEnd === null) return;
     const distance = touchStart - touchEnd;
     if (distance > minSwipeDistance) goToNext();
@@ -153,7 +177,14 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
       <div className="relative">
         {/* Left Arrow */}
         {showNavigation && (
-          <button onClick={goToPrev} disabled={currentIndex === 0} className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200" style={{ width: '40px', height: '40px' }} aria-label="Previous games">
+          <button 
+            onClick={goToPrev} 
+            disabled={currentIndex === 0} 
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+            style={{ width: '40px', height: '40px' }} 
+            aria-label="Previous games"
+            tabIndex={0}
+          >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-600">
               <path d="M15 18l-6-6 6-6" />
             </svg>
@@ -162,7 +193,14 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
         {/* Right Arrow */}
         {showNavigation && (
-          <button onClick={goToNext} disabled={currentIndex === maxIndex} className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200" style={{ width: '40px', height: '40px' }} aria-label="Next games">
+          <button 
+            onClick={goToNext} 
+            disabled={currentIndex === maxIndex} 
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+            style={{ width: '40px', height: '40px' }} 
+            aria-label="Next games"
+            tabIndex={0}
+          >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-600">
               <path d="M9 18l6-6-6-6" />
             </svg>
@@ -176,14 +214,21 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             onTouchStart={onTouchStart}
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
+            onMouseDown={(e) => e.preventDefault()} // Prevent mouse drag
+            onDragStart={(e) => e.preventDefault()} // Prevent HTML5 drag
             style={{
               display: 'flex',
               gap: '24px',
               flexWrap: 'nowrap',
-              cursor: 'grab',
-              scrollBehavior: 'smooth',
-              overflowX: 'auto',
+              cursor: 'default',
+              scrollBehavior: prefersReducedMotion ? 'auto' : 'smooth',
+              overflowX: 'hidden',
               scrollSnapType: 'x mandatory',
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+              touchAction: 'none',
+              WebkitTouchCallout: 'none',
+              WebkitTapHighlightColor: 'transparent',
             }}
             className="[&::-webkit-scrollbar]:hidden"
           >
@@ -193,7 +238,17 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
               return (
                 <div
                   key={fixture.id || index}
-                  className={`transition-all duration-300 ${isActive ? 'opacity-100 scale-105' : 'opacity-90 scale-100'}`}
+                  className={`transition-all duration-300 ${isActive ? 'opacity-100 scale-105' : 'opacity-90 scale-100'} focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`View match between ${fixture.homeTeam.name} and ${fixture.awayTeam.name} on ${new Date(fixture.dateTime).toLocaleDateString("en-GB")}`}
+                  onClick={() => onGameSelect?.(fixture)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onGameSelect?.(fixture);
+                    }
+                  }}
                   style={{
                     flex: '0 0 auto',
                     scrollSnapAlign: 'start',
@@ -210,9 +265,13 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                     justifyContent: 'space-between',
                     width: cardsPerView === 1 ? '100%' : cardsPerView === 2 ? '48%' : '32%',
                     maxWidth: cardsPerView === 1 ? '360px' : cardsPerView === 2 ? '480px' : '520px',
+                    pointerEvents: 'auto',
+                    userSelect: 'none',
+                    WebkitUserSelect: 'none',
+                    WebkitUserDrag: 'none',
+                    draggable: false,
                   }}
                 >
-                  {/* Card Content - keep exactly as your original code */}
                   {/* Competition header */}
                   <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100 w-full">
                     <div className="flex items-center justify-center">
@@ -220,7 +279,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                         <div
                           className={`bg-white rounded-full shadow-lg flex items-center justify-center transition-all duration-300 ease-out hover:scale-105 hover:shadow-xl active:scale-102 ${isActive ? 'scale-100' : 'scale-90'} w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20`}
                         >
-                          <img src={fixture.competition.logo} alt={fixture.competition.name} className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 object-contain" loading="lazy" />
+                          <img src={fixture.competition.logo} alt={fixture.competition.name} className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 object-contain" loading="lazy" draggable="false" />
                         </div>
                       )}
                     </div>
@@ -237,7 +296,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                     <div className="text-center flex-1">
                       <div className={`w-20 h-20 rounded-full bg-white flex items-center justify-center mb-3 mx-auto transition-all duration-200 ${isActive ? 'scale-105' : 'scale-100'} hover:scale-102`} style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
                         {fixture.homeTeam.logo ? (
-                          <img src={fixture.homeTeam.logo} alt={fixture.homeTeam.name} className="w-16 h-16 object-contain" loading="lazy" />
+                          <img src={fixture.homeTeam.logo} alt={fixture.homeTeam.name} className="w-16 h-16 object-contain" loading="lazy" draggable="false" />
                         ) : (
                           <span className="text-gray-400 font-medium text-lg">{fixture.homeTeam.shortName?.[0] || fixture.homeTeam.name[0]}</span>
                         )}
@@ -301,16 +360,17 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
               key={index}
               onClick={() => {
                 setCurrentIndex(index);
+                announceSlideChange(index);
                 if (trackRef.current && trackRef.current.children[index]) {
                   const targetCard = trackRef.current.children[index] as HTMLElement;
                   targetCard.scrollIntoView({ 
-                    behavior: 'smooth', 
+                    behavior: prefersReducedMotion ? 'auto' : 'smooth', 
                     block: 'nearest', 
                     inline: 'start' 
                   });
                 }
               }}
-              className="transition-all duration-200"
+              className="transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
               style={{
                 width: currentIndex === index ? '24px' : '8px',
                 height: '8px',
@@ -318,6 +378,8 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                 backgroundColor: currentIndex === index ? activeColor : inactiveColor,
               }}
               aria-label={`Go to slide ${index + 1}`}
+              aria-current={currentIndex === index ? 'true' : 'false'}
+              tabIndex={0}
             />
           ))}
         </div>
