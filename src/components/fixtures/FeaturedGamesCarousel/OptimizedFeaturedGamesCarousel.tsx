@@ -106,32 +106,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [goToNext, goToPrev, goToFirst, goToLast]);
 
-  // Touch/swipe handlers
-  const minSwipeDistance = 50;
-
-  const onTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
-  };
-
-  const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
-
-  const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-    
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
-
-    if (isLeftSwipe) {
-      goToNext();
-    } else if (isRightSwipe) {
-      goToPrev();
-    }
-  };
-
   // Loading state
   if (isLoading) {
     return (
@@ -235,9 +209,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
         <div className="relative w-full overflow-hidden px-12">
           <div
             ref={trackRef}
-            onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove}
-            onTouchEnd={onTouchEnd}
             style={{
               display: 'flex',
     flexDirection: 'row',
