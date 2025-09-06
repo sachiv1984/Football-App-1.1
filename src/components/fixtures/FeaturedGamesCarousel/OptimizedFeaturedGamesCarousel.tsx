@@ -20,10 +20,9 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const [cardsPerView, setCardsPerView] = useState(3);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
-  
-  const totalSlides = fixtures.length;
+  const totalSlides = fixtures.length; // move this here, before totalPages
+  const totalPages = Math.ceil(fixtures.length / cardsPerView);
   const maxIndex = Math.max(0, totalSlides - cardsPerView);
-  const totalPages = Math.max(0, totalSlides - cardsPerView + 1);
 
   const inactiveColor = '#D1D5DB';
   const activeColor = '#FFD700';
@@ -42,16 +41,60 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => window.removeEventListener('resize', updateCardsPerView);
   }, []);
 
+  // Option 3: ScrollIntoView implementation
   const goToNext = useCallback(() => {
-    setCurrentIndex(prev => Math.min(prev + 1, maxIndex));
-  }, [maxIndex]);
+    const newIndex = Math.min(currentIndex + 1, maxIndex);
+    setCurrentIndex(newIndex);
+    
+    // Scroll the specific card into view
+    if (trackRef.current && trackRef.current.children[newIndex]) {
+      const targetCard = trackRef.current.children[newIndex] as HTMLElement;
+      targetCard.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'nearest', 
+        inline: 'start' 
+      });
+    }
+  }, [currentIndex, maxIndex]);
 
   const goToPrev = useCallback(() => {
-    setCurrentIndex(prev => Math.max(prev - 1, 0));
+    const newIndex = Math.max(currentIndex - 1, 0);
+    setCurrentIndex(newIndex);
+    
+    // Scroll the specific card into view
+    if (trackRef.current && trackRef.current.children[newIndex]) {
+      const targetCard = trackRef.current.children[newIndex] as HTMLElement;
+      targetCard.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'nearest', 
+        inline: 'start' 
+      });
+    }
+  }, [currentIndex]);
+
+  const goToFirst = useCallback(() => {
+    setCurrentIndex(0);
+    if (trackRef.current && trackRef.current.children[0]) {
+      const targetCard = trackRef.current.children[0] as HTMLElement;
+      targetCard.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'nearest', 
+        inline: 'start' 
+      });
+    }
   }, []);
 
-  const goToFirst = useCallback(() => setCurrentIndex(0), []);
-  const goToLast = useCallback(() => setCurrentIndex(maxIndex), [maxIndex]);
+  const goToLast = useCallback(() => {
+    setCurrentIndex(maxIndex);
+    if (trackRef.current && trackRef.current.children[maxIndex]) {
+      const targetCard = trackRef.current.children[maxIndex] as HTMLElement;
+      targetCard.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'nearest', 
+        inline: 'start' 
+      });
+    }
+  }, [maxIndex]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -136,11 +179,11 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             style={{
               display: 'flex',
               gap: '24px',
-              transform: `translateX(-${currentIndex * (100 / cardsPerView)}%)`,
-              transition: 'transform 0.3s ease',
               flexWrap: 'nowrap',
               cursor: 'grab',
-              width: `${(totalSlides * 100) / cardsPerView}%`,
+              scrollBehavior: 'smooth',
+              overflowX: 'auto',
+              scrollSnapType: 'x mandatory',
             }}
             className="[&::-webkit-scrollbar]:hidden"
           >
@@ -154,6 +197,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                   style={{
                     flex: '0 0 auto',
                     scrollSnapAlign: 'start',
+                    scrollSnapStop: 'always',
                     background: '#FFFFFF',
                     borderRadius: '12px',
                     boxShadow: isActive
@@ -164,10 +208,11 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
-                    width: `calc((100% - ${(cardsPerView - 1) * 24}px) / ${cardsPerView})`,
+                    width: cardsPerView === 1 ? '100%' : cardsPerView === 2 ? '48%' : '32%',
+                    maxWidth: cardsPerView === 1 ? '360px' : cardsPerView === 2 ? '480px' : '520px',
                   }}
                 >
-                  {/* Card Content */}
+                  {/* Card Content - keep exactly as your original code */}
                   {/* Competition header */}
                   <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100 w-full">
                     <div className="flex items-center justify-center">
@@ -249,12 +294,22 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
       </div>
 
       {/* Pagination dots */}
-      {showNavigation && totalPages > 0 && (
+      {showNavigation && totalPages > 1 && (
         <div className="flex justify-center mt-6 space-x-2">
           {Array.from({ length: totalPages }, (_, index) => (
             <button
               key={index}
-              onClick={() => setCurrentIndex(index)}
+              onClick={() => {
+                setCurrentIndex(index);
+                if (trackRef.current && trackRef.current.children[index]) {
+                  const targetCard = trackRef.current.children[index] as HTMLElement;
+                  targetCard.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'nearest', 
+                    inline: 'start' 
+                  });
+                }
+              }}
               className="transition-all duration-200"
               style={{
                 width: currentIndex === index ? '24px' : '8px',
