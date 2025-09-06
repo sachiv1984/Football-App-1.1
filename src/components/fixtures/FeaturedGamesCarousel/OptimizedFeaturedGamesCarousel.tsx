@@ -243,17 +243,13 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
             style={{
-              display: 'flex',
-              flexDirection: 'row',
-              gap: '24px',
-              overflowX: 'hidden',
-              scrollSnapType: 'x mandatory',
-              WebkitOverflowScrolling: 'touch',
-              scrollBehavior: 'smooth',
-              paddingBottom: '8px',
-              flexWrap: 'nowrap',
-              scrollbarWidth: 'none',
-              msOverflowStyle: 'none',
+            display: 'flex',
+            gap: '24px',
+            overflowX: 'auto',  // allow scrolling
+            scrollSnapType: 'x mandatory',
+            WebkitOverflowScrolling: 'touch',
+            scrollBehavior: 'smooth',
+            scrollbarWidth: 'none',
             }}
             className="[&::-webkit-scrollbar]:hidden"
           >
