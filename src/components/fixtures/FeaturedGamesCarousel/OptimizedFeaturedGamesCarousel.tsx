@@ -33,12 +33,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
     updateCardsPerView();
     window.addEventListener('resize', updateCardsPerView);
-    // Calculate transform based on current index
-  const cardWidthPercent = 100 / cardsPerView;
-  const gapInPercent = (24 / (trackRef.current?.offsetWidth || 1000)) * 100; // Convert gap to percentage
-  const transformX = -(currentIndex * (cardWidthPercent + gapInPercent));
-
-  return () => window.removeEventListener('resize', updateCardsPerView);
+    return () => window.removeEventListener('resize', updateCardsPerView);
   }, []);
 
   const totalSlides = fixtures.length;
