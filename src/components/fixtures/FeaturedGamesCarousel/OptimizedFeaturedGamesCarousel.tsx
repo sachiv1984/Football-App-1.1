@@ -20,10 +20,10 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const [cardsPerView, setCardsPerView] = useState(3);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
-  const [cardWidth, setCardWidth] = useState(0);
-  const totalSlides = fixtures.length; // move this here, before totalPages
-  const totalPages = totalSlides > cardsPerView ? totalSlides - cardsPerView + 1 : 1;
+  
+  const totalSlides = fixtures.length;
   const maxIndex = Math.max(0, totalSlides - cardsPerView);
+  const totalPages = Math.max(0, totalSlides - cardsPerView + 1);
 
   const inactiveColor = '#D1D5DB';
   const activeColor = '#FFD700';
@@ -42,23 +42,13 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => window.removeEventListener('resize', updateCardsPerView);
   }, []);
 
-  // Calculate card width after render
-  useEffect(() => {
-  if (trackRef.current && trackRef.current.children.length > 0) {
-    const firstCard = trackRef.current.children[0] as HTMLElement;
-    const gap = 24; // same as your flex gap
-    setCardWidth(firstCard.offsetWidth + gap);
-  }
-}, [cardsPerView, fixtures.length]);
+  const goToNext = useCallback(() => {
+    setCurrentIndex(prev => Math.min(prev + 1, maxIndex));
+  }, [maxIndex]);
 
-const goToNext = useCallback(() => {
-  setCurrentIndex(prev => Math.min(prev + 1, maxIndex));
-}, [maxIndex]);
-
-const goToPrev = useCallback(() => {
-  setCurrentIndex(prev => Math.max(prev - 1, 0)); // Change from: Math.min(prev + 1, maxIndex)
-}, [maxIndex]); // Add maxIndex to dependencies
-
+  const goToPrev = useCallback(() => {
+    setCurrentIndex(prev => Math.max(prev - 1, 0));
+  }, []);
 
   const goToFirst = useCallback(() => setCurrentIndex(0), []);
   const goToLast = useCallback(() => setCurrentIndex(maxIndex), [maxIndex]);
@@ -143,16 +133,17 @@ const goToPrev = useCallback(() => {
             onTouchStart={onTouchStart}
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
-  style={{
-    display: 'grid',
-    gridTemplateColumns: `repeat(${fixtures.length}, ${100/cardsPerView}%)`,
-    gap: '24px',
-    transform: `translateX(-${currentIndex * (100/cardsPerView)}%)`,
-    transition: 'transform 0.3s ease',
-    cursor: 'grab',
-  }}
-  className="[&::-webkit-scrollbar]:hidden"
->
+            style={{
+              display: 'flex',
+              gap: '24px',
+              transform: `translateX(-${currentIndex * (100 / cardsPerView)}%)`,
+              transition: 'transform 0.3s ease',
+              flexWrap: 'nowrap',
+              cursor: 'grab',
+              width: `${(totalSlides * 100) / cardsPerView}%`,
+            }}
+            className="[&::-webkit-scrollbar]:hidden"
+          >
             {fixtures.map((fixture, index) => {
               const isActive = index >= currentIndex && index < currentIndex + cardsPerView;
 
@@ -173,11 +164,10 @@ const goToPrev = useCallback(() => {
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
-                    width: cardsPerView === 1 ? '100%' : cardsPerView === 2 ? '48%' : '32%',
-                    maxWidth: cardsPerView === 1 ? '360px' : cardsPerView === 2 ? '480px' : '520px',
+                    width: `calc((100% - ${(cardsPerView - 1) * 24}px) / ${cardsPerView})`,
                   }}
                 >
-                  {/* Card Content - keep exactly as your original code */}
+                  {/* Card Content */}
                   {/* Competition header */}
                   <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100 w-full">
                     <div className="flex items-center justify-center">
@@ -259,24 +249,25 @@ const goToPrev = useCallback(() => {
       </div>
 
       {/* Pagination dots */}
-{showNavigation && (
-  <div className="flex justify-center mt-6 space-x-2">
-    {Array.from({ length: totalPages }, (_, index) => (
-      <button
-        key={index}
-        onClick={() => setCurrentIndex(index)}
-        className="transition-all duration-200"
-        style={{
-          width: currentIndex === index ? '24px' : '8px',
-          height: '8px',
-          borderRadius: currentIndex === index ? '9999px' : '50%',
-          backgroundColor: currentIndex === index ? activeColor : inactiveColor,
-        }}
-        aria-label={`Go to slide ${index + 1}`}
-      />
-    ))}
-  </div>
-)}
+      {showNavigation && totalPages > 0 && (
+        <div className="flex justify-center mt-6 space-x-2">
+          {Array.from({ length: totalPages }, (_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentIndex(index)}
+              className="transition-all duration-200"
+              style={{
+                width: currentIndex === index ? '24px' : '8px',
+                height: '8px',
+                borderRadius: currentIndex === index ? '9999px' : '50%',
+                backgroundColor: currentIndex === index ? activeColor : inactiveColor,
+              }}
+              aria-label={`Go to slide ${index + 1}`}
+            />
+          ))}
+        </div>
+      )}
+
       <div className="sr-only">
         Use arrow keys to navigate between slides, Home key for first slide, End key for last slide. On touch devices, swipe left or right to navigate.
       </div>
@@ -285,5 +276,3 @@ const goToPrev = useCallback(() => {
 };
 
 export default OptimizedFeaturedGamesCarousel;
-
-
