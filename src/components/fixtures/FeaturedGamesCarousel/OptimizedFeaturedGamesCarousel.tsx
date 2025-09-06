@@ -238,7 +238,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
               return (
                 <div
                   key={fixture.id || index}
-                  className={`transition-all duration-300 ${isActive ? 'opacity-100 scale-105' : 'opacity-90 scale-100'} focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
+                  className={`transition-all duration-300 ${isActive ? 'opacity-100 scale-105' : 'opacity-90 scale-100'} focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 select-none`}
                   role="button"
                   tabIndex={0}
                   aria-label={`View match between ${fixture.homeTeam.name} and ${fixture.awayTeam.name} on ${new Date(fixture.dateTime).toLocaleDateString("en-GB")}`}
@@ -266,13 +266,9 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                     width: cardsPerView === 1 ? '100%' : cardsPerView === 2 ? '48%' : '32%',
                     maxWidth: cardsPerView === 1 ? '360px' : cardsPerView === 2 ? '480px' : '520px',
                     pointerEvents: 'auto',
-                    userSelect: 'none',
-                    WebkitUserSelect: 'none',
-                    WebkitUserDrag: 'none',
-                    draggable: false,
-                  }}
+                  } as React.CSSProperties}
+                  draggable={false}
                 >
-                  {/* Competition header */}
                   {/* Competition header */}
                   <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100 w-full">
                     <div className="flex items-center justify-center">
