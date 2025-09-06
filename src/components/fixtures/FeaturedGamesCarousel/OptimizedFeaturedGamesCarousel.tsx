@@ -52,13 +52,13 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     }
   }, [cardsPerView, fixtures.length]);
 
-  const goToNext = useCallback(() => {
-    if (currentIndex < maxIndex) setCurrentIndex(currentIndex + 1);
-  }, [currentIndex, maxIndex]);
+const goToNext = useCallback(() => {
+  setCurrentIndex(prev => Math.min(prev + cardsPerView, maxIndex));
+}, [cardsPerView, maxIndex]);
 
-  const goToPrev = useCallback(() => {
-    if (currentIndex > 0) setCurrentIndex(currentIndex - 1);
-  }, [currentIndex]);
+const goToPrev = useCallback(() => {
+  setCurrentIndex(prev => Math.max(prev - cardsPerView, 0));
+}, [cardsPerView]);
 
   const goToIndex = useCallback((index: number) => {
     if (index >= 0 && index <= maxIndex) setCurrentIndex(index);
