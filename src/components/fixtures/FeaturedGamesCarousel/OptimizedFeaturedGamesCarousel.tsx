@@ -266,16 +266,16 @@ const goToPrev = useCallback(() => {
   <div className="flex justify-center mt-6 space-x-2">
     {Array.from({ length: totalPages }, (_, index) => (
       <button
-        key={page}
+        key={index}
         onClick={() => setCurrentIndex(index)}
         className="transition-all duration-200"
         style={{
-          width: Math.floor(currentIndex / cardsPerView) === page ? '24px' : '8px',
-          height: '8px',
-          borderRadius: Math.floor(currentIndex / cardsPerView) === page ? '9999px' : '50%',
-          backgroundColor: Math.floor(currentIndex / cardsPerView) === page ? activeColor : inactiveColor,
+          width: currentIndex === index ? '24px' : '8px',
+      height: '8px',
+      borderRadius: currentIndex === index ? '9999px' : '50%',
+      backgroundColor: currentIndex === index ? activeColor : inactiveColor,
         }}
-        aria-label={`Go to slide ${page + 1}`}
+        aria-label={`Go to slide ${index + 1}`}
       />
     ))}
   </div>
