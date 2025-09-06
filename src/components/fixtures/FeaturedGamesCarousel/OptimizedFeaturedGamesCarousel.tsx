@@ -6,12 +6,14 @@ interface Props {
   fixtures: FeaturedFixtureWithImportance[];
   onGameSelect?: (fixture: FeaturedFixtureWithImportance) => void;
   className?: string;
+  isLoading?: boolean;
 }
 
 const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ 
   fixtures, 
   onGameSelect, 
-  className = '' 
+  className = '',
+  isLoading = false
 }) => {
   const trackRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -51,6 +53,20 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
   const goToNext = () => { if (currentIndex < maxIndex) goToIndex(currentIndex + 1); };
   const goToPrev = () => { if (currentIndex > 0) goToIndex(currentIndex - 1); };
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className={`flex gap-4 sm:gap-8 ${className}`}>
+        {[...Array(cardsPerView)].map((_, idx) => (
+          <div
+            key={idx}
+            className="flex-shrink-0 bg-gray-200 animate-pulse rounded-xl w-full aspect-[4/3] p-6 sm:p-8"
+          />
+        ))}
+      </div>
+    );
+  }
 
   // --- Empty State ---
   if (totalSlides === 0) {
@@ -96,7 +112,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
               fixture={fixture}
               index={index}
               isActive={index === currentIndex}
-              onGameSelect={onGameSelect}
+              onGameSelect={onGameSelect ?? (() => {})} // FIX: Add null coalescing with empty function
               cardsPerView={cardsPerView}
             />
           ))}
