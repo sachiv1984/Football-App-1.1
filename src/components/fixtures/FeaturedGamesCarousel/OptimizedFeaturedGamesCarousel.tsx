@@ -44,10 +44,9 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     if (index < 0 || index > maxIndex) return;
     setCurrentIndex(index);
     if (trackRef.current) {
-      const cardWidth = trackRef.current.children[0]?.getBoundingClientRect().width || 0;
-      const gap = 24; // must match CSS gap
-      const translateX = -(index * (cardWidth + gap));
-      trackRef.current.style.transform = `translateX(${translateX}px)`;
+      const slideWidth = 100 / cardsPerView; // Percentage width per slide
+      const translateX = -(index * slideWidth);
+      trackRef.current.style.transform = `translateX(${translateX}%)`;
     }
   };
 
@@ -72,7 +71,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   if (totalSlides === 0) {
     return (
       <div className="flex flex-col items-center justify-center text-center py-20 px-6">
-        {/* Optional illustration */}
         <div className="mb-6">
           <svg
             width="120"
@@ -103,18 +101,41 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   }
 
   return (
-    <div className={`carousel-apple ${className}`} role="region" aria-label="Featured Games Carousel">
-      <div ref={containerRef} className="carousel-container">
-        <div ref={trackRef} className="carousel-track">
+    <div className={`w-full ${className}`} role="region" aria-label="Featured Games Carousel">
+      {/* SIMPLIFIED CAROUSEL - FORCE HORIZONTAL LAYOUT */}
+      <div 
+        ref={containerRef} 
+        className="relative w-full overflow-hidden"
+        style={{ padding: '0 2rem' }}
+      >
+        <div 
+          ref={trackRef} 
+          className="transition-transform duration-300 ease-in-out"
+          style={{
+            display: 'flex',
+            flexDirection: 'row',
+            flexWrap: 'nowrap',
+            gap: '2rem',
+            width: `${(totalSlides * 100) / cardsPerView}%`,
+          }}
+        >
           {fixtures.map((fixture, index) => (
-            <CarouselSlide
+            <div
               key={fixture.id || index}
-              fixture={fixture}
-              index={index}
-              isActive={index === currentIndex}
-              onGameSelect={onGameSelect ?? (() => {})} // FIX: Add null coalescing with empty function
-              cardsPerView={cardsPerView}
-            />
+              style={{
+                flexShrink: 0,
+                width: `${100 / totalSlides}%`,
+                minWidth: `${100 / cardsPerView}%`,
+              }}
+            >
+              <CarouselSlide
+                fixture={fixture}
+                index={index}
+                isActive={index >= currentIndex && index < currentIndex + cardsPerView}
+                onGameSelect={onGameSelect ?? (() => {})}
+                cardsPerView={cardsPerView}
+              />
+            </div>
           ))}
         </div>
 
@@ -122,7 +143,10 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
         {totalSlides > cardsPerView && (
           <>
             <button
-              className="carousel-nav-arrow carousel-nav-arrow-left"
+              className="absolute top-1/2 -translate-y-1/2 left-2 z-20 flex items-center justify-center
+                         w-12 h-12 bg-white rounded-full shadow-lg text-gray-700 hover:text-gray-900 
+                         transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-400 
+                         focus:ring-offset-2 disabled:opacity-30 disabled:cursor-not-allowed"
               onClick={goToPrev}
               disabled={currentIndex === 0}
               aria-label="Previous slides"
@@ -133,7 +157,10 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             </button>
 
             <button
-              className="carousel-nav-arrow carousel-nav-arrow-right"
+              className="absolute top-1/2 -translate-y-1/2 right-2 z-20 flex items-center justify-center
+                         w-12 h-12 bg-white rounded-full shadow-lg text-gray-700 hover:text-gray-900 
+                         transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-400 
+                         focus:ring-offset-2 disabled:opacity-30 disabled:cursor-not-allowed"
               onClick={goToNext}
               disabled={currentIndex >= maxIndex}
               aria-label="Next slides"
@@ -148,12 +175,14 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
       {/* Pagination Dots */}
       {totalSlides > cardsPerView && (
-        <div className="carousel-pagination">
+        <div className="flex justify-center items-center mt-6 gap-2">
           {Array.from({ length: maxIndex + 1 }, (_, index) => (
             <button
               key={index}
-              className={`carousel-dot ${
-                currentIndex === index ? 'carousel-dot-active' : 'carousel-dot-inactive'
+              className={`rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2 h-2 ${
+                currentIndex === index 
+                  ? 'w-6 bg-yellow-400' 
+                  : 'w-2 bg-gray-300 hover:bg-gray-400'
               }`}
               onClick={() => goToIndex(index)}
               aria-label={`Go to slide ${index + 1}`}
