@@ -273,6 +273,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                   }}
                 >
                   {/* Competition header */}
+                  {/* Competition header */}
                   <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100 w-full">
                     <div className="flex items-center justify-center">
                       {fixture.competition.logo && (
