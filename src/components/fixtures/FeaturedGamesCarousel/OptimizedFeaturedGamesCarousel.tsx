@@ -15,7 +15,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   isLoading = false,
 }) => {
   const trackRef = useRef<HTMLDivElement>(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
   const [cardsPerView, setCardsPerView] = useState(3);
 
   // Responsive cards per view (hard-coded breakpoints)
@@ -35,36 +34,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   }, []);
 
   const totalSlides = fixtures.length;
-  const maxIndex = Math.max(0, totalSlides - cardsPerView);
-
-  // Scroll to card on navigation
-  useEffect(() => {
-    if (trackRef.current) {
-      const children = trackRef.current.children;
-      if (children.length > currentIndex) {
-        const card = children[currentIndex] as HTMLElement;
-        card.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
-      }
-    }
-  }, [currentIndex, cardsPerView, fixtures.length]);
-
-  const goToNext = () => {
-    if (currentIndex < maxIndex) {
-      setCurrentIndex(currentIndex + 1);
-    }
-  };
-
-  const goToPrev = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
-    }
-  };
-
-  const goToIndex = (index: number) => {
-    if (index >= 0 && index <= maxIndex) {
-      setCurrentIndex(index);
-    }
-  };
 
   // Loading state
   if (isLoading) {
