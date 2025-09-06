@@ -44,20 +44,19 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
   // Calculate card width after render
   useEffect(() => {
-    if (trackRef.current && trackRef.current.children.length > 0) {
-      const firstCard = trackRef.current.children[0] as HTMLElement;
-      const style = getComputedStyle(firstCard);
-      const gap = parseInt(style.marginRight || '24', 10);
-      setCardWidth(firstCard.offsetWidth + gap);
-    }
-  }, [cardsPerView, fixtures.length]);
+  if (trackRef.current && trackRef.current.children.length > 0) {
+    const firstCard = trackRef.current.children[0] as HTMLElement;
+    const gap = 24; // same as your flex gap
+    setCardWidth(firstCard.offsetWidth + gap);
+  }
+}, [cardsPerView, fixtures.length]);
 
 const goToNext = useCallback(() => {
   setCurrentIndex(prev => Math.min(prev + 1, maxIndex));
 }, [maxIndex]);
 
 const goToPrev = useCallback(() => {
-  setCurrentIndex(prev => Math.max(prev - 1, 0));
+  setCurrentIndex(prev => Math.min(prev + 1, maxIndex));
 }, []);
 
   const goToFirst = useCallback(() => setCurrentIndex(0), []);
