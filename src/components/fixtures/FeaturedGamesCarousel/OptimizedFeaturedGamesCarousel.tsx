@@ -323,6 +323,15 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
         </div>
       )}
 
+      {/* Live region for screen reader announcements */}
+      <div 
+        aria-live="polite" 
+        aria-atomic="true" 
+        className="sr-only"
+      >
+        {announceText}
+      </div>
+
       <div className="sr-only">
         Use arrow keys to navigate between slides, Home key for first slide, End key for last slide. On touch devices, swipe left or right to navigate.
       </div>
