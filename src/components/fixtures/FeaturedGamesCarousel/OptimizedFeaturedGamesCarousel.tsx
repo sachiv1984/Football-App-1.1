@@ -63,7 +63,7 @@ const goToPrev = useCallback(() => {
 }, []);
 
   const goToFirst = useCallback(() => setCurrentIndex(0), []);
-  const goToLast = useCallback(() => setCurrentIndex(maxPageIndex * cardsPerView), [cardsPerView, maxPageIndex]);
+  const goToLast = useCallback(() => setCurrentIndex(maxIndex), [maxIndex]);
 
   // Keyboard navigation
   useEffect(() => {
