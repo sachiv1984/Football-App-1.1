@@ -15,20 +15,16 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   isLoading = false,
 }) => {
   const trackRef = useRef<HTMLDivElement>(null);
-  const cardRef = useRef<HTMLDivElement>(null);
-
   const [currentIndex, setCurrentIndex] = useState(0);
   const [cardsPerView, setCardsPerView] = useState(3);
-  const [cardWidth, setCardWidth] = useState(0);
-  const [gap, setGap] = useState(0);
 
-  // Responsive cardsPerView
+  // Responsive cards per view (hard-coded breakpoints)
   useEffect(() => {
     const calculateCardsPerView = () => {
       const width = window.innerWidth;
-      if (width < 640) return 1;
-      if (width < 1024) return 2;
-      return 3;
+      if (width < 640) return 1; // mobile
+      if (width < 1024) return 2; // tablet
+      return 3; // desktop
     };
     const updateCardsPerView = () => {
       setCardsPerView(calculateCardsPerView());
@@ -38,21 +34,19 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => window.removeEventListener('resize', updateCardsPerView);
   }, []);
 
-  // Measure card width and gap dynamically
-  useEffect(() => {
-    // Wait for DOM paint
-    setTimeout(() => {
-      if (cardRef.current && trackRef.current) {
-        const cardW = cardRef.current.offsetWidth;
-        const computedGap = parseInt(window.getComputedStyle(trackRef.current).gap || "0", 10);
-        setCardWidth(cardW);
-        setGap(computedGap);
-      }
-    }, 0);
-  }, [cardsPerView, fixtures.length]);
-
   const totalSlides = fixtures.length;
   const maxIndex = Math.max(0, totalSlides - cardsPerView);
+
+  // Scroll to card on navigation
+  useEffect(() => {
+    if (trackRef.current) {
+      const children = trackRef.current.children;
+      if (children.length > currentIndex) {
+        const card = children[currentIndex] as HTMLElement;
+        card.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
+      }
+    }
+  }, [currentIndex, cardsPerView, fixtures.length]);
 
   const goToNext = () => {
     if (currentIndex < maxIndex) {
@@ -75,11 +69,17 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   // Loading state
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24, padding: 24 }}>
         {[...Array(3)].map((_, idx) => (
           <div
             key={idx}
-            className="bg-gray-200 animate-pulse rounded-xl aspect-[4/3] p-6"
+            style={{
+              background: '#e5e7eb',
+              animation: 'pulse 2s infinite',
+              borderRadius: 16,
+              aspectRatio: '4/3',
+              padding: 24,
+            }}
           />
         ))}
       </div>
@@ -89,50 +89,57 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   // Empty state
   if (totalSlides === 0) {
     return (
-      <div className="flex flex-col items-center justify-center text-center py-20 px-6">
-        <div className="mb-6">
-          <svg
-            width="120"
-            height="120"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="#6B7280"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="mx-auto opacity-80"
-          >
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '80px 24px' }}>
+        <div style={{ marginBottom: 24 }}>
+          <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.8 }}>
             <circle cx="12" cy="12" r="10" />
             <path d="M8 12h8M12 8v8" />
           </svg>
         </div>
-        <p className="text-lg font-medium text-gray-700 mb-4">
+        <p style={{ fontSize: 18, fontWeight: 500, color: '#374151', marginBottom: 16 }}>
           Check back later for featured games
         </p>
       </div>
     );
   }
 
-  // Calculate transform: always scroll by (cardWidth + gap)
-  const transformX = -(currentIndex * (cardWidth + gap));
+  // Card width and gap (hard-coded)
+  const gap = 24; // px
+  let cardWidth = '100%';
+  let maxWidth = 360;
+  if (cardsPerView === 3) {
+    cardWidth = 'calc(33.333% - 16px)';
+    maxWidth = 520;
+  } else if (cardsPerView === 2) {
+    cardWidth = 'calc(50% - 12px)';
+    maxWidth = 480;
+  }
 
   return (
     <div className={`w-full ${className}`} role="region" aria-label="Featured Games Carousel">
-      <div className="relative overflow-hidden mx-4">
+      <div style={{ position: 'relative', overflow: 'hidden', margin: '0 16px' }}>
         {/* Carousel Track */}
         <div
           ref={trackRef}
-          className="flex transition-transform duration-300 ease-in-out gap-6"
           style={{
-            transform: `translateX(${transformX}px)`,
+            display: 'flex',
+            gap: `${gap}px`,
+            overflowX: 'auto',
+            scrollSnapType: 'x mandatory',
+            WebkitOverflowScrolling: 'touch',
+            scrollBehavior: 'smooth',
+            paddingBottom: 8,
           }}
         >
           {fixtures.map((fixture, index) => (
             <div
               key={fixture.id || index}
-              ref={index === 0 ? cardRef : undefined}
-              className="flex-none carousel-slide"
-              // Let global CSS handle width/max-width!
+              style={{
+                flex: '0 0 auto',
+                width: cardWidth,
+                maxWidth: maxWidth,
+                scrollSnapAlign: 'start',
+              }}
             >
               {/* Card Content */}
               <div
@@ -146,112 +153,111 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                     (onGameSelect ?? (() => {}))(fixture);
                   }
                 }}
-                className="carousel-card"
+                style={{
+                  background: '#fff',
+                  borderRadius: 16,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                  padding: 16,
+                  cursor: 'pointer',
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                }}
               >
                 {/* Competition header */}
-                <div className="flex items-center mb-4 space-x-3">
-                  <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center">
+                <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16, gap: 12 }}>
+                  <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {fixture.competition.logo ? (
                       <img
                         src={fixture.competition.logo}
                         alt={`${fixture.competition.name} logo`}
-                        className="w-10 h-10 object-contain"
+                        style={{ width: 40, height: 40, objectFit: 'contain' }}
                         loading="lazy"
                       />
                     ) : (
-                      <span className="text-gray-400 font-medium text-sm">
+                      <span style={{ color: '#9ca3af', fontWeight: 500, fontSize: 14 }}>
                         {fixture.competition.name[0] || "?"}
                       </span>
                     )}
                   </div>
-                  <span className="text-gray-500 text-sm font-medium truncate">
+                  <span style={{ color: '#6b7280', fontSize: 14, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {fixture.competition.shortName || fixture.competition.name}
                   </span>
                 </div>
 
                 {/* Teams & kickoff */}
-                <div className="flex items-center justify-between mb-4">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                   {/* Home team */}
-                  <div className="text-center flex-1">
-                    <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mb-2 mx-auto">
+                  <div style={{ textAlign: 'center', flex: 1 }}>
+                    <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8, marginLeft: 'auto', marginRight: 'auto' }}>
                       {fixture.homeTeam.logo ? (
                         <img
                           src={fixture.homeTeam.logo}
                           alt={fixture.homeTeam.name}
-                          className="w-12 h-12 object-contain"
+                          style={{ width: 48, height: 48, objectFit: 'contain' }}
                           loading="lazy"
                         />
                       ) : (
-                        <span className="text-gray-400 font-medium">
+                        <span style={{ color: '#9ca3af', fontWeight: 500 }}>
                           {fixture.homeTeam.shortName?.[0] || fixture.homeTeam.name[0]}
                         </span>
                       )}
                     </div>
-                    <div className="text-xs font-medium text-gray-700 truncate px-1">
+                    <div style={{ fontSize: 12, fontWeight: 500, color: '#374151', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', padding: 4 }}>
                       {fixture.homeTeam.shortName || fixture.homeTeam.name}
                     </div>
                   </div>
 
                   {/* Kickoff */}
-                  <div className="flex flex-col items-center text-gray-700 px-3">
-                    <div className="flex items-center space-x-1 mb-1">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-4 w-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#374151', padding: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
+                      <svg xmlns="http://www.w3.org/2000/svg" style={{ height: 16, width: 16 }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      <span className="text-sm font-medium">
+                      <span style={{ fontSize: 14, fontWeight: 500 }}>
                         {new Date(fixture.dateTime).toLocaleTimeString("en-GB", {
                           hour: "2-digit",
                           minute: "2-digit",
                         })}
                       </span>
                     </div>
-                    <div className="text-xs text-gray-500">vs</div>
+                    <div style={{ fontSize: 12, color: '#6b7280' }}>vs</div>
                   </div>
 
                   {/* Away team */}
-                  <div className="text-center flex-1">
-                    <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mb-2 mx-auto">
+                  <div style={{ textAlign: 'center', flex: 1 }}>
+                    <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8, marginLeft: 'auto', marginRight: 'auto' }}>
                       {fixture.awayTeam.logo ? (
                         <img
                           src={fixture.awayTeam.logo}
                           alt={fixture.awayTeam.name}
-                          className="w-12 h-12 object-contain"
+                          style={{ width: 48, height: 48, objectFit: 'contain' }}
                           loading="lazy"
                         />
                       ) : (
-                        <span className="text-gray-400 font-medium">
+                        <span style={{ color: '#9ca3af', fontWeight: 500 }}>
                           {fixture.awayTeam.shortName?.[0] || fixture.awayTeam.name[0]}
                         </span>
                       )}
                     </div>
-                    <div className="text-xs font-medium text-gray-700 truncate px-1">
+                    <div style={{ fontSize: 12, fontWeight: 500, color: '#374151', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', padding: 4 }}>
                       {fixture.awayTeam.shortName || fixture.awayTeam.name}
                     </div>
                   </div>
                 </div>
 
                 {/* Venue */}
-                <div className="text-center">
-                  <div className="text-sm text-gray-500 truncate" title={fixture.venue}>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 14, color: '#6b7280', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={fixture.venue}>
                     📍 {fixture.venue}
                   </div>
                 </div>
 
                 {/* Optional: Show importance indicator */}
                 {fixture.importance >= 80 && (
-                  <div className="mt-3 text-center">
-                    <span className="inline-block bg-yellow-400 text-gray-900 text-xs px-2 py-1 rounded-full font-medium">
+                  <div style={{ marginTop: 12, textAlign: 'center' }}>
+                    <span style={{ display: 'inline-block', background: '#fde68a', color: '#374151', fontSize: 12, padding: '4px 8px', borderRadius: 999, fontWeight: 500 }}>
                       Featured
                     </span>
                   </div>
@@ -265,10 +271,25 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
         {totalSlides > cardsPerView && (
           <>
             <button
-              className="absolute top-1/2 -translate-y-1/2 -left-2 z-20 flex items-center justify-center
-                         w-10 h-10 bg-white rounded-full shadow-lg text-gray-700 hover:text-gray-900 
-                         transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-400 
-                         focus:ring-offset-2 disabled:opacity-30 disabled:cursor-not-allowed"
+              style={{
+                position: 'absolute',
+                top: '50%',
+                left: 0,
+                zIndex: 20,
+                transform: 'translateY(-50%)',
+                width: 40,
+                height: 40,
+                background: '#fff',
+                borderRadius: '50%',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                color: '#374151',
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: currentIndex === 0 ? 'not-allowed' : 'pointer',
+                opacity: currentIndex === 0 ? 0.4 : 1,
+              }}
               onClick={goToPrev}
               disabled={currentIndex === 0}
               aria-label="Previous slides"
@@ -279,10 +300,25 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             </button>
 
             <button
-              className="absolute top-1/2 -translate-y-1/2 -right-2 z-20 flex items-center justify-center
-                         w-10 h-10 bg-white rounded-full shadow-lg text-gray-700 hover:text-gray-900 
-                         transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-400 
-                         focus:ring-offset-2 disabled:opacity-30 disabled:cursor-not-allowed"
+              style={{
+                position: 'absolute',
+                top: '50%',
+                right: 0,
+                zIndex: 20,
+                transform: 'translateY(-50%)',
+                width: 40,
+                height: 40,
+                background: '#fff',
+                borderRadius: '50%',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                color: '#374151',
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: currentIndex >= maxIndex ? 'not-allowed' : 'pointer',
+                opacity: currentIndex >= maxIndex ? 0.4 : 1,
+              }}
               onClick={goToNext}
               disabled={currentIndex >= maxIndex}
               aria-label="Next slides"
@@ -297,15 +333,20 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
       {/* Pagination Dots */}
       {totalSlides > cardsPerView && (
-        <div className="flex justify-center items-center mt-6 gap-2">
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginTop: 24, gap: 8 }}>
           {Array.from({ length: maxIndex + 1 }, (_, index) => (
             <button
               key={index}
-              className={`rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2 h-2 ${
-                currentIndex === index
-                  ? 'w-6 bg-yellow-400'
-                  : 'w-2 bg-gray-300 hover:bg-gray-400'
-              }`}
+              style={{
+                borderRadius: 999,
+                height: 8,
+                transition: 'all 0.2s',
+                outline: 'none',
+                width: currentIndex === index ? 24 : 8,
+                background: currentIndex === index ? '#fde68a' : '#d1d5db',
+                border: 'none',
+                cursor: 'pointer',
+              }}
               onClick={() => goToIndex(index)}
               aria-label={`Go to slide ${index + 1}`}
               aria-current={currentIndex === index ? 'true' : 'false'}
