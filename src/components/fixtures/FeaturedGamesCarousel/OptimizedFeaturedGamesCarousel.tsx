@@ -143,16 +143,16 @@ const goToPrev = useCallback(() => {
             onTouchStart={onTouchStart}
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
-            style={{
-              display: 'flex',
-              gap: '24px',
-              transform: `translateX(-${cardWidth * currentIndex}px)`,
-              transition: 'transform 0.3s ease',
-              flexWrap: 'nowrap',
-              cursor: 'grab',
-            }}
-            className="[&::-webkit-scrollbar]:hidden"
-          >
+  style={{
+    display: 'grid',
+    gridTemplateColumns: `repeat(${fixtures.length}, ${100/cardsPerView}%)`,
+    gap: '24px',
+    transform: `translateX(-${currentIndex * (100/cardsPerView)}%)`,
+    transition: 'transform 0.3s ease',
+    cursor: 'grab',
+  }}
+  className="[&::-webkit-scrollbar]:hidden"
+>
             {fixtures.map((fixture, index) => {
               const isActive = index >= currentIndex && index < currentIndex + cardsPerView;
 
