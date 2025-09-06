@@ -1,6 +1,4 @@
-// Create this as a NEW file: src/components/fixtures/FeaturedGamesCarousel/CarouselSlide.tsx
-// This replaces your existing CarouselSlide.tsx
-
+// Fixed CarouselSlide.tsx - Remove conflicting width styles
 import React from 'react';
 import type { FeaturedFixtureWithImportance } from '../../../types';
 
@@ -17,10 +15,10 @@ const CarouselSlide: React.FC<CarouselSlideProps> = ({
   index,
   isActive,
   onGameSelect,
-  cardsPerView
+  cardsPerView // Remove this parameter as it's not needed for width calculation
 }) => {
-  const cardWidth = `${100 / cardsPerView}%`;
-
+  // Remove the cardWidth calculation - let CSS handle the layout
+  
   return (
     <div
       role="button"
@@ -35,13 +33,13 @@ const CarouselSlide: React.FC<CarouselSlideProps> = ({
         }
       }}
       className={`
-        carousel-card
+        carousel-card carousel-slide
         ${isActive ? 'carousel-slide-active' : ''}
         transition-all duration-300 ease-in-out
         cursor-pointer
         focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2
       `}
-      style={{ width: cardWidth }}
+      // Remove the inline style that was setting width
     >
       {/* Competition header */}
       <div className="flex items-center mb-4 space-x-3">
