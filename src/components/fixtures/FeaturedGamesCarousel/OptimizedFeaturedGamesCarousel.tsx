@@ -262,7 +262,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                     <div className="text-center flex-1">
                       <div className={`w-20 h-20 rounded-full bg-white flex items-center justify-center mb-3 mx-auto transition-all duration-200 ${isActive ? 'scale-105' : 'scale-100'} hover:scale-102`} style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
                         {fixture.awayTeam.logo ? (
-                          <img src={fixture.awayTeam.logo} alt={fixture.awayTeam.name} className="w-16 h-16 object-contain" loading="lazy" />
+                          <img src={fixture.awayTeam.logo} alt={fixture.awayTeam.name} className="w-16 h-16 object-contain" loading="lazy" draggable="false" />
                         ) : (
                           <span className="text-gray-400 font-medium text-lg">{fixture.awayTeam.shortName?.[0] || fixture.awayTeam.name[0]}</span>
                         )}
