@@ -1,24 +1,14 @@
 import { useState, useRef, useEffect } from "react";
-
-interface Game {
-  id: string;
-  homeTeam: string;
-  awayTeam: string;
-  homeLogo?: string;
-  awayLogo?: string;
-  competitionLogo?: string;
-  kickoff: string;
-  venue: string;
-}
+import { FeaturedFixtureWithImportance } from "../../../types";
 
 interface FeaturedGamesCarouselProps {
-  games?: Game[];
-  onGameSelect: (game: Game) => void;
+  fixtures?: FeaturedFixtureWithImportance[];
+  onGameSelect: (fixture: FeaturedFixtureWithImportance) => void;
   isLoading?: boolean;
 }
 
 export default function FeaturedGamesCarousel({
-  games = [],
+  fixtures = [],
   onGameSelect,
   isLoading = false,
 }: FeaturedGamesCarouselProps) {
@@ -41,7 +31,7 @@ export default function FeaturedGamesCarousel({
   // Keyboard navigation
   const prevSlide = () => setActiveIndex((prev) => Math.max(prev - 1, 0));
   const nextSlide = () =>
-    setActiveIndex((prev) => Math.min(prev + 1, games.length - cardsPerView));
+    setActiveIndex((prev) => Math.min(prev + 1, fixtures.length - cardsPerView));
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === "ArrowLeft") prevSlide();
@@ -87,7 +77,7 @@ export default function FeaturedGamesCarousel({
   }
 
   // Empty state
-  if (games.length === 0) {
+  if (fixtures.length === 0) {
     return (
       <div className="text-center py-16 text-gray-500">
         <p className="mb-4">Check back later for featured games</p>
@@ -111,15 +101,15 @@ export default function FeaturedGamesCarousel({
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >
-        {games.map((game, idx) => {
+        {fixtures.map((fixture, idx) => {
           const isActive = idx === activeIndex;
           return (
             <div
-              key={game.id}
+              key={fixture.id}
               role="button"
-              aria-label={`View match between ${game.homeTeam} and ${game.awayTeam}`}
+              aria-label={`View match between ${fixture.homeTeam.name} and ${fixture.awayTeam.name}`}
               aria-live={isActive ? "polite" : undefined}
-              onClick={() => onGameSelect(game)}
+              onClick={() => onGameSelect(fixture)}
               className={`
                 flex-shrink-0
                 bg-white
@@ -130,6 +120,7 @@ export default function FeaturedGamesCarousel({
                 ${isActive ? "scale-105 shadow-card-hover" : "opacity-90"}
                 p-6 sm:p-8
                 flex flex-col justify-between
+                cursor-pointer
               `}
               style={{ width: cardWidth, aspectRatio: "4/3" }}
             >
@@ -140,21 +131,21 @@ export default function FeaturedGamesCarousel({
                     reduceMotion ? "" : "transition-transform duration-300"
                   } ${isActive ? "scale-100" : "scale-90"}`}
                 >
-                  {game.competitionLogo ? (
+                  {fixture.competition.logo ? (
                     <img
-                      src={game.competitionLogo}
-                      alt="Competition logo"
+                      src={fixture.competition.logo}
+                      alt={`${fixture.competition.name} logo`}
                       className="w-12 h-12 sm:w-14 sm:h-14 object-contain"
                       loading="lazy"
                     />
                   ) : (
                     <span className="text-gray-400 font-medium">
-                      {game.homeTeam[0] || "?"}
+                      {fixture.competition.name[0] || "?"}
                     </span>
                   )}
                 </div>
                 <span className="text-gray-500 text-sm sm:text-base">
-                  {game.competitionLogo ? "" : game.homeTeam}
+                  {fixture.competition.shortName || fixture.competition.name}
                 </span>
               </div>
 
@@ -162,16 +153,16 @@ export default function FeaturedGamesCarousel({
               <div className="flex items-center justify-between mb-4">
                 {/* Home team */}
                 <div className="w-20 h-20 rounded-full bg-white shadow flex items-center justify-center">
-                  {game.homeLogo ? (
+                  {fixture.homeTeam.logo ? (
                     <img
-                      src={game.homeLogo}
-                      alt={game.homeTeam}
+                      src={fixture.homeTeam.logo}
+                      alt={fixture.homeTeam.name}
                       className="w-16 h-16 object-contain"
                       loading="lazy"
                     />
                   ) : (
                     <span className="text-gray-400 font-medium">
-                      {game.homeTeam[0]}
+                      {fixture.homeTeam.shortName?.[0] || fixture.homeTeam.name[0]}
                     </span>
                   )}
                 </div>
@@ -194,7 +185,7 @@ export default function FeaturedGamesCarousel({
                       />
                     </svg>
                     <span>
-                      {new Date(game.kickoff).toLocaleTimeString("en-GB", {
+                      {new Date(fixture.dateTime).toLocaleTimeString("en-GB", {
                         hour: "2-digit",
                         minute: "2-digit",
                       })}
@@ -204,24 +195,24 @@ export default function FeaturedGamesCarousel({
 
                 {/* Away team */}
                 <div className="w-20 h-20 rounded-full bg-white shadow flex items-center justify-center">
-                  {game.awayLogo ? (
+                  {fixture.awayTeam.logo ? (
                     <img
-                      src={game.awayLogo}
-                      alt={game.awayTeam}
+                      src={fixture.awayTeam.logo}
+                      alt={fixture.awayTeam.name}
                       className="w-16 h-16 object-contain"
                       loading="lazy"
                     />
                   ) : (
                     <span className="text-gray-400 font-medium">
-                      {game.awayTeam[0]}
+                      {fixture.awayTeam.shortName?.[0] || fixture.awayTeam.name[0]}
                     </span>
                   )}
                 </div>
               </div>
 
               {/* Venue */}
-              <div className="text-gray-500 text-sm sm:text-base truncate" title={game.venue}>
-                {game.venue}
+              <div className="text-gray-500 text-sm sm:text-base truncate" title={fixture.venue}>
+                {fixture.venue}
               </div>
             </div>
           );
@@ -251,11 +242,11 @@ export default function FeaturedGamesCarousel({
 
       <button
         onClick={nextSlide}
-        disabled={activeIndex >= games.length - cardsPerView}
+        disabled={activeIndex >= fixtures.length - cardsPerView}
         className={`
           absolute right-2 top-1/2 transform -translate-y-1/2 w-6 h-6 flex items-center justify-center
           bg-white rounded-full shadow hover:bg-gray-100 transition-opacity
-          ${activeIndex >= games.length - cardsPerView ? "opacity-50 cursor-not-allowed" : "opacity-100"}
+          ${activeIndex >= fixtures.length - cardsPerView ? "opacity-50 cursor-not-allowed" : "opacity-100"}
         `}
       >
         <svg
@@ -271,12 +262,12 @@ export default function FeaturedGamesCarousel({
 
       {/* Pagination */}
       <div className="flex justify-center mt-4 space-x-2">
-        {games.map((_, idx) => (
+        {fixtures.map((_, idx) => (
           <span
             key={idx}
             onClick={() => setActiveIndex(idx)}
             className={`cursor-pointer transition-all duration-200 h-2 ${
-            idx === activeIndex ? "w-6 bg-yellow-400 rounded-full" : "w-2 bg-gray-300 rounded-full"
+              idx === activeIndex ? "w-6 bg-yellow-400 rounded-full" : "w-2 bg-gray-300 rounded-full"
             }`}
             aria-current={idx === activeIndex ? "true" : undefined}
           />
