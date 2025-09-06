@@ -54,8 +54,9 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
 
 const goToNext = useCallback(() => {
-  setCurrentIndex(prev => Math.min(prev + 1, maxPageIndex));
-}, [maxPageIndex]);
+  setCurrentIndex(prev => Math.min(prev + 1, maxIndex));
+}, [maxIndex]);
+
 
 const goToPrev = useCallback(() => {
   setCurrentIndex(prev => Math.max(prev - 1, 0));
