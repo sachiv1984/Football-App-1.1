@@ -294,3 +294,4 @@ const goToPrev = useCallback(() => {
 
 export default OptimizedFeaturedGamesCarousel;
 
+
