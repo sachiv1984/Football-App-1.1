@@ -8,11 +8,11 @@ interface Props {
   isLoading?: boolean;
 }
 
-const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({ 
-  fixtures, 
-  onGameSelect, 
+const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
+  fixtures,
+  onGameSelect,
   className = '',
-  isLoading = false
+  isLoading = false,
 }) => {
   const trackRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -20,9 +20,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [cardsPerView, setCardsPerView] = useState(3);
   const [cardWidth, setCardWidth] = useState(0);
-
-  // Tailwind gap-6 = 1.5rem = 24px
-  const gap = 24;
+  const [gap, setGap] = useState(0);
 
   // Responsive cardsPerView
   useEffect(() => {
@@ -32,24 +30,23 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
       if (width < 1024) return 2;
       return 3;
     };
-
     const updateCardsPerView = () => {
       setCardsPerView(calculateCardsPerView());
     };
-
     updateCardsPerView();
     window.addEventListener('resize', updateCardsPerView);
     return () => window.removeEventListener('resize', updateCardsPerView);
   }, []);
 
-  // Measure card width (including margin/gap)
+  // Measure card width and gap dynamically
   useEffect(() => {
-    if (cardRef.current) {
-      const style = window.getComputedStyle(cardRef.current);
-      const width = cardRef.current.offsetWidth;
-      // For pixel-perfect scroll, include gap except on last card
-      const marginRight = parseInt(style.marginRight || "0", 10);
-      setCardWidth(width + marginRight);
+    if (cardRef.current && trackRef.current) {
+      const cardEl = cardRef.current;
+      const trackEl = trackRef.current;
+      const cardW = cardEl.offsetWidth;
+      const computedGap = parseInt(window.getComputedStyle(trackEl).gap || "0", 10);
+      setCardWidth(cardW);
+      setGap(computedGap);
     }
   }, [cardsPerView, fixtures.length]);
 
@@ -74,6 +71,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     }
   };
 
+  // Loading state
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
@@ -87,6 +85,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     );
   }
 
+  // Empty state
   if (totalSlides === 0) {
     return (
       <div className="flex flex-col items-center justify-center text-center py-20 px-6">
@@ -113,14 +112,15 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     );
   }
 
-  // Pixel-based transform for accuracy
-  const transformX = -(currentIndex * cardWidth);
+  // Calculate transform based on pixel width and gap
+  // Don't add gap after the last card, so use (cardWidth + gap) * index
+  const transformX = -(currentIndex * (cardWidth + gap));
 
   return (
     <div className={`w-full ${className}`} role="region" aria-label="Featured Games Carousel">
       <div className="relative overflow-hidden mx-4">
         {/* Carousel Track */}
-        <div 
+        <div
           ref={trackRef}
           className="flex transition-transform duration-300 ease-in-out gap-6"
           style={{
@@ -133,7 +133,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
               ref={index === 0 ? cardRef : undefined}
               className="flex-none"
               style={{
-                width: `calc(${100 / cardsPerView}% - ${gap * (cardsPerView - 1) / cardsPerView}px)`,
+                // Let global CSS handle width and max-width
               }}
             >
               {/* Card Content */}
@@ -148,9 +148,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                     (onGameSelect ?? (() => {}))(fixture);
                   }
                 }}
-                className="w-full bg-white cursor-pointer rounded-xl transition-all duration-300 ease-in-out 
-                           p-6 shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 
-                           focus:ring-yellow-400 focus:ring-offset-2 hover:scale-[1.02] aspect-[4/3]"
+                className="carousel-card"
               >
                 {/* Competition header */}
                 <div className="flex items-center mb-4 space-x-3">
@@ -306,8 +304,8 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             <button
               key={index}
               className={`rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2 h-2 ${
-                currentIndex === index 
-                  ? 'w-6 bg-yellow-400' 
+                currentIndex === index
+                  ? 'w-6 bg-yellow-400'
                   : 'w-2 bg-gray-300 hover:bg-gray-400'
               }`}
               onClick={() => goToIndex(index)}
