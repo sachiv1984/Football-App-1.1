@@ -18,6 +18,8 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [cardsPerView, setCardsPerView] = useState(3);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
   // Responsive cards per view (hard-coded breakpoints)
   useEffect(() => {
@@ -103,6 +105,32 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [goToNext, goToPrev, goToFirst, goToLast]);
+
+  // Touch/swipe handlers
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe) {
+      goToNext();
+    } else if (isRightSwipe) {
+      goToPrev();
+    }
+  };
 
   // Loading state
   if (isLoading) {
@@ -207,19 +235,21 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
         <div className="relative w-full overflow-hidden px-12">
           <div
             ref={trackRef}
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
             style={{
               display: 'flex',
-    flexDirection: 'row',
-    gap: '24px',
-    overflowX: 'hidden',              // ✅ allows drag
-    scrollSnapType: 'x mandatory',  // ✅ keeps Netflix snap (use 'none' if you want free scroll)
-    WebkitOverflowScrolling: 'touch',
-    scrollBehavior: 'smooth',
-    paddingBottom: '8px',
-    flexWrap: 'nowrap',
-    scrollbarWidth: 'none',
-    msOverflowStyle: 'none',
-    touchAction: 'pan-y',           // ✅ prevents vertical drag conflicts
+              flexDirection: 'row',
+              gap: '24px',
+              overflowX: 'auto',
+              scrollSnapType: 'x mandatory',
+              WebkitOverflowScrolling: 'touch',
+              scrollBehavior: 'smooth',
+              paddingBottom: '8px',
+              flexWrap: 'nowrap',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
             }}
             className="[&::-webkit-scrollbar]:hidden"
           >
@@ -290,40 +320,35 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                     }}
                   >
                     {/* Competition header - incorporating CompetitionHeader.tsx */}
-<div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100 w-full">
-  <div className="flex items-center justify-center">
-    {fixture.competition.logo && (
-      <div 
-        className={`
-          bg-white rounded-full shadow-lg flex items-center justify-center
-          transition-all duration-300 ease-out
-          hover:scale-105 hover:shadow-xl active:scale-102
-          ${isActive ? 'scale-100' : 'scale-90'}
-          w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20
-        `}
-      >
-        <img
-          src={fixture.competition.logo}
-          alt={fixture.competition.name}
-          className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 object-contain"
-          loading="lazy"
-        />
-      </div>
-    )}
-  </div>
-  <div className="bg-gray-100 px-3 py-1.5 rounded-full">
-    <span 
-      className="text-xs md:text-sm font-medium"
-      style={{
-        color: '#6B7280',
-        fontFamily: 'Inter, system-ui, sans-serif'
-      }}
-    >
-      Week {fixture.matchWeek || 1}
-    </span>
-  </div>
-</div>
-
+                    <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100 w-full">
+                      <div className="flex items-center justify-center">
+                        {fixture.competition.logo && (
+                          <div 
+                            className={`w-20 h-20 bg-white rounded-full shadow-lg flex items-center justify-center transition-all duration-300 ease-out hover:scale-105 hover:shadow-xl active:scale-102 ${
+                              isActive ? 'scale-100' : 'scale-90'
+                            }`}
+                          >
+                            <img
+                              src={fixture.competition.logo}
+                              alt={fixture.competition.name}
+                              className="w-12 h-12 object-contain"
+                              loading="lazy"
+                            />
+                          </div>
+                        )}
+                      </div>
+                      <div className="bg-gray-100 px-3 py-1.5 rounded-full">
+                        <span 
+                          className="text-xs md:text-sm font-medium"
+                          style={{
+                            color: '#6B7280',
+                            fontFamily: 'Inter, system-ui, sans-serif'
+                          }}
+                        >
+                          Week {fixture.matchWeek || 1}
+                        </span>
+                      </div>
+                    </div>
 
                     {/* Teams & kickoff */}
                     <div className="flex items-center justify-between mb-4">
