@@ -31,10 +31,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const inactiveColor = '#D1D5DB';
   const activeColor = '#FFD700';
 
-  // Calculate card width including gap
-  const cardWidth = 100 / cardsPerView;
-  const translateX = -(currentIndex * cardWidth);
-
   // Announce slide changes for screen readers
   const announceSlideChange = useCallback((index: number) => {
     const fixture = fixtures[index];
@@ -155,7 +151,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
           <button 
             onClick={goToPrev} 
             disabled={currentIndex === 0} 
-            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white shadow-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500" 
             style={{ width: '40px', height: '40px' }} 
             aria-label="Previous games"
             tabIndex={0}
@@ -171,7 +167,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
           <button 
             onClick={goToNext} 
             disabled={currentIndex === maxIndex} 
-            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white shadow-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500" 
             style={{ width: '40px', height: '40px' }} 
             aria-label="Next games"
             tabIndex={0}
@@ -183,7 +179,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
         )}
 
         {/* Carousel Track */}
-        <div className="relative w-full overflow-hidden px-12">
+        <div className="overflow-hidden px-12">
           <div
             ref={trackRef}
             onTouchStart={onTouchStart}
@@ -191,11 +187,12 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             onTouchEnd={onTouchEnd}
             onMouseDown={(e) => e.preventDefault()}
             onDragStart={(e) => e.preventDefault()}
-            className="flex gap-6 select-none"
+            className="flex select-none"
             style={{
-              transform: `translateX(${translateX}%)`,
+              transform: `translateX(calc(-${currentIndex} * (${100 / cardsPerView}% + 24px)))`,
               transition: prefersReducedMotion ? 'none' : 'transform 0.3s ease-out',
               touchAction: 'none',
+              gap: '24px',
             }}
           >
             {fixtures.map((fixture, index) => {
@@ -204,7 +201,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
               return (
                 <div
                   key={fixture.id || index}
-                  className={`transition-all duration-300 ${isActive ? 'opacity-100 scale-105' : 'opacity-90 scale-100'} focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 select-none cursor-pointer`}
+                  className={`transition-all duration-300 ${isActive ? 'opacity-100 scale-105' : 'opacity-90 scale-100'} focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 select-none cursor-pointer bg-white rounded-xl shadow-lg hover:shadow-xl`}
                   role="button"
                   tabIndex={0}
                   aria-label={`View match between ${fixture.homeTeam.name} and ${fixture.awayTeam.name} on ${new Date(fixture.dateTime).toLocaleDateString("en-GB")}`}
@@ -216,12 +213,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                     }
                   }}
                   style={{
-                    flex: `0 0 ${100 / cardsPerView}%`,
-                    background: '#FFFFFF',
-                    borderRadius: '12px',
-                    boxShadow: isActive
-                      ? '0 8px 25px rgba(0,0,0,0.15), 0 4px 10px rgba(0,0,0,0.1)'
-                      : 'var(--shadow-card, 0 4px 6px rgba(0,0,0,0.07))',
+                    flex: `0 0 calc(${100 / cardsPerView}% - ${24 * (cardsPerView - 1) / cardsPerView}px)`,
                     padding: cardsPerView === 1 ? '16px' : '24px',
                     aspectRatio: '4/3',
                     display: 'flex',
