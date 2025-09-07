@@ -348,12 +348,8 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                 setCurrentIndex(index);
                 announceSlideChange(index);
               }}
-              className="transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2"
+              className={`carousel-dot ${currentIndex === index ? 'active' : ''} focus:outline-none focus:ring-2 focus:ring-offset-2`}
               style={{
-                width: currentIndex === index ? '24px' : '8px',
-                height: '8px',
-                borderRadius: currentIndex === index ? '9999px' : '50%',
-                backgroundColor: currentIndex === index ? activeColor : inactiveColor,
                 '--tw-ring-color': focusRingColor,
               } as React.CSSProperties}
               aria-label={`Go to slide ${index + 1}`}
