@@ -404,8 +404,9 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
         </div>
       </div>
 
-      {showNavigation && maxIndex > 0 && (
-        <div className="flex justify-center mt-6 space-x-2">
+      {showNavigation && (
+        <div className="flex justify-center mt-6 space-x-2" style={{ minHeight: '20px', backgroundColor: 'rgba(255,0,0,0.1)' }}>
+          <div className="text-sm text-gray-500 mb-2">Debug: maxIndex = {maxIndex}, showNavigation = {showNavigation ? 'true' : 'false'}</div>
           {Array.from({ length: maxIndex + 1 }, (_, index) => (
             <button
               key={index}
@@ -414,6 +415,14 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                 announceSlideChange(index);
               }}
               className={`carousel-dot ${currentIndex === index ? 'active' : ''}`}
+              style={{ 
+                width: currentIndex === index ? '24px' : '8px',
+                height: '8px',
+                backgroundColor: currentIndex === index ? '#FFD700' : '#9CA3AF',
+                borderRadius: '9999px',
+                border: '1px solid #000',
+                transition: 'all 0.2s'
+              }}
               aria-label={`Go to slide ${index + 1}`}
               aria-current={currentIndex === index ? 'true' : 'false'}
             />
