@@ -21,6 +21,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [announceText, setAnnounceText] = useState('');
+  const [isVisible, setIsVisible] = useState(false);
   
   const totalSlides = fixtures.length;
   const maxIndex = Math.max(0, totalSlides - cardsPerView);
@@ -30,6 +31,13 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
   const inactiveColor = '#D1D5DB';
   const activeColor = '#FFD700';
+  const focusRingColor = '#FFD700'; // Soft gold focus ring
+
+  // Fade-in animation on mount
+  useEffect(() => {
+    const timer = setTimeout(() => setIsVisible(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Announce slide changes for screen readers
   const announceSlideChange = useCallback((index: number) => {
@@ -119,7 +127,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 p-6">
         {[...Array(3)].map((_, idx) => (
           <div key={idx} className="bg-gray-200 animate-pulse rounded-xl aspect-[4/3] p-6" />
         ))}
@@ -144,15 +152,21 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const showNavigation = totalSlides > cardsPerView;
 
   return (
-    <div ref={containerRef} className={`w-full ${className}`} role="region" aria-label="Featured Games Carousel" tabIndex={0}>
+    <div 
+      ref={containerRef} 
+      className={`w-full transition-all duration-500 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'} ${className}`} 
+      role="region" 
+      aria-label="Featured Games Carousel" 
+      tabIndex={0}
+    >
       <div className="relative">
         {/* Left Arrow */}
         {showNavigation && (
           <button 
             onClick={goToPrev} 
             disabled={currentIndex === 0} 
-            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white shadow-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500" 
-            style={{ width: '40px', height: '40px' }} 
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white shadow-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2" 
+            style={{ width: '40px', height: '40px', '--tw-ring-color': focusRingColor } as React.CSSProperties}
             aria-label="Previous games"
             tabIndex={0}
           >
@@ -167,8 +181,8 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
           <button 
             onClick={goToNext} 
             disabled={currentIndex === maxIndex} 
-            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white shadow-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500" 
-            style={{ width: '40px', height: '40px' }} 
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white shadow-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2" 
+            style={{ width: '40px', height: '40px', '--tw-ring-color': focusRingColor } as React.CSSProperties}
             aria-label="Next games"
             tabIndex={0}
           >
@@ -189,10 +203,10 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             onDragStart={(e) => e.preventDefault()}
             className="flex select-none"
             style={{
-              transform: `translateX(calc(-${currentIndex} * (${100 / cardsPerView}% + 24px)))`,
+              transform: `translateX(calc(-${currentIndex} * (${100 / cardsPerView}% + ${cardsPerView === 1 ? '16px' : '32px'})))`,
               transition: prefersReducedMotion ? 'none' : 'transform 0.3s ease-out',
               touchAction: 'none',
-              gap: '24px',
+              gap: cardsPerView === 1 ? '16px' : '32px',
             }}
           >
             {fixtures.map((fixture, index) => {
@@ -201,7 +215,9 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
               return (
                 <div
                   key={fixture.id || index}
-                  className={`transition-all duration-300 ${isActive ? 'opacity-100 scale-105' : 'opacity-90 scale-100'} focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 select-none cursor-pointer bg-white rounded-xl shadow-lg hover:shadow-xl`}
+                  className={`transition-all duration-300 ${
+                    isActive ? 'opacity-100 scale-105' : 'opacity-90 scale-100'
+                  } focus:outline-none focus:ring-2 focus:ring-offset-2 select-none cursor-pointer bg-white rounded-xl shadow-lg hover:shadow-xl`}
                   role="button"
                   tabIndex={0}
                   aria-label={`View match between ${fixture.homeTeam.name} and ${fixture.awayTeam.name} on ${new Date(fixture.dateTime).toLocaleDateString("en-GB")}`}
@@ -213,14 +229,15 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                     }
                   }}
                   style={{
-                    flex: `0 0 calc(${100 / cardsPerView}% - ${24 * (cardsPerView - 1) / cardsPerView}px)`,
+                    flex: `0 0 calc(${100 / cardsPerView}% - ${(cardsPerView === 1 ? 16 : 32) * (cardsPerView - 1) / cardsPerView}px)`,
                     padding: cardsPerView === 1 ? '16px' : '24px',
-                    aspectRatio: '4/3',
+                    aspectRatio: '4/3', // Enforced 4:3 aspect ratio
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
                     maxWidth: cardsPerView === 1 ? '360px' : cardsPerView === 2 ? '480px' : '520px',
-                  }}
+                    '--tw-ring-color': focusRingColor,
+                  } as React.CSSProperties}
                   draggable={false}
                 >
                   {/* Competition header */}
@@ -274,7 +291,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                         {fixture.awayTeam.logo ? (
                           <img src={fixture.awayTeam.logo} alt={fixture.awayTeam.name} className="w-16 h-16 object-contain" loading="lazy" draggable="false" />
                         ) : (
-                          <span className="text-gray-400 font-medium text-lg">{fixture.awayTeam.shortName?.[0] || fixture.awayTeam.name[0]}</span>
+                          <span className="text-gray-400 font-medium text-lg">{fixture.awayTeam.shortName?.[1] || fixture.awayTeam.name[0]}</span>
                         )}
                       </div>
                       <div className="text-xs font-medium text-gray-700 truncate px-1">{fixture.awayTeam.shortName || fixture.awayTeam.name}</div>
@@ -284,7 +301,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                   {/* Venue */}
                   <div className="text-center" style={{ marginTop: cardsPerView === 1 ? '12px' : '16px' }}>
                     <div className="truncate cursor-help transition-colors duration-200 hover:text-gray-700" style={{ fontFamily: 'Inter, system-ui, sans-serif', fontSize: cardsPerView === 1 ? '14px' : '16px', fontWeight: 500, color: '#6B7280' }} title={fixture.venue}>
-                      📍 {fixture.venue}
+                      {fixture.venue}
                     </div>
                   </div>
 
@@ -316,13 +333,14 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                 setCurrentIndex(index);
                 announceSlideChange(index);
               }}
-              className="transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2"
               style={{
                 width: currentIndex === index ? '24px' : '8px',
                 height: '8px',
                 borderRadius: currentIndex === index ? '9999px' : '50%',
                 backgroundColor: currentIndex === index ? activeColor : inactiveColor,
-              }}
+                '--tw-ring-color': focusRingColor,
+              } as React.CSSProperties}
               aria-label={`Go to slide ${index + 1}`}
               aria-current={currentIndex === index ? 'true' : 'false'}
               tabIndex={0}
