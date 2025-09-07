@@ -112,7 +112,7 @@
 .carousel-card {
   @apply rounded-xl bg-white cursor-pointer select-none border border-gray-300;
   box-shadow: var(--shadow-card);
-  transition: transform 0.3s ease-out, box-shadow 0.3s ease-out, border-color 0.3s ease-out;
+  transition: transform 0.3s ease-out, box-shadow 0.3s ease-out;
 }
 
 .carousel-card:hover {
@@ -121,7 +121,9 @@
 }
 
 .carousel-card.active {
-  @apply scale-108 z-20 border-2 border-focus-gold;
+  @apply scale-108 z-20;
+  outline: 3px solid #FFD700; /* golden border */
+  outline-offset: -4px;       /* pulls it closer to the card */
   box-shadow: var(--shadow-card-active);
 }
 
