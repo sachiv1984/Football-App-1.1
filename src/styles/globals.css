@@ -109,22 +109,22 @@
 
   /* Cards */
   .card,
-  .carousel-card {
-    @apply rounded-xl bg-white cursor-pointer select-none;
-    box-shadow: var(--shadow-card);
-    transition: all 0.3s ease-out;
-  }
+ .carousel-card {
+  @apply rounded-xl bg-white cursor-pointer select-none border-2 border-focus-gold;
+  box-shadow: var(--shadow-card);
+  transition: all 0.3s ease-out;
+}
 
-  .carousel-card:hover {
-    transform: scale(var(--card-scale-hover));
-    box-shadow: var(--shadow-card-hover);
-  }
+.carousel-card:hover {
+  @apply scale-102;
+  box-shadow: var(--shadow-card-hover);
+}
 
-  .carousel-card.active {
-    transform: scale(var(--card-scale-active));
-    box-shadow: var(--shadow-card-active);
-    z-index: 2;
-  }
+.carousel-card.active {
+  @apply scale-108 z-20;
+  box-shadow: var(--shadow-card-active);
+}
+
 
   /* Inactive cards blur/fade effect */
   .carousel-card:not(.active) {
