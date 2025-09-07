@@ -405,8 +405,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
       </div>
 
       {showNavigation && (
-        <div className="flex justify-center mt-6 space-x-2" style={{ minHeight: '20px', backgroundColor: 'rgba(255,0,0,0.1)' }}>
-          <div className="text-sm text-gray-500 mb-2">Debug: maxIndex = {maxIndex}, showNavigation = {showNavigation ? 'true' : 'false'}</div>
+        <div className="flex justify-center items-center mt-6 space-x-2 w-full" style={{ minHeight: '32px' }}>
           {Array.from({ length: maxIndex + 1 }, (_, index) => (
             <button
               key={index}
@@ -414,14 +413,16 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                 setCurrentIndex(index);
                 announceSlideChange(index);
               }}
-              className={`carousel-dot ${currentIndex === index ? 'active' : ''}`}
+              className="focus:outline-none"
               style={{ 
-                width: currentIndex === index ? '24px' : '8px',
-                height: '8px',
-                backgroundColor: currentIndex === index ? '#FFD700' : '#9CA3AF',
+                width: currentIndex === index ? '24px' : '12px',
+                height: '12px',
+                backgroundColor: currentIndex === index ? '#FFD700' : '#6B7280',
                 borderRadius: '9999px',
-                border: '1px solid #000',
-                transition: 'all 0.2s'
+                border: 'none',
+                transition: 'all 0.3s ease',
+                cursor: 'pointer',
+                margin: '0 4px'
               }}
               aria-label={`Go to slide ${index + 1}`}
               aria-current={currentIndex === index ? 'true' : 'false'}
