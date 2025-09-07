@@ -59,6 +59,9 @@ module.exports = {
       height: {
         'dot': '8px',
       },
+      ringColor: {
+        'focus-gold': '#FFD700',
+      },
       transitionDuration: {
         '300': '300ms',
       },
