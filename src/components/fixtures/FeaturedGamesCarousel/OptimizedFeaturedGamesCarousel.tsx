@@ -349,12 +349,12 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                       </div>
 
                       {/* Venue & Badge */}
-                      <div className="flex flex-col items-center">
-                        <div className="text-xs text-gray-500 truncate">{fixture.venue}</div>
-                        {fixture.importance >= 80 && (
-                          <span className="mt-2 inline-block bg-yellow-400 text-gray-900 px-2 py-1 rounded-full text-[10px] sm:text-[12px]">
-                            Featured
-                          </span>
+                     <div className="flex flex-col items-center mt-2">
+    <div className="text-xs text-gray-500 text-center truncate">{fixture.venue}</div>
+    {fixture.importance >= 80 && (
+      <span className="mt-2 inline-block bg-yellow-400 text-gray-900 px-2 py-1 rounded-full text-[10px] sm:text-[12px]">
+        Featured
+      </span>
                         )}
                       </div>
                     </div>
