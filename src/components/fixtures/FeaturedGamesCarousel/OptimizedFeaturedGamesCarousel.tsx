@@ -227,25 +227,23 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
               return (
                 <div
-                  key={fixture.id || index}
-                  className={`rounded-xl p-2 transition-transform duration-300`}
-                  style={{
-                    flex: `0 0 calc(${100 / cardsPerView}% - 16px)`,
-                    boxShadow: isActive ? '0 12px 20px rgba(0,0,0,0.25)' : '0 6px 12px rgba(0,0,0,0.1)',
-                    transform: isActive ? 'scale(1.05)' : 'scale(1)',
-                    border: isActive ? '2px solid #FFD700' : '1px solid #D1D5DB',
-                    borderRadius: '16px',
-                  }}
-                  role="listitem"
-                >
-                  <button
-                    className="carousel-card flex flex-col justify-between p-4 h-full w-full bg-gradient-to-b from-white to-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-focus-gold"
-                    aria-label={`View match between ${fixture.homeTeam.name} and ${fixture.awayTeam.name} on ${new Date(
-                      fixture.dateTime
-                    ).toLocaleDateString('en-GB')}`}
-                    onClick={() => onGameSelect?.(fixture)}
-                    draggable={false}
-                  >
+               key={fixture.id || index}
+  className={`transition-transform duration-300`}
+  style={{
+    flex: `0 0 calc(${100 / cardsPerView}% - 16px)`,
+    boxShadow: isActive ? '0 12px 20px rgba(0,0,0,0.25)' : '0 6px 12px rgba(0,0,0,0.1)',
+    transform: isActive ? 'scale(1.05)' : 'scale(1)',
+    border: isActive ? '2px solid #FFD700' : '1px solid #D1D5DB',
+    borderRadius: '16px',
+  }}
+  role="listitem"
+>
+  <button
+    className="carousel-card flex flex-col justify-between p-4 h-full w-full bg-gradient-to-b from-white to-gray-50 aspect-[4/3] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-focus-gold"
+    aria-label={`View match between ${fixture.homeTeam.name} and ${fixture.awayTeam.name}`}
+    onClick={() => onGameSelect?.(fixture)}
+    draggable={false}
+  >
                     {/* Competition Logo */}
                     <div className="flex items-center justify-center mb-4 gap-2">
                       {fixture.competition.logo && (
