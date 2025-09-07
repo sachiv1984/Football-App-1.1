@@ -1,19 +1,23 @@
 // src/styles/designTokens.ts
+
 export const designTokens = {
   colors: {
     background: '#FFFFFF',
-    text: '#374151',
+    text: '#374151', // default dark gray body text
+
     // Primary Accent Colors (Energy)
     primary: {
-      electricYellow: '#FFFF00',
+      electricYellow: '#FFFF00', // legacy bright accent
       neonGreen: '#39FF14',
       50: '#FFFBEB',
       100: '#FEF3C7',
       500: '#FFFF00',
-      600: '#D4AF37',
+      600: '#D4AF37',            // metallic gold
       900: '#78350F',
+      focusGold: '#FFD700',      // ✅ NEW: main carousel focus/active color
     },
-    // Secondary Accent Colors (Trust)  
+
+    // Secondary Accent Colors (Trust)
     secondary: {
       deepBlue: '#003366',
       navy: '#000080',
@@ -23,15 +27,17 @@ export const designTokens = {
       600: '#002244',
       900: '#001122',
     },
+
     // Neutral Base
     neutral: {
       background: '#FFFFFF',
       white: '#FFFFFF',
       lightGrey: '#F5F5F5',
-      mediumGrey: '#9CA3AF',
-      darkGrey: '#374151',
+      mediumGrey: '#6B7280',   // ✅ Updated to Tailwind gray-500 (matches carousel text)
+      darkGrey: '#374151',     // Tailwind gray-700 (body text)
       black: '#000000',
     },
+
     // Highlights
     highlights: {
       red: '#EF4444',
@@ -39,6 +45,7 @@ export const designTokens = {
       orange: '#F97316',
       purple: '#8B5CF6',
     },
+
     // Status Colors
     status: {
       success: '#10B981',
@@ -47,7 +54,7 @@ export const designTokens = {
       info: '#3B82F6',
     }
   },
-  
+
   typography: {
     fontFamily: {
       heading: ['Poppins', 'system-ui', 'sans-serif'],
@@ -55,15 +62,15 @@ export const designTokens = {
       mono: ['JetBrains Mono', 'Consolas', 'monospace'],
     },
     fontSize: {
-      xs: '0.75rem',      // 12px
-      sm: '0.875rem',     // 14px  
-      base: '1rem',       // 16px
-      lg: '1.125rem',     // 18px
-      xl: '1.25rem',      // 20px
-      '2xl': '1.5rem',    // 24px
-      '3xl': '1.875rem',  // 30px
-      '4xl': '2.25rem',   // 36px
-      '5xl': '3rem',      // 48px
+      xs: '0.75rem',   // 12px
+      sm: '0.875rem',  // 14px
+      base: '1rem',    // 16px
+      lg: '1.125rem',  // 18px
+      xl: '1.25rem',   // 20px
+      '2xl': '1.5rem', // 24px
+      '3xl': '1.875rem', // 30px
+      '4xl': '2.25rem',  // 36px
+      '5xl': '3rem',     // 48px
     },
     fontWeight: {
       light: '300',
@@ -108,8 +115,10 @@ export const designTokens = {
     md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
     lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
     xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-    card: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-    cardHover: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+
+    // ✅ Carousel-aligned shadows
+    card: '0 4px 12px rgba(0,0,0,0.1)',       // normal card
+    cardHover: '0 6px 18px rgba(0,0,0,0.15)', // hover/active
   },
 
   breakpoints: {
