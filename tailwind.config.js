@@ -14,6 +14,7 @@ module.exports = {
         'light-grey': '#F5F5F5',
         'highlight-red': '#EF4444',
         'highlight-teal': '#14B8A6',
+        'focus-gold': '#FFD700',
       },
       fontFamily: {
         'sans': ['Inter', 'system-ui', 'sans-serif'],
