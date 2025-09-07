@@ -22,13 +22,14 @@
   /* Shadows */
   --shadow-card: 0 4px 12px rgba(0,0,0,0.1);
   --shadow-card-hover: 0 6px 18px rgba(0,0,0,0.15);
+  --shadow-card-active: 0 10px 20px rgba(0,0,0,0.15);
 
   /* Carousel specific */
   --carousel-gap-mobile: 16px;
   --carousel-gap-tablet: 24px;
   --carousel-gap-desktop: 32px;
 
-  --card-scale-active: 1.05;
+  --card-scale-active: 1.08;
   --card-scale-hover: 1.02;
 
   --carousel-dot-active-width: 24px;
@@ -109,8 +110,9 @@
   /* Cards */
   .card,
   .carousel-card {
-    @apply rounded-xl bg-white cursor-pointer select-none transition-all duration-300;
+    @apply rounded-xl bg-white cursor-pointer select-none;
     box-shadow: var(--shadow-card);
+    transition: all 0.3s ease-out;
   }
 
   .carousel-card:hover {
@@ -120,6 +122,25 @@
 
   .carousel-card.active {
     transform: scale(var(--card-scale-active));
+    box-shadow: var(--shadow-card-active);
+    z-index: 2;
+  }
+
+  /* Inactive cards blur/fade effect */
+  .carousel-card:not(.active) {
+    filter: blur(0.5px);
+    opacity: 0.75;
+  }
+
+  /* Respect reduced motion preference */
+  @media (prefers-reduced-motion: reduce) {
+    .carousel-card,
+    .carousel-card:hover,
+    .carousel-card.active {
+      transition: none;
+      transform: none;
+      filter: none;
+    }
   }
 
   /* Pagination dots */
@@ -138,21 +159,7 @@
 
   /* Featured ribbon */
   .carousel-ribbon {
-    display: inline-block;
-    background-color: var(--ribbon-bg);
-    color: var(--ribbon-color);
+    @apply inline-block bg-focus-gold text-gray-700 font-medium px-1.5 py-0.5 rounded text-[10px] md:text-xs whitespace-nowrap;
     transform: rotate(var(--ribbon-rotate));
-    font-size: var(--ribbon-font-size-mobile);
-    font-weight: 500;
-    padding: 2px 6px;
-    border-radius: 4px;
-    white-space: nowrap;
-  }
-
-  @media (min-width: 768px) {
-    .carousel-ribbon {
-      font-size: var(--ribbon-font-size-desktop);
-    }
   }
 }
-
