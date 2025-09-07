@@ -27,8 +27,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const totalSlides = fixtures.length;
   const maxIndex = Math.max(0, totalSlides - cardsPerView);
 
-  const focusRingColor = 'var(--color-focus-gold)';
-
   // SSR-safe reduced motion detection with reactivity
   useEffect(() => {
     if (typeof window === 'undefined') return;
