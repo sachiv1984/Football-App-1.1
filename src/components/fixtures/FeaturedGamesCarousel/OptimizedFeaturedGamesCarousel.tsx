@@ -27,8 +27,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const totalSlides = fixtures.length;
   const maxIndex = Math.max(0, totalSlides - cardsPerView);
 
-  const inactiveColor = '#D1D5DB';
-  const activeColor = '#FFD700';
   const focusRingColor = '#FFD700'; // Soft gold focus ring
 
   // SSR-safe reduced motion detection with reactivity
@@ -232,19 +230,11 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
               const isActive = index >= currentIndex && index < currentIndex + cardsPerView;
 
               return (
-                <div
+                <button
                   key={fixture.id || index}
                   className={`carousel-card ${isActive ? 'active opacity-100' : 'opacity-90'} focus:outline-none focus:ring-2 focus:ring-offset-2`}
-                  role="button"
-                  tabIndex={0}
                   aria-label={`View match between ${fixture.homeTeam.name} and ${fixture.awayTeam.name} on ${new Date(fixture.dateTime).toLocaleDateString("en-GB")}`}
                   onClick={() => onGameSelect?.(fixture)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      onGameSelect?.(fixture);
-                    }
-                  }}
                   style={{
                     flex: `0 0 calc(${100 / cardsPerView}% - ${(cardsPerView === 1 ? 16 : 32) * (cardsPerView - 1) / cardsPerView}px)`,
                     padding: cardsPerView === 1 ? '16px' : '24px',
@@ -265,7 +255,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                           className={`bg-white rounded-full shadow-lg flex items-center justify-center transition-all duration-300 ease-out hover:scale-105 hover:shadow-xl active:scale-102 ${isActive ? 'scale-100' : 'scale-90'} w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20`}
                         >
                           <img src={fixture.competition.logo} alt={fixture.competition.name} className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 object-contain" loading="lazy" draggable="false" />
-                        </button>
+                        </div>
                       )}
                     </div>
                     <div className="bg-gray-100 px-3 py-1.5 rounded-full">
@@ -333,7 +323,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                       </span>
                     </div>
                   )}
-                </div>
+                </button>
               );
             })}
           </div>
