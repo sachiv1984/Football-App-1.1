@@ -175,35 +175,33 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
       tabIndex={0}
     >
       <div className="relative">
-        {showNavigation && (
-          <button 
-            onClick={goToPrev} 
-            disabled={currentIndex === 0} 
-            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white shadow-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2" 
-            style={{ width: '40px', height: '40px', '--tw-ring-color': 'var(--color-focus-gold)' } as React.CSSProperties}
-            aria-label="Previous games"
-            tabIndex={0}
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-600">
-              <path d="M15 18l-6-6 6-6" />
-            </svg>
-          </button>
-        )}
+     {showNavigation && (
+  <button 
+    onClick={goToPrev} 
+    disabled={currentIndex === 0} 
+    className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white shadow-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-focus-gold"
+    aria-label="Previous games"
+    tabIndex={0}
+  >
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-600">
+      <path d="M15 18l-6-6 6-6" />
+    </svg>
+  </button>
+)}
 
-        {showNavigation && (
-          <button 
-            onClick={goToNext} 
-            disabled={currentIndex === maxIndex} 
-            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white shadow-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2" 
-            style={{ width: '40px', height: '40px', '--tw-ring-color': 'var(--color-focus-gold)' } as React.CSSProperties}
-            aria-label="Next games"
-            tabIndex={0}
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-600">
-              <path d="M9 18l6-6-6-6" />
-            </svg>
-          </button>
-        )}
+{showNavigation && (
+  <button 
+    onClick={goToNext} 
+    disabled={currentIndex === maxIndex} 
+    className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white shadow-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-focus-gold"
+    aria-label="Next games"
+    tabIndex={0}
+  >
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-600">
+      <path d="M9 18l6-6-6-6" />
+    </svg>
+  </button>
+)}
 
         <div className="overflow-hidden px-12">
           <div
@@ -226,23 +224,22 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
               const isActive = index >= currentIndex && index < currentIndex + cardsPerView;
 
               return (
-                <button
-                  key={fixture.id || index}
-                  className={`carousel-card ${isActive ? 'active opacity-100' : 'opacity-90'} focus:outline-none focus:ring-2 focus:ring-offset-2`}
-                  aria-label={`View match between ${fixture.homeTeam.name} and ${fixture.awayTeam.name} on ${new Date(fixture.dateTime).toLocaleDateString("en-GB")}`}
-                  onClick={() => onGameSelect?.(fixture)}
-                  style={{
-                    flex: `0 0 calc(${100 / cardsPerView}% - ${(cardsPerView === 1 ? 16 : 32) * (cardsPerView - 1) / cardsPerView}px)`,
-                    padding: cardsPerView === 1 ? '16px' : '24px',
-                    aspectRatio: '4/3',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    maxWidth: cardsPerView === 1 ? '360px' : cardsPerView === 2 ? '480px' : '520px',
-                    '--tw-ring-color': 'var(--color-focus-gold)'
-                  } as React.CSSProperties}
-                  draggable={false}
-                >
+           <button
+  key={fixture.id || index}
+  className={`carousel-card ${isActive ? 'active opacity-100' : 'opacity-90'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-focus-gold`}
+  aria-label={`View match between ${fixture.homeTeam.name} and ${fixture.awayTeam.name}`}
+  onClick={() => onGameSelect?.(fixture)}
+  style={{
+    flex: `0 0 calc(${100 / cardsPerView}% - ${(cardsPerView === 1 ? 16 : 32) * (cardsPerView - 1) / cardsPerView}px)`,
+    padding: cardsPerView === 1 ? '16px' : '24px',
+    aspectRatio: '4/3',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    maxWidth: cardsPerView === 1 ? '360px' : cardsPerView === 2 ? '480px' : '520px',
+  } as React.CSSProperties}
+  draggable={false}
+>
                   <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100 w-full">
                     <div className="flex items-center justify-center">
                       {fixture.competition.logo && (
@@ -322,19 +319,16 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
       {showNavigation && maxIndex > 0 && (
         <div className="flex justify-center mt-6 space-x-2">
           {Array.from({ length: maxIndex + 1 }, (_, index) => (
-            <button
-              key={index}
-              onClick={() => {
-                setCurrentIndex(index);
-                announceSlideChange(index);
-              }}
-              className={`carousel-dot ${currentIndex === index ? 'active' : ''}`}
-              style={{
-              '--tw-ring-color': 'var(--color-focus-gold)',
-              } as React.CSSProperties}
-              aria-label={`Go to slide ${index + 1}`}
-              aria-current={currentIndex === index ? 'true' : 'false'}
-            />
+           <button
+  key={index}
+  onClick={() => {
+    setCurrentIndex(index);
+    announceSlideChange(index);
+  }}
+  className={`carousel-dot ${currentIndex === index ? 'active' : ''} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-focus-gold`}
+  aria-label={`Go to slide ${index + 1}`}
+  aria-current={currentIndex === index ? 'true' : 'false'}
+/>
           ))}
         </div>
       )}
