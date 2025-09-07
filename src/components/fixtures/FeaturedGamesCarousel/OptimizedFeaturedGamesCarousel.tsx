@@ -273,87 +273,77 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     onClick={() => onGameSelect?.(fixture)}
     draggable={false}
   >
-    {/* Top Row */}
-    <div className="flex justify-between items-center w-full mb-4">
-      <div className="w-12 h-12 flex items-center">
-        {fixture.competition.logo && (
-          <img
-            src={fixture.competition.logo}
-            alt={fixture.competition.name}
-            className="w-12 h-12 object-contain"
-            draggable={false}
-          />
-        )}
-      </div>
-      <span className="text-xs text-gray-500 font-medium">
-        Week {fixture.matchWeek || 1}
-      </span>
-    </div>
+  {/* Competition & Week */}
+<div className="flex justify-between items-center mb-4 px-2">
+  {/* Competition Logo Left */}
+  <div className="w-12 h-12 flex items-center justify-start">
+    {fixture.competition.logo ? (
+      <img
+        src={fixture.competition.logo}
+        alt={fixture.competition.name}
+        className="w-12 h-12 object-contain"
+        draggable={false}
+      />
+    ) : null}
+  </div>
 
-    {/* Middle content */}
-    <div className="flex items-center justify-between mb-4 flex-1">
-      {/* Home */}
-      <div className="flex flex-col items-center flex-1">
-        {fixture.homeTeam.logo ? (
-          <img
-            src={fixture.homeTeam.logo}
-            alt={fixture.homeTeam.name}
-            className="w-16 h-16 object-contain"
-          />
-        ) : (
-          <span>{fixture.homeTeam.name[0]}</span>
-        )}
-        <span className="text-xs truncate">
-          {fixture.homeTeam.shortName || fixture.homeTeam.name}
-        </span>
-      </div>
+  {/* Game Week Right */}
+  <span className="text-xs text-gray-500 font-medium">
+    Week {fixture.matchWeek || 1}
+  </span>
+</div>
 
-      {/* Time */}
-      <div className="flex flex-col items-center px-4 text-center">
-        <span className="text-gray-700 font-medium text-base">
-          {new Date(fixture.dateTime).toLocaleTimeString('en-GB', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false,
-          })}
-        </span>
-        <span className="text-xs text-gray-500">
-          {new Date(fixture.dateTime).toLocaleDateString('en-GB', {
-            weekday: 'short',
-            day: 'numeric',
-            month: 'short',
-          })}
-        </span>
-      </div>
+{/* Teams & Time */}
+<div className="flex justify-center items-center mb-4 gap-4">
+  {/* Home */}
+  <div className="flex flex-col items-center flex-1">
+    {fixture.homeTeam.logo ? (
+      <img
+        src={fixture.homeTeam.logo}
+        alt={fixture.homeTeam.name}
+        className="w-16 h-16 object-contain"
+      />
+    ) : (
+      <span>{fixture.homeTeam.name[0]}</span>
+    )}
+    <span className="text-xs truncate">{fixture.homeTeam.shortName || fixture.homeTeam.name}</span>
+  </div>
 
-      {/* Away */}
-      <div className="flex flex-col items-center flex-1">
-        {fixture.awayTeam.logo ? (
-          <img
-            src={fixture.awayTeam.logo}
-            alt={fixture.awayTeam.name}
-            className="w-16 h-16 object-contain"
-          />
-        ) : (
-          <span>{fixture.awayTeam.name[0]}</span>
-        )}
-        <span className="text-xs truncate">
-          {fixture.awayTeam.shortName || fixture.awayTeam.name}
-        </span>
-      </div>
-    </div>
+  {/* Time */}
+  <div className="flex flex-col items-center px-2 text-center">
+    <span className="text-gray-700 font-medium text-base">
+      {new Date(fixture.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })}
+    </span>
+    <span className="text-xs text-gray-500">
+      {new Date(fixture.dateTime).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
+    </span>
+  </div>
 
-    {/* Bottom Row */}
-    <div className="flex flex-col items-center mt-auto">
-      <div className="text-xs text-gray-500 truncate text-center w-full">
-        {fixture.venue}
-      </div>
-      {fixture.importance >= 80 && (
-        <span className="mt-2 inline-block bg-yellow-400 text-gray-900 px-2 py-1 rounded-full text-[10px] sm:text-[12px]">
-          Featured
-        </span>
-      )}
-    </div>
+  {/* Away */}
+  <div className="flex flex-col items-center flex-1">
+    {fixture.awayTeam.logo ? (
+      <img
+        src={fixture.awayTeam.logo}
+        alt={fixture.awayTeam.name}
+        className="w-16 h-16 object-contain"
+      />
+    ) : (
+      <span>{fixture.awayTeam.name[0]}</span>
+    )}
+    <span className="text-xs truncate">{fixture.awayTeam.shortName || fixture.awayTeam.name}</span>
+  </div>
+</div>
+
+{/* Venue & Badge */}
+<div className="flex flex-col items-center w-full">
+  <div className="text-xs text-gray-500 truncate text-center w-full">{fixture.venue}</div>
+  {fixture.importance >= 80 && (
+    <span className="mt-2 inline-block bg-yellow-400 text-gray-900 px-2 py-1 rounded-full text-[10px] sm:text-[12px]">
+      Featured
+    </span>
+  )}
+</div>
+
   </button>
 </div>
 
