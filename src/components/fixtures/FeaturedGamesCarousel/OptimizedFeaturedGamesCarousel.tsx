@@ -303,21 +303,21 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                         </span>
                       </div>
 
-                      {/* Teams & Time */}
-                      <div className="flex items-center justify-between mb-4">
-                        {/* Home */}
-                        <div className="flex flex-col items-center flex-1">
-                          {fixture.homeTeam.logo ? (
-                            <img
-                              src={fixture.homeTeam.logo}
-                              alt={fixture.homeTeam.name}
-                              className="w-16 h-16 object-contain"
-                            />
-                          ) : (
-                            <span>{fixture.homeTeam.name[0]}</span>
-                          )}
-                          <span className="text-xs truncate">{fixture.homeTeam.shortName || fixture.homeTeam.name}</span>
-                        </div>
+                    {/* Top: Competition & Week */}
+<div className="flex justify-between items-center mb-4 px-2">
+  {fixture.competition.logo ? (
+    <img
+      src={fixture.competition.logo}
+      alt={fixture.competition.name}
+      className="w-12 h-12 object-contain"
+      draggable={false}
+    />
+  ) : (
+    <div className="w-12 h-12" />
+  )}
+  <span className="text-xs text-gray-500">Week {fixture.matchWeek || 1}</span>
+</div>
+
 
                         {/* Time */}
                         <div className="flex flex-col items-center px-4 text-center">
