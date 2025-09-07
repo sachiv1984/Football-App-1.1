@@ -220,11 +220,13 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             onDragStart={(e) => e.preventDefault()}
             className="flex select-none"
             style={{
-              transform: `translateX(calc(-${currentIndex} * (${100 / cardsPerView}% + ${cardsPerView === 1 ? '16px' : '32px'})))`,
+              '--slide-offset': `${currentIndex * (100 / cardsPerView)}%`,
+              transform: `translateX(calc(-1 * var(--slide-offset)))`,
               transition: prefersReducedMotion ? 'none' : 'transform 0.3s ease-out',
               touchAction: 'none',
-              gap: cardsPerView === 1 ? '16px' : '32px',
-            }}
+              gap: 'var(--carousel-gap-mobile)',
+            } as React.CSSProperties & { '--slide-offset': string }}
+          >
           >
             {fixtures.map((fixture, index) => {
               const isActive = index >= currentIndex && index < currentIndex + cardsPerView;
