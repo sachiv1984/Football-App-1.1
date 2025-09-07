@@ -182,7 +182,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             onClick={goToPrev} 
             disabled={currentIndex === 0} 
             className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white shadow-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2" 
-            style={{ width: '40px', height: '40px', '--tw-ring-color': focusRingColor } as React.CSSProperties}
+            style={{ width: '40px', height: '40px', '--tw-ring-color': 'var(--color-focus-gold)' } as React.CSSProperties}
             aria-label="Previous games"
             tabIndex={0}
           >
@@ -197,7 +197,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             onClick={goToNext} 
             disabled={currentIndex === maxIndex} 
             className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white shadow-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2" 
-            style={{ width: '40px', height: '40px', '--tw-ring-color': focusRingColor } as React.CSSProperties}
+            style={{ width: '40px', height: '40px', '--tw-ring-color': 'var(--color-focus-gold)' } as React.CSSProperties}
             aria-label="Next games"
             tabIndex={0}
           >
@@ -241,7 +241,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                     flexDirection: 'column',
                     justifyContent: 'space-between',
                     maxWidth: cardsPerView === 1 ? '360px' : cardsPerView === 2 ? '480px' : '520px',
-                    '--tw-ring-color': focusRingColor,
+                    '--tw-ring-color': 'var(--color-focus-gold)'
                   } as React.CSSProperties}
                   draggable={false}
                 >
@@ -332,7 +332,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
               }}
               className={`carousel-dot ${currentIndex === index ? 'active' : ''}`}
               style={{
-                '--tw-ring-color': focusRingColor,
+              '--tw-ring-color': 'var(--color-focus-gold)',
               } as React.CSSProperties}
               aria-label={`Go to slide ${index + 1}`}
               aria-current={currentIndex === index ? 'true' : 'false'}
