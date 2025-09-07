@@ -216,7 +216,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                     }
                   }}
                   style={{
-                    flex: `0 0 ${cardWidth}%`,
+                    flex: `0 0 ${100 / cardsPerView}%`,
                     background: '#FFFFFF',
                     borderRadius: '12px',
                     boxShadow: isActive
