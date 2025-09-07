@@ -27,6 +27,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const totalSlides = fixtures.length;
   const maxIndex = Math.max(0, totalSlides - cardsPerView);
 
+  // Reduced motion
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -36,6 +37,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
+  // Fade-in
   useEffect(() => {
     const timer = setTimeout(() => setIsVisible(true), 100);
     return () => clearTimeout(timer);
@@ -53,6 +55,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     [fixtures, totalSlides]
   );
 
+  // Responsive cards per view
   useEffect(() => {
     const calculateCardsPerView = () => {
       const width = window.innerWidth;
@@ -66,6 +69,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => window.removeEventListener('resize', updateCardsPerView);
   }, []);
 
+  // Adjust index if cardsPerView changes
   useEffect(() => {
     const newMaxIndex = Math.max(0, totalSlides - cardsPerView);
     if (currentIndex > newMaxIndex) setCurrentIndex(newMaxIndex);
@@ -93,6 +97,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     announceSlideChange(maxIndex);
   }, [maxIndex, announceSlideChange]);
 
+  // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!containerRef.current?.contains(event.target as Node)) return;
@@ -119,13 +124,13 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [goToNext, goToPrev, goToFirst, goToLast]);
 
+  // Touch/swipe
   const minSwipeDistance = 50;
   const onTouchStart = (e: React.TouchEvent) => {
     setTouchEnd(null);
     setTouchStart(e.targetTouches[0].clientX);
   };
   const onTouchMove = (e: React.TouchEvent) => {
-    e.preventDefault();
     setTouchEnd(e.targetTouches[0].clientX);
   };
   const onTouchEnd = () => {
@@ -181,62 +186,65 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
       tabIndex={0}
     >
       <div className="relative">
+        {/* Navigation Buttons */}
         {showNavigation && (
-          <button
-            onClick={goToPrev}
-            disabled={currentIndex === 0}
-            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white shadow-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gold"
-            style={{ width: '40px', height: '40px' }}
-            aria-label="Previous games"
-          >
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              className="text-gray-500"
+          <>
+            <button
+              onClick={goToPrev}
+              disabled={currentIndex === 0}
+              className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white shadow-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-focus-gold"
+              style={{ width: '40px', height: '40px' }}
+              aria-label="Previous games"
             >
-              <path d="M15 18l-6-6 6-6" />
-            </svg>
-          </button>
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className="text-gray-500"
+              >
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
+            </button>
+
+            <button
+              onClick={goToNext}
+              disabled={currentIndex === maxIndex}
+              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white shadow-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-focus-gold"
+              style={{ width: '40px', height: '40px' }}
+              aria-label="Next games"
+            >
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className="text-gray-500"
+              >
+                <path d="M9 18l6-6-6-6" />
+              </svg>
+            </button>
+          </>
         )}
 
-        {showNavigation && (
-          <button
-            onClick={goToNext}
-            disabled={currentIndex === maxIndex}
-            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white shadow-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gold"
-            style={{ width: '40px', height: '40px' }}
-            aria-label="Next games"
-          >
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              className="text-gray-500"
-            >
-              <path d="M9 18l6-6-6-6" />
-            </svg>
-          </button>
-        )}
-
-        <div className="overflow-hidden px-12">
+        {/* Carousel Track */}
+        <div className="overflow-hidden px-4 md:px-6 lg:px-8">
           <div
             ref={trackRef}
             onTouchStart={onTouchStart}
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
-            className="flex select-none gap-4"
+            className="flex select-none gap-carousel-mobile md:gap-carousel-tablet lg:gap-carousel-desktop"
             style={{
               transform: `translateX(-${currentIndex * (100 / cardsPerView)}%)`,
               transition: prefersReducedMotion ? 'none' : 'transform 0.3s ease-out',
-              touchAction: 'none',
+              touchAction: 'pan-y',
             }}
+            role="list"
           >
             {fixtures.map((fixture, index) => {
               const isActive = index >= currentIndex && index < currentIndex + cardsPerView;
@@ -244,10 +252,11 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
               return (
                 <div
                   key={fixture.id || index}
-                  className={`rounded-xl transition-colors duration-300 ${
-                    isActive ? 'border-2 border-focus-gold' : 'border border-gray-300'
+                  className={`rounded-xl transition-all duration-300 ${
+                    isActive ? 'scale-108 outline-2 outline-focus-gold' : 'scale-100 border border-gray-300'
                   }`}
-                  style={{ flex: `0 0 ${100 / cardsPerView}%` }}
+                  style={{ flex: `0 0 calc(${100 / cardsPerView}% - 16px)` }}
+                  role="listitem"
                 >
                   <button
                     className="carousel-card flex flex-col justify-between p-6 aspect-[4/3] w-full h-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-focus-gold"
@@ -262,7 +271,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                       {fixture.competition.logo && (
                         <div
                           className={`bg-white rounded-full shadow-card flex items-center justify-center
-                                      transition-all duration-300 ease-out hover:scale-105 hover:shadow-xl
+                                      transition-all duration-300 ease-out hover:scale-105 hover:shadow-card-hover
                                       ${isActive ? 'scale-108' : 'scale-100'}
                                       w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20`}
                         >
@@ -282,14 +291,13 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                       </div>
                     </div>
 
-                    {/* Teams and Time */}
+                    {/* Teams & Time */}
                     <div className="flex items-center justify-between mb-4">
-                      {/* Home Team */}
+                      {/* Home */}
                       <div className="text-center flex-1">
                         <div
                           className={`w-20 h-20 rounded-full bg-white flex items-center justify-center mb-3 mx-auto
-                                      transition-all duration-200 shadow-card
-                                      ${isActive ? 'scale-108' : 'scale-100'} hover:scale-102`}
+                                      transition-all duration-200 shadow-card hover:scale-102`}
                         >
                           {fixture.homeTeam.logo ? (
                             <img
@@ -310,7 +318,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                         </div>
                       </div>
 
-                      {/* Match Time */}
+                      {/* Time */}
                       <div className="flex flex-col items-center text-center px-4">
                         <div className="flex items-center space-x-2 mb-2 text-gray-700 font-medium text-base">
                           <svg
@@ -344,12 +352,11 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                         </div>
                       </div>
 
-                      {/* Away Team */}
+                      {/* Away */}
                       <div className="text-center flex-1">
                         <div
                           className={`w-20 h-20 rounded-full bg-white flex items-center justify-center mb-3 mx-auto
-                                      transition-all duration-200 shadow-card
-                                      ${isActive ? 'scale-108' : 'scale-100'} hover:scale-102`}
+                                      transition-all duration-200 shadow-card hover:scale-102`}
                         >
                           {fixture.awayTeam.logo ? (
                             <img
@@ -424,10 +431,10 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
           </div>
         )}
 
+        {/* Accessibility */}
         <div aria-live="polite" aria-atomic="true" className="sr-only">
           {announceText}
         </div>
-
         <div className="sr-only">
           Use arrow keys to navigate between slides, Home key for first slide, End key for last slide. On touch devices, swipe left or right to navigate.
         </div>
