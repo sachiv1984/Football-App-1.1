@@ -1,73 +1,90 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
-
 /* -------------------------
-   Design Tokens
+   Carousel Design Tokens
 ------------------------- */
 :root {
-  /* Colors */
-  --color-electric-yellow: #FFD700;
-  --color-deep-blue: #003366;
-  --color-navy: #000080;
-  --color-gray-light: #D1D5DB;
-  --color-gray-medium: #6B7280;
-  --color-gray-dark: #374151;
-
-  /* Spacing */
+  /* Card spacing / gap */
   --carousel-gap-mobile: 16px;
   --carousel-gap-tablet: 24px;
-  --carousel-gap-desktop: 24px;
+  --carousel-gap-desktop: 32px;
 
-  /* Shadows */
-  --shadow-card: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
-  --shadow-card-hover: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+  /* Card shadows */
+  --shadow-card: 0 4px 12px rgba(0,0,0,0.1);
+  --shadow-card-hover: 0 6px 18px rgba(0,0,0,0.15);
+
+  /* Card scale */
+  --card-scale-active: 1.05;
+  --card-scale-hover: 1.02;
+
+  /* Pagination dots */
+  --carousel-dot-active-width: 24px;
+  --carousel-dot-inactive-width: 8px;
+  --carousel-dot-height: 8px;
+  --carousel-dot-radius: 9999px;
+  --carousel-dot-active-color: #FFD700; /* activeColor */
+  --carousel-dot-inactive-color: #D1D5DB; /* inactiveColor */
+
+  /* Featured ribbon */
+  --ribbon-bg: #FFD700; /* matches activeColor */
+  --ribbon-color: #374151; /* text color */
+  --ribbon-rotate: 12deg;
+  --ribbon-font-size-mobile: 10px;
+  --ribbon-font-size-desktop: 12px;
+
+  /* Focus / active colors */
+  --carousel-focus-ring: #FFD700; /* focusRingColor */
+  --carousel-active-color: #FFD700;
+  --carousel-inactive-color: #D1D5DB;
 }
 
 /* -------------------------
-   Base
-------------------------- */
-@layer base {
-  html { font-family: Inter, system-ui, sans-serif; scroll-behavior: smooth; }
-  body {
-    @apply bg-gray-50 text-gray-900 antialiased;
-    font-feature-settings: 'cv02','cv03','cv04','cv11';
-  }
-
-  h1,h2,h3,h4,h5,h6 {
-    font-family: Poppins, system-ui, sans-serif;
-    font-weight: 600;
-    line-height: 1.25;
-    letter-spacing: -0.025em;
-  }
-
-  h1 { @apply text-4xl lg:text-5xl; }
-  h2 { @apply text-3xl lg:text-4xl; }
-  h3 { @apply text-2xl lg:text-3xl; }
-  h4 { @apply text-xl lg:text-2xl; }
-  h5 { @apply text-lg lg:text-xl; }
-  h6 { @apply text-base lg:text-lg; }
-
-  *:focus-visible { @apply outline-none ring-2 ring-electric-yellow ring-offset-2; }
-
-  ::selection { @apply bg-electric-yellow text-gray-900; }
-}
-
-/* -------------------------
-   Other Components
+   Carousel Components
 ------------------------- */
 @layer components {
-  /* Buttons */
-  .btn {
-    @apply inline-flex items-center justify-center font-semibold rounded-lg transition-all duration-200
-           focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  /* Card */
+  .carousel-card {
+    @apply rounded-xl bg-white shadow-lg cursor-pointer select-none transition-all duration-300;
+    box-shadow: var(--shadow-card);
   }
-  .btn-primary {
-    @apply bg-electric-yellow rounded-lg px-4 py-2 font-semibold text-gray-900 transition-colors hover:bg-yellow-400;
+
+  .carousel-card:hover {
+    transform: scale(var(--card-scale-hover));
+    box-shadow: var(--shadow-card-hover);
   }
-  .card {
-    @apply rounded-xl border border-gray-100 bg-white shadow-lg;
+
+  .carousel-card.active {
+    transform: scale(var(--card-scale-active));
+  }
+
+  /* Pagination dots */
+  .carousel-dot {
+    @apply transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
+    width: var(--carousel-dot-inactive-width);
+    height: var(--carousel-dot-height);
+    border-radius: var(--carousel-dot-radius);
+    background-color: var(--carousel-dot-inactive-color);
+  }
+
+  .carousel-dot.active {
+    width: var(--carousel-dot-active-width);
+    background-color: var(--carousel-dot-active-color);
+  }
+
+  /* Featured ribbon */
+  .carousel-ribbon {
+    display: inline-block;
+    background-color: var(--ribbon-bg);
+    color: var(--ribbon-color);
+    transform: rotate(var(--ribbon-rotate));
+    font-size: var(--ribbon-font-size-mobile);
+    font-weight: 500;
+    padding: 2px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+
+  @media (min-width: 768px) {
+    .carousel-ribbon {
+      font-size: var(--ribbon-font-size-desktop);
+    }
   }
 }
