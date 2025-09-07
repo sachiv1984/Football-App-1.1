@@ -110,7 +110,7 @@
   /* Cards */
   .card,
  .carousel-card {
-  @apply rounded-xl bg-white cursor-pointer select-none border-2 border-focus-gold;
+  @apply rounded-xl bg-white cursor-pointer select-none border border-gray-medium;
   box-shadow: var(--shadow-card);
   transition: all 0.3s ease-out;
 }
@@ -121,7 +121,7 @@
 }
 
 .carousel-card.active {
-  @apply scale-108 z-20;
+  @apply scale-108 z-20 border-2 border-focus-gold;
   box-shadow: var(--shadow-card-active);
 }
 
