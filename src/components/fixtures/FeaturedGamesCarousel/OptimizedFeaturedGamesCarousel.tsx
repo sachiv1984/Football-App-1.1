@@ -294,9 +294,8 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     </span>
   </div>
 </div>
-
 {/* Teams & Time */}
-<div className="flex items-center justify-center mb-4 space-x-4">
+<div className="flex justify-center items-center mb-4 gap-8">
   {/* Home */}
   <div className="flex flex-col items-center">
     {fixture.homeTeam.logo ? (
@@ -335,7 +334,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     <span className="text-xs truncate">{fixture.awayTeam.shortName || fixture.awayTeam.name}</span>
   </div>
 </div>
-
 
 {/* Venue & Badge */}
 <div className="flex flex-col items-center w-full">
