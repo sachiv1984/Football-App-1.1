@@ -27,6 +27,8 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const totalSlides = fixtures.length;
   const maxIndex = Math.max(0, totalSlides - cardsPerView);
 
+  const inactiveColor = '#D1D5DB';
+  const activeColor = '#FFD700';
   const focusRingColor = '#FFD700'; // Soft gold focus ring
 
   // SSR-safe reduced motion detection with reactivity
@@ -263,7 +265,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                           className={`bg-white rounded-full shadow-lg flex items-center justify-center transition-all duration-300 ease-out hover:scale-105 hover:shadow-xl active:scale-102 ${isActive ? 'scale-100' : 'scale-90'} w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20`}
                         >
                           <img src={fixture.competition.logo} alt={fixture.competition.name} className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 object-contain" loading="lazy" draggable="false" />
-                        </div>
+                        </button>
                       )}
                     </div>
                     <div className="bg-gray-100 px-3 py-1.5 rounded-full">
@@ -348,13 +350,12 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                 setCurrentIndex(index);
                 announceSlideChange(index);
               }}
-              className={`carousel-dot ${currentIndex === index ? 'active' : ''} focus:outline-none focus:ring-2 focus:ring-offset-2`}
+              className={`carousel-dot ${currentIndex === index ? 'active' : ''}`}
               style={{
                 '--tw-ring-color': focusRingColor,
               } as React.CSSProperties}
               aria-label={`Go to slide ${index + 1}`}
               aria-current={currentIndex === index ? 'true' : 'false'}
-              tabIndex={0}
             />
           ))}
         </div>
