@@ -182,31 +182,47 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     >
       <div className="relative">
         {showNavigation && (
-          <>
-            <button
-              onClick={goToPrev}
-              disabled={currentIndex === 0}
-              className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white shadow-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gold"
-              style={{ width: '40px', height: '40px' }}
-              aria-label="Previous games"
+          <button
+            onClick={goToPrev}
+            disabled={currentIndex === 0}
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white shadow-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gold"
+            style={{ width: '40px', height: '40px' }}
+            aria-label="Previous games"
+          >
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="text-gray-500"
             >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-500">
-                <path d="M15 18l-6-6 6-6" />
-              </svg>
-            </button>
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </button>
+        )}
 
-            <button
-              onClick={goToNext}
-              disabled={currentIndex === maxIndex}
-              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white shadow-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gold"
-              style={{ width: '40px', height: '40px' }}
-              aria-label="Next games"
+        {showNavigation && (
+          <button
+            onClick={goToNext}
+            disabled={currentIndex === maxIndex}
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white shadow-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gold"
+            style={{ width: '40px', height: '40px' }}
+            aria-label="Next games"
+          >
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="text-gray-500"
             >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-500">
-                <path d="M9 18l6-6-6-6" />
-              </svg>
-            </button>
-          </>
+              <path d="M9 18l6-6-6-6" />
+            </svg>
+          </button>
         )}
 
         <div className="overflow-hidden px-12">
@@ -215,14 +231,11 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             onTouchStart={onTouchStart}
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
-            onMouseDown={(e) => e.preventDefault()}
-            onDragStart={(e) => e.preventDefault()}
-            className="flex select-none gap-4" 
+            className="flex select-none gap-4"
             style={{
-              transform: `translateX(-${(currentIndex * 100) / cardsPerView}%)`,
+              transform: `translateX(-${currentIndex * (100 / cardsPerView)}%)`,
               transition: prefersReducedMotion ? 'none' : 'transform 0.3s ease-out',
               touchAction: 'none',
-              gap: 'var(--carousel-gap-mobile)',
             }}
           >
             {fixtures.map((fixture, index) => {
@@ -231,17 +244,13 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
               return (
                 <div
                   key={fixture.id || index}
-                  className="rounded-xl p-1 transition-colors duration-300 border"
-                  style={{
-                    borderWidth: isActive ? '2px' : '1px',
-                    borderColor: isActive ? '#FFD700' : '#D1D5DB', // yellow if active, gray otherwise
-                  }}
+                  className={`rounded-xl transition-colors duration-300 ${
+                    isActive ? 'border-2 border-focus-gold' : 'border border-gray-300'
+                  }`}
+                  style={{ flex: `0 0 ${100 / cardsPerView}%` }}
                 >
                   <button
-                    className="carousel-card flex flex-col justify-between p-6
-                               max-w-[360px] md:max-w-[480px] lg:max-w-[520px]
-                               aspect-[4/3]
-                               focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-focus-gold"
+                    className="carousel-card flex flex-col justify-between p-6 aspect-[4/3] w-full h-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-focus-gold"
                     aria-label={`View match between ${fixture.homeTeam.name} and ${fixture.awayTeam.name} on ${new Date(
                       fixture.dateTime
                     ).toLocaleDateString('en-GB')}`}
@@ -251,7 +260,12 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                     {/* Competition Logo */}
                     <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100 w-full">
                       {fixture.competition.logo && (
-                        <div className={`bg-white rounded-full shadow-card flex items-center justify-center transition-all duration-300 ease-out hover:scale-105 hover:shadow-xl ${isActive ? 'scale-108' : 'scale-100'} w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20`}>
+                        <div
+                          className={`bg-white rounded-full shadow-card flex items-center justify-center
+                                      transition-all duration-300 ease-out hover:scale-105 hover:shadow-xl
+                                      ${isActive ? 'scale-108' : 'scale-100'}
+                                      w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20`}
+                        >
                           <img
                             src={fixture.competition.logo}
                             alt={fixture.competition.name}
@@ -268,11 +282,15 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                       </div>
                     </div>
 
-                    {/* Home/Away Teams */}
+                    {/* Teams and Time */}
                     <div className="flex items-center justify-between mb-4">
                       {/* Home Team */}
                       <div className="text-center flex-1">
-                        <div className={`w-20 h-20 rounded-full bg-white flex items-center justify-center mb-3 mx-auto transition-all duration-200 shadow-card ${isActive ? 'scale-108' : 'scale-100'} hover:scale-102`}>
+                        <div
+                          className={`w-20 h-20 rounded-full bg-white flex items-center justify-center mb-3 mx-auto
+                                      transition-all duration-200 shadow-card
+                                      ${isActive ? 'scale-108' : 'scale-100'} hover:scale-102`}
+                        >
                           {fixture.homeTeam.logo ? (
                             <img
                               src={fixture.homeTeam.logo}
@@ -295,8 +313,19 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                       {/* Match Time */}
                       <div className="flex flex-col items-center text-center px-4">
                         <div className="flex items-center space-x-2 mb-2 text-gray-700 font-medium text-base">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="w-4 h-4 text-gray-700"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
                           </svg>
                           <span>
                             {new Date(fixture.dateTime).toLocaleTimeString('en-GB', {
@@ -317,7 +346,11 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
                       {/* Away Team */}
                       <div className="text-center flex-1">
-                        <div className={`w-20 h-20 rounded-full bg-white flex items-center justify-center mb-3 mx-auto transition-all duration-200 shadow-card ${isActive ? 'scale-108' : 'scale-100'} hover:scale-102`}>
+                        <div
+                          className={`w-20 h-20 rounded-full bg-white flex items-center justify-center mb-3 mx-auto
+                                      transition-all duration-200 shadow-card
+                                      ${isActive ? 'scale-108' : 'scale-100'} hover:scale-102`}
+                        >
                           {fixture.awayTeam.logo ? (
                             <img
                               src={fixture.awayTeam.logo}
@@ -340,7 +373,10 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
                     {/* Venue */}
                     <div className="text-center mt-4">
-                      <div className="truncate cursor-help transition-colors duration-200 hover:text-gray-700 text-gray-500 font-medium text-sm" title={fixture.venue}>
+                      <div
+                        className="truncate cursor-help transition-colors duration-200 hover:text-gray-700 text-gray-500 font-medium text-sm"
+                        title={fixture.venue}
+                      >
                         {fixture.venue}
                       </div>
                     </div>
@@ -360,6 +396,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
           </div>
         </div>
 
+        {/* Pagination Dots */}
         {showNavigation && (
           <div className="flex justify-center items-center mt-6 space-x-2 w-full" style={{ minHeight: '32px' }}>
             {Array.from({ length: maxIndex + 1 }, (_, index) => (
