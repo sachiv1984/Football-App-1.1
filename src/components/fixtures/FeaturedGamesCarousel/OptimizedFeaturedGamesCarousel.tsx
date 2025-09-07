@@ -250,7 +250,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
               return (
                 <button
                   key={fixture.id || index}
-                  className={`carousel-card ${isActive ? 'active opacity-100' : 'opacity-90'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gold`}
+                  className={`carousel-card ${isActive ? 'active' : ''} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gold`}
                   aria-label={`View match between ${fixture.homeTeam.name} and ${fixture.awayTeam.name} on ${new Date(
                     fixture.dateTime
                   ).toLocaleDateString('en-GB')}`}
@@ -263,6 +263,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                     flexDirection: 'column',
                     justifyContent: 'space-between',
                     maxWidth: cardsPerView === 1 ? '360px' : cardsPerView === 2 ? '480px' : '520px',
+                    transition: prefersReducedMotion ? 'none' : 'all 0.3s ease-out',
                   } as React.CSSProperties}
                   draggable={false}
                 >
@@ -412,7 +413,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                 setCurrentIndex(index);
                 announceSlideChange(index);
               }}
-              className={`carousel-dot ${currentIndex === index ? 'active' : ''} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gold`}
+              className={`carousel-dot ${currentIndex === index ? 'active' : ''} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-focus-gold`}
               aria-label={`Go to slide ${index + 1}`}
               aria-current={currentIndex === index ? 'true' : 'false'}
             />
