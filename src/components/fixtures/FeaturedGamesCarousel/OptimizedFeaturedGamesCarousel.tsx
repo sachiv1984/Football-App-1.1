@@ -27,8 +27,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const totalSlides = fixtures.length;
   const maxIndex = Math.max(0, totalSlides - cardsPerView);
 
-  const inactiveColor = '#D1D5DB';
-  const activeColor = '#FFD700';
   const focusRingColor = '#FFD700'; // Soft gold focus ring
 
   // SSR-safe reduced motion detection with reactivity
