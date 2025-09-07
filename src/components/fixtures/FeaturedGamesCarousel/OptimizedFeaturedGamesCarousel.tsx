@@ -296,9 +296,9 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 </div>
 
 {/* Teams & Time */}
-<div className="flex justify-center items-center mb-4 gap-4">
+<div className="flex items-center justify-center mb-4 space-x-4">
   {/* Home */}
-  <div className="flex flex-col items-center flex-1">
+  <div className="flex flex-col items-center">
     {fixture.homeTeam.logo ? (
       <img
         src={fixture.homeTeam.logo}
@@ -312,7 +312,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   </div>
 
   {/* Time */}
-  <div className="flex flex-col items-center px-2 text-center">
+  <div className="flex flex-col items-center text-center">
     <span className="text-gray-700 font-medium text-base">
       {new Date(fixture.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })}
     </span>
@@ -322,7 +322,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   </div>
 
   {/* Away */}
-  <div className="flex flex-col items-center flex-1">
+  <div className="flex flex-col items-center">
     {fixture.awayTeam.logo ? (
       <img
         src={fixture.awayTeam.logo}
@@ -335,6 +335,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     <span className="text-xs truncate">{fixture.awayTeam.shortName || fixture.awayTeam.name}</span>
   </div>
 </div>
+
 
 {/* Venue & Badge */}
 <div className="flex flex-col items-center w-full">
