@@ -369,13 +369,13 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
               }}
               className="transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
               style={{
-                width: Math.floor(currentIndex / cardsPerView) === index ? '24px' : '8px',
+                width: currentIndex === index ? '24px' : '8px',
                 height: '8px',
-                borderRadius: Math.floor(currentIndex / cardsPerView) === index ? '9999px' : '50%',
-                backgroundColor: Math.floor(currentIndex / cardsPerView) === index ? activeColor : inactiveColor,
+                borderRadius: currentIndex === index ? '9999px' : '50%',
+                backgroundColor: currentIndex === index ? activeColor : inactiveColor,
               }}
               aria-label={`Go to slide ${index + 1}`}
-              aria-current={Math.floor(currentIndex / cardsPerView) === index ? 'true' : 'false'}
+              aria-current={currentIndex === index ? 'true' : 'false'}
               tabIndex={0}
             />
           ))}
