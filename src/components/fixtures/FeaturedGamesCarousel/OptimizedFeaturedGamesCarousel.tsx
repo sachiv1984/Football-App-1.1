@@ -288,26 +288,25 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                         isActive ? 'transform scale-105 transition-transform duration-300' : ''
                       }`}
                     >
-                      {/* Competition & Week */}
+                   {/* Competition & Week */}
 <div className="flex justify-between items-center mb-4 px-2">
   {/* Competition Logo Left */}
-  {fixture.competition.logo ? (
-    <img
-      src={fixture.competition.logo}
-      alt={fixture.competition.name}
-      className="w-12 h-12 object-contain"
-      draggable={false}
-    />
-  ) : (
-    <div className="w-12 h-12" /> // Placeholder to keep spacing consistent
-  )}
+  <div className="w-12 h-12 flex items-center justify-start">
+    {fixture.competition.logo ? (
+      <img
+        src={fixture.competition.logo}
+        alt={fixture.competition.name}
+        className="w-12 h-12 object-contain"
+        draggable={false}
+      />
+    ) : null}
+  </div>
 
   {/* Game Week Right */}
   <span className="text-xs text-gray-500 font-medium">
     Week {fixture.matchWeek || 1}
   </span>
 </div>
-
 
                       {/* Teams & Time */}
                       <div className="flex items-center justify-between mb-4">
