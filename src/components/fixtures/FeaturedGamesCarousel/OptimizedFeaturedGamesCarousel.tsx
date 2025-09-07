@@ -249,14 +249,14 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
               return (
                 <button
-  key={fixture.id || index}
+    key={fixture.id || index}
   className={`carousel-card ${isActive ? 'active' : ''} 
              flex flex-col justify-between 
              p-6 sm:p-6 
              max-w-[360px] md:max-w-[480px] lg:max-w-[520px]
              aspect-[4/3] 
              focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-focus-gold`}
-  aria-label={`View match between ${fixture.homeTeam.name} and ${fixture.awayTeam.name} on ${new Date(fixture.dateTime).toLocaleDateString('en-GB')}`}
+  aria-label={`View match between ${fixture.homeTeam.name} and ${fixture.awayTeam.name}`}
   onClick={() => onGameSelect?.(fixture)}
   draggable={false}
 >
