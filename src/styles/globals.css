@@ -1,48 +1,115 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
 /* -------------------------
-   Carousel Design Tokens
+   Design Tokens → CSS Vars
 ------------------------- */
 :root {
-  /* Card spacing / gap */
+  /* Colors */
+  --color-background: #FFFFFF;
+  --color-text: #374151;
+  --color-electric-yellow: #FFFF00;
+  --color-focus-gold: #FFD700;
+  --color-deep-blue: #003366;
+  --color-navy: #000080;
+  --color-gray-light: #F5F5F5;
+  --color-gray-medium: #6B7280;
+  --color-gray-dark: #374151;
+
+  /* Shadows */
+  --shadow-card: 0 4px 12px rgba(0,0,0,0.1);
+  --shadow-card-hover: 0 6px 18px rgba(0,0,0,0.15);
+
+  /* Carousel specific */
   --carousel-gap-mobile: 16px;
   --carousel-gap-tablet: 24px;
   --carousel-gap-desktop: 32px;
 
-  /* Card shadows */
-  --shadow-card: 0 4px 12px rgba(0,0,0,0.1);
-  --shadow-card-hover: 0 6px 18px rgba(0,0,0,0.15);
-
-  /* Card scale */
   --card-scale-active: 1.05;
   --card-scale-hover: 1.02;
 
-  /* Pagination dots */
   --carousel-dot-active-width: 24px;
   --carousel-dot-inactive-width: 8px;
   --carousel-dot-height: 8px;
   --carousel-dot-radius: 9999px;
-  --carousel-dot-active-color: #FFD700; /* activeColor */
-  --carousel-dot-inactive-color: #D1D5DB; /* inactiveColor */
+  --carousel-dot-active-color: var(--color-focus-gold);
+  --carousel-dot-inactive-color: var(--color-gray-medium);
 
-  /* Featured ribbon */
-  --ribbon-bg: #FFD700; /* matches activeColor */
-  --ribbon-color: #374151; /* text color */
+  --ribbon-bg: var(--color-focus-gold);
+  --ribbon-color: var(--color-gray-dark);
   --ribbon-rotate: 12deg;
   --ribbon-font-size-mobile: 10px;
   --ribbon-font-size-desktop: 12px;
 
-  /* Focus / active colors */
-  --carousel-focus-ring: #FFD700; /* focusRingColor */
-  --carousel-active-color: #FFD700;
-  --carousel-inactive-color: #D1D5DB;
+  --carousel-focus-ring: var(--color-focus-gold);
+  --carousel-active-color: var(--color-focus-gold);
+  --carousel-inactive-color: var(--color-gray-medium);
 }
 
 /* -------------------------
-   Carousel Components
+   Base
+------------------------- */
+@layer base {
+  html {
+    font-family: Inter, system-ui, sans-serif;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-gray-50 text-gray-900 antialiased;
+    font-feature-settings: 'cv02','cv03','cv04','cv11';
+  }
+
+  h1,h2,h3,h4,h5,h6 {
+    font-family: Poppins, system-ui, sans-serif;
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: -0.025em;
+  }
+
+  h1 { @apply text-4xl lg:text-5xl; }
+  h2 { @apply text-3xl lg:text-4xl; }
+  h3 { @apply text-2xl lg:text-3xl; }
+  h4 { @apply text-xl lg:text-2xl; }
+  h5 { @apply text-lg lg:text-xl; }
+  h6 { @apply text-base lg:text-lg; }
+
+  *:focus-visible {
+    @apply outline-none ring-2 ring-offset-2;
+    ring-color: var(--color-focus-gold);
+  }
+
+  ::selection {
+    background-color: var(--color-focus-gold);
+    color: var(--color-gray-dark);
+  }
+}
+
+/* -------------------------
+   Components
 ------------------------- */
 @layer components {
-  /* Card */
+  /* Buttons */
+  .btn {
+    @apply inline-flex items-center justify-center font-semibold rounded-lg transition-all duration-200
+           focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-primary {
+    background-color: var(--color-focus-gold);
+    @apply rounded-lg px-4 py-2 font-semibold text-gray-900 transition-colors;
+  }
+  .btn-primary:hover {
+    background-color: var(--color-electric-yellow);
+  }
+
+  /* Cards */
+  .card,
   .carousel-card {
-    @apply rounded-xl bg-white shadow-lg cursor-pointer select-none transition-all duration-300;
+    @apply rounded-xl bg-white cursor-pointer select-none transition-all duration-300;
     box-shadow: var(--shadow-card);
   }
 
@@ -88,3 +155,4 @@
     }
   }
 }
+
