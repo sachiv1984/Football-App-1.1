@@ -27,7 +27,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const totalSlides = fixtures.length;
   const maxIndex = Math.max(0, totalSlides - cardsPerView);
 
-  /** Reduced motion media query */
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -37,13 +36,11 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
-  /** Fade-in animation */
   useEffect(() => {
     const timer = setTimeout(() => setIsVisible(true), 100);
     return () => clearTimeout(timer);
   }, []);
 
-  /** Announce slide for screen readers */
   const announceSlideChange = useCallback(
     (index: number) => {
       const fixture = fixtures[index];
@@ -56,7 +53,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     [fixtures, totalSlides]
   );
 
-  /** Calculate cards per view based on screen width */
   useEffect(() => {
     const calculateCardsPerView = () => {
       const width = window.innerWidth;
@@ -70,13 +66,11 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => window.removeEventListener('resize', updateCardsPerView);
   }, []);
 
-  /** Ensure current index is valid */
   useEffect(() => {
     const newMaxIndex = Math.max(0, totalSlides - cardsPerView);
     if (currentIndex > newMaxIndex) setCurrentIndex(newMaxIndex);
   }, [cardsPerView, totalSlides, currentIndex]);
 
-  /** Navigation helpers */
   const goToNext = useCallback(() => {
     const newIndex = Math.min(currentIndex + 1, maxIndex);
     setCurrentIndex(newIndex);
@@ -99,7 +93,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     announceSlideChange(maxIndex);
   }, [maxIndex, announceSlideChange]);
 
-  /** Keyboard navigation */
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!containerRef.current?.contains(event.target as Node)) return;
@@ -126,7 +119,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [goToNext, goToPrev, goToFirst, goToLast]);
 
-  /** Touch swipe */
   const minSwipeDistance = 50;
   const onTouchStart = (e: React.TouchEvent) => {
     setTouchEnd(null);
@@ -142,18 +134,16 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     else if (distance < -minSwipeDistance) goToPrev();
   };
 
-  /** Loading state */
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 p-6">
         {[...Array(3)].map((_, idx) => (
-          <div key={idx} className="bg-gray-200 animate-pulse rounded-xl aspect-[4/3] p-6" />
+          <div key={idx} className="bg-gray-200 animate-pulse rounded-xl p-6" />
         ))}
       </div>
     );
   }
 
-  /** No slides fallback */
   if (totalSlides === 0) {
     return (
       <div className="flex flex-col items-center justify-center text-center py-20 px-6">
@@ -179,7 +169,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
   const showNavigation = totalSlides > cardsPerView;
 
-  /** Helper to get card gap for responsiveness */
   const getCardGap = () => {
     if (cardsPerView === 1) return 16;
     if (cardsPerView === 2) return 24;
@@ -199,7 +188,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
       <div className="relative">
         {showNavigation && (
           <>
-            {/* Prev button */}
             <button
               onClick={goToPrev}
               disabled={currentIndex === 0}
@@ -220,7 +208,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
               </svg>
             </button>
 
-            {/* Next button */}
             <button
               onClick={goToNext}
               disabled={currentIndex === maxIndex}
@@ -243,7 +230,8 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
           </>
         )}
 
-        <div className="overflow-hidden px-4 md:px-8">
+        {/* Added py-4 here for vertical spacing */}
+        <div className="overflow-hidden px-4 md:px-8 py-4">
           <div
             ref={trackRef}
             onTouchStart={onTouchStart}
@@ -265,7 +253,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
               return (
                 <div
                   key={fixture.id || index}
-                  className="relative rounded-xl flex-shrink-0 aspect-[4/3]"
+                  className="relative rounded-xl flex-shrink-0" // removed aspect ratio
                   style={{
                     flex: `0 0 calc(${100 / cardsPerView}% - ${getCardGap()}px)`,
                     border: isActive ? '2px solid #FFD700' : '1px solid #D1D5DB',
@@ -278,80 +266,80 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                   role="listitem"
                 >
                   <button
-                    className={`carousel-card flex flex-col justify-between w-full h-full p-4 bg-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-focus-gold ${
-                      isActive ? 'transform scale-105 transition-transform duration-300' : ''
-                    }`}
+                    className="carousel-card flex flex-col justify-between w-full h-full p-4 bg-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-focus-gold"
                     aria-label={`View match between ${fixture.homeTeam.name} and ${fixture.awayTeam.name}`}
                     onClick={() => onGameSelect?.(fixture)}
                     draggable={false}
                   >
-                    {/* Competition & Week */}
-                    <div className="flex justify-between items-center mb-4">
-                      {/* Competition Logo Left */}
-                      {fixture.competition.logo && (
-                        <img
-                          src={fixture.competition.logo}
-                          alt={fixture.competition.name}
-                          className="w-12 h-12 object-contain"
-                          draggable={false}
-                        />
-                      )}
+                    <div
+                      className={`flex flex-col justify-between h-full ${
+                        isActive ? 'transform scale-105 transition-transform duration-300' : ''
+                      }`}
+                    >
+                      {/* Competition & Week */}
+                      <div className="flex justify-between items-center mb-4 px-2">
+                        <div className="w-12 h-12 flex items-center justify-start">
+                          {fixture.competition.logo && (
+                            <img
+                              src={fixture.competition.logo}
+                              alt={fixture.competition.name}
+                              className="w-12 h-12 object-contain"
+                              draggable={false}
+                            />
+                          )}
+                        </div>
+                        <span className="text-xs text-gray-500 font-medium">
+                          Week {fixture.matchWeek || 1}
+                        </span>
+                      </div>
 
-                      {/* Game Week Right */}
-                      <span className="text-xs text-gray-500 font-medium self-start">
-                        Week {fixture.matchWeek || 1}
-                      </span>
-                    </div>
+                      {/* Teams & Time */}
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex flex-col items-center flex-1">
+                          {fixture.homeTeam.logo ? (
+                            <img
+                              src={fixture.homeTeam.logo}
+                              alt={fixture.homeTeam.name}
+                              className="w-16 h-16 object-contain"
+                            />
+                          ) : (
+                            <span>{fixture.homeTeam.name[0]}</span>
+                          )}
+                          <span className="text-xs truncate">{fixture.homeTeam.shortName || fixture.homeTeam.name}</span>
+                        </div>
 
-                    {/* Teams & Time */}
-                    <div className="flex items-center justify-between mb-4">
-                      {/* Home */}
-                      <div className="flex flex-col items-center flex-1">
-                        {fixture.homeTeam.logo ? (
-                          <img
-                            src={fixture.homeTeam.logo}
-                            alt={fixture.homeTeam.name}
-                            className="w-16 h-16 object-contain"
-                          />
-                        ) : (
-                          <span>{fixture.homeTeam.name[0]}</span>
+                        <div className="flex flex-col items-center px-4 text-center">
+                          <span className="text-gray-700 font-medium text-base">
+                            {new Date(fixture.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {new Date(fixture.dateTime).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
+                          </span>
+                        </div>
+
+                        <div className="flex flex-col items-center flex-1">
+                          {fixture.awayTeam.logo ? (
+                            <img
+                              src={fixture.awayTeam.logo}
+                              alt={fixture.awayTeam.name}
+                              className="w-16 h-16 object-contain"
+                            />
+                          ) : (
+                            <span>{fixture.awayTeam.name[0]}</span>
+                          )}
+                          <span className="text-xs truncate">{fixture.awayTeam.shortName || fixture.awayTeam.name}</span>
+                        </div>
+                      </div>
+
+                      {/* Venue & Badge */}
+                      <div className="flex flex-col items-center">
+                        <div className="text-xs text-gray-500 truncate">{fixture.venue}</div>
+                        {fixture.importance >= 80 && (
+                          <span className="mt-2 inline-block bg-yellow-400 text-gray-900 px-2 py-1 rounded-full text-[10px] sm:text-[12px]">
+                            Featured
+                          </span>
                         )}
-                        <span className="text-xs truncate">{fixture.homeTeam.shortName || fixture.homeTeam.name}</span>
                       </div>
-
-                      {/* Time */}
-                      <div className="flex flex-col items-center px-4 text-center">
-                        <span className="text-gray-700 font-medium text-base">
-                          {new Date(fixture.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {new Date(fixture.dateTime).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
-                        </span>
-                      </div>
-
-                      {/* Away */}
-                      <div className="flex flex-col items-center flex-1">
-                        {fixture.awayTeam.logo ? (
-                          <img
-                            src={fixture.awayTeam.logo}
-                            alt={fixture.awayTeam.name}
-                            className="w-16 h-16 object-contain"
-                          />
-                        ) : (
-                          <span>{fixture.awayTeam.name[0]}</span>
-                        )}
-                        <span className="text-xs truncate">{fixture.awayTeam.shortName || fixture.awayTeam.name}</span>
-                      </div>
-                    </div>
-
-                    {/* Venue & Badge */}
-                    <div className="flex flex-col items-center">
-                      <div className="text-xs text-gray-500 truncate">{fixture.venue}</div>
-                      {fixture.importance >= 80 && (
-                        <span className="mt-2 inline-block bg-yellow-400 text-gray-900 px-2 py-1 rounded-full text-[10px] sm:text-[12px]">
-                          Featured
-                        </span>
-                      )}
                     </div>
                   </button>
                 </div>
@@ -360,7 +348,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
           </div>
         </div>
 
-        {/* Pagination Dots */}
+        {/* Pagination */}
         {showNavigation && (
           <div className="flex justify-center items-center mt-6 space-x-2 w-full" style={{ minHeight: '32px' }}>
             {Array.from({ length: maxIndex + 1 }, (_, index) => (
