@@ -220,17 +220,19 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
         {/* Carousel track */}
         <div className="overflow-hidden px-4">
-          <div
-            ref={trackRef}
-            onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove}
-            onTouchEnd={onTouchEnd}
-            className="flex select-none gap-4"
-            style={{
-              transform: `translateX(-${currentIndex * (100 / cardsPerView)}%)`,
-              transition: prefersReducedMotion ? 'none' : 'transform 0.3s ease-out',
-            }}
-          >
+        // inside render
+<div
+  ref={trackRef}
+  onTouchStart={onTouchStart}
+  onTouchMove={onTouchMove}
+  onTouchEnd={onTouchEnd}
+  className="flex select-none gap-4"
+  style={{
+    transform: `translateX(-${currentIndex * (100 / totalSlides)}%)`, // <-- use totalSlides, not cardsPerView
+    transition: prefersReducedMotion ? 'none' : 'transform 0.3s ease-out',
+  }}
+>
+
             {fixtures.map((fixture, index) => {
               const isActive = index >= currentIndex && index < currentIndex + cardsPerView;
               // Fix mobile full width
