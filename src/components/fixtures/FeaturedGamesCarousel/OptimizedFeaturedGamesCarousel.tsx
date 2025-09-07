@@ -217,7 +217,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             onTouchEnd={onTouchEnd}
             onMouseDown={(e) => e.preventDefault()}
             onDragStart={(e) => e.preventDefault()}
-            className="flex select-none"
+            className="flex select-none gap-4" 
             style={{
               transform: `translateX(-${(currentIndex * 100) / cardsPerView}%)`,
               transition: prefersReducedMotion ? 'none' : 'transform 0.3s ease-out',
