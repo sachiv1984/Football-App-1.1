@@ -249,7 +249,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
               return (
                 <button
-                  <button
   key={fixture.id || index}
   className={`carousel-card ${isActive ? 'active' : ''} 
              flex flex-col justify-between 
