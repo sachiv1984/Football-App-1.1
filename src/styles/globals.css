@@ -109,15 +109,16 @@
 
   /* Cards */
   .card,
- .carousel-card {
+.carousel-card {
   @apply rounded-xl bg-white cursor-pointer select-none border border-gray-medium;
   box-shadow: var(--shadow-card);
-  transition: all 0.3s ease-out;
+  transition: transform 0.3s ease-out, box-shadow 0.3s ease-out, border-color 0.3s ease-out;
 }
 
 .carousel-card:hover {
   @apply scale-102;
   box-shadow: var(--shadow-card-hover);
+  border-color: var(--color-focus-gold);
 }
 
 .carousel-card.active {
@@ -134,14 +135,14 @@
 
   /* Respect reduced motion preference */
   @media (prefers-reduced-motion: reduce) {
-    .carousel-card,
-    .carousel-card:hover,
-    .carousel-card.active {
-      transition: none;
-      transform: none;
-      filter: none;
-    }
+  .carousel-card,
+  .carousel-card:hover,
+  .carousel-card.active {
+    transition: none;
+    transform: none;
+    box-shadow: var(--shadow-card);
   }
+}
 
   /* Pagination dots */
   .carousel-dot {
