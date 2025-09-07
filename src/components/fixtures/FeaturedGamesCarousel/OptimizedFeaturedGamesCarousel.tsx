@@ -243,7 +243,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
           </>
         )}
 
-        <div className="overflow-hidden px-4 md:px-8">
+       <div className="overflow-hidden px-4 md:px-8 pt-4 pb-4">
           <div
             ref={trackRef}
             onTouchStart={onTouchStart}
@@ -288,10 +288,10 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                         isActive ? 'transform scale-105 transition-transform duration-300' : ''
                       }`}
                     >
-                   {/* Competition & Week */}
-<div className="flex justify-between items-center mb-4 px-2">
+   {/* Competition & Week */}
+<div className="flex justify-between items-start mb-4 px-2">
   {/* Competition Logo Left */}
-  <div className="w-12 h-12 flex items-center justify-start">
+  <div className="w-12 h-12 flex items-start justify-start">
     {fixture.competition.logo ? (
       <img
         src={fixture.competition.logo}
@@ -303,10 +303,11 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   </div>
 
   {/* Game Week Right */}
-  <span className="text-xs text-gray-500 font-medium">
+  <span className="text-xs text-gray-500 font-medium mt-1">
     Week {fixture.matchWeek || 1}
   </span>
 </div>
+
 
                       {/* Teams & Time */}
                       <div className="flex items-center justify-between mb-4">
