@@ -22,16 +22,35 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [announceText, setAnnounceText] = useState('');
   const [isVisible, setIsVisible] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   
   const totalSlides = fixtures.length;
   const maxIndex = Math.max(0, totalSlides - cardsPerView);
 
-  // Check for reduced motion preference
-  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
   const inactiveColor = '#D1D5DB';
   const activeColor = '#FFD700';
   const focusRingColor = '#FFD700'; // Soft gold focus ring
+
+  // SSR-safe reduced motion detection with reactivity
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    
+    // Set initial value
+    setPrefersReducedMotion(mediaQuery.matches);
+    
+    // Listen for changes
+    const handleChange = (e: MediaQueryListEvent) => {
+      setPrefersReducedMotion(e.matches);
+    };
+    
+    mediaQuery.addEventListener('change', handleChange);
+    
+    return () => {
+      mediaQuery.removeEventListener('change', handleChange);
+    };
+  }, []);
 
   // Fade-in animation on mount
   useEffect(() => {
