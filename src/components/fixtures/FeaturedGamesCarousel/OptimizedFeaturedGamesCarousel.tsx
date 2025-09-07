@@ -295,43 +295,45 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   </div>
 </div>
 {/* Teams & Time */}
-<div className="flex justify-center items-center mb-4 gap-8">
-  {/* Home */}
-  <div className="flex flex-col items-center">
-    {fixture.homeTeam.logo ? (
-      <img
-        src={fixture.homeTeam.logo}
-        alt={fixture.homeTeam.name}
-        className="w-16 h-16 object-contain"
-      />
-    ) : (
-      <span>{fixture.homeTeam.name[0]}</span>
-    )}
-    <span className="text-xs truncate">{fixture.homeTeam.shortName || fixture.homeTeam.name}</span>
-  </div>
+<div className="flex justify-center mb-4">
+  <div className="flex items-center gap-8">
+    {/* Home */}
+    <div className="flex flex-col items-center">
+      {fixture.homeTeam.logo ? (
+        <img
+          src={fixture.homeTeam.logo}
+          alt={fixture.homeTeam.name}
+          className="w-16 h-16 object-contain"
+        />
+      ) : (
+        <span>{fixture.homeTeam.name[0]}</span>
+      )}
+      <span className="text-xs truncate">{fixture.homeTeam.shortName || fixture.homeTeam.name}</span>
+    </div>
 
-  {/* Time */}
-  <div className="flex flex-col items-center text-center">
-    <span className="text-gray-700 font-medium text-base">
-      {new Date(fixture.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })}
-    </span>
-    <span className="text-xs text-gray-500">
-      {new Date(fixture.dateTime).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
-    </span>
-  </div>
+    {/* Time */}
+    <div className="flex flex-col items-center text-center">
+      <span className="text-gray-700 font-medium text-base">
+        {new Date(fixture.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })}
+      </span>
+      <span className="text-xs text-gray-500">
+        {new Date(fixture.dateTime).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
+      </span>
+    </div>
 
-  {/* Away */}
-  <div className="flex flex-col items-center">
-    {fixture.awayTeam.logo ? (
-      <img
-        src={fixture.awayTeam.logo}
-        alt={fixture.awayTeam.name}
-        className="w-16 h-16 object-contain"
-      />
-    ) : (
-      <span>{fixture.awayTeam.name[0]}</span>
-    )}
-    <span className="text-xs truncate">{fixture.awayTeam.shortName || fixture.awayTeam.name}</span>
+    {/* Away */}
+    <div className="flex flex-col items-center">
+      {fixture.awayTeam.logo ? (
+        <img
+          src={fixture.awayTeam.logo}
+          alt={fixture.awayTeam.name}
+          className="w-16 h-16 object-contain"
+        />
+      ) : (
+        <span>{fixture.awayTeam.name[0]}</span>
+      )}
+      <span className="text-xs truncate">{fixture.awayTeam.shortName || fixture.awayTeam.name}</span>
+    </div>
   </div>
 </div>
 
