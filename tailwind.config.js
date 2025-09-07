@@ -2,7 +2,7 @@
 module.exports = {
   content: [
     "./src/**/*.{js,jsx,ts,tsx}",  // include all JS/TS/TSX files
-    "./src/**/*.css"              // include any CSS files
+    "./src/**/*.css"                // include any CSS files
   ],
   theme: {
     extend: {
@@ -14,7 +14,7 @@ module.exports = {
         'light-grey': '#F5F5F5',
         'highlight-red': '#EF4444',
         'highlight-teal': '#14B8A6',
-        'focus-gold': '#FFD700',
+        'focus-gold': '#FFD700',     // for focus rings
       },
       fontFamily: {
         'sans': ['Inter', 'system-ui', 'sans-serif'],
@@ -34,6 +34,9 @@ module.exports = {
       animation: {
         fadeIn: 'fadeIn 0.5s ease-in-out',
         slideUp: 'slideUp 0.3s ease-out',
+      },
+      boxShadow: {
+        'card': '0 4px 12px rgba(0,0,0,0.1)',   // custom shadow
       },
     },
   },
