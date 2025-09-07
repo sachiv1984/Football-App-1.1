@@ -270,7 +270,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                   <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100 w-full">
                     {fixture.competition.logo && (
                       <div
-                        className={`bg-white rounded-full shadow-lg flex items-center justify-center transition-all duration-300 ease-out hover:scale-105 hover:shadow-xl active:scale-102 ${
+                        className={`bg-white rounded-full shadow-card flex items-center justify-center transition-all duration-300 ease-out hover:scale-105 hover:shadow-xl active:scale-102 ${
                           isActive ? 'scale-100' : 'scale-90'
                         } w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20`}
                       >
@@ -290,14 +290,13 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                     </div>
                   </div>
 
-                  {/* Home / Away Teams */}
+                  {/* Home/Away Teams */}
                   <div className="flex items-center justify-between mb-4">
                     <div className="text-center flex-1">
                       <div
                         className={`w-20 h-20 rounded-full bg-white flex items-center justify-center mb-3 mx-auto transition-all duration-200 ${
                           isActive ? 'scale-105' : 'scale-100'
-                        } hover:scale-102`}
-                        style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                        } hover:scale-102 shadow-card`}
                       >
                         {fixture.homeTeam.logo ? (
                           <img
@@ -320,8 +319,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
                     <div className="flex flex-col items-center text-center px-4">
                       <div
-                        className={`flex items-center space-x-2 mb-2 text-gray-700 font-medium`}
-                        style={{ fontFamily: 'Inter, system-ui, sans-serif', fontSize: cardsPerView === 1 ? '16px' : '18px' }}
+                        className={`flex items-center space-x-2 mb-2 text-gray-700 font-medium text-base`}
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -345,7 +343,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                           })}
                         </span>
                       </div>
-                      <div className={`text-xs text-gray-500`} style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                      <div className="text-xs text-gray-500">
                         {new Date(fixture.dateTime).toLocaleDateString('en-GB', {
                           weekday: 'short',
                           day: 'numeric',
@@ -358,8 +356,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                       <div
                         className={`w-20 h-20 rounded-full bg-white flex items-center justify-center mb-3 mx-auto transition-all duration-200 ${
                           isActive ? 'scale-105' : 'scale-100'
-                        } hover:scale-102`}
-                        style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                        } hover:scale-102 shadow-card`}
                       >
                         {fixture.awayTeam.logo ? (
                           <img
@@ -384,15 +381,14 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                   {/* Venue */}
                   <div className="text-center mt-4">
                     <div
-                      className="truncate cursor-help transition-colors duration-200 hover:text-gray-700 text-gray-500 font-medium"
-                      style={{ fontFamily: 'Inter, system-ui, sans-serif', fontSize: cardsPerView === 1 ? '14px' : '16px' }}
+                      className="truncate cursor-help transition-colors duration-200 hover:text-gray-700 text-gray-500 font-medium text-sm"
                       title={fixture.venue}
                     >
                       {fixture.venue}
                     </div>
                   </div>
 
-                  {/* Featured badge */}
+                  {/* Featured Badge */}
                   {fixture.importance >= 80 && (
                     <div className="mt-2 text-center">
                       <span className="inline-block bg-yellow-400 text-gray-900 px-2 py-1 rounded-full font-medium text-[10px] sm:text-[12px]">
