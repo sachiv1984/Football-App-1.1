@@ -249,24 +249,18 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
               return (
                 <button
-                  key={fixture.id || index}
-                  className={`carousel-card ${isActive ? 'active' : ''} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gold`}
-                  aria-label={`View match between ${fixture.homeTeam.name} and ${fixture.awayTeam.name} on ${new Date(
-                    fixture.dateTime
-                  ).toLocaleDateString('en-GB')}`}
-                  onClick={() => onGameSelect?.(fixture)}
-                  style={{
-                    flex: `0 0 calc(${100 / cardsPerView}% - ${(cardsPerView === 1 ? 16 : 32) * (cardsPerView - 1) / cardsPerView}px)`,
-                    padding: cardsPerView === 1 ? '16px' : '24px',
-                    aspectRatio: '4/3',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    maxWidth: cardsPerView === 1 ? '360px' : cardsPerView === 2 ? '480px' : '520px',
-                    transition: prefersReducedMotion ? 'none' : 'all 0.3s ease-out',
-                  } as React.CSSProperties}
-                  draggable={false}
-                >
+                  <button
+  key={fixture.id || index}
+  className={`carousel-card ${isActive ? 'active' : ''} 
+             flex flex-col justify-between 
+             p-6 sm:p-6 
+             max-w-[360px] md:max-w-[480px] lg:max-w-[520px]
+             aspect-[4/3] 
+             focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-focus-gold`}
+  aria-label={`View match between ${fixture.homeTeam.name} and ${fixture.awayTeam.name} on ${new Date(fixture.dateTime).toLocaleDateString('en-GB')}`}
+  onClick={() => onGameSelect?.(fixture)}
+  draggable={false}
+>
                   {/* Competition Logo */}
                   <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100 w-full">
                     {fixture.competition.logo && (
