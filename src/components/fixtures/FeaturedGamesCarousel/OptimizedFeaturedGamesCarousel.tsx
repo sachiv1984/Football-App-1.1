@@ -290,8 +290,11 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
                   {/* Importance */}
                   {fixture.importance >= 80 && (
-                    <div className="mt-3 text-center">
-                      <span className="inline-block bg-yellow-400 text-gray-900 text-xs px-2 py-1 rounded-full font-medium">
+                    <div className="mt-2 text-center">
+                      <span 
+                        className="inline-block bg-yellow-400 text-gray-900 px-2 py-1 rounded-full font-medium"
+                        style={{ fontSize: cardsPerView === 1 ? '10px' : '12px' }}
+                      >
                         Featured
                       </span>
                     </div>
