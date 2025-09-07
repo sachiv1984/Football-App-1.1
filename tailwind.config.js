@@ -36,7 +36,34 @@ module.exports = {
         slideUp: 'slideUp 0.3s ease-out',
       },
       boxShadow: {
-        'card': '0 4px 12px rgba(0,0,0,0.1)',   // custom shadow
+        'card': '0 4px 12px rgba(0,0,0,0.1)',
+        'card-hover': '0 6px 18px rgba(0,0,0,0.15)',
+        'card-active': '0 10px 20px rgba(0,0,0,0.15)',
+      },
+      scale: {
+        '102': '1.02',
+        '108': '1.08',
+      },
+      blur: {
+        'xs': '0.5px',
+      },
+      gap: {
+        'carousel-mobile': '16px',
+        'carousel-tablet': '24px', 
+        'carousel-desktop': '32px',
+      },
+      width: {
+        'dot-active': '24px',
+        'dot-inactive': '8px',
+      },
+      height: {
+        'dot': '8px',
+      },
+      transitionDuration: {
+        '300': '300ms',
+      },
+      transitionTimingFunction: {
+        'ease-out': 'cubic-bezier(0, 0, 0.2, 1)',
       },
     },
   },
