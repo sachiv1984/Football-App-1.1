@@ -234,9 +234,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
               return (
                 <div
                   key={fixture.id || index}
-                  className={`transition-all duration-300 ${
-                    isActive ? 'opacity-100 scale-105' : 'opacity-90 scale-100'
-                  } focus:outline-none focus:ring-2 focus:ring-offset-2 select-none cursor-pointer bg-white rounded-xl shadow-lg hover:shadow-xl`}
+                  className={`carousel-card ${isActive ? 'active opacity-100' : 'opacity-90'} focus:outline-none focus:ring-2 focus:ring-offset-2`}
                   role="button"
                   tabIndex={0}
                   aria-label={`View match between ${fixture.homeTeam.name} and ${fixture.awayTeam.name} on ${new Date(fixture.dateTime).toLocaleDateString("en-GB")}`}
