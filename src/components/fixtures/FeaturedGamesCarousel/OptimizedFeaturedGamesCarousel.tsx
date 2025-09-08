@@ -274,46 +274,46 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                         </div>
                       </div>
 
-                      {/* Middle row */}
-                      <div className="grid grid-cols-3 items-center text-center">
-                        {/* Home */}
-                        <div className="flex flex-col items-center">
-                          {fixture.homeTeam.logo ? (
-                            <img src={fixture.homeTeam.logo} alt={fixture.homeTeam.name} className="w-12 h-12 object-contain" />
-                          ) : (
-                            <span>{fixture.homeTeam.name[0]}</span>
-                          )}
-                          <span className="text-xs truncate">{fixture.homeTeam.shortName || fixture.homeTeam.name}</span>
-                        </div>
+                      {/* Teams & Time */}
+<div className="relative mb-4 h-24">
+  {/* Home Team */}
+  <div className="absolute left-4 top-1/2 transform -translate-y-1/2 flex flex-col items-center">
+    {fixture.homeTeam.logo ? (
+      <img
+        src={fixture.homeTeam.logo}
+        alt={fixture.homeTeam.name}
+        className="w-16 h-16 object-contain"
+      />
+    ) : (
+      <span>{fixture.homeTeam.name[0]}</span>
+    )}
+    <span className="text-xs truncate">{fixture.homeTeam.shortName || fixture.homeTeam.name}</span>
+  </div>
 
-                        {/* Time */}
-                        <div className="flex flex-col items-center">
-                          <span className="text-sm font-medium text-gray-700">
-                            {new Date(fixture.dateTime).toLocaleTimeString('en-GB', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                              hour12: false,
-                            })}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            {new Date(fixture.dateTime).toLocaleDateString('en-GB', {
-                              weekday: 'short',
-                              day: 'numeric',
-                              month: 'short',
-                            })}
-                          </span>
-                        </div>
+  {/* Time */}
+  <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center text-center">
+    <span className="text-gray-700 font-medium text-base">
+      {new Date(fixture.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })}
+    </span>
+    <span className="text-xs text-gray-500">
+      {new Date(fixture.dateTime).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
+    </span>
+  </div>
 
-                        {/* Away */}
-                        <div className="flex flex-col items-center">
-                          {fixture.awayTeam.logo ? (
-                            <img src={fixture.awayTeam.logo} alt={fixture.awayTeam.name} className="w-12 h-12 object-contain" />
-                          ) : (
-                            <span>{fixture.awayTeam.name[0]}</span>
-                          )}
-                          <span className="text-xs truncate">{fixture.awayTeam.shortName || fixture.awayTeam.name}</span>
-                        </div>
-                      </div>
+  {/* Away Team */}
+  <div className="absolute right-4 top-1/2 transform -translate-y-1/2 flex flex-col items-center">
+    {fixture.awayTeam.logo ? (
+      <img
+        src={fixture.awayTeam.logo}
+        alt={fixture.awayTeam.name}
+        className="w-16 h-16 object-contain"
+      />
+    ) : (
+      <span>{fixture.awayTeam.name[0]}</span>
+    )}
+    <span className="text-xs truncate">{fixture.awayTeam.shortName || fixture.awayTeam.name}</span>
+  </div>
+</div>
 
                       {/* Bottom row */}
                       <div className="flex justify-center items-center">
