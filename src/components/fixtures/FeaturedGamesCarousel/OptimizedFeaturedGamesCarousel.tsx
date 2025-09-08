@@ -224,40 +224,8 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             onTouchEnd={onTouchEnd}
             className="flex"
             style={{
-              // Smart alignment: left-align at start, center in middle, right-align at end
-              transform: (() => {
-                const containerWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
-                const cardWidth = 350;
-                const gap = 40;
-                const cardPlusGap = cardWidth + gap;
-                
-                // Calculate how many cards can fit in the viewport
-                const totalWidth = totalSlides * cardPlusGap - gap; // Total width of all cards
-                
-                // If all cards fit in viewport, center the entire group
-                if (totalWidth <= containerWidth) {
-                  const centerOffset = (containerWidth - totalWidth) / 2;
-                  return `translateX(${centerOffset}px)`;
-                }
-                
-                // Calculate the maximum translate value (when showing the last cards)
-                const maxTranslate = containerWidth - totalWidth;
-                
-                // For first few cards, start from left edge with some padding
-                if (currentIndex === 0) {
-                  return `translateX(40px)`;
-                }
-                
-                // For last few cards, align to show them all
-                const cardsFromEnd = totalSlides - 1 - currentIndex;
-                if (cardsFromEnd === 0) {
-                  return `translateX(${maxTranslate - 40}px)`;
-                }
-                
-                // For middle cards, center the current card
-                const centeringOffset = (containerWidth / 2) - (cardWidth / 2);
-                return `translateX(${centeringOffset - (currentIndex * cardPlusGap)}px)`;
-              })(),
+              // Simple left-aligned approach with consistent spacing
+              transform: `translateX(${40 - (currentIndex * 390)}px)`,
               transition: prefersReducedMotion ? 'none' : 'transform 0.5s ease-out',
               gap: '40px',
             }}
