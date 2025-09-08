@@ -310,18 +310,44 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     <span className="text-xs truncate">{fixture.homeTeam.shortName || fixture.homeTeam.name}</span>
   </div>
 
-  {/* Time */}
-  <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center text-center">
-    <span className="text-gray-700 font-medium text-base">
-      {new Date(fixture.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })}
-    </span>
-    <span className="text-xs text-gray-500">
-      {new Date(fixture.dateTime).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
+  {/* Teams & Time (REPLACE THIS BLOCK) */}
+<div className="grid grid-cols-3 items-center mb-4 px-2">
+  {/* Home (left column) */}
+  <div className="flex flex-col items-center justify-center">
+    {fixture.homeTeam.logo ? (
+      <img
+        src={fixture.homeTeam.logo}
+        alt={fixture.homeTeam.name}
+        className="w-16 h-16 object-contain"
+      />
+    ) : (
+      <span className="text-lg">{fixture.homeTeam.name[0]}</span>
+    )}
+    <span className="text-xs truncate max-w-[8rem] mt-1 text-center">
+      {fixture.homeTeam.shortName || fixture.homeTeam.name}
     </span>
   </div>
 
-  {/* Away Team */}
-  <div className="absolute right-4 top-1/2 transform -translate-y-1/2 flex flex-col items-center">
+  {/* Time (center column) */}
+  <div className="flex flex-col items-center justify-center">
+    <span className="text-gray-700 font-medium text-base">
+      {new Date(fixture.dateTime).toLocaleTimeString('en-GB', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      })}
+    </span>
+    <span className="text-xs text-gray-500">
+      {new Date(fixture.dateTime).toLocaleDateString('en-GB', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+      })}
+    </span>
+  </div>
+
+  {/* Away (right column) */}
+  <div className="flex flex-col items-center justify-center">
     {fixture.awayTeam.logo ? (
       <img
         src={fixture.awayTeam.logo}
@@ -329,11 +355,14 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
         className="w-16 h-16 object-contain"
       />
     ) : (
-      <span>{fixture.awayTeam.name[0]}</span>
+      <span className="text-lg">{fixture.awayTeam.name[0]}</span>
     )}
-    <span className="text-xs truncate">{fixture.awayTeam.shortName || fixture.awayTeam.name}</span>
+    <span className="text-xs truncate max-w-[8rem] mt-1 text-center">
+      {fixture.awayTeam.shortName || fixture.awayTeam.name}
+    </span>
   </div>
 </div>
+
 {/* Venue & Badge */}
 <div className="flex flex-col items-center w-full">
   <div className="text-xs text-gray-500 truncate text-center w-full">{fixture.venue}</div>
