@@ -381,7 +381,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
         {/* Pagination */}
         {showNavigation && (
           <div className="flex justify-center items-center mt-6 space-x-2 w-full" style={{ minHeight: '32px' }}>
-            {Array.from({ length: maxIndex + 1 }, (_, index) => (
+            {Array.from({ length: totalSlides }, (_, index) => (
               <button
                 key={index}
                 onClick={() => {
@@ -390,9 +390,9 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                 }}
                 className="focus:outline-none"
                 style={{
-                  width: currentIndex === index ? '24px' : '12px',
+                  width: currentIndex === index ? '32px' : '12px',
                   height: '12px',
-                  backgroundColor: currentIndex === index ? '#FFD700' : '#6B7280',
+                  backgroundColor: currentIndex === index ? '#FFD700' : '#D1D5DB',
                   borderRadius: '9999px',
                   border: 'none',
                   transition: 'all 0.3s ease',
