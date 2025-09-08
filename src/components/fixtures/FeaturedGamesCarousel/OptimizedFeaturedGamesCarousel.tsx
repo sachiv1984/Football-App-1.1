@@ -166,8 +166,13 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             <button
               onClick={goToPrev}
               disabled={currentIndex === 0}
-              className="absolute left-2 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-white shadow-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-focus-gold"
-              style={{ width: '40px', height: '40px' }}
+              className="absolute left-4 top-1/2 -translate-y-1/2 z-20 p-3 rounded-full bg-white shadow-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-focus-gold"
+              style={{ 
+                width: '48px', 
+                height: '48px',
+                transform: 'translateX(-100%) translateY(-50%)', // Move completely left of container
+                left: '20px'
+              }}
               aria-label="Previous games"
             >
               <svg
@@ -177,7 +182,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
-                className="text-gray-500"
+                className="text-gray-600"
               >
                 <path d="M15 18l-6-6 6-6" />
               </svg>
@@ -186,8 +191,13 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             <button
               onClick={goToNext}
               disabled={currentIndex === maxIndex}
-              className="absolute right-2 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-white shadow-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-focus-gold"
-              style={{ width: '40px', height: '40px' }}
+              className="absolute right-4 top-1/2 -translate-y-1/2 z-20 p-3 rounded-full bg-white shadow-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-focus-gold"
+              style={{ 
+                width: '48px', 
+                height: '48px',
+                transform: 'translateX(100%) translateY(-50%)', // Move completely right of container
+                right: '20px'
+              }}
               aria-label="Next games"
             >
               <svg
@@ -197,7 +207,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
-                className="text-gray-500"
+                className="text-gray-600"
               >
                 <path d="M9 18l6-6-6-6" />
               </svg>
