@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { Swiper, SwiperSlide } from 'swiper/react';
-import { Navigation, Pagination, A11y } from 'swiper';
-import type { Swiper as SwiperType } from 'swiper';
 import type { FeaturedFixtureWithImportance } from '../../../types';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Navigation } from 'swiper/modules/navigation';
+import { Pagination } from 'swiper/modules/pagination';
+import { A11y } from 'swiper/modules/a11y';
+import type { Swiper as SwiperType } from 'swiper';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
+
 
 interface Props {
   fixtures: FeaturedFixtureWithImportance[];
