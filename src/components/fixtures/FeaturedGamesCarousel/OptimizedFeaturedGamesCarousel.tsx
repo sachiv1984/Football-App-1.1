@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
-import { Navigation, Pagination, A11y } from 'swiper/modules';
+import { Navigation, Pagination, A11y } from 'swiper';
+import type { Swiper as SwiperType } from 'swiper';
+import type { FeaturedFixtureWithImportance } from '../../../types';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
-import type { FeaturedFixtureWithImportance } from '../../../types';
 
 interface Props {
   fixtures: FeaturedFixtureWithImportance[];
@@ -13,7 +14,7 @@ interface Props {
   isLoading?: boolean;
 }
 
-const FeaturedGamesCarousel: React.FC<Props> = ({
+const SwiperFeaturedGamesCarousel: React.FC<Props> = ({
   fixtures,
   onGameSelect,
   className = '',
@@ -55,7 +56,7 @@ const FeaturedGamesCarousel: React.FC<Props> = ({
   }
 
   return (
-    <div className={`w-full relative ${className}`}>
+    <div className={`relative w-full ${className}`} role="region" aria-label="Featured Games Carousel">
       <Swiper
         modules={[Navigation, Pagination, A11y]}
         navigation
@@ -63,38 +64,32 @@ const FeaturedGamesCarousel: React.FC<Props> = ({
         spaceBetween={20}
         slidesPerView={'auto'}
         centeredSlides={true}
-        onSlideChange={(swiper) => setActiveIndex(swiper.activeIndex)}
-        className="pb-12" // extra space for pagination dots
+        onSlideChange={(swiper: SwiperType) => setActiveIndex(swiper.activeIndex)}
+        className="pb-16" // extra space for pagination
       >
         {fixtures.map((fixture, index) => (
           <SwiperSlide
             key={fixture.id || index}
-            style={{ width: 280 }} // can adjust for responsive breakpoints
+            style={{ width: '280px', maxWidth: '90%' }}
+            className="transition-transform duration-300"
           >
             <button
+              className={`carousel-card flex flex-col justify-between w-full h-full p-4 bg-white rounded-xl shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-focus-gold hover:scale-105 transition-transform duration-300`}
               onClick={() => onGameSelect?.(fixture)}
-              aria-label={`View match: ${fixture.homeTeam.name} vs ${fixture.awayTeam.name}`}
-              className={`carousel-card flex flex-col justify-between w-full h-full p-4 bg-white rounded-xl transition-all duration-300
-                ${
-                  index === activeIndex
-                    ? 'scale-105 shadow-xl border-2 border-yellow-400'
-                    : 'scale-95 shadow-md border border-gray-200 opacity-70'
-                }
-                hover:scale-105 hover:shadow-xl`}
+              aria-label={`View match between ${fixture.homeTeam.name} and ${fixture.awayTeam.name}`}
             >
               {/* Competition & Week */}
               <div className="flex justify-between items-center mb-4 w-full">
-                <div className="flex items-center justify-start flex-1">
+                <div className="flex items-center flex-1">
                   {fixture.competition.logo && (
                     <img
                       src={fixture.competition.logo}
                       alt={fixture.competition.name}
                       className="w-12 h-12 object-contain"
-                      draggable={false}
                     />
                   )}
                 </div>
-                <div className="flex items-center justify-end flex-1">
+                <div className="flex justify-end flex-1">
                   <span className="text-xs text-gray-500 font-medium">
                     Week {fixture.matchWeek || 1}
                   </span>
@@ -111,13 +106,10 @@ const FeaturedGamesCarousel: React.FC<Props> = ({
                         src={fixture.homeTeam.logo}
                         alt={fixture.homeTeam.name}
                         className="w-16 h-16 object-contain mb-1"
-                        draggable={false}
                       />
                     ) : (
                       <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-1">
-                        <span className="text-lg font-bold text-gray-600">
-                          {fixture.homeTeam.name[0]}
-                        </span>
+                        <span className="text-lg font-bold text-gray-600">{fixture.homeTeam.name[0]}</span>
                       </div>
                     )}
                     <span className="text-xs text-center w-full leading-tight">
@@ -150,13 +142,10 @@ const FeaturedGamesCarousel: React.FC<Props> = ({
                         src={fixture.awayTeam.logo}
                         alt={fixture.awayTeam.name}
                         className="w-16 h-16 object-contain mb-1"
-                        draggable={false}
                       />
                     ) : (
                       <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-1">
-                        <span className="text-lg font-bold text-gray-600">
-                          {fixture.awayTeam.name[0]}
-                        </span>
+                        <span className="text-lg font-bold text-gray-600">{fixture.awayTeam.name[0]}</span>
                       </div>
                     )}
                     <span className="text-xs text-center w-full leading-tight">
@@ -168,9 +157,7 @@ const FeaturedGamesCarousel: React.FC<Props> = ({
 
               {/* Venue & Badge */}
               <div className="flex flex-col items-center w-full">
-                <div className="text-xs text-gray-500 truncate text-center w-full px-2">
-                  {fixture.venue}
-                </div>
+                <div className="text-xs text-gray-500 truncate text-center w-full px-2">{fixture.venue}</div>
                 {fixture.importance >= 80 && (
                   <span className="mt-2 inline-block bg-yellow-400 text-gray-900 px-2 py-1 rounded-full text-[10px] sm:text-[12px] font-medium">
                     Featured
@@ -182,11 +169,11 @@ const FeaturedGamesCarousel: React.FC<Props> = ({
         ))}
       </Swiper>
 
-      {/* Centered Pagination Dots */}
-      <div className="swiper-pagination-container absolute bottom-2 left-1/2 -translate-x-1/2 flex justify-center" />
+      {/* Pagination container below carousel */}
+      <div className="swiper-pagination-container absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10 flex justify-center"></div>
     </div>
   );
 };
 
-export default FeaturedGamesCarousel;
+export default SwiperFeaturedGamesCarousel;
 
