@@ -30,7 +30,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   // Calculate responsive values with useMemo and explicit defaults
   const { cardWidth, gap, padding } = useMemo(() => {
     const currentWidth = viewportWidth || 1200;
-    
+
     if (currentWidth < 768) {
       return { cardWidth: 280, gap: 20, padding: 20 };
     } else if (currentWidth < 1024) {
@@ -42,16 +42,22 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
   const cardPlusGap = cardWidth + gap;
 
+  // compute how many cards can fit (used for desktop multi-card logic)
+  const visibleCount = useMemo(() => {
+    const usable = Math.max(0, viewportWidth - 2 * padding + gap); // +gap so formula rounds correctly
+    return Math.max(1, Math.floor(usable / cardPlusGap));
+  }, [viewportWidth, padding, cardPlusGap]);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    
+
     const updateViewportWidth = () => {
       setViewportWidth(window.innerWidth);
     };
-    
+
     // Set initial viewport width
     setViewportWidth(window.innerWidth);
-    
+
     window.addEventListener('resize', updateViewportWidth);
     return () => window.removeEventListener('resize', updateViewportWidth);
   }, []);
@@ -82,27 +88,27 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     [fixtures, totalSlides]
   );
 
+  const goToIndex = useCallback((index: number) => {
+    const clamped = Math.max(0, Math.min(index, maxIndex));
+    setCurrentIndex(clamped);
+    announceSlideChange(clamped);
+  }, [maxIndex, announceSlideChange]);
+
   const goToNext = useCallback(() => {
-    const newIndex = Math.min(currentIndex + 1, maxIndex);
-    setCurrentIndex(newIndex);
-    announceSlideChange(newIndex);
-  }, [currentIndex, maxIndex, announceSlideChange]);
+    goToIndex(currentIndex + 1);
+  }, [currentIndex, goToIndex]);
 
   const goToPrev = useCallback(() => {
-    const newIndex = Math.max(currentIndex - 1, 0);
-    setCurrentIndex(newIndex);
-    announceSlideChange(newIndex);
-  }, [currentIndex, announceSlideChange]);
+    goToIndex(currentIndex - 1);
+  }, [currentIndex, goToIndex]);
 
   const goToFirst = useCallback(() => {
-    setCurrentIndex(0);
-    announceSlideChange(0);
-  }, [announceSlideChange]);
+    goToIndex(0);
+  }, [goToIndex]);
 
   const goToLast = useCallback(() => {
-    setCurrentIndex(maxIndex);
-    announceSlideChange(maxIndex);
-  }, [maxIndex, announceSlideChange]);
+    goToIndex(maxIndex);
+  }, [maxIndex, goToIndex]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -180,6 +186,39 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
   const showNavigation = totalSlides > 1;
 
+  // Compute transform logic (only logic changes; styling untouched)
+  const transformStyle = (() => {
+    const totalContentWidth = (totalSlides * cardPlusGap) - gap; // total cards width incl gaps
+
+    // If total content fits within viewport, centre the whole track
+    if (totalContentWidth <= viewportWidth) {
+      const centerOffset = (viewportWidth - totalContentWidth) / 2;
+      return `translateX(${centerOffset}px)`;
+    }
+
+    // compute minTransform to avoid whitespace at right
+    const minTransform = viewportWidth - totalContentWidth - padding; // most negative translateX allowed
+    const maxTransform = padding; // leftmost allowed (start at padding)
+
+    // MOBILE: always center the active card
+    if (viewportWidth < 768) {
+      const desired = padding + (viewportWidth / 2 - cardWidth / 2) - (currentIndex * cardPlusGap);
+      // clamp between minTransform and maxTransform
+      const clamped = Math.max(Math.min(desired, maxTransform), minTransform);
+      return `translateX(${clamped}px)`;
+    }
+
+    // TABLET/DESKTOP: show multiple cards (visibleCount) and try to keep active near center of visible window
+    // compute startIndex: the left-most visible card index for the current view
+    const maxStart = Math.max(0, totalSlides - visibleCount);
+    const preferredStart = Math.max(0, currentIndex - Math.floor(visibleCount / 2));
+    const startIndex = Math.min(preferredStart, maxStart);
+
+    const desired = padding - startIndex * cardPlusGap;
+    const clamped = Math.max(Math.min(desired, maxTransform), minTransform);
+    return `translateX(${clamped}px)`;
+  })();
+
   return (
     <div
       ref={containerRef}
@@ -254,27 +293,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             onTouchEnd={onTouchEnd}
             className="flex"
             style={{
-              transform: (() => {
-                // Calculate the total width of all cards
-                const totalContentWidth = (totalSlides * cardPlusGap) - gap;
-                
-                // If all content fits in viewport, center it
-                if (totalContentWidth <= viewportWidth) {
-                  const centerOffset = (viewportWidth - totalContentWidth) / 2;
-                  return `translateX(${centerOffset}px)`;
-                }
-                
-                // Calculate base position (left-aligned with padding)
-                const baseTransform = padding - (currentIndex * cardPlusGap);
-                
-                // Calculate the minimum transform (when showing last cards)
-                const minTransform = viewportWidth - totalContentWidth - padding;
-                
-                // Don't go beyond the minimum (prevents whitespace on right)
-                const finalTransform = Math.max(baseTransform, minTransform);
-                
-                return `translateX(${finalTransform}px)`;
-              })(),
+              transform: transformStyle,
               transition: prefersReducedMotion ? 'none' : 'transform 0.5s ease-out',
               gap: `${gap}px`,
             }}
@@ -420,8 +439,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
               <button
                 key={index}
                 onClick={() => {
-                  setCurrentIndex(index);
-                  announceSlideChange(index);
+                  goToIndex(index);
                 }}
                 className="focus:outline-none"
                 style={{
