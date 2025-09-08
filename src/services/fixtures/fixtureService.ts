@@ -67,6 +67,8 @@ export class FixtureService {
   }
 
   private calculateImportance(match: RawMatch, standings?: RawStanding[]): number {
+    if (match.status === 'FINISHED') return 0;
+
     let importance = 3;
 
     // Matchday weighting
