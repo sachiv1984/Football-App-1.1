@@ -66,73 +66,96 @@ export class FixtureService {
     return derbies.some(d => d.includes(home) && d.includes(away));
   }
 
+  private isMatchFinished(status: string): boolean {
+    return ['FINISHED', 'POSTPONED', 'SUSPENDED', 'CANCELLED'].includes(status);
+  }
+
+  private isMatchUpcoming(status: string): boolean {
+    return ['SCHEDULED', 'TIMED'].includes(status);
+  }
+
+  private isMatchLive(status: string): boolean {
+    return ['LIVE', 'IN_PLAY', 'PAUSED', 'HALF_TIME'].includes(status);
+  }
+
   private calculateImportance(match: RawMatch, standings?: RawStanding[]): number {
-    // Finished, cancelled, postponed, or suspended → zero importance
-    if (!['SCHEDULED', 'LIVE', 'IN_PLAY', 'PAUSED'].includes(match.status)) return 0;
+    // CRITICAL: Finished, cancelled, postponed, or suspended games get ZERO importance
+    if (this.isMatchFinished(match.status)) {
+      return 0;
+    }
 
-    let importance = 3;
+    let importance = 3; // Base importance for any live/upcoming match
 
-    // Matchday weighting
+    // Matchday weighting - later in season = more important
     const matchday = match.matchday;
-    if (matchday >= 35) importance += 3;
-    else if (matchday >= 25) importance += 2;
-    else if (matchday >= 15) importance += 1;
+    if (matchday >= 35) importance += 3; // Final stretch
+    else if (matchday >= 25) importance += 2; // Business end
+    else if (matchday >= 15) importance += 1; // Mid-season
 
-    // Standings weighting
+    // Standings weighting - position matters
     if (standings) {
       const homePos = standings.find(s => s.team.id === match.homeTeam.id)?.position || 20;
       const awayPos = standings.find(s => s.team.id === match.awayTeam.id)?.position || 20;
+      
+      // Top 6 clash
       if (homePos <= 6 && awayPos <= 6) importance += 3;
+      // Top vs bottom half
       else if ((homePos <= 10 && awayPos > 10) || (homePos > 10 && awayPos <= 10)) importance += 1;
+      // Relegation battle
       else if (homePos >= 17 && awayPos >= 17) importance += 2;
     }
 
-    // Big six weighting
+    // Big Six weighting
     const bigSix = ['Arsenal', 'Chelsea', 'Liverpool', 'Manchester City', 'Manchester United', 'Tottenham Hotspur'];
-    if (bigSix.includes(match.homeTeam.name) && bigSix.includes(match.awayTeam.name)) importance += 2;
-    else if (bigSix.includes(match.homeTeam.name) || bigSix.includes(match.awayTeam.name)) importance += 1;
+    const homeBigSix = bigSix.includes(match.homeTeam.name);
+    const awayBigSix = bigSix.includes(match.awayTeam.name);
+    
+    if (homeBigSix && awayBigSix) importance += 2; // Big Six clash
+    else if (homeBigSix || awayBigSix) importance += 1; // One Big Six team
 
-    // Derby weighting
+    // Derby weighting - local rivalries are always important
     if (this.isDerby(match.homeTeam.name, match.awayTeam.name)) importance += 2;
 
-    return Math.min(importance, 10);
+    // Live matches get slight boost
+    if (this.isMatchLive(match.status)) importance += 1;
+
+    return Math.min(importance, 10); // Cap at 10
   }
 
   private generateTags(match: RawMatch, importance: number): string[] {
     const tags: string[] = [];
     const md = match.matchday;
 
+    // Season phase tags
     if (md <= 5) tags.push('early-season');
     else if (md >= 35) tags.push('title-race', 'relegation-battle');
     else if (md >= 25) tags.push('business-end');
 
+    // Importance tags
     if (importance >= 8) tags.push('big-match');
     if (this.isDerby(match.homeTeam.name, match.awayTeam.name)) tags.push('derby');
 
+    // Day-based tags
     const day = new Date(match.utcDate).getDay();
     if (day === 0) tags.push('sunday-fixture');
     else if (day === 6) tags.push('saturday-fixture');
     else if (day === 1) tags.push('monday-night-football');
 
+    // Competition tags
     if (match.stage === 'REGULAR_SEASON') tags.push('league-match');
+
+    // Status tags
+    if (this.isMatchLive(match.status)) tags.push('live');
 
     return tags;
   }
 
   private mapStatus(status: RawMatch['status']): 'scheduled' | 'live' | 'finished' | 'postponed' | 'upcoming' {
-    switch (status) {
-      case 'SCHEDULED': return 'upcoming';
-      case 'LIVE':
-      case 'IN_PLAY':
-      case 'PAUSED':
-        return 'live';
-      case 'FINISHED': return 'finished';
-      case 'POSTPONED':
-      case 'SUSPENDED':
-      case 'CANCELLED':
-        return 'postponed';
-      default: return 'scheduled';
-    }
+    if (this.isMatchLive(status)) return 'live';
+    if (this.isMatchUpcoming(status)) return 'upcoming';
+    if (status === 'FINISHED') return 'finished';
+    if (['POSTPONED', 'SUSPENDED', 'CANCELLED'].includes(status)) return 'postponed';
+    return 'scheduled'; // fallback
   }
 
   private async fetchMatches(): Promise<RawMatch[]> {
@@ -165,7 +188,6 @@ export class FixtureService {
       this.getTeamDetails(match.awayTeam, standings),
     ]);
 
-    // calculate importance once; zero for finished/postponed/cancelled/suspended
     const importance = this.calculateImportance(match, standings);
     const tags = this.generateTags(match, importance);
 
@@ -182,7 +204,7 @@ export class FixtureService {
       },
       matchWeek: match.matchday,
       importance,
-      importanceScore: importance, // matches importance exactly
+      importanceScore: importance,
       tags,
       isBigMatch: importance >= 8,
       status: this.mapStatus(match.status),
@@ -192,45 +214,98 @@ export class FixtureService {
   // -------------------------
   // Public Methods
   // -------------------------
+  
+  /**
+   * Get the highest importance fixtures in the next 7 days
+   * Excludes finished matches (importance = 0)
+   */
   async getFeaturedFixtures(limit: number = 8): Promise<FeaturedFixtureWithImportance[]> {
     const now = Date.now();
     if (this.matchesCache.length && now - this.cacheTime < this.cacheTimeout) {
-      return this.matchesCache.slice(0, limit);
+      return this.getNext7DaysMatches().slice(0, limit);
     }
 
-    const [matches, standings] = await Promise.all([this.fetchMatches(), this.fetchStandings()]);
-    const transformed = await Promise.all(matches.map(m => this.transformMatch(m, standings)));
-
-    // Only keep matches within the next 7 days AND with importance > 0
-    const next7Days = Date.now() + 7 * 24 * 60 * 60 * 1000;
-    const filtered = transformed.filter(m => {
-      const matchTime = new Date(m.dateTime).getTime();
-      return m.importance > 0 && matchTime >= now && matchTime <= next7Days;
-    });
-
-    // Sort by importance (highest first)
-    this.matchesCache = filtered.sort((a, b) => b.importance - a.importance);
-    this.cacheTime = now;
-    return this.matchesCache.slice(0, limit);
+    await this.refreshCache();
+    return this.getNext7DaysMatches().slice(0, limit);
   }
 
+  /**
+   * Get ALL fixtures (including finished ones for historical data)
+   */
   async getAllFixtures(): Promise<FeaturedFixtureWithImportance[]> {
     const now = Date.now();
     if (this.matchesCache.length && now - this.cacheTime < this.cacheTimeout) {
       return this.matchesCache;
     }
 
-    const [matches, standings] = await Promise.all([this.fetchMatches(), this.fetchStandings()]);
-    const transformed = await Promise.all(matches.map(m => this.transformMatch(m, standings)));
-
-    // Return all matches without filtering by date or importance
-    this.matchesCache = transformed.sort((a, b) => b.importance - a.importance);
-    this.cacheTime = now;
+    await this.refreshCache();
     return this.matchesCache;
   }
+
+  /**
+   * Get only upcoming matches with importance > 0, sorted by importance
+   */
+  async getUpcomingImportantMatches(limit?: number): Promise<FeaturedFixtureWithImportance[]> {
+    const allMatches = await this.getAllFixtures();
+    const now = Date.now();
+    
+    const upcomingImportant = allMatches.filter(match => {
+      const matchTime = new Date(match.dateTime).getTime();
+      return match.importance > 0 && matchTime >= now;
+    });
+
+    return limit ? upcomingImportant.slice(0, limit) : upcomingImportant;
+  }
+
+  /**
+   * Private helper to get matches in next 7 days with importance > 0
+   */
+  private getNext7DaysMatches(): FeaturedFixtureWithImportance[] {
+    const now = Date.now();
+    const next7Days = now + 7 * 24 * 60 * 60 * 1000;
+    
+    return this.matchesCache.filter(match => {
+      const matchTime = new Date(match.dateTime).getTime();
+      return match.importance > 0 && 
+             matchTime >= now && 
+             matchTime <= next7Days;
+    });
+  }
+
+  /**
+   * Refresh the cache with latest data
+   */
+  private async refreshCache(): Promise<void> {
+    const [matches, standings] = await Promise.all([
+      this.fetchMatches(), 
+      this.fetchStandings()
+    ]);
+    
+    const transformed = await Promise.all(
+      matches.map(m => this.transformMatch(m, standings))
+    );
+
+    // Sort by importance (highest first), then by date
+    this.matchesCache = transformed.sort((a, b) => {
+      if (b.importance !== a.importance) {
+        return b.importance - a.importance;
+      }
+      return new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime();
+    });
+    
+    this.cacheTime = Date.now();
+  }
  
-  clearCache() {
+  clearCache(): void {
     this.matchesCache = [];
     this.cacheTime = 0;
+  }
+
+  /**
+   * Get matches by specific importance level
+   */
+  async getMatchesByImportance(minImportance: number): Promise<FeaturedFixtureWithImportance[]> {
+    const allMatches = await this.getAllFixtures();
+    return allMatches.filter(match => match.importance >= minImportance);
   }
 }
