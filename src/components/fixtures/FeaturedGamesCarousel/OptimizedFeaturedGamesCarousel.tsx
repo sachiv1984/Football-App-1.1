@@ -225,9 +225,9 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             className="flex"
             style={{
               // Move the track so current card is centered
-              // Each card + gap = 340px (300px card + 40px gap)
-              // Center offset = 50% - 150px (half card width)
-              transform: `translateX(calc(50% - 150px - ${currentIndex * 340}px))`,
+              // Each card + gap = 390px (350px card + 40px gap)
+              // Center offset = 50% - 175px (half card width)
+              transform: `translateX(calc(50% - 175px - ${currentIndex * 390}px))`,
               transition: prefersReducedMotion ? 'none' : 'transform 0.5s ease-out',
               gap: '40px',
             }}
@@ -241,8 +241,8 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                   key={fixture.id || index}
                   className="flex-shrink-0 rounded-xl transition-all duration-300"
                   style={{
-                    width: '300px',
-                    minWidth: '300px',
+                    width: '350px',
+                    minWidth: '350px',
                     border: isActive ? '3px solid #FFD700' : '1px solid #E5E7EB',
                     borderRadius: '16px',
                     boxShadow: isActive
@@ -287,7 +287,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                     <div className="flex justify-center items-center mb-4 w-full">
                       <div className="flex items-center justify-center gap-6 max-w-full">
                         {/* Home Team */}
-                        <div className="flex flex-col items-center min-w-0 flex-1 max-w-[70px]">
+                        <div className="flex flex-col items-center min-w-0 flex-1 max-w-[90px]">
                           {fixture.homeTeam.logo ? (
                             <img
                               src={fixture.homeTeam.logo}
@@ -302,7 +302,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                               </span>
                             </div>
                           )}
-                          <span className="text-xs text-center truncate w-full">
+                          <span className="text-xs text-center w-full leading-tight">
                             {fixture.homeTeam.shortName || fixture.homeTeam.name}
                           </span>
                         </div>
@@ -326,7 +326,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                         </div>
 
                         {/* Away Team */}
-                        <div className="flex flex-col items-center min-w-0 flex-1 max-w-[70px]">
+                        <div className="flex flex-col items-center min-w-0 flex-1 max-w-[90px]">
                           {fixture.awayTeam.logo ? (
                             <img
                               src={fixture.awayTeam.logo}
@@ -341,7 +341,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                               </span>
                             </div>
                             )}
-                          <span className="text-xs text-center truncate w-full">
+                          <span className="text-xs text-center w-full leading-tight">
                             {fixture.awayTeam.shortName || fixture.awayTeam.name}
                           </span>
                         </div>
