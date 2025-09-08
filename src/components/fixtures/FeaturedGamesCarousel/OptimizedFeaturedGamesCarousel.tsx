@@ -294,22 +294,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     </span>
   </div>
 </div>
-{/* Teams & Time */}
-<div className="relative mb-4 h-24">
-  {/* Home Team */}
-  <div className="absolute left-4 top-1/2 transform -translate-y-1/2 flex flex-col items-center">
-    {fixture.homeTeam.logo ? (
-      <img
-        src={fixture.homeTeam.logo}
-        alt={fixture.homeTeam.name}
-        className="w-16 h-16 object-contain"
-      />
-    ) : (
-      <span>{fixture.homeTeam.name[0]}</span>
-    )}
-    <span className="text-xs truncate">{fixture.homeTeam.shortName || fixture.homeTeam.name}</span>
-  </div>
-
   {/* Teams & Time (REPLACE THIS BLOCK) */}
 <div className="grid grid-cols-3 items-center mb-4 px-2">
   {/* Home (left column) */}
