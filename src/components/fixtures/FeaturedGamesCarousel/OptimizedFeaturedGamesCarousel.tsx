@@ -279,72 +279,70 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                   role="listitem"
                 >
                   <button
-                    className={`carousel-card box-border flex flex-col justify-between w-full h-full p-4 bg-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-focus-gold ${isActive ? 'translate-z-0' : ''}`}
-                    aria-label={`View match between ${fixture.homeTeam.name} and ${fixture.awayTeam.name}`}
-                    onClick={() => onGameSelect?.(fixture)}
-                    draggable={false}
-                    style={{
-                      // don't change layout size when active; scale visually without changing basis
-                      transform: isActive ? 'scale(1.03)' : 'none',
-                      transition: prefersReducedMotion ? 'none' : 'transform 0.25s ease',
-                      transformOrigin: 'center',
-                    }}
-                  >
-                    {/* Top row: competition logo left, week right */}
-                    <div className="flex justify-between items-center mb-4 px-2 w-full">
-                      <div className="flex items-center">
-                        {fixture.competition.logo && (
-                          <img src={fixture.competition.logo} alt={fixture.competition.name} className="w-12 h-12 object-contain" draggable={false} />
-                        )}
-                      </div>
-                      <div className="flex items-center justify-end">
-                        <span className="text-xs text-gray-500 font-medium">Week {fixture.matchWeek || 1}</span>
-                      </div>
-                    </div>
+  className="flex flex-col w-full h-full p-4 bg-white rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-focus-gold"
+  onClick={() => onGameSelect?.(fixture)}
+>
+  {/* Card grid layout */}
+  <div className="grid grid-rows-[auto_auto_auto] gap-y-4 h-full">
 
-                    {/* Middle row: grid 3 columns so time is exactly centered */}
-                    <div className="grid grid-cols-3 items-center mb-4 px-2">
-                      <div className="flex flex-col items-center justify-center">
-                        {fixture.homeTeam.logo ? (
-                          <img src={fixture.homeTeam.logo} alt={fixture.homeTeam.name} className="w-16 h-16 object-contain" />
-                        ) : (
-                          <span className="text-lg">{fixture.homeTeam.name[0]}</span>
-                        )}
-                        <span className="text-xs truncate max-w-[8rem] mt-1 text-center">{fixture.homeTeam.shortName || fixture.homeTeam.name}</span>
-                      </div>
+    {/* Top row: logo left, week right */}
+    <div className="grid grid-cols-2 items-center">
+      <div className="flex items-center">
+        {fixture.competition.logo && (
+          <img
+            src={fixture.competition.logo}
+            alt={fixture.competition.name}
+            className="w-10 h-10 object-contain"
+          />
+        )}
+      </div>
+      <div className="flex justify-end items-center">
+        <span className="text-xs text-gray-500 font-medium">
+          Week {fixture.matchWeek || 1}
+        </span>
+      </div>
+    </div>
 
-                      <div className="flex flex-col items-center justify-center">
-                        <span className="text-gray-700 font-medium text-base">
-                          {new Date(fixture.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {new Date(fixture.dateTime).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
-                        </span>
-                      </div>
+    {/* Middle row: exactly 3 columns so time is centered */}
+    <div className="grid grid-cols-3 items-center text-center">
+      {/* Home */}
+      <div className="flex flex-col items-center">
+        {fixture.homeTeam.logo ? (
+          <img src={fixture.homeTeam.logo} alt={fixture.homeTeam.name} className="w-12 h-12 object-contain" />
+        ) : (
+          <span>{fixture.homeTeam.name[0]}</span>
+        )}
+        <span className="text-xs truncate">{fixture.homeTeam.shortName || fixture.homeTeam.name}</span>
+      </div>
 
-                      <div className="flex flex-col items-center justify-center">
-                        {fixture.awayTeam.logo ? (
-                          <img src={fixture.awayTeam.logo} alt={fixture.awayTeam.name} className="w-16 h-16 object-contain" />
-                        ) : (
-                          <span className="text-lg">{fixture.awayTeam.name[0]}</span>
-                        )}
-                        <span className="text-xs truncate max-w-[8rem] mt-1 text-center">{fixture.awayTeam.shortName || fixture.awayTeam.name}</span>
-                      </div>
-                    </div>
+      {/* Time */}
+      <div className="flex flex-col items-center">
+        <span className="text-sm font-medium text-gray-700">
+          {new Date(fixture.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })}
+        </span>
+        <span className="text-xs text-gray-500">
+          {new Date(fixture.dateTime).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
+        </span>
+      </div>
 
-                    {/* Bottom row: venue centered */}
-                    <div className="flex flex-col items-center w-full">
-                      <div className="text-xs text-gray-500 truncate text-center w-full">{fixture.venue}</div>
-                      {fixture.importance >= 80 && (
-                        <span className="mt-2 inline-block bg-yellow-400 text-gray-900 px-2 py-1 rounded-full text-[10px] sm:text-[12px]">Featured</span>
-                      )}
-                    </div>
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+      {/* Away */}
+      <div className="flex flex-col items-center">
+        {fixture.awayTeam.logo ? (
+          <img src={fixture.awayTeam.logo} alt={fixture.awayTeam.name} className="w-12 h-12 object-contain" />
+        ) : (
+          <span>{fixture.awayTeam.name[0]}</span>
+        )}
+        <span className="text-xs truncate">{fixture.awayTeam.shortName || fixture.awayTeam.name}</span>
+      </div>
+    </div>
+
+    {/* Bottom row: venue centered */}
+    <div className="flex justify-center items-center">
+      <span className="text-xs text-gray-500 truncate">{fixture.venue}</span>
+    </div>
+  </div>
+</button>
+
 
         {/* Pagination */}
         {showNavigation && (
