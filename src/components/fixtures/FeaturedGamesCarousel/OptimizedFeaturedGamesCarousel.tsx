@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import type { FeaturedFixtureWithImportance } from '../../../types';
 
 interface Props {
@@ -22,9 +22,39 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const [announceText, setAnnounceText] = useState('');
   const [isVisible, setIsVisible] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [viewportWidth, setViewportWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
 
   const totalSlides = fixtures.length;
   const maxIndex = Math.max(0, totalSlides - 1);
+
+  // Calculate responsive values with useMemo and explicit defaults
+  const { cardWidth, gap, padding } = useMemo(() => {
+    const currentWidth = viewportWidth || 1200;
+    
+    if (currentWidth < 768) {
+      return { cardWidth: 280, gap: 20, padding: 20 };
+    } else if (currentWidth < 1024) {
+      return { cardWidth: 320, gap: 30, padding: 30 };
+    } else {
+      return { cardWidth: 350, gap: 40, padding: 40 };
+    }
+  }, [viewportWidth]);
+
+  const cardPlusGap = cardWidth + gap;
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const updateViewportWidth = () => {
+      setViewportWidth(window.innerWidth);
+    };
+    
+    // Set initial viewport width
+    setViewportWidth(window.innerWidth);
+    
+    window.addEventListener('resize', updateViewportWidth);
+    return () => window.removeEventListener('resize', updateViewportWidth);
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -224,10 +254,29 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             onTouchEnd={onTouchEnd}
             className="flex"
             style={{
-              // Simple left-aligned approach with consistent spacing
-              transform: `translateX(${40 - (currentIndex * 390)}px)`,
+              transform: (() => {
+                // Calculate the total width of all cards
+                const totalContentWidth = (totalSlides * cardPlusGap) - gap;
+                
+                // If all content fits in viewport, center it
+                if (totalContentWidth <= viewportWidth) {
+                  const centerOffset = (viewportWidth - totalContentWidth) / 2;
+                  return `translateX(${centerOffset}px)`;
+                }
+                
+                // Calculate base position (left-aligned with padding)
+                const baseTransform = padding - (currentIndex * cardPlusGap);
+                
+                // Calculate the minimum transform (when showing last cards)
+                const minTransform = viewportWidth - totalContentWidth - padding;
+                
+                // Don't go beyond the minimum (prevents whitespace on right)
+                const finalTransform = Math.max(baseTransform, minTransform);
+                
+                return `translateX(${finalTransform}px)`;
+              })(),
               transition: prefersReducedMotion ? 'none' : 'transform 0.5s ease-out',
-              gap: '40px',
+              gap: `${gap}px`,
             }}
             role="list"
           >
