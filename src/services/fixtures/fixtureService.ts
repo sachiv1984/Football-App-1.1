@@ -10,7 +10,7 @@ interface RawMatch {
   homeTeam: { id: number; name: string; shortName?: string; tla?: string; crest?: string };
   awayTeam: { id: number; name: string; shortName?: string; tla?: string; crest?: string };
   venue?: string;
-  competition: { id: number; code: string; name: string; emblem?: string };
+  competition: { id: string; code: string; name: string; emblem?: string };
 }
 
 interface RawStanding {
@@ -34,55 +34,105 @@ export class FixtureService {
   private readonly cacheTimeout = 10 * 60 * 1000; // 10 min
 
   // -------------------------
-  // Short name overrides
+  // Configurable lists
   // -------------------------
-  private SHORT_NAME_OVERRIDES: Record<string, string> = {
+  private readonly SHORT_NAME_OVERRIDES: Record<string, string> = {
     "Manchester United": "Man Utd",
     // add more as needed
   };
 
+  private readonly BIG_SIX = ['Arsenal', 'Chelsea', 'Liverpool', 'Manchester City', 'Manchester United', 'Tottenham Hotspur'];
+  
+  private readonly DERBIES: string[][] = [
+    ['Arsenal', 'Tottenham Hotspur'],
+    ['Liverpool', 'Everton'],
+    ['Manchester United', 'Manchester City'],
+    ['Chelsea', 'Arsenal'],
+    ['Chelsea', 'Tottenham Hotspur'],
+    ['Chelsea', 'Fulham'],
+    ['Crystal Palace', 'Brighton & Hove Albion'],
+  ];
+
+  private readonly TEAM_COLORS: Record<string, { primary?: string; secondary?: string }> = {
+    Arsenal: { primary: '#EF0107', secondary: '#023474' },
+    Chelsea: { primary: '#034694', secondary: '#FFFFFF' },
+    Liverpool: { primary: '#C8102E', secondary: '#F6EB61' },
+    'Manchester City': { primary: '#6CABDD', secondary: '#1C2C5B' },
+    'Manchester United': { primary: '#DA020E', secondary: '#FBE122' },
+    'Tottenham Hotspur': { primary: '#132257', secondary: '#FFFFFF' },
+  };
+
   // -------------------------
-  // Helpers
+  // Cache helpers
+  // -------------------------
+  private isCacheValid(): boolean {
+    return this.matchesCache.length > 0 && (Date.now() - this.cacheTime < this.cacheTimeout);
+  }
+
+  private clearCache(): void {
+    this.matchesCache = [];
+    this.cacheTime = 0;
+  }
+
+  // -------------------------
+  // Data fetching
+  // -------------------------
+  private async fetchMatches(): Promise<RawMatch[]> {
+    const res = await fetch('/api/matches');
+    if (!res.ok) throw new Error('Failed to fetch matches');
+    return res.json();
+  }
+
+  private async fetchStandings(): Promise<RawStanding[]> {
+    const res = await fetch('/api/standings');
+    if (!res.ok) throw new Error('Failed to fetch standings');
+    return res.json();
+  }
+
+  // -------------------------
+  // Team helpers
   // -------------------------
   private getTeamColors(teamName: string): { primary?: string; secondary?: string } {
-    const colorMap: Record<string, { primary?: string; secondary?: string }> = {
-      Arsenal: { primary: '#EF0107', secondary: '#023474' },
-      Chelsea: { primary: '#034694', secondary: '#FFFFFF' },
-      Liverpool: { primary: '#C8102E', secondary: '#F6EB61' },
-      'Manchester City': { primary: '#6CABDD', secondary: '#1C2C5B' },
-      'Manchester United': { primary: '#DA020E', secondary: '#FBE122' },
-      'Tottenham Hotspur': { primary: '#132257', secondary: '#FFFFFF' },
-    };
-    return colorMap[teamName] || {};
+    return this.TEAM_COLORS[teamName] || {};
   }
 
   private parseForm(formString?: string): ('W' | 'D' | 'L')[] {
     if (!formString) return [];
-    return formString.split(',').map(f => (['W', 'D', 'L'].includes(f.trim()) ? f.trim() as 'W' | 'D' | 'L' : 'D'));
+    return formString
+      .split(',')
+      .map(f => (['W', 'D', 'L'].includes(f.trim()) ? f.trim() as 'W' | 'D' | 'L' : 'D'));
   }
 
+  private async getTeamDetails(team: RawMatch['homeTeam'] | RawMatch['awayTeam'], standings: RawStanding[]): Promise<TeamWithForm> {
+    const teamStanding = standings.find(s => s.team.id === team.id);
+    const shortName = this.SHORT_NAME_OVERRIDES[team.name] || team.shortName || team.tla || team.name;
+
+    return {
+      id: team.id.toString(),
+      name: team.name,
+      shortName,
+      logo: team.crest || '',
+      colors: this.getTeamColors(team.name),
+      form: this.parseForm(teamStanding?.form),
+    };
+  }
+
+  // -------------------------
+  // Match helpers
+  // -------------------------
   private isDerby(home: string, away: string): boolean {
-    const derbies = [
-      ['Arsenal', 'Tottenham Hotspur'],
-      ['Liverpool', 'Everton'],
-      ['Manchester United', 'Manchester City'],
-      ['Chelsea', 'Arsenal'],
-      ['Chelsea', 'Tottenham Hotspur'],
-      ['Chelsea', 'Fulham'],
-      ['Crystal Palace', 'Brighton & Hove Albion'],
-    ];
-    return derbies.some(d => d.includes(home) && d.includes(away));
+    return this.DERBIES.some(d => d.includes(home) && d.includes(away));
   }
 
-  private isMatchFinished(status: string): boolean {
+  private isMatchFinished(status: string) {
     return ['FINISHED', 'POSTPONED', 'SUSPENDED', 'CANCELLED'].includes(status);
   }
 
-  private isMatchUpcoming(status: string): boolean {
+  private isMatchUpcoming(status: string) {
     return ['SCHEDULED', 'TIMED'].includes(status);
   }
 
-  private isMatchLive(status: string): boolean {
+  private isMatchLive(status: string) {
     return ['LIVE', 'IN_PLAY', 'PAUSED', 'HALF_TIME'].includes(status);
   }
 
@@ -91,11 +141,12 @@ export class FixtureService {
 
     let importance = 3;
 
-    const matchday = match.matchday;
-    if (matchday >= 35) importance += 3;
-    else if (matchday >= 25) importance += 2;
-    else if (matchday >= 15) importance += 1;
+    // Matchday weight
+    if (match.matchday >= 35) importance += 3;
+    else if (match.matchday >= 25) importance += 2;
+    else if (match.matchday >= 15) importance += 1;
 
+    // Standings weight
     if (standings) {
       const homePos = standings.find(s => s.team.id === match.homeTeam.id)?.position || 20;
       const awayPos = standings.find(s => s.team.id === match.awayTeam.id)?.position || 20;
@@ -105,10 +156,9 @@ export class FixtureService {
       else if (homePos >= 17 && awayPos >= 17) importance += 2;
     }
 
-    const bigSix = ['Arsenal', 'Chelsea', 'Liverpool', 'Manchester City', 'Manchester United', 'Tottenham Hotspur'];
-    const homeBigSix = bigSix.includes(match.homeTeam.name);
-    const awayBigSix = bigSix.includes(match.awayTeam.name);
-
+    // Big six
+    const homeBigSix = this.BIG_SIX.includes(match.homeTeam.name);
+    const awayBigSix = this.BIG_SIX.includes(match.awayTeam.name);
     if (homeBigSix && awayBigSix) importance += 2;
     else if (homeBigSix || awayBigSix) importance += 1;
 
@@ -118,21 +168,26 @@ export class FixtureService {
     return Math.min(importance, 10);
   }
 
+  private getDayTag(dateStr: string): string | null {
+    const day = new Date(dateStr).getDay();
+    if (day === 0) return 'sunday-fixture';
+    if (day === 6) return 'saturday-fixture';
+    if (day === 1) return 'monday-night-football';
+    return null;
+  }
+
   private generateTags(match: RawMatch, importance: number): string[] {
     const tags: string[] = [];
-    const md = match.matchday;
 
-    if (md <= 5) tags.push('early-season');
-    else if (md >= 35) tags.push('title-race', 'relegation-battle');
-    else if (md >= 25) tags.push('business-end');
+    if (match.matchday <= 5) tags.push('early-season');
+    else if (match.matchday >= 35) tags.push('title-race', 'relegation-battle');
+    else if (match.matchday >= 25) tags.push('business-end');
 
     if (importance >= 8) tags.push('big-match');
     if (this.isDerby(match.homeTeam.name, match.awayTeam.name)) tags.push('derby');
 
-    const day = new Date(match.utcDate).getDay();
-    if (day === 0) tags.push('sunday-fixture');
-    else if (day === 6) tags.push('saturday-fixture');
-    else if (day === 1) tags.push('monday-night-football');
+    const dayTag = this.getDayTag(match.utcDate);
+    if (dayTag) tags.push(dayTag);
 
     if (match.stage === 'REGULAR_SEASON') tags.push('league-match');
     if (this.isMatchLive(match.status)) tags.push('live');
@@ -146,33 +201,6 @@ export class FixtureService {
     if (status === 'FINISHED') return 'finished';
     if (['POSTPONED', 'SUSPENDED', 'CANCELLED'].includes(status)) return 'postponed';
     return 'scheduled';
-  }
-
-  private async fetchMatches(): Promise<RawMatch[]> {
-    const res = await fetch('/api/matches');
-    if (!res.ok) throw new Error('Failed to fetch matches');
-    return res.json();
-  }
-
-  private async fetchStandings(): Promise<RawStanding[]> {
-    const res = await fetch('/api/standings');
-    if (!res.ok) throw new Error('Failed to fetch standings');
-    return res.json();
-  }
-
-  private async getTeamDetails(team: RawMatch['homeTeam'] | RawMatch['awayTeam'], standings: RawStanding[]): Promise<TeamWithForm> {
-    const teamStanding = standings.find(s => s.team.id === team.id);
-
-    const shortName = this.SHORT_NAME_OVERRIDES[team.name] || team.shortName || team.tla || team.name;
-
-    return {
-      id: team.id.toString(),
-      name: team.name,
-      shortName,
-      logo: team.crest || '',
-      colors: this.getTeamColors(team.name),
-      form: this.parseForm(teamStanding?.form),
-    };
   }
 
   private async transformMatch(match: RawMatch, standings: RawStanding[]): Promise<FeaturedFixtureWithImportance> {
@@ -204,54 +232,8 @@ export class FixtureService {
     };
   }
 
-  // -------------------------
-  // Public Methods
-  // -------------------------
-  async getFeaturedFixtures(limit: number = 8): Promise<FeaturedFixtureWithImportance[]> {
-    const now = Date.now();
-    if (this.matchesCache.length && now - this.cacheTime < this.cacheTimeout) {
-      return this.getNext7DaysMatches().slice(0, limit);
-    }
-
-    await this.refreshCache();
-    return this.getNext7DaysMatches().slice(0, limit);
-  }
-
-  async getAllFixtures(): Promise<FeaturedFixtureWithImportance[]> {
-    const now = Date.now();
-    if (this.matchesCache.length && now - this.cacheTime < this.cacheTimeout) {
-      return this.matchesCache;
-    }
-
-    await this.refreshCache();
-    return this.matchesCache;
-  }
-
-  async getUpcomingImportantMatches(limit?: number): Promise<FeaturedFixtureWithImportance[]> {
-    const allMatches = await this.getAllFixtures();
-    const now = Date.now();
-
-    const upcomingImportant = allMatches.filter(match => {
-      const matchTime = new Date(match.dateTime).getTime();
-      return match.importance > 0 && matchTime >= now;
-    });
-
-    return limit ? upcomingImportant.slice(0, limit) : upcomingImportant;
-  }
-
-  private getNext7DaysMatches(): FeaturedFixtureWithImportance[] {
-    const now = Date.now();
-    const next7Days = now + 7 * 24 * 60 * 60 * 1000;
-
-    return this.matchesCache.filter(match => {
-      const matchTime = new Date(match.dateTime).getTime();
-      return match.importance > 0 && matchTime >= now && matchTime <= next7Days;
-    });
-  }
-
   private async refreshCache(): Promise<void> {
     const [matches, standings] = await Promise.all([this.fetchMatches(), this.fetchStandings()]);
-
     const transformed = await Promise.all(matches.map(m => this.transformMatch(m, standings)));
 
     this.matchesCache = transformed.sort((a, b) => {
@@ -262,14 +244,37 @@ export class FixtureService {
     this.cacheTime = Date.now();
   }
 
-  clearCache(): void {
-    this.matchesCache = [];
-    this.cacheTime = 0;
+  private getNextNDaysMatches(days: number): FeaturedFixtureWithImportance[] {
+    const now = Date.now();
+    const future = now + days * 24 * 60 * 60 * 1000;
+    return this.matchesCache.filter(match => {
+      const time = new Date(match.dateTime).getTime();
+      return match.importance > 0 && time >= now && time <= future;
+    });
+  }
+
+  // -------------------------
+  // Public methods
+  // -------------------------
+  async getFeaturedFixtures(limit: number = 8): Promise<FeaturedFixtureWithImportance[]> {
+    if (!this.isCacheValid()) await this.refreshCache();
+    return this.getNextNDaysMatches(7).slice(0, limit);
+  }
+
+  async getAllFixtures(): Promise<FeaturedFixtureWithImportance[]> {
+    if (!this.isCacheValid()) await this.refreshCache();
+    return this.matchesCache;
+  }
+
+  async getUpcomingImportantMatches(limit?: number): Promise<FeaturedFixtureWithImportance[]> {
+    const allMatches = await this.getAllFixtures();
+    const now = Date.now();
+    const upcomingImportant = allMatches.filter(m => m.importance > 0 && new Date(m.dateTime).getTime() >= now);
+    return limit ? upcomingImportant.slice(0, limit) : upcomingImportant;
   }
 
   async getMatchesByImportance(minImportance: number): Promise<FeaturedFixtureWithImportance[]> {
     const allMatches = await this.getAllFixtures();
-    return allMatches.filter(match => match.importance >= minImportance);
+    return allMatches.filter(m => m.importance >= minImportance);
   }
 }
-
