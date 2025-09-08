@@ -199,28 +199,38 @@ export class FixtureService {
     }
 
     const [matches, standings] = await Promise.all([this.fetchMatches(), this.fetchStandings()]);
-    const transformed = await Promise.all(matches.slice(0, 15).map(m => this.transformMatch(m, standings)));
+    const transformed = await Promise.all(matches.map(m => this.transformMatch(m, standings)));
 
-    this.matchesCache = transformed.sort((a, b) => b.importance - a.importance);
+    // Only keep matches within the next 7 days AND with importance > 0
+    const next7Days = Date.now() + 7 * 24 * 60 * 60 * 1000;
+    const filtered = transformed.filter(m => {
+      const matchTime = new Date(m.dateTime).getTime();
+      return m.importance > 0 && matchTime >= now && matchTime <= next7Days;
+    });
+
+    // Sort by importance (highest first)
+    this.matchesCache = filtered.sort((a, b) => b.importance - a.importance);
     this.cacheTime = now;
     return this.matchesCache.slice(0, limit);
   }
 
-  // Only keep matches within the next 7 days AND with importance > 0
-  const next7Days = Date.now() + 7 * 24 * 60 * 60 * 1000;
-  const filtered = transformed.filter(m => {
-    const matchTime = new Date(m.dateTime).getTime();
-    return m.importance > 0 && matchTime >= now && matchTime <= next7Days;
-  });
+  async getAllFixtures(): Promise<FeaturedFixtureWithImportance[]> {
+    const now = Date.now();
+    if (this.matchesCache.length && now - this.cacheTime < this.cacheTimeout) {
+      return this.matchesCache;
+    }
 
-  // Sort by importance (highest first)
-  this.matchesCache = filtered.sort((a, b) => b.importance - a.importance);
-  this.cacheTime = now;
-  return this.matchesCache.slice(0, limit);
-}
+    const [matches, standings] = await Promise.all([this.fetchMatches(), this.fetchStandings()]);
+    const transformed = await Promise.all(matches.map(m => this.transformMatch(m, standings)));
+
+    // Return all matches without filtering by date or importance
+    this.matchesCache = transformed.sort((a, b) => b.importance - a.importance);
+    this.cacheTime = now;
+    return this.matchesCache;
+  }
+ 
   clearCache() {
     this.matchesCache = [];
     this.cacheTime = 0;
   }
 }
-
