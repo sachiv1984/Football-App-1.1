@@ -1,122 +1,154 @@
-import React, { useState } from 'react';
+import React from 'react';
+import type { FeaturedFixtureWithImportance } from '../../../types';
 import { Swiper, SwiperSlide } from 'swiper/react';
-import { Navigation, Pagination, A11y } from 'swiper';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
-import 'swiper/css/autoplay';
-import 'swiper/css/effect-coverflow';
-import { useFixtures } from '../../hooks/useFixtures';
+import { Navigation, Pagination, FreeMode } from 'swiper/modules';
 
-export const FixturesCarousel: React.FC = () => {
-  const { featuredFixtures, allFixtures, loading, error } = useFixtures();
-  const [activeTab, setActiveTab] = useState<'featured' | 'all'>('featured');
+interface Props {
+  fixtures: FeaturedFixtureWithImportance[];
+  onGameSelect?: (fixture: FeaturedFixtureWithImportance) => void;
+  className?: string;
+  isLoading?: boolean;
+}
 
-  const currentFixtures = activeTab === 'featured' ? featuredFixtures : allFixtures;
+const shortNameMap: Record<string, string> = {
+  'Wolverhampton': 'Wolves',
+  'Manchester United': 'Man Utd',
+  'Manchester City': 'Man City',
+  'Tottenham Hotspur': 'Spurs',
+  // Add more hardcoded short names as needed
+};
 
-  const formatDate = (dateTime: string) =>
-    new Date(dateTime).toLocaleDateString('en-GB', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+const FeaturedGamesCarousel: React.FC<Props> = ({
+  fixtures,
+  onGameSelect,
+  className = '',
+  isLoading = false,
+}) => {
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 p-6">
+        {[...Array(3)].map((_, idx) => (
+          <div key={idx} className="bg-gray-200 animate-pulse rounded-xl p-6" />
+        ))}
+      </div>
+    );
+  }
 
-  if (loading) return <div className="text-center p-6">Loading fixtures...</div>;
-  if (error) return <div className="text-center p-6 text-red-600">{error}</div>;
+  if (fixtures.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center text-center py-20 px-6">
+        <p className="text-lg font-medium text-gray-700 mb-4">
+          Check back later for featured games
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-4">
-      {/* Tabs */}
-      <div className="flex space-x-2 mb-4">
-        <button
-          onClick={() => setActiveTab('featured')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            activeTab === 'featured'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          }`}
-        >
-          Featured ({featuredFixtures.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('all')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            activeTab === 'all'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          }`}
-        >
-          All Fixtures ({allFixtures.length})
-        </button>
-      </div>
-
-      {/* Swiper Carousel */}
+    <div className={`w-full ${className}`} role="region" aria-label="Featured Games Carousel">
       <Swiper
-        modules={[Navigation, Pagination, A11y]}
-        slidesPerView="auto"
-        centeredSlides={true}
-        spaceBetween={20}
+        modules={[Navigation, Pagination, FreeMode]}
         navigation
-        pagination={{ clickable: true }}
-        className="pb-12" // extra padding for pagination
-        a11y={{
-          prevSlideMessage: 'Previous fixture',
-          nextSlideMessage: 'Next fixture',
-          slideLabelMessage: '{{index}} / {{slidesLength}}'
+        pagination={{
+  clickable: true,
+  el: '.swiper-pagination-container',
+  renderBullet: (index: number, className: string) => {
+    return `<span class="${className} w-4 h-4 md:w-5 md:h-5 rounded-full bg-gray-300 mx-1 inline-block"></span>`;
+  },
+}}
+
+        loop={true}
+        freeMode={{ enabled: true, momentum: true }}
+        spaceBetween={20}
+        slidesPerView={1}
+        breakpoints={{
+          640: { slidesPerView: 1.25 },
+          768: { slidesPerView: 1.5 },
+          1024: { slidesPerView: 2.2 },
+          1280: { slidesPerView: 3 },
         }}
+        centeredSlides={true}
       >
-        {currentFixtures.map(fixture => (
-          <SwiperSlide
-            key={fixture.id}
-            className="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow min-w-[250px]"
-          >
-            {/* Card content */}
-            <div className="flex flex-col space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  {fixture.competition.logo && (
-                    <img src={fixture.competition.logo} alt={fixture.competition.name} className="w-5 h-5" />
-                  )}
-                  <div>
-                    <div className="font-medium text-gray-900">{fixture.competition.name}</div>
-                    <div className="text-xs text-gray-500">Week {fixture.matchWeek}</div>
+        {fixtures.map((fixture) => {
+          const homeShort = shortNameMap[fixture.homeTeam.name] || fixture.homeTeam.shortName || fixture.homeTeam.name;
+          const awayShort = shortNameMap[fixture.awayTeam.name] || fixture.awayTeam.shortName || fixture.awayTeam.name;
+
+          return (
+            <SwiperSlide key={fixture.id}>
+              <button
+                className="carousel-card flex flex-col justify-between w-full h-full p-4 bg-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-focus-gold rounded-xl shadow-md transition-all duration-300"
+                onClick={() => onGameSelect?.(fixture)}
+                aria-label={`View match between ${fixture.homeTeam.name} and ${fixture.awayTeam.name}`}
+              >
+                {/* Competition & Week */}
+                <div className="flex justify-between items-center mb-4 w-full">
+                  <div className="flex items-center justify-start flex-1">
+                    {fixture.competition.logo && (
+                      <img src={fixture.competition.logo} alt={fixture.competition.name} className="w-12 h-12 object-contain" />
+                    )}
+                  </div>
+                  <div className="flex items-center justify-end flex-1">
+                    <span className="text-xs text-gray-500 font-medium">Week {fixture.matchWeek || 1}</span>
                   </div>
                 </div>
-                <div className="text-sm text-gray-700 font-medium">{fixture.importance}/10</div>
-              </div>
 
-              <div className="flex justify-between items-center">
-                <div className="text-sm">
-                  <div className="font-medium text-gray-900">{fixture.homeTeam.name}</div>
-                  {fixture.homeTeam.shortName && (
-                    <div className="text-xs text-gray-500">({fixture.homeTeam.shortName})</div>
+                {/* Teams & Time */}
+                <div className="flex justify-center items-center mb-4 w-full">
+                  <div className="flex items-center justify-center gap-6 max-w-full">
+                    <div className="flex flex-col items-center min-w-0 flex-1 max-w-[90px]">
+                      {fixture.homeTeam.logo ? (
+                        <img src={fixture.homeTeam.logo} alt={fixture.homeTeam.name} className="w-16 h-16 object-contain mb-1" />
+                      ) : (
+                        <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-1">
+                          <span className="text-lg font-bold text-gray-600">{fixture.homeTeam.name[0]}</span>
+                        </div>
+                      )}
+                      <span className="text-xs text-center w-full leading-tight">{homeShort}</span>
+                    </div>
+
+                    {/* Time */}
+                    <div className="flex flex-col items-center text-center min-w-[60px] flex-shrink-0">
+                      <span className="text-gray-700 font-medium text-base whitespace-nowrap">
+                        {new Date(fixture.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                      </span>
+                      <span className="text-xs text-gray-500 whitespace-nowrap">
+                        {new Date(fixture.dateTime).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col items-center min-w-0 flex-1 max-w-[90px]">
+                      {fixture.awayTeam.logo ? (
+                        <img src={fixture.awayTeam.logo} alt={fixture.awayTeam.name} className="w-16 h-16 object-contain mb-1" />
+                      ) : (
+                        <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-1">
+                          <span className="text-lg font-bold text-gray-600">{fixture.awayTeam.name[0]}</span>
+                        </div>
+                      )}
+                      <span className="text-xs text-center w-full leading-tight">{awayShort}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Venue & Badge */}
+                <div className="flex flex-col items-center w-full">
+                  <div className="text-xs text-gray-500 truncate text-center w-full px-2">{fixture.venue}</div>
+                  {fixture.importance >= 80 && (
+                    <span className="mt-2 inline-block bg-yellow-400 text-gray-900 px-2 py-1 rounded-full text-[10px] sm:text-[12px] font-medium">Featured</span>
                   )}
                 </div>
-                <div className="text-sm">vs</div>
-                <div className="text-sm text-right">
-                  <div className="font-medium text-gray-900">{fixture.awayTeam.name}</div>
-                  {fixture.awayTeam.shortName && (
-                    <div className="text-xs text-gray-500">({fixture.awayTeam.shortName})</div>
-                  )}
-                </div>
-              </div>
-
-              <div className="text-xs text-gray-500">{formatDate(fixture.dateTime)}</div>
-              <div className="text-xs text-gray-500">{fixture.venue}</div>
-            </div>
-          </SwiperSlide>
-        ))}
+              </button>
+            </SwiperSlide>
+          );
+        })}
       </Swiper>
 
-      {/* Pagination dots container (centered) */}
-      <div className="swiper-pagination-container flex justify-center mt-4"></div>
+      {/* Centered Pagination below */}
+      <div className="swiper-pagination-container mt-4 flex justify-center" />
     </div>
   );
 };
 
-
-export default SwiperFeaturedGamesCarousel;
-
+export default FeaturedGamesCarousel;
