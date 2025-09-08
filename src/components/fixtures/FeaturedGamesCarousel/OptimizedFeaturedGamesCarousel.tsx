@@ -18,13 +18,15 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [cardsPerView, setCardsPerView] = useState(3);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [announceText, setAnnounceText] = useState('');
+  const [isVisible, setIsVisible] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
   const totalSlides = fixtures.length;
   const maxIndex = Math.max(0, totalSlides - cardsPerView);
 
-  // Accessibility: reduced motion
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -34,7 +36,23 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
-  // Cards per view responsiveness
+  useEffect(() => {
+    const timer = setTimeout(() => setIsVisible(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const announceSlideChange = useCallback(
+    (index: number) => {
+      const fixture = fixtures[index];
+      if (fixture) {
+        setAnnounceText(
+          `Showing match ${index + 1} of ${totalSlides}: ${fixture.homeTeam.name} vs ${fixture.awayTeam.name}`
+        );
+      }
+    },
+    [fixtures, totalSlides]
+  );
+
   useEffect(() => {
     const calculateCardsPerView = () => {
       const width = window.innerWidth;
@@ -53,20 +71,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     if (currentIndex > newMaxIndex) setCurrentIndex(newMaxIndex);
   }, [cardsPerView, totalSlides, currentIndex]);
 
-  // Slide announcer for screen readers
-  const announceSlideChange = useCallback(
-    (index: number) => {
-      const fixture = fixtures[index];
-      if (fixture) {
-        setAnnounceText(
-          `Showing match ${index + 1} of ${totalSlides}: ${fixture.homeTeam.name} vs ${fixture.awayTeam.name}`
-        );
-      }
-    },
-    [fixtures, totalSlides]
-  );
-
-  // Navigation
   const goToNext = useCallback(() => {
     const newIndex = Math.min(currentIndex + 1, maxIndex);
     setCurrentIndex(newIndex);
@@ -89,7 +93,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     announceSlideChange(maxIndex);
   }, [maxIndex, announceSlideChange]);
 
-  // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!containerRef.current?.contains(event.target as Node)) return;
@@ -116,18 +119,19 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [goToNext, goToPrev, goToFirst, goToLast]);
 
-  const getCardGap = () => {
-    if (cardsPerView === 1) return 16;
-    if (cardsPerView === 2) return 24;
-    return 32;
+  const minSwipeDistance = 50;
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
   };
-
-  // ✅ Pixel-based transform calculation
-  const getTransformX = () => {
-    if (!trackRef.current) return 0;
-    const trackWidth = trackRef.current.offsetWidth;
-    const cardWidth = trackWidth / cardsPerView;
-    return currentIndex * (cardWidth + getCardGap());
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+  const onTouchEnd = () => {
+    if (touchStart === null || touchEnd === null) return;
+    const distance = touchStart - touchEnd;
+    if (distance > minSwipeDistance) goToNext();
+    else if (distance < -minSwipeDistance) goToPrev();
   };
 
   if (isLoading) {
@@ -143,6 +147,19 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   if (totalSlides === 0) {
     return (
       <div className="flex flex-col items-center justify-center text-center py-20 px-6">
+        <div className="mb-6">
+          <svg
+            width="120"
+            height="120"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            className="mx-auto opacity-80 text-gray-400"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <path d="M8 12h8M12 8v8" />
+          </svg>
+        </div>
         <p className="text-lg font-medium text-gray-700 mb-4">
           Check back later for featured games
         </p>
@@ -152,129 +169,195 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
   const showNavigation = totalSlides > cardsPerView;
 
+  const getCardGap = () => {
+    if (cardsPerView === 1) return 16;
+    if (cardsPerView === 2) return 24;
+    return 32;
+  };
+
   return (
     <div
       ref={containerRef}
-      className={`w-full transition-all duration-500 ${className}`}
+      className={`w-full transition-all duration-500 ${
+        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+      } ${className}`}
       role="region"
       aria-label="Featured Games Carousel"
       tabIndex={0}
     >
       <div className="relative">
-        {/* Track */}
+        {showNavigation && (
+          <>
+            <button
+              onClick={goToPrev}
+              disabled={currentIndex === 0}
+              className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white shadow-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-focus-gold"
+              style={{ width: '40px', height: '40px' }}
+              aria-label="Previous games"
+            >
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className="text-gray-500"
+              >
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
+            </button>
+
+            <button
+              onClick={goToNext}
+              disabled={currentIndex === maxIndex}
+              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white shadow-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-focus-gold"
+              style={{ width: '40px', height: '40px' }}
+              aria-label="Next games"
+            >
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className="text-gray-500"
+              >
+                <path d="M9 18l6-6-6-6" />
+              </svg>
+            </button>
+          </>
+        )}
+
+        {/* Added py-4 here for vertical spacing */}
         <div className="overflow-hidden px-4 md:px-8 py-4">
           <div
             ref={trackRef}
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
             className="flex select-none"
             style={{
-              transform: `translateX(-${getTransformX()}px)`,
+              transform: `translateX(-${
+                currentIndex * (100 / cardsPerView + getCardGap() / window.innerWidth * 100)
+              }%)`,
               transition: prefersReducedMotion ? 'none' : 'transform 0.3s ease-out',
               gap: `${getCardGap()}px`,
             }}
             role="list"
           >
-            {fixtures.map((fixture, index) => {
-              const isActive = index >= currentIndex && index < currentIndex + cardsPerView;
-              return (
-                <div
-                  key={fixture.id || index}
-                  className="relative flex-shrink-0 rounded-xl bg-white"
-                  style={{
-                    flex: `0 0 calc(${100 / cardsPerView}% - ${getCardGap()}px)`,
-                    border: isActive ? '2px solid #FFD700' : '1px solid #D1D5DB',
-                    borderRadius: '16px',
-                    boxShadow: isActive
-                      ? '0 12px 20px rgba(0,0,0,0.25)'
-                      : '0 6px 12px rgba(0,0,0,0.1)',
-                  }}
-                  role="listitem"
-                >
-                  <button
-                    className={`flex flex-col w-full h-full p-4 text-left ${
-                      isActive ? 'transform scale-105 transition-transform duration-300' : ''
-                    }`}
-                    onClick={() => onGameSelect?.(fixture)}
-                  >
-                    {/* Top row: Competition left, Week right */}
-                    <div className="flex justify-between items-center mb-4">
-                      {fixture.competition.logo && (
-                        <img
-                          src={fixture.competition.logo}
-                          alt={fixture.competition.name}
-                          className="w-10 h-10 object-contain"
-                        />
-                      )}
-                      <span className="text-xs text-gray-500 font-medium">
-                        Week {fixture.matchWeek || 1}
-                      </span>
-                    </div>
+         {fixtures.map((fixture, index) => {
+  const isActive = index >= currentIndex && index < currentIndex + cardsPerView;
 
-                    {/* Middle row: Teams + time */}
-                    <div className="grid grid-cols-3 items-center text-center mb-4">
-                      {/* Home */}
-                      <div>
-                        {fixture.homeTeam.logo ? (
-                          <img
-                            src={fixture.homeTeam.logo}
-                            alt={fixture.homeTeam.name}
-                            className="w-12 h-12 mx-auto object-contain"
-                          />
-                        ) : (
-                          <span>{fixture.homeTeam.name[0]}</span>
-                        )}
-                        <div className="text-xs truncate">{fixture.homeTeam.shortName || fixture.homeTeam.name}</div>
-                      </div>
-                      {/* Time */}
-                      <div>
-                        <div className="text-sm font-medium">
-                          {new Date(fixture.dateTime).toLocaleTimeString('en-GB', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            hour12: false,
-                          })}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {new Date(fixture.dateTime).toLocaleDateString('en-GB', {
-                            weekday: 'short',
-                            day: 'numeric',
-                            month: 'short',
-                          })}
-                        </div>
-                      </div>
-                      {/* Away */}
-                      <div>
-                        {fixture.awayTeam.logo ? (
-                          <img
-                            src={fixture.awayTeam.logo}
-                            alt={fixture.awayTeam.name}
-                            className="w-12 h-12 mx-auto object-contain"
-                          />
-                        ) : (
-                          <span>{fixture.awayTeam.name[0]}</span>
-                        )}
-                        <div className="text-xs truncate">{fixture.awayTeam.shortName || fixture.awayTeam.name}</div>
-                      </div>
-                    </div>
+  return (
+  <div
+  key={fixture.id || index}
+  className="relative flex-shrink-0 rounded-xl"
+  style={{
+    flex: `0 0 calc(${100 / cardsPerView}% - ${getCardGap()}px)`,
+    border: isActive ? '2px solid #FFD700' : '1px solid #D1D5DB',
+    borderRadius: '16px',
+    boxShadow: isActive
+      ? '0 12px 20px rgba(0,0,0,0.25)'
+      : '0 6px 12px rgba(0,0,0,0.1)',
+    overflow: 'hidden',
+  }}
+  role="listitem"
+>
+  <button
+    className={`carousel-card flex flex-col justify-between w-full h-full p-4 bg-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-focus-gold ${
+      isActive ? 'transform scale-105 transition-transform duration-300' : ''
+    }`}
+    aria-label={`View match between ${fixture.homeTeam.name} and ${fixture.awayTeam.name}`}
+    onClick={() => onGameSelect?.(fixture)}
+    draggable={false}
+  >
+  {/* Competition & Week */}
+<div className="flex justify-between items-center mb-4 px-2 w-full">
+  {/* Competition Logo Left */}
+  <div className="flex items-center">
+    {fixture.competition.logo && (
+      <img
+        src={fixture.competition.logo}
+        alt={fixture.competition.name}
+        className="w-12 h-12 object-contain"
+        draggable={false}
+      />
+    )}
+  </div>
 
-                    {/* Bottom row: Venue & badge */}
-                    <div className="text-xs text-gray-500 text-center">{fixture.venue}</div>
-                    {fixture.importance >= 80 && (
-                      <div className="mt-2 text-center">
-                        <span className="inline-block bg-yellow-400 text-gray-900 px-2 py-1 rounded-full text-[10px]">
-                          Featured
-                        </span>
-                      </div>
-                    )}
-                  </button>
-                </div>
-              );
-            })}
+  {/* Game Week Right */}
+  <div className="flex items-center justify-end">
+    <span className="text-xs text-gray-500 font-medium">
+      Week {fixture.matchWeek || 1}
+    </span>
+  </div>
+</div>
+{/* Teams & Time */}
+<div className="flex justify-center mb-4">
+  <div className="flex items-center gap-8">
+    {/* Home */}
+    <div className="flex flex-col items-center">
+      {fixture.homeTeam.logo ? (
+        <img
+          src={fixture.homeTeam.logo}
+          alt={fixture.homeTeam.name}
+          className="w-16 h-16 object-contain"
+        />
+      ) : (
+        <span>{fixture.homeTeam.name[0]}</span>
+      )}
+      <span className="text-xs truncate">{fixture.homeTeam.shortName || fixture.homeTeam.name}</span>
+    </div>
+
+    {/* Time */}
+    <div className="flex flex-col items-center text-center">
+      <span className="text-gray-700 font-medium text-base">
+        {new Date(fixture.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })}
+      </span>
+      <span className="text-xs text-gray-500">
+        {new Date(fixture.dateTime).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
+      </span>
+    </div>
+
+    {/* Away */}
+    <div className="flex flex-col items-center">
+      {fixture.awayTeam.logo ? (
+        <img
+          src={fixture.awayTeam.logo}
+          alt={fixture.awayTeam.name}
+          className="w-16 h-16 object-contain"
+        />
+      ) : (
+        <span>{fixture.awayTeam.name[0]}</span>
+      )}
+      <span className="text-xs truncate">{fixture.awayTeam.shortName || fixture.awayTeam.name}</span>
+    </div>
+  </div>
+</div>
+
+{/* Venue & Badge */}
+<div className="flex flex-col items-center w-full">
+  <div className="text-xs text-gray-500 truncate text-center w-full">{fixture.venue}</div>
+  {fixture.importance >= 80 && (
+    <span className="mt-2 inline-block bg-yellow-400 text-gray-900 px-2 py-1 rounded-full text-[10px] sm:text-[12px]">
+      Featured
+    </span>
+  )}
+</div>
+
+  </button>
+</div>
+
+  );
+})}
           </div>
         </div>
 
         {/* Pagination */}
         {showNavigation && (
-          <div className="flex justify-center items-center mt-6 space-x-2">
+          <div className="flex justify-center items-center mt-6 space-x-2 w-full" style={{ minHeight: '32px' }}>
             {Array.from({ length: maxIndex + 1 }, (_, index) => (
               <button
                 key={index}
@@ -291,6 +374,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                   border: 'none',
                   transition: 'all 0.3s ease',
                   cursor: 'pointer',
+                  margin: '0 4px',
                 }}
                 aria-label={`Go to slide ${index + 1}`}
                 aria-current={currentIndex === index ? 'true' : 'false'}
@@ -299,9 +383,12 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
           </div>
         )}
 
-        {/* Screen reader live region */}
         <div aria-live="polite" aria-atomic="true" className="sr-only">
           {announceText}
+        </div>
+
+        <div className="sr-only">
+          Use arrow keys to navigate between slides, Home key for first slide, End key for last slide. On touch devices, swipe left or right to navigate.
         </div>
       </div>
     </div>
