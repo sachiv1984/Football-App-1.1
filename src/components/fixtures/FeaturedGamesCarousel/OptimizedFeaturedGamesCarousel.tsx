@@ -13,14 +13,6 @@ interface Props {
   isLoading?: boolean;
 }
 
-const shortNameMap: Record<string, string> = {
-  'Wolverhampton': 'Wolves',
-  'Manchester United': 'Man Utd',
-  'Manchester City': 'Man City',
-  'Tottenham Hotspur': 'Spurs',
-  // Add more hardcoded short names as needed
-};
-
 const FeaturedGamesCarousel: React.FC<Props> = ({
   fixtures,
   onGameSelect,
@@ -53,13 +45,12 @@ const FeaturedGamesCarousel: React.FC<Props> = ({
         modules={[Navigation, Pagination, FreeMode]}
         navigation
         pagination={{
-  clickable: true,
-  el: '.swiper-pagination-container',
-  renderBullet: (index: number, className: string) => {
-    return `<span class="${className} w-4 h-4 md:w-5 md:h-5 rounded-full bg-gray-300 mx-1 inline-block"></span>`;
-  },
-}}
-
+          clickable: true,
+          el: '.swiper-pagination-container',
+          renderBullet: (index: number, className: string) => {
+            return `<span class="${className} w-4 h-4 md:w-5 md:h-5 rounded-full bg-gray-300 mx-1 inline-block"></span>`;
+          },
+        }}
         loop={true}
         freeMode={{ enabled: true, momentum: true }}
         spaceBetween={20}
@@ -73,8 +64,9 @@ const FeaturedGamesCarousel: React.FC<Props> = ({
         centeredSlides={true}
       >
         {fixtures.map((fixture) => {
-          const homeShort = shortNameMap[fixture.homeTeam.name] || fixture.homeTeam.shortName || fixture.homeTeam.name;
-          const awayShort = shortNameMap[fixture.awayTeam.name] || fixture.awayTeam.shortName || fixture.awayTeam.name;
+          // Use the shortName already set by FixtureService
+          const homeShort = fixture.homeTeam.shortName;
+          const awayShort = fixture.awayTeam.shortName;
 
           return (
             <SwiperSlide key={fixture.id}>
