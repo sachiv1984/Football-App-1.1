@@ -30,7 +30,6 @@ export const useFixtures = (): UseFixturesReturn => {
     try {
       const [featured, all] = await Promise.all([
         fixtureService.getFeaturedFixtures(8), // fetch 8 featured fixtures
-        fixtureService.getAllFixtures(),       // fetch all fixtures
       ]);
 
       setFeaturedFixtures(featured);
