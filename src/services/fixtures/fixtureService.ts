@@ -67,7 +67,8 @@ export class FixtureService {
   }
 
   private calculateImportance(match: RawMatch, standings?: RawStanding[]): number {
-    if (match.status === 'FINISHED') return 0;
+    // Finished, cancelled, postponed, or suspended → zero importance
+    if (!['SCHEDULED', 'LIVE', 'IN_PLAY', 'PAUSED'].includes(match.status)) return 0;
 
     let importance = 3;
 
@@ -163,6 +164,8 @@ export class FixtureService {
       this.getTeamDetails(match.homeTeam, standings),
       this.getTeamDetails(match.awayTeam, standings),
     ]);
+
+    // calculate importance once; zero for finished/postponed/cancelled/suspended
     const importance = this.calculateImportance(match, standings);
     const tags = this.generateTags(match, importance);
 
@@ -179,7 +182,7 @@ export class FixtureService {
       },
       matchWeek: match.matchday,
       importance,
-      importanceScore: importance,
+      importanceScore: importance, // matches importance exactly
       tags,
       isBigMatch: importance >= 8,
       status: this.mapStatus(match.status),
