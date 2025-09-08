@@ -1,6 +1,8 @@
 import React from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
-import { Navigation, Pagination } from 'swiper';
+import { Navigation } from 'swiper/modules/navigation';
+import { Pagination } from 'swiper/modules/pagination';
+import { A11y } from 'swiper/modules/a11y';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
