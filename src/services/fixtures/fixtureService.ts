@@ -38,6 +38,7 @@ export class FixtureService {
   // -------------------------
   private readonly SHORT_NAME_OVERRIDES: Record<string, string> = {
     "Manchester United FC": "Man Utd",
+    "Brighton & Hove Albion FC": "Brighton",
     // add more as needed
   };
 
