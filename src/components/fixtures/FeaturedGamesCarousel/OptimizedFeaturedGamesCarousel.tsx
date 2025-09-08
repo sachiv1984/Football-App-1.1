@@ -212,12 +212,13 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             onTouchStart={onTouchStart}
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
-            className="flex transition-transform duration-500 ease-out"
+            className="flex"
             style={{
               // Move the track so current card is centered
               // Each card + gap = 340px (300px card + 40px gap)
               // Center offset = 50% - 150px (half card width)
               transform: `translateX(calc(50% - 150px - ${currentIndex * 340}px))`,
+              transition: prefersReducedMotion ? 'none' : 'transform 0.5s ease-out',
               gap: '40px',
             }}
             role="list"
