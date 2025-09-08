@@ -4,7 +4,7 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
-import { Navigation, Pagination } from 'swiper/modules';
+import { Navigation, Pagination, FreeMode } from 'swiper/modules';
 
 interface Props {
   fixtures: FeaturedFixtureWithImportance[];
@@ -50,9 +50,11 @@ const FeaturedGamesCarousel: React.FC<Props> = ({
   return (
     <div className={`w-full ${className}`} role="region" aria-label="Featured Games Carousel">
       <Swiper
-        modules={[Navigation, Pagination]}
+        modules={[Navigation, Pagination, FreeMode]}
         navigation
-        pagination={{ clickable: true }}
+        pagination={{ clickable: true, el: '.swiper-pagination-container' }}
+        loop={true}
+        freeMode={{ enabled: true, momentum: true }}
         spaceBetween={20}
         slidesPerView={1}
         breakpoints={{
@@ -135,6 +137,9 @@ const FeaturedGamesCarousel: React.FC<Props> = ({
           );
         })}
       </Swiper>
+
+      {/* Pagination below */}
+      <div className="swiper-pagination-container mt-4" />
     </div>
   );
 };
