@@ -169,6 +169,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
   const showNavigation = totalSlides > cardsPerView;
 
+  // Fixed gap calculation - use consistent pixel values
   const getCardGap = () => {
     if (cardsPerView === 1) return 16;
     if (cardsPerView === 2) return 24;
@@ -230,7 +231,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
           </>
         )}
 
-        {/* Added py-4 here for vertical spacing */}
         <div className="overflow-hidden px-4 md:px-8 py-4">
           <div
             ref={trackRef}
@@ -239,119 +239,142 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             onTouchEnd={onTouchEnd}
             className="flex select-none"
             style={{
-              transform: `translateX(-${
-                currentIndex * (100 / cardsPerView + getCardGap() / window.innerWidth * 100)
-              }%)`,
+              // Simplified transform calculation - just use percentage based on cards
+              transform: `translateX(-${currentIndex * (100 / cardsPerView)}%)`,
               transition: prefersReducedMotion ? 'none' : 'transform 0.3s ease-out',
               gap: `${getCardGap()}px`,
             }}
             role="list"
           >
-         {fixtures.map((fixture, index) => {
-  const isActive = index >= currentIndex && index < currentIndex + cardsPerView;
+            {fixtures.map((fixture, index) => {
+              const isActive = index >= currentIndex && index < currentIndex + cardsPerView;
 
-  return (
-  <div
-  key={fixture.id || index}
-  className="relative flex-shrink-0 rounded-xl"
-  style={{
-    flex: `0 0 calc(${100 / cardsPerView}% - ${getCardGap()}px)`,
-    border: isActive ? '2px solid #FFD700' : '1px solid #D1D5DB',
-    borderRadius: '16px',
-    boxShadow: isActive
-      ? '0 12px 20px rgba(0,0,0,0.25)'
-      : '0 6px 12px rgba(0,0,0,0.1)',
-    overflow: 'hidden',
-  }}
-  role="listitem"
->
-  <button
-    className={`carousel-card flex flex-col justify-between w-full h-full p-4 bg-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-focus-gold ${
-      isActive ? 'transform scale-105 transition-transform duration-300' : ''
-    }`}
-    aria-label={`View match between ${fixture.homeTeam.name} and ${fixture.awayTeam.name}`}
-    onClick={() => onGameSelect?.(fixture)}
-    draggable={false}
-  >
-  {/* Competition & Week */}
-<div className="flex justify-between items-center mb-4 px-2 w-full">
-  {/* Competition Logo Left */}
-  <div className="flex items-center">
-    {fixture.competition.logo && (
-      <img
-        src={fixture.competition.logo}
-        alt={fixture.competition.name}
-        className="w-12 h-12 object-contain"
-        draggable={false}
-      />
-    )}
-  </div>
+              return (
+                <div
+                  key={fixture.id || index}
+                  className="relative flex-shrink-0 rounded-xl"
+                  style={{
+                    // Use calc to account for gap properly
+                    flex: `0 0 calc(${100 / cardsPerView}% - ${(getCardGap() * (cardsPerView - 1)) / cardsPerView}px)`,
+                    border: isActive ? '2px solid #FFD700' : '1px solid #D1D5DB',
+                    borderRadius: '16px',
+                    boxShadow: isActive
+                      ? '0 12px 20px rgba(0,0,0,0.25)'
+                      : '0 6px 12px rgba(0,0,0,0.1)',
+                    overflow: 'hidden',
+                  }}
+                  role="listitem"
+                >
+                  <button
+                    className={`carousel-card flex flex-col justify-between w-full h-full p-4 bg-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-focus-gold ${
+                      isActive ? 'transform scale-105 transition-transform duration-300' : ''
+                    }`}
+                    aria-label={`View match between ${fixture.homeTeam.name} and ${fixture.awayTeam.name}`}
+                    onClick={() => onGameSelect?.(fixture)}
+                    draggable={false}
+                  >
+                    {/* Competition & Week */}
+                    <div className="flex justify-between items-center mb-4 w-full">
+                      {/* Competition Logo Left */}
+                      <div className="flex items-center justify-start flex-1">
+                        {fixture.competition.logo && (
+                          <img
+                            src={fixture.competition.logo}
+                            alt={fixture.competition.name}
+                            className="w-12 h-12 object-contain"
+                            draggable={false}
+                          />
+                        )}
+                      </div>
 
-  {/* Game Week Right */}
-  <div className="flex items-center justify-end">
-    <span className="text-xs text-gray-500 font-medium">
-      Week {fixture.matchWeek || 1}
-    </span>
-  </div>
-</div>
-{/* Teams & Time */}
-<div className="flex justify-center mb-4">
-  <div className="flex items-center gap-8">
-    {/* Home */}
-    <div className="flex flex-col items-center">
-      {fixture.homeTeam.logo ? (
-        <img
-          src={fixture.homeTeam.logo}
-          alt={fixture.homeTeam.name}
-          className="w-16 h-16 object-contain"
-        />
-      ) : (
-        <span>{fixture.homeTeam.name[0]}</span>
-      )}
-      <span className="text-xs truncate">{fixture.homeTeam.shortName || fixture.homeTeam.name}</span>
-    </div>
+                      {/* Game Week Right */}
+                      <div className="flex items-center justify-end flex-1">
+                        <span className="text-xs text-gray-500 font-medium">
+                          Week {fixture.matchWeek || 1}
+                        </span>
+                      </div>
+                    </div>
 
-    {/* Time */}
-    <div className="flex flex-col items-center text-center">
-      <span className="text-gray-700 font-medium text-base">
-        {new Date(fixture.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })}
-      </span>
-      <span className="text-xs text-gray-500">
-        {new Date(fixture.dateTime).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
-      </span>
-    </div>
+                    {/* Teams & Time - Fixed centering */}
+                    <div className="flex justify-center items-center mb-4 w-full">
+                      <div className="flex items-center justify-center gap-6 md:gap-8 max-w-full">
+                        {/* Home Team - Fixed width for consistency */}
+                        <div className="flex flex-col items-center min-w-0 flex-1 max-w-[80px]">
+                          {fixture.homeTeam.logo ? (
+                            <img
+                              src={fixture.homeTeam.logo}
+                              alt={fixture.homeTeam.name}
+                              className="w-12 h-12 md:w-16 md:h-16 object-contain mb-1"
+                              draggable={false}
+                            />
+                          ) : (
+                            <div className="w-12 h-12 md:w-16 md:h-16 bg-gray-200 rounded-full flex items-center justify-center mb-1">
+                              <span className="text-lg font-bold text-gray-600">
+                                {fixture.homeTeam.name[0]}
+                              </span>
+                            </div>
+                          )}
+                          <span className="text-xs text-center truncate w-full">
+                            {fixture.homeTeam.shortName || fixture.homeTeam.name}
+                          </span>
+                        </div>
 
-    {/* Away */}
-    <div className="flex flex-col items-center">
-      {fixture.awayTeam.logo ? (
-        <img
-          src={fixture.awayTeam.logo}
-          alt={fixture.awayTeam.name}
-          className="w-16 h-16 object-contain"
-        />
-      ) : (
-        <span>{fixture.awayTeam.name[0]}</span>
-      )}
-      <span className="text-xs truncate">{fixture.awayTeam.shortName || fixture.awayTeam.name}</span>
-    </div>
-  </div>
-</div>
+                        {/* Time - Fixed width for consistency */}
+                        <div className="flex flex-col items-center text-center min-w-[60px] flex-shrink-0">
+                          <span className="text-gray-700 font-medium text-sm md:text-base whitespace-nowrap">
+                            {new Date(fixture.dateTime).toLocaleTimeString('en-GB', { 
+                              hour: '2-digit', 
+                              minute: '2-digit', 
+                              hour12: false 
+                            })}
+                          </span>
+                          <span className="text-xs text-gray-500 whitespace-nowrap">
+                            {new Date(fixture.dateTime).toLocaleDateString('en-GB', { 
+                              weekday: 'short', 
+                              day: 'numeric', 
+                              month: 'short' 
+                            })}
+                          </span>
+                        </div>
 
-{/* Venue & Badge */}
-<div className="flex flex-col items-center w-full">
-  <div className="text-xs text-gray-500 truncate text-center w-full">{fixture.venue}</div>
-  {fixture.importance >= 80 && (
-    <span className="mt-2 inline-block bg-yellow-400 text-gray-900 px-2 py-1 rounded-full text-[10px] sm:text-[12px]">
-      Featured
-    </span>
-  )}
-</div>
+                        {/* Away Team - Fixed width for consistency */}
+                        <div className="flex flex-col items-center min-w-0 flex-1 max-w-[80px]">
+                          {fixture.awayTeam.logo ? (
+                            <img
+                              src={fixture.awayTeam.logo}
+                              alt={fixture.awayTeam.name}
+                              className="w-12 h-12 md:w-16 md:h-16 object-contain mb-1"
+                              draggable={false}
+                            />
+                          ) : (
+                            <div className="w-12 h-12 md:w-16 md:h-16 bg-gray-200 rounded-full flex items-center justify-center mb-1">
+                              <span className="text-lg font-bold text-gray-600">
+                                {fixture.awayTeam.name[0]}
+                              </span>
+                            </div>
+                          )}
+                          <span className="text-xs text-center truncate w-full">
+                            {fixture.awayTeam.shortName || fixture.awayTeam.name}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
 
-  </button>
-</div>
-
-  );
-})}
+                    {/* Venue & Badge */}
+                    <div className="flex flex-col items-center w-full">
+                      <div className="text-xs text-gray-500 truncate text-center w-full px-2">
+                        {fixture.venue}
+                      </div>
+                      {fixture.importance >= 80 && (
+                        <span className="mt-2 inline-block bg-yellow-400 text-gray-900 px-2 py-1 rounded-full text-[10px] sm:text-[12px] font-medium">
+                          Featured
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
 
