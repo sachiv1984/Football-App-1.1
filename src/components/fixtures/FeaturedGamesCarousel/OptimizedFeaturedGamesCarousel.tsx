@@ -53,13 +53,14 @@ const FeaturedGamesCarousel: React.FC<Props> = ({
         modules={[Navigation, Pagination, FreeMode]}
         navigation
         pagination={{
-          clickable: true,
-          el: '.swiper-pagination-container',
-          renderBullet: (index, className) => {
-            // Bigger, circular, centered bullets
-            return `<span class="${className} w-4 h-4 md:w-5 md:h-5 rounded-full bg-gray-300 mx-1 inline-block"></span>`;
-          },
-        }}
+          pagination={{
+  clickable: true,
+  el: '.swiper-pagination-container',
+  renderBullet: (index: number, className: string) => {
+    return `<span class="${className} w-4 h-4 md:w-5 md:h-5 rounded-full bg-gray-300 mx-1 inline-block"></span>`;
+  },
+}}
+
         loop={true}
         freeMode={{ enabled: true, momentum: true }}
         spaceBetween={20}
