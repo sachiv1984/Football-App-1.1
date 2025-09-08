@@ -53,7 +53,6 @@ const FeaturedGamesCarousel: React.FC<Props> = ({
         modules={[Navigation, Pagination, FreeMode]}
         navigation
         pagination={{
-          pagination={{
   clickable: true,
   el: '.swiper-pagination-container',
   renderBullet: (index: number, className: string) => {
