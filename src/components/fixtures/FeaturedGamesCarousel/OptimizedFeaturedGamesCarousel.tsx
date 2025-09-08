@@ -232,7 +232,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                 const cardPlusGap = cardWidth + gap;
                 
                 // Calculate how many cards can fit in the viewport
-                const visibleCards = Math.floor(containerWidth / cardPlusGap);
                 const totalWidth = totalSlides * cardPlusGap - gap; // Total width of all cards
                 
                 // If all cards fit in viewport, center the entire group
