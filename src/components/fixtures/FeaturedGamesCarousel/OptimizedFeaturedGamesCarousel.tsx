@@ -239,8 +239,8 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                   key={fixture.id || index}
                   className="flex-shrink-0 rounded-xl transition-all duration-300"
                   style={{
-                    width: '350px',
-                    minWidth: '350px',
+                    width: `${cardWidth}px`,
+                    minWidth: `${cardWidth}px`,
                     border: isActive ? '3px solid #FFD700' : '1px solid #E5E7EB',
                     borderRadius: '16px',
                     boxShadow: isActive
