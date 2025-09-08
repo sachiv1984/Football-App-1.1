@@ -52,7 +52,14 @@ const FeaturedGamesCarousel: React.FC<Props> = ({
       <Swiper
         modules={[Navigation, Pagination, FreeMode]}
         navigation
-        pagination={{ clickable: true, el: '.swiper-pagination-container' }}
+        pagination={{
+          clickable: true,
+          el: '.swiper-pagination-container',
+          renderBullet: (index, className) => {
+            // Bigger, circular, centered bullets
+            return `<span class="${className} w-4 h-4 md:w-5 md:h-5 rounded-full bg-gray-300 mx-1 inline-block"></span>`;
+          },
+        }}
         loop={true}
         freeMode={{ enabled: true, momentum: true }}
         spaceBetween={20}
@@ -138,8 +145,8 @@ const FeaturedGamesCarousel: React.FC<Props> = ({
         })}
       </Swiper>
 
-      {/* Pagination below */}
-      <div className="swiper-pagination-container mt-4" />
+      {/* Centered Pagination below */}
+      <div className="swiper-pagination-container mt-4 flex justify-center" />
     </div>
   );
 };
