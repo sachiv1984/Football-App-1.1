@@ -218,8 +218,6 @@ export class FixtureService {
   this.cacheTime = now;
   return this.matchesCache.slice(0, limit);
 }
-
- 
   clearCache() {
     this.matchesCache = [];
     this.cacheTime = 0;
