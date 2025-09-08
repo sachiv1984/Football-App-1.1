@@ -8,15 +8,14 @@ interface Props {
   isLoading?: boolean;
 }
 
-// Hardcoded short name mapping
+// Hard-coded short names
 const SHORT_NAMES: Record<string, string> = {
   'Wolverhampton': 'Wolves',
   'Manchester United': 'Man Utd',
   'Manchester City': 'Man City',
   'Tottenham Hotspur': 'Spurs',
-  'West Ham United': 'West Ham',
-  'Brighton & Hove Albion': 'Brighton',
-  'Leicester City': 'Leicester',
+  'Newcastle United': 'Newcastle',
+  // add more as needed
 };
 
 const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
@@ -38,23 +37,26 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const totalSlides = fixtures.length;
   const maxIndex = Math.max(0, totalSlides - 1);
 
+  // Responsive values
   const { cardWidth, gap, padding } = useMemo(() => {
-    const currentWidth = viewportWidth || 1200;
-    if (currentWidth < 768) return { cardWidth: 280, gap: 20, padding: 20 };
-    if (currentWidth < 1024) return { cardWidth: 320, gap: 30, padding: 30 };
+    const width = viewportWidth || 1200;
+    if (width < 768) return { cardWidth: 280, gap: 20, padding: 20 };
+    if (width < 1024) return { cardWidth: 320, gap: 30, padding: 30 };
     return { cardWidth: 350, gap: 40, padding: 40 };
   }, [viewportWidth]);
 
   const cardPlusGap = cardWidth + gap;
 
+  // Update viewport width
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const handleResize = () => setViewportWidth(window.innerWidth);
-    window.addEventListener('resize', handleResize);
-    setViewportWidth(window.innerWidth);
-    return () => window.removeEventListener('resize', handleResize);
+    const updateViewport = () => setViewportWidth(window.innerWidth);
+    window.addEventListener('resize', updateViewport);
+    updateViewport();
+    return () => window.removeEventListener('resize', updateViewport);
   }, []);
 
+  // Reduced motion
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -69,16 +71,20 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => clearTimeout(timer);
   }, []);
 
+  // Announce slide change
   const announceSlideChange = useCallback(
     (index: number) => {
       const fixture = fixtures[index];
       if (fixture) {
-        setAnnounceText(`Showing match ${index + 1} of ${totalSlides}: ${fixture.homeTeam.name} vs ${fixture.awayTeam.name}`);
+        setAnnounceText(
+          `Showing match ${index + 1} of ${totalSlides}: ${fixture.homeTeam.name} vs ${fixture.awayTeam.name}`
+        );
       }
     },
     [fixtures, totalSlides]
   );
 
+  // Navigation functions
   const goToNext = useCallback(() => {
     const newIndex = Math.min(currentIndex + 1, maxIndex);
     setCurrentIndex(newIndex);
@@ -101,22 +107,39 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     announceSlideChange(maxIndex);
   }, [maxIndex, announceSlideChange]);
 
+  // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!containerRef.current?.contains(event.target as Node)) return;
       switch (event.key) {
-        case 'ArrowLeft': event.preventDefault(); goToPrev(); break;
-        case 'ArrowRight': event.preventDefault(); goToNext(); break;
-        case 'Home': event.preventDefault(); goToFirst(); break;
-        case 'End': event.preventDefault(); goToLast(); break;
+        case 'ArrowLeft':
+          event.preventDefault();
+          goToPrev();
+          break;
+        case 'ArrowRight':
+          event.preventDefault();
+          goToNext();
+          break;
+        case 'Home':
+          event.preventDefault();
+          goToFirst();
+          break;
+        case 'End':
+          event.preventDefault();
+          goToLast();
+          break;
       }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [goToNext, goToPrev, goToFirst, goToLast]);
 
+  // Touch swipe
   const minSwipeDistance = 50;
-  const onTouchStart = (e: React.TouchEvent) => { setTouchEnd(null); setTouchStart(e.targetTouches[0].clientX); };
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
   const onTouchMove = (e: React.TouchEvent) => setTouchEnd(e.targetTouches[0].clientX);
   const onTouchEnd = () => {
     if (touchStart === null || touchEnd === null) return;
@@ -125,37 +148,48 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     else if (distance < -minSwipeDistance) goToPrev();
   };
 
-  const getTransform = () => {
+  // Calculate centered transform
+  const getCenteredTransform = () => {
     const totalContentWidth = totalSlides * cardPlusGap - gap;
-    if (totalContentWidth <= viewportWidth) return (viewportWidth - totalContentWidth) / 2;
-
-    const activeCardCenter = currentIndex * cardPlusGap + cardWidth / 2;
-    const viewportCenter = viewportWidth / 2;
-    let offset = viewportCenter - activeCardCenter;
-
-    const maxOffset = padding;
-    const minOffset = viewportWidth - totalContentWidth - padding;
-
-    return Math.max(Math.min(offset, maxOffset), minOffset);
+    const centerOffset = viewportWidth / 2 - cardWidth / 2; // center active card
+    const baseTransform = centerOffset - currentIndex * cardPlusGap;
+    const minTransform = viewportWidth - totalContentWidth - padding;
+    const maxTransform = padding;
+    return Math.max(Math.min(baseTransform, maxTransform), minTransform);
   };
 
-  if (isLoading) return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 p-6">
-      {[...Array(3)].map((_, idx) => <div key={idx} className="bg-gray-200 animate-pulse rounded-xl p-6" />)}
-    </div>
-  );
-
-  if (totalSlides === 0) return (
-    <div className="flex flex-col items-center justify-center text-center py-20 px-6">
-      <div className="mb-6">
-        <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="mx-auto opacity-80 text-gray-400">
-          <circle cx="12" cy="12" r="10" />
-          <path d="M8 12h8M12 8v8" />
-        </svg>
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 p-6">
+        {[...Array(3)].map((_, idx) => (
+          <div key={idx} className="bg-gray-200 animate-pulse rounded-xl p-6" />
+        ))}
       </div>
-      <p className="text-lg font-medium text-gray-700 mb-4">Check back later for featured games</p>
-    </div>
-  );
+    );
+  }
+
+  if (totalSlides === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center text-center py-20 px-6">
+        <div className="mb-6">
+          <svg
+            width="120"
+            height="120"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            className="mx-auto opacity-80 text-gray-400"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <path d="M8 12h8M12 8v8" />
+          </svg>
+        </div>
+        <p className="text-lg font-medium text-gray-700 mb-4">
+          Check back later for featured games
+        </p>
+      </div>
+    );
+  }
 
   const showNavigation = totalSlides > 1;
 
@@ -196,6 +230,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
           </>
         )}
 
+        {/* Carousel */}
         <div className="overflow-hidden py-6">
           <div
             ref={trackRef}
@@ -204,7 +239,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             onTouchEnd={onTouchEnd}
             className="flex"
             style={{
-              transform: `translateX(${getTransform()}px)`,
+              transform: `translateX(${getCenteredTransform()}px)`,
               transition: prefersReducedMotion ? 'none' : 'transform 0.5s ease-out',
               gap: `${gap}px`,
             }}
@@ -213,8 +248,9 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             {fixtures.map((fixture, index) => {
               const isActive = index === currentIndex;
 
-              const homeShort = SHORT_NAMES[fixture.homeTeam.name] || fixture.homeTeam.shortName || fixture.homeTeam.name;
-              const awayShort = SHORT_NAMES[fixture.awayTeam.name] || fixture.awayTeam.shortName || fixture.awayTeam.name;
+              // Apply hard-coded short names
+              const homeName = SHORT_NAMES[fixture.homeTeam.name] || fixture.homeTeam.shortName || fixture.homeTeam.name;
+              const awayName = SHORT_NAMES[fixture.awayTeam.name] || fixture.awayTeam.shortName || fixture.awayTeam.name;
 
               return (
                 <div
@@ -245,18 +281,11 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                     <div className="flex justify-between items-center mb-4 w-full">
                       <div className="flex items-center justify-start flex-1">
                         {fixture.competition.logo && (
-                          <img
-                            src={fixture.competition.logo}
-                            alt={fixture.competition.name}
-                            className="w-12 h-12 object-contain"
-                            draggable={false}
-                          />
+                          <img src={fixture.competition.logo} alt={fixture.competition.name} className="w-12 h-12 object-contain" draggable={false} />
                         )}
                       </div>
                       <div className="flex items-center justify-end flex-1">
-                        <span className="text-xs text-gray-500 font-medium">
-                          Week {fixture.matchWeek || 1}
-                        </span>
+                        <span className="text-xs text-gray-500 font-medium">Week {fixture.matchWeek || 1}</span>
                       </div>
                     </div>
 
@@ -272,7 +301,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                               <span className="text-lg font-bold text-gray-600">{fixture.homeTeam.name[0]}</span>
                             </div>
                           )}
-                          <span className="text-xs text-center w-full leading-tight">{homeShort}</span>
+                          <span className="text-xs text-center w-full leading-tight">{homeName}</span>
                         </div>
 
                         {/* Time */}
@@ -294,7 +323,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                               <span className="text-lg font-bold text-gray-600">{fixture.awayTeam.name[0]}</span>
                             </div>
                           )}
-                          <span className="text-xs text-center w-full leading-tight">{awayShort}</span>
+                          <span className="text-xs text-center w-full leading-tight">{awayName}</span>
                         </div>
                       </div>
                     </div>
@@ -303,7 +332,9 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                     <div className="flex flex-col items-center w-full">
                       <div className="text-xs text-gray-500 truncate text-center w-full px-2">{fixture.venue}</div>
                       {fixture.importance >= 80 && (
-                        <span className="mt-2 inline-block bg-yellow-400 text-gray-900 px-2 py-1 rounded-full text-[10px] sm:text-[12px] font-medium">Featured</span>
+                        <span className="mt-2 inline-block bg-yellow-400 text-gray-900 px-2 py-1 rounded-full text-[10px] sm:text-[12px] font-medium">
+                          Featured
+                        </span>
                       )}
                     </div>
                   </button>
@@ -319,7 +350,10 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             {Array.from({ length: totalSlides }, (_, index) => (
               <button
                 key={index}
-                onClick={() => { setCurrentIndex(index); announceSlideChange(index); }}
+                onClick={() => {
+                  setCurrentIndex(index);
+                  announceSlideChange(index);
+                }}
                 className="focus:outline-none"
                 style={{
                   width: currentIndex === index ? '32px' : '12px',
