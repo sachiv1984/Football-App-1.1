@@ -274,7 +274,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                         </div>
                       </div>
 
-                      {/* Teams & Time (center row) */}
+                    {/* Teams & Time (center row) */}
 <div className="grid grid-cols-3 items-center mb-4 px-2 text-center">
   {/* Home */}
   <div className="flex flex-col items-center justify-center">
@@ -319,7 +319,13 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
         className="w-16 h-16 object-contain"
       />
     ) : (
-      <span className="
+      <span className="text-lg">{fixture.awayTeam.name[0]}</span>
+    )}
+    <span className="text-xs truncate max-w-[8rem] mt-1">
+      {fixture.awayTeam.shortName || fixture.awayTeam.name}
+    </span>
+  </div>
+</div>
 
 
                       {/* Bottom row */}
