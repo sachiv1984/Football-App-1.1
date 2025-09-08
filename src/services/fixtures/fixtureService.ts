@@ -205,14 +205,6 @@ export class FixtureService {
     this.cacheTime = now;
     return this.matchesCache.slice(0, limit);
   }
-async getFeaturedFixtures(limit: number = 8): Promise<FeaturedFixtureWithImportance[]> {
-  const now = Date.now();
-  if (this.matchesCache.length && now - this.cacheTime < this.cacheTimeout) {
-    return this.matchesCache.slice(0, limit);
-  }
-
-  const [matches, standings] = await Promise.all([this.fetchMatches(), this.fetchStandings()]);
-  const transformed = await Promise.all(matches.map(m => this.transformMatch(m, standings)));
 
   // Only keep matches within the next 7 days AND with importance > 0
   const next7Days = Date.now() + 7 * 24 * 60 * 60 * 1000;
