@@ -6,7 +6,7 @@ import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 import 'swiper/css/autoplay';
 import 'swiper/css/effect-coverflow';
-import { useFixtures } from '../hooks/useFixtures';
+import { useFixtures } from '../../hooks/useFixtures';
 
 export const FixturesCarousel: React.FC = () => {
   const { featuredFixtures, allFixtures, loading, error } = useFixtures();
