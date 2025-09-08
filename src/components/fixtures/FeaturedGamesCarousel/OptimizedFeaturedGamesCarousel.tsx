@@ -171,7 +171,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                 width: '48px', 
                 height: '48px',
                 transform: 'translateX(-100%) translateY(-50%)', // Move completely left of container
-                left: '20px'
+                left: '15px'
               }}
               aria-label="Previous games"
             >
@@ -196,7 +196,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                 width: '48px', 
                 height: '48px',
                 transform: 'translateX(100%) translateY(-50%)', // Move completely right of container
-                right: '20px'
+                right: '15px'
               }}
               aria-label="Next games"
             >
