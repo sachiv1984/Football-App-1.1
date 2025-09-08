@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
+limport React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import type { FeaturedFixtureWithImportance } from '../../../types';
 
 interface Props {
@@ -7,6 +7,37 @@ interface Props {
   className?: string;
   isLoading?: boolean;
 }
+
+// --- Helper function for transform calculation ---
+const calculateTransform = (
+  currentIndex: number,
+  cardWidth: number,
+  gap: number,
+  padding: number,
+  totalSlides: number,
+  viewportWidth: number
+) => {
+  const cardPlusGap = cardWidth + gap;
+  const totalContentWidth = totalSlides * cardPlusGap - gap;
+
+  // --- MOBILE (<768px): center active card ---
+  if (viewportWidth < 768) {
+    const centerOffset =
+      viewportWidth / 2 - cardWidth / 2 - currentIndex * cardPlusGap;
+    return `translateX(${centerOffset}px)`;
+  }
+
+  // --- DESKTOP (>=768px): snap left, but center if everything fits ---
+  if (totalContentWidth <= viewportWidth) {
+    const centerOffset = (viewportWidth - totalContentWidth) / 2;
+    return `translateX(${centerOffset}px)`;
+  }
+
+  const baseTransform = padding - currentIndex * cardPlusGap;
+  const minTransform = viewportWidth - totalContentWidth - padding;
+  const finalTransform = Math.max(baseTransform, minTransform);
+  return `translateX(${finalTransform}px)`;
+};
 
 const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   fixtures,
@@ -22,12 +53,14 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   const [announceText, setAnnounceText] = useState('');
   const [isVisible, setIsVisible] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-  const [viewportWidth, setViewportWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
+  const [viewportWidth, setViewportWidth] = useState(
+    typeof window !== 'undefined' ? window.innerWidth : 1200
+  );
 
   const totalSlides = fixtures.length;
   const maxIndex = Math.max(0, totalSlides - 1);
 
-  // Calculate responsive values with useMemo and explicit defaults
+  // Card sizing logic
   const { cardWidth, gap, padding } = useMemo(() => {
     const currentWidth = viewportWidth || 1200;
 
@@ -40,14 +73,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     }
   }, [viewportWidth]);
 
-  const cardPlusGap = cardWidth + gap;
-
-  // compute how many cards can fit (used for desktop multi-card logic)
-  const visibleCount = useMemo(() => {
-    const usable = Math.max(0, viewportWidth - 2 * padding + gap); // +gap so formula rounds correctly
-    return Math.max(1, Math.floor(usable / cardPlusGap));
-  }, [viewportWidth, padding, cardPlusGap]);
-
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -55,7 +80,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
       setViewportWidth(window.innerWidth);
     };
 
-    // Set initial viewport width
     setViewportWidth(window.innerWidth);
 
     window.addEventListener('resize', updateViewportWidth);
@@ -66,7 +90,8 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     if (typeof window === 'undefined') return;
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     setPrefersReducedMotion(mediaQuery.matches);
-    const handleChange = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+    const handleChange = (e: MediaQueryListEvent) =>
+      setPrefersReducedMotion(e.matches);
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
@@ -88,27 +113,27 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     [fixtures, totalSlides]
   );
 
-  const goToIndex = useCallback((index: number) => {
-    const clamped = Math.max(0, Math.min(index, maxIndex));
-    setCurrentIndex(clamped);
-    announceSlideChange(clamped);
-  }, [maxIndex, announceSlideChange]);
-
   const goToNext = useCallback(() => {
-    goToIndex(currentIndex + 1);
-  }, [currentIndex, goToIndex]);
+    const newIndex = Math.min(currentIndex + 1, maxIndex);
+    setCurrentIndex(newIndex);
+    announceSlideChange(newIndex);
+  }, [currentIndex, maxIndex, announceSlideChange]);
 
   const goToPrev = useCallback(() => {
-    goToIndex(currentIndex - 1);
-  }, [currentIndex, goToIndex]);
+    const newIndex = Math.max(currentIndex - 1, 0);
+    setCurrentIndex(newIndex);
+    announceSlideChange(newIndex);
+  }, [currentIndex, announceSlideChange]);
 
   const goToFirst = useCallback(() => {
-    goToIndex(0);
-  }, [goToIndex]);
+    setCurrentIndex(0);
+    announceSlideChange(0);
+  }, [announceSlideChange]);
 
   const goToLast = useCallback(() => {
-    goToIndex(maxIndex);
-  }, [maxIndex, goToIndex]);
+    setCurrentIndex(maxIndex);
+    announceSlideChange(maxIndex);
+  }, [maxIndex, announceSlideChange]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -136,6 +161,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [goToNext, goToPrev, goToFirst, goToLast]);
 
+  // Touch swipe logic
   const minSwipeDistance = 50;
   const onTouchStart = (e: React.TouchEvent) => {
     setTouchEnd(null);
@@ -186,39 +212,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
   const showNavigation = totalSlides > 1;
 
-  // Compute transform logic (only logic changes; styling untouched)
-  const transformStyle = (() => {
-    const totalContentWidth = (totalSlides * cardPlusGap) - gap; // total cards width incl gaps
-
-    // If total content fits within viewport, centre the whole track
-    if (totalContentWidth <= viewportWidth) {
-      const centerOffset = (viewportWidth - totalContentWidth) / 2;
-      return `translateX(${centerOffset}px)`;
-    }
-
-    // compute minTransform to avoid whitespace at right
-    const minTransform = viewportWidth - totalContentWidth - padding; // most negative translateX allowed
-    const maxTransform = padding; // leftmost allowed (start at padding)
-
-    // MOBILE: always center the active card
-    if (viewportWidth < 768) {
-      const desired = padding + (viewportWidth / 2 - cardWidth / 2) - (currentIndex * cardPlusGap);
-      // clamp between minTransform and maxTransform
-      const clamped = Math.max(Math.min(desired, maxTransform), minTransform);
-      return `translateX(${clamped}px)`;
-    }
-
-    // TABLET/DESKTOP: show multiple cards (visibleCount) and try to keep active near center of visible window
-    // compute startIndex: the left-most visible card index for the current view
-    const maxStart = Math.max(0, totalSlides - visibleCount);
-    const preferredStart = Math.max(0, currentIndex - Math.floor(visibleCount / 2));
-    const startIndex = Math.min(preferredStart, maxStart);
-
-    const desired = padding - startIndex * cardPlusGap;
-    const clamped = Math.max(Math.min(desired, maxTransform), minTransform);
-    return `translateX(${clamped}px)`;
-  })();
-
   return (
     <div
       ref={containerRef}
@@ -230,17 +223,18 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
       tabIndex={0}
     >
       <div className="relative">
+        {/* Navigation Arrows */}
         {showNavigation && (
           <>
             <button
               onClick={goToPrev}
               disabled={currentIndex === 0}
               className="absolute left-4 top-1/2 -translate-y-1/2 z-20 p-3 rounded-full bg-white shadow-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-focus-gold"
-              style={{ 
-                width: '48px', 
+              style={{
+                width: '48px',
                 height: '48px',
-                transform: 'translateX(-100%) translateY(-50%)', // Move completely left of container
-                left: '40px'
+                transform: 'translateX(-100%) translateY(-50%)',
+                left: '40px',
               }}
               aria-label="Previous games"
             >
@@ -261,11 +255,11 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
               onClick={goToNext}
               disabled={currentIndex === maxIndex}
               className="absolute right-4 top-1/2 -translate-y-1/2 z-20 p-3 rounded-full bg-white shadow-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-focus-gold"
-              style={{ 
-                width: '48px', 
+              style={{
+                width: '48px',
                 height: '48px',
-                transform: 'translateX(100%) translateY(-50%)', // Move completely right of container
-                right: '40px'
+                transform: 'translateX(100%) translateY(-50%)',
+                right: '40px',
               }}
               aria-label="Next games"
             >
@@ -284,7 +278,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
           </>
         )}
 
-        {/* Carousel */}
+        {/* Carousel Track */}
         <div className="overflow-hidden py-6">
           <div
             ref={trackRef}
@@ -293,8 +287,17 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             onTouchEnd={onTouchEnd}
             className="flex"
             style={{
-              transform: transformStyle,
-              transition: prefersReducedMotion ? 'none' : 'transform 0.5s ease-out',
+              transform: calculateTransform(
+                currentIndex,
+                cardWidth,
+                gap,
+                padding,
+                totalSlides,
+                viewportWidth
+              ),
+              transition: prefersReducedMotion
+                ? 'none'
+                : 'transform 0.5s ease-out',
               gap: `${gap}px`,
             }}
             role="list"
@@ -369,25 +372,32 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                             </div>
                           )}
                           <span className="text-xs text-center w-full leading-tight">
-                            {fixture.homeTeam.shortName || fixture.homeTeam.name}
+                            {fixture.homeTeam.shortName ||
+                              fixture.homeTeam.name}
                           </span>
                         </div>
 
                         {/* Time */}
                         <div className="flex flex-col items-center text-center min-w-[60px] flex-shrink-0">
                           <span className="text-gray-700 font-medium text-base whitespace-nowrap">
-                            {new Date(fixture.dateTime).toLocaleTimeString('en-GB', { 
-                              hour: '2-digit', 
-                              minute: '2-digit', 
-                              hour12: false 
-                            })}
+                            {new Date(fixture.dateTime).toLocaleTimeString(
+                              'en-GB',
+                              {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: false,
+                              }
+                            )}
                           </span>
                           <span className="text-xs text-gray-500 whitespace-nowrap">
-                            {new Date(fixture.dateTime).toLocaleDateString('en-GB', { 
-                              weekday: 'short', 
-                              day: 'numeric', 
-                              month: 'short' 
-                            })}
+                            {new Date(fixture.dateTime).toLocaleDateString(
+                              'en-GB',
+                              {
+                                weekday: 'short',
+                                day: 'numeric',
+                                month: 'short',
+                              }
+                            )}
                           </span>
                         </div>
 
@@ -406,9 +416,10 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                                 {fixture.awayTeam.name[0]}
                               </span>
                             </div>
-                            )}
+                          )}
                           <span className="text-xs text-center w-full leading-tight">
-                            {fixture.awayTeam.shortName || fixture.awayTeam.name}
+                            {fixture.awayTeam.shortName ||
+                              fixture.awayTeam.name}
                           </span>
                         </div>
                       </div>
@@ -432,20 +443,25 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
           </div>
         </div>
 
-        {/* Pagination */}
+        {/* Pagination Dots */}
         {showNavigation && (
-          <div className="flex justify-center items-center mt-6 space-x-2 w-full" style={{ minHeight: '32px' }}>
+          <div
+            className="flex justify-center items-center mt-6 space-x-2 w-full"
+            style={{ minHeight: '32px' }}
+          >
             {Array.from({ length: totalSlides }, (_, index) => (
               <button
                 key={index}
                 onClick={() => {
-                  goToIndex(index);
+                  setCurrentIndex(index);
+                  announceSlideChange(index);
                 }}
                 className="focus:outline-none"
                 style={{
                   width: currentIndex === index ? '32px' : '12px',
                   height: '12px',
-                  backgroundColor: currentIndex === index ? '#FFD700' : '#D1D5DB',
+                  backgroundColor:
+                    currentIndex === index ? '#FFD700' : '#D1D5DB',
                   borderRadius: '9999px',
                   border: 'none',
                   transition: 'all 0.3s ease',
@@ -459,12 +475,14 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
           </div>
         )}
 
+        {/* Screen Reader Announcements */}
         <div aria-live="polite" aria-atomic="true" className="sr-only">
           {announceText}
         </div>
-
         <div className="sr-only">
-          Use arrow keys to navigate between slides, Home key for first slide, End key for last slide. On touch devices, swipe left or right to navigate.
+          Use arrow keys to navigate between slides, Home key for first slide,
+          End key for last slide. On touch devices, swipe left or right to
+          navigate.
         </div>
       </div>
     </div>
