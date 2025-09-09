@@ -36,11 +36,15 @@ const HomePage: React.FC = () => {
 
   const handleToggleDarkMode = () => setIsDarkMode(!isDarkMode);
   
-  const handleGameSelect = (fixture: FeaturedFixtureWithImportance) => {
-    console.log('Selected fixture:', fixture.id);
-    // Add any additional logic you need when a fixture is selected
-    // For example, navigate to fixture details, open modal, etc.
-  };
+const handleGameSelect = (fixture: FeaturedFixtureWithImportance | Game) => {
+  console.log('Selected fixture:', fixture.id);
+
+  // Only available on Featured fixtures
+  if ('importanceScore' in fixture) {
+    console.log('Importance Score:', fixture.importanceScore);
+  }
+};
+
 
   return (
     <ErrorBoundary>
