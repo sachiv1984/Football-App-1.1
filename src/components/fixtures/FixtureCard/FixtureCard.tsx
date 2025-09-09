@@ -135,7 +135,9 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
     };
 
     const isFinished = ['FINISHED', 'IN_PLAY', 'LIVE'].includes(fixture.status ?? '');
-    
+    const homeScoreValue = fixture.homeScore ?? fixture.score?.fullTime?.home ?? 0;
+    const awayScoreValue = fixture.awayScore ?? fixture.score?.fullTime?.away ?? 0;
+
     // Use the shortName already set by FixtureService (same logic as carousel)
     const homeShort = fixture.homeTeam.shortName;
     const awayShort = fixture.awayTeam.shortName;
@@ -211,24 +213,25 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
           {/* Right Side - Time/Score */}
 <div className="flex items-center justify-center ml-4 pl-4 border-l border-gray-100">
   {isFinished ? (
-    <div className="text-center min-w-[60px]">
-      <div className={`${scoreSize} font-bold text-gray-900 mb-1`}>
-        {homeScore ?? 0}
-      </div>
-      <div className={`${scoreSize} font-bold text-gray-900 mb-1`}>
-        {awayScore ?? 0}
-      </div>
-      <div className="text-xs text-gray-500 font-medium">
-        {status === 'live' ? 'LIVE' : 'Full time'}
-      </div>
+  <div className="text-center min-w-[60px]">
+    <div className={`${scoreSize} font-bold text-gray-900 mb-1`}>
+      {homeScoreValue}
     </div>
-  ) : (
-    <div className="text-center min-w-[60px]">
-      <div className={`${size === 'sm' ? 'text-lg' : 'text-xl'} font-semibold text-gray-900`}>
-        {formattedTime}
-      </div>
+    <div className={`${scoreSize} font-bold text-gray-900 mb-1`}>
+      {awayScoreValue}
     </div>
-  )}
+    <div className="text-xs text-gray-500 font-medium">
+      {fixture.status === 'LIVE' ? 'LIVE' : 'Full time'}
+    </div>
+  </div>
+) : (
+  <div className="text-center min-w-[60px]">
+    <div className={`${size === 'sm' ? 'text-lg' : 'text-xl'} font-semibold text-gray-900`}>
+      {formattedTime}
+    </div>
+  </div>
+)}
+
 </div>
         </div>
       </div>
