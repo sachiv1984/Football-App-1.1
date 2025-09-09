@@ -233,54 +233,6 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
           </div>
         </div>
 
-        {/* Venue */}
-        {showVenue && venue && (
-          <div className="mt-3 text-center">
-            <span className="text-xs text-gray-500">📍 {venue}</span>
-          </div>
-        )}
-
-        {/* Status indicator for live matches */}
-        {status === 'live' && (
-          <div className="flex justify-center mt-3">
-            <div className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-medium animate-pulse">
-              LIVE
-            </div>
-          </div>
-        )}
-
-        {/* AI Insight */}
-        {showAIInsight && aiInsight && size !== 'sm' && (
-          <div className="mt-4 p-3 bg-gradient-to-r from-teal-50 to-transparent border-l-4 border-teal-400 rounded-r-lg">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center space-x-2 mb-1">
-                  <span className="text-xs font-semibold text-teal-600 uppercase tracking-wider">
-                    AI Insight
-                  </span>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    aiInsight.confidence === 'high' ? 'bg-green-100 text-green-800' :
-                    aiInsight.confidence === 'medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
-                  }`}>
-                    {aiInsight.confidence}
-                  </span>
-                </div>
-                <h5 className="text-sm font-semibold text-gray-900 mb-1">{aiInsight.title}</h5>
-                <p className="text-xs text-gray-600 line-clamp-2">{aiInsight.description}</p>
-              </div>
-              {aiInsight.odds && (
-                <div className="ml-3 text-right">
-                  <div className="text-xs text-gray-500 uppercase tracking-wider">Odds</div>
-                  <div className="text-sm font-bold text-teal-600">{aiInsight.odds}</div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
-
   // Game week mode: render multiple fixtures with header
   if (useGameWeekMode) {
     return (
@@ -321,15 +273,6 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
         <div className="grid grid-cols-1 gap-4">
           {fixturesToRender.map((fixture, index) => renderFixtureCard(fixture, index))}
         </div>
-
-        {/* Live Update Indicator */}
-        {gameWeekInfo && gameWeekInfo.upcomingGames > 0 && (
-          <div className="text-center text-xs text-gray-500 mt-4">
-            <span className="inline-flex items-center">
-              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-2"></span>
-              Live updates every 5 minutes
-            </span>
-          </div>
         )}
       </div>
     );
