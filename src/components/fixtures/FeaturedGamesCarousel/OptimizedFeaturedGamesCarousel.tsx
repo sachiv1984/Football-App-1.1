@@ -104,7 +104,10 @@ const FeaturedGamesCarousel: React.FC<Props> = ({
     1280: { slidesPerView: 3 },
   }}
   centeredSlides={true}
-  className="min-h-[calc(var(--carousel-card-min-height)+var(--space-lg))]" // Add padding to the minimum height
+  style={{
+    height: 'calc(var(--carousel-card-min-height) + 40px)', // Explicitly set height with padding
+    paddingBottom: '40px', // Add padding to prevent cutoff
+  }}
 >
         {fixtures.map((fixture) => {
           const homeShort = fixture.homeTeam.shortName;
@@ -113,7 +116,7 @@ const FeaturedGamesCarousel: React.FC<Props> = ({
           return (
             <SwiperSlide key={fixture.id}>
               <button
-                className="carousel-card flex flex-col justify-between w-full h-full p-[var(--space-md)] bg-[var(--color-background)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-focus-gold)] rounded-xl shadow-card transition-all duration-300"
+                <div className="carousel-card flex flex-col justify-between w-full h-full p-[var(--space-md)] bg-[var(--color-background)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-focus-gold)] rounded-xl shadow-card transition-all duration-300">
                 onClick={() => onGameSelect?.(fixture)}
                 aria-label={`View match between ${fixture.homeTeam.name} and ${fixture.awayTeam.name}`}
               >
