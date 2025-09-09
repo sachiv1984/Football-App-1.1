@@ -1,5 +1,4 @@
 // src/pages/HomePage.tsx
-// src/pages/HomePage.tsx
 import React, { useState } from 'react';
 import Header from '../components/common/Header/Header';
 import Footer from '../components/common/Footer/Footer';
