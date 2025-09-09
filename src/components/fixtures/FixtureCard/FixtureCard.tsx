@@ -5,7 +5,6 @@ import type { Fixture, FeaturedFixtureWithImportance } from '../../../types';
 interface FixtureCardProps {
   fixture?: Fixture;
   size?: 'sm' | 'md' | 'lg';
-  showAIInsight?: boolean;
   showCompetition?: boolean;
   onClick?: (fixture: Fixture) => void;
   className?: string;
@@ -27,7 +26,6 @@ const fixtureService = new FixtureService();
 const FixtureCard: React.FC<FixtureCardProps> = ({
   fixture: singleFixture,
   size = 'md',
-  showAIInsight = false,
   showCompetition = false,
   onClick,
   className = '',
