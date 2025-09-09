@@ -7,6 +7,8 @@ interface FixtureCardProps {
   size?: 'sm' | 'md' | 'lg';
   showCompetition?: boolean;
   onClick?: (fixture: Fixture) => void;
+  showAIInsight?: boolean;
+  showVenue?: boolean;
   className?: string;
   // New prop to enable game week mode
   useGameWeekMode?: boolean;
