@@ -3,12 +3,20 @@ import type { Fixture } from '../../../types';
 
 interface FixtureCardProps {
   fixture: Fixture;
+  size?: 'sm' | 'md' | 'lg';
+  showAIInsight?: boolean;
+  showCompetition?: boolean;
+  showVenue?: boolean;
   onClick?: (fixture: Fixture) => void;
   className?: string;
 }
 
 const FixtureCard: React.FC<FixtureCardProps> = ({
   fixture,
+  size = 'md',
+  showAIInsight = false,
+  showCompetition = false,
+  showVenue = false,
   onClick,
   className = '',
 }) => {
@@ -18,7 +26,10 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
     dateTime,
     status,
     homeScore,
-    awayScore
+    awayScore,
+    competition,
+    venue,
+    aiInsight
   } = fixture;
 
   const handleClick = () => {
@@ -41,9 +52,16 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
     hour12: false
   });
 
+  // Size-based styling
+  const logoSize = size === 'sm' ? 'w-6 h-6' : size === 'lg' ? 'w-10 h-10' : 'w-8 h-8';
+  const textSize = size === 'sm' ? 'text-sm' : size === 'lg' ? 'text-lg' : 'text-base';
+  const cardPadding = size === 'sm' ? 'p-3' : size === 'lg' ? 'p-8' : 'p-6';
+  const scoreSize = size === 'sm' ? 'text-lg' : size === 'lg' ? 'text-3xl' : 'text-2xl';
+
   const cardClasses = `
-    bg-white rounded-2xl p-6 shadow-sm border border-gray-100
+    bg-white rounded-2xl shadow-sm border border-gray-100
     transition-all duration-200 hover:shadow-md hover:border-gray-200
+    ${cardPadding}
     ${onClick ? 'cursor-pointer' : ''}
     ${className}
   `.trim();
