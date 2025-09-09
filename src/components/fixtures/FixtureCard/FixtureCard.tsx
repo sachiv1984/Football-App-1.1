@@ -134,7 +134,10 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
       if (onClick) onClick(fixture);
     };
 
-    const isFinished = ['FINISHED', 'IN_PLAY', 'LIVE'].includes(fixture.status);
+    const isFinished = ['FINISHED', 'IN_PLAY', 'LIVE'].includes(fixture.status ?? '');
+    const homeScore = fixture.homeScore ?? fixture.score?.fullTime?.home ?? 0;
+    const awayScore = fixture.awayScore ?? fixture.score?.fullTime?.away ?? 0;
+
     
 
     // Use the shortName already set by FixtureService (same logic as carousel)
