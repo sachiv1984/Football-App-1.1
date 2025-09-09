@@ -33,10 +33,11 @@ const FeaturedGamesCarousel: React.FC<Props> = ({
             1280: { slidesPerView: 3 },
           }}
           centeredSlides={true}
+          className="pb-[var(--space-xl)]" // Add bottom padding for loading state
         >
           {[...Array(4)].map((_, idx) => (
             <SwiperSlide key={idx}>
-              <div className="bg-[var(--color-background)] rounded-xl shadow-card p-[var(--space-md)] animate-pulse">
+              <div className="bg-[var(--color-background)] rounded-xl shadow-card p-[var(--space-md)] animate-pulse min-h-[280px]">
                 <div className="flex justify-between items-center mb-[var(--space-sm)]">
                   <div className="w-12 h-12 bg-[var(--color-neutral-200)] rounded"></div>
                   <div className="w-16 h-4 bg-[var(--color-neutral-200)] rounded"></div>
@@ -83,29 +84,29 @@ const FeaturedGamesCarousel: React.FC<Props> = ({
 
   return (
     <div className={`w-full ${className}`} role="region" aria-label="Featured Games Carousel">
-   <Swiper
-  modules={[Navigation, Pagination, FreeMode]}
-  navigation
-  pagination={{
-    clickable: true,
-    el: '.swiper-pagination-container',
-    renderBullet: (index: number, className: string) => {
-      return `<span class="${className} w-4 h-4 md:w-5 md:h-5 rounded-full bg-[var(--color-neutral-400)] mx-1 inline-block"></span>`;
-    },
-  }}
-  loop={true}
-  freeMode={{ enabled: true, momentum: true }}
-  spaceBetween={20}
-  slidesPerView={1}
-  breakpoints={{
-    640: { slidesPerView: 1.25 },
-    768: { slidesPerView: 1.5 },
-    1024: { slidesPerView: 2.2 },
-    1280: { slidesPerView: 3 },
-  }}
-  centeredSlides={true}
-  className="min-h-[calc(var(--carousel-card-min-height)+var(--space-lg))]" // Add padding to the minimum height
->
+      <Swiper
+        modules={[Navigation, Pagination, FreeMode]}
+        navigation
+        pagination={{
+          clickable: true,
+          el: '.swiper-pagination-container',
+          renderBullet: (index: number, className: string) => {
+            return `<span class="${className} w-4 h-4 md:w-5 md:h-5 rounded-full bg-[var(--color-neutral-400)] mx-1 inline-block"></span>`;
+          },
+        }}
+        loop={true}
+        freeMode={{ enabled: true, momentum: true }}
+        spaceBetween={20}
+        slidesPerView={1}
+        breakpoints={{
+          640: { slidesPerView: 1.25 },
+          768: { slidesPerView: 1.5 },
+          1024: { slidesPerView: 2.2 },
+          1280: { slidesPerView: 3 },
+        }}
+        centeredSlides={true}
+        className="pb-[var(--space-xl)]" // Add bottom padding to prevent card cutoff
+      >
         {fixtures.map((fixture) => {
           const homeShort = fixture.homeTeam.shortName;
           const awayShort = fixture.awayTeam.shortName;
@@ -113,25 +114,29 @@ const FeaturedGamesCarousel: React.FC<Props> = ({
           return (
             <SwiperSlide key={fixture.id}>
               <button
-                className="carousel-card flex flex-col justify-between w-full h-full p-[var(--space-md)] bg-[var(--color-background)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-focus-gold)] rounded-xl shadow-card transition-all duration-300"
+                className="carousel-card flex flex-col justify-between w-full h-full p-[var(--space-md)] bg-[var(--color-background)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-focus-gold)] rounded-xl shadow-card transition-all duration-300 min-h-[280px]"
                 onClick={() => onGameSelect?.(fixture)}
                 aria-label={`View match between ${fixture.homeTeam.name} and ${fixture.awayTeam.name}`}
               >
-                {/* Competition & Week */}
-                <div className="flex justify-between items-center mb-[var(--space-sm)] w-full">
-                  <div className="flex items-center justify-start flex-1">
+                {/* Competition & Week - Better centered layout */}
+                <div className="flex justify-center items-center mb-[var(--space-sm)] w-full relative">
+                  {/* Competition logo - positioned on left but not too far */}
+                  <div className="absolute left-0 flex items-center">
                     {fixture.competition.logo && (
-                      <img src={fixture.competition.logo} alt={fixture.competition.name} className="w-12 h-12 object-contain" />
+                      <img src={fixture.competition.logo} alt={fixture.competition.name} className="w-10 h-10 object-contain" />
                     )}
                   </div>
-                  <div className="flex items-center justify-end flex-1">
+                  
+                  {/* Week - positioned on right but not too far */}
+                  <div className="absolute right-0 flex items-center">
                     <span className="text-xs text-[var(--color-neutral-500)] font-medium">Week {fixture.matchWeek || 1}</span>
                   </div>
                 </div>
 
-                {/* Teams & Time */}
-                <div className="flex justify-center items-center mb-[var(--space-sm)] w-full">
-                  <div className="flex items-center justify-center gap-[var(--space-lg)] max-w-full">
+                {/* Teams & Time - Increased spacing */}
+                <div className="flex justify-center items-center mb-[var(--space-sm)] w-full flex-1">
+                  <div className="flex items-center justify-center gap-[var(--space-xl)] max-w-full"> {/* Increased gap from lg to xl */}
+                    {/* Home Team */}
                     <div className="flex flex-col items-center min-w-0 flex-1 max-w-[90px]">
                       {fixture.homeTeam.logo ? (
                         <img src={fixture.homeTeam.logo} alt={fixture.homeTeam.name} className="team-logo w-16 h-16 mb-[var(--space-xs)]" />
@@ -143,8 +148,8 @@ const FeaturedGamesCarousel: React.FC<Props> = ({
                       <span className="text-xs text-center w-full leading-tight">{homeShort}</span>
                     </div>
 
-                    {/* Time */}
-                    <div className="flex flex-col items-center text-center min-w-[60px] flex-shrink-0">
+                    {/* Time - Added more padding */}
+                    <div className="flex flex-col items-center text-center min-w-[80px] flex-shrink-0 px-[var(--space-sm)]"> {/* Increased min-width and added padding */}
                       <span className="text-[var(--color-neutral-700)] font-medium text-base whitespace-nowrap">
                         {new Date(fixture.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })}
                       </span>
@@ -153,6 +158,7 @@ const FeaturedGamesCarousel: React.FC<Props> = ({
                       </span>
                     </div>
 
+                    {/* Away Team */}
                     <div className="flex flex-col items-center min-w-0 flex-1 max-w-[90px]">
                       {fixture.awayTeam.logo ? (
                         <img src={fixture.awayTeam.logo} alt={fixture.awayTeam.name} className="w-16 h-16 object-contain mb-[var(--space-xs)]" />
