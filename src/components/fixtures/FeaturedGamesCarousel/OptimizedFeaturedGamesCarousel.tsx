@@ -183,7 +183,8 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             </SwiperSlide>
           );
         })}
-      </Swiper>
+              </Swiper>
+      </div> {/* Close padding wrapper */}
 
       {/* Centered Pagination below */}
       <div className="swiper-pagination-container mt-[var(--space-md)] flex justify-center" />
