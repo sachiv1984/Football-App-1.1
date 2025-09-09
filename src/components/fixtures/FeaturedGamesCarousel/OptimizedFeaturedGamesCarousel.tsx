@@ -19,16 +19,57 @@ const FeaturedGamesCarousel: React.FC<Props> = ({
   className = '',
   isLoading = false,
 }) => {
-  if (isLoading) {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 p-6">
-        {[...Array(3)].map((_, idx) => (
-          <div key={idx} className="bg-gray-200 animate-pulse rounded-xl p-6" />
+if (isLoading) {
+  return (
+    <div className="w-full space-y-4">
+      <Swiper
+        modules={[Navigation, Pagination]}
+        spaceBetween={20}
+        slidesPerView={1}
+        breakpoints={{
+          640: { slidesPerView: 1.25 },
+          768: { slidesPerView: 1.5 },
+          1024: { slidesPerView: 2.2 },
+          1280: { slidesPerView: 3 },
+        }}
+        centeredSlides={true}
+      >
+        {[...Array(4)].map((_, idx) => (
+          <SwiperSlide key={idx}>
+            <div className="bg-white rounded-xl shadow-md p-4 animate-pulse">
+              <div className="flex justify-between items-center mb-4">
+                <div className="w-12 h-12 bg-gray-200 rounded"></div>
+                <div className="w-16 h-4 bg-gray-200 rounded"></div>
+              </div>
+              <div className="flex justify-center items-center gap-6 mb-4">
+                <div className="flex flex-col items-center">
+                  <div className="w-16 h-16 bg-gray-200 rounded-full mb-1"></div>
+                  <div className="w-12 h-3 bg-gray-200 rounded"></div>
+                </div>
+                <div className="flex flex-col items-center">
+                  <div className="w-12 h-6 bg-gray-200 rounded mb-1"></div>
+                  <div className="w-16 h-3 bg-gray-200 rounded"></div>
+                </div>
+                <div className="flex flex-col items-center">
+                  <div className="w-16 h-16 bg-gray-200 rounded-full mb-1"></div>
+                  <div className="w-12 h-3 bg-gray-200 rounded"></div>
+                </div>
+              </div>
+              <div className="w-20 h-3 bg-gray-200 rounded mx-auto"></div>
+            </div>
+          </SwiperSlide>
         ))}
+      </Swiper>
+      <div className="flex justify-center mt-4">
+        <div className="flex space-x-2">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="w-4 h-4 bg-gray-200 rounded-full animate-pulse"></div>
+          ))}
+        </div>
       </div>
-    );
-  }
-
+    </div>
+  );
+}
   if (fixtures.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center text-center py-20 px-6">
