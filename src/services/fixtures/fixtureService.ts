@@ -214,9 +214,8 @@ export class FixtureService {
     const tags = this.generateTags(match, importance);
 
   // Ensure scores are numeric, default to 0 if missing
-  const homeScore = match.homeScore ?? match.score?.fullTime?.home ?? 0;
-  const awayScore = match.awayScore ?? match.score?.fullTime?.away ?? 0;
-
+  const homeScore = match.score?.fullTime?.home ?? 0;
+  const awayScore = match.score?.fullTime?.away ?? 0;
 
      return {
     id: match.id.toString(),
