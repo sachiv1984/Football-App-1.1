@@ -84,27 +84,28 @@ const FeaturedGamesCarousel: React.FC<Props> = ({
   return (
     <div className={`w-full ${className}`} role="region" aria-label="Featured Games Carousel">
       <Swiper
-        modules={[Navigation, Pagination, FreeMode]}
-        navigation
-        pagination={{
-          clickable: true,
-          el: '.swiper-pagination-container',
-          renderBullet: (index: number, className: string) => {
-            return `<span class="${className} w-4 h-4 md:w-5 md:h-5 rounded-full bg-[var(--color-neutral-400)] mx-1 inline-block"></span>`;
-          },
-        }}
-        loop={true}
-        freeMode={{ enabled: true, momentum: true }}
-        spaceBetween={20}
-        slidesPerView={1}
-        breakpoints={{
-          640: { slidesPerView: 1.25 },
-          768: { slidesPerView: 1.5 },
-          1024: { slidesPerView: 2.2 },
-          1280: { slidesPerView: 3 },
-        }}
-        centeredSlides={true}
-      >
+  modules={[Navigation, Pagination, FreeMode]}
+  navigation
+  pagination={{
+    clickable: true,
+    el: '.swiper-pagination-container',
+    renderBullet: (index: number, className: string) => {
+      return `<span class="${className} w-4 h-4 md:w-5 md:h-5 rounded-full bg-[var(--color-neutral-400)] mx-1 inline-block"></span>`;
+    },
+  }}
+  loop={true}
+  freeMode={{ enabled: true, momentum: true }}
+  spaceBetween={20}
+  slidesPerView={1}
+  breakpoints={{
+    640: { slidesPerView: 1.25 },
+    768: { slidesPerView: 1.5 },
+    1024: { slidesPerView: 2.2 },
+    1280: { slidesPerView: 3 },
+  }}
+  centeredSlides={true}
+  className="h-[var(--carousel-card-min-height)]" // Adjust height using design tokens
+>
         {fixtures.map((fixture) => {
           const homeShort = fixture.homeTeam.shortName;
           const awayShort = fixture.awayTeam.shortName;
