@@ -8,7 +8,7 @@ export const designTokens = {
     // Primary Brand Colors (Premium Football Experience)
     primary: {
       // Legacy support
-      electricYellow: '#FFFF00',
+      //electricYellow: '#FFFF00',
       focusGold: '#FFD700',
       
       // New Premier League inspired palette
