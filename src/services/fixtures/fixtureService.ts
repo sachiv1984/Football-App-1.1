@@ -15,6 +15,8 @@ interface RawMatch {
     fullTime?: {
       home?: number;
       away?: number;
+};
+};
 }
 
 interface RawStanding {
