@@ -13,7 +13,7 @@ interface Props {
   isLoading?: boolean;
 }
 
-const FeaturedGamesCarousel: React.FC<Props> = ({
+const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   fixtures,
   onGameSelect,
   className = '',
@@ -114,7 +114,7 @@ const FeaturedGamesCarousel: React.FC<Props> = ({
           return (
             <SwiperSlide key={fixture.id}>
               <button
-                className="carousel-card flex flex-col justify-between w-full h-full p-[var(--space-md)] bg-[var(--color-background)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-focus-gold)] rounded-xl shadow-card transition-all duration-300"
+                className="carousel-card flex flex-col justify-between w-full h-full p-[var(--space-md)] bg-[var(--color-background)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-focus-gold)] rounded-xl shadow-card transition-all duration-300 min-h-[280px]"
                 onClick={() => onGameSelect?.(fixture)}
                 aria-label={`View match between ${fixture.homeTeam.name} and ${fixture.awayTeam.name}`}
               >
@@ -183,8 +183,7 @@ const FeaturedGamesCarousel: React.FC<Props> = ({
             </SwiperSlide>
           );
         })}
-              </Swiper>
-      </div> {/* Close padding wrapper */}
+      </Swiper>
 
       {/* Centered Pagination below */}
       <div className="swiper-pagination-container mt-[var(--space-md)] flex justify-center" />
@@ -192,4 +191,4 @@ const FeaturedGamesCarousel: React.FC<Props> = ({
   );
 };
 
-export default FeaturedGamesCarousel;
+export default OptimizedFeaturedGamesCarousel;
