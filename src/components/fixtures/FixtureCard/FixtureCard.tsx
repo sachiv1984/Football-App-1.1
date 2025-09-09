@@ -27,6 +27,7 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
     status,
     homeScore,
     awayScore,
+    competition,
     venue,
     aiInsight
   } = fixture;
@@ -71,36 +72,59 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
 
   return (
     <div className={cardClasses} onClick={handleClick}>
-      <div className="flex items-center">
-        {/* Left Side - Home Team */}
-        <div className="flex items-center space-x-3 flex-1">
-          {homeTeam.logo ? (
-            <img 
-              src={homeTeam.logo} 
-              alt={homeTeam.name} 
-              className={`${logoSize} object-contain flex-shrink-0`}
-            />
-          ) : (
-            <div className={`${logoSize} bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0`}>
-              <span className="text-sm font-bold text-gray-600">
-                {homeTeam.name[0]}
-              </span>
-            </div>
-          )}
-          <span className={`font-medium text-gray-900 ${textSize} truncate`}>
-            {homeShort}
-          </span>
+      <div className="flex items-center justify-between">
+        {/* Left Side - Teams Stacked */}
+        <div className="flex flex-col space-y-3 flex-1">
+          {/* Home Team */}
+          <div className="flex items-center space-x-3">
+            {homeTeam.logo ? (
+              <img 
+                src={homeTeam.logo} 
+                alt={homeTeam.name} 
+                className={`${logoSize} object-contain flex-shrink-0`}
+              />
+            ) : (
+              <div className={`${logoSize} bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0`}>
+                <span className="text-sm font-bold text-gray-600">
+                  {homeTeam.name[0]}
+                </span>
+              </div>
+            )}
+            <span className={`font-medium text-gray-900 ${textSize} truncate`}>
+              {homeShort}
+            </span>
+          </div>
+
+          {/* Away Team */}
+          <div className="flex items-center space-x-3">
+            {awayTeam.logo ? (
+              <img 
+                src={awayTeam.logo} 
+                alt={awayTeam.name} 
+                className={`${logoSize} object-contain flex-shrink-0`}
+              />
+            ) : (
+              <div className={`${logoSize} bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0`}>
+                <span className="text-sm font-bold text-gray-600">
+                  {awayTeam.name[0]}
+                </span>
+              </div>
+            )}
+            <span className={`font-medium text-gray-900 ${textSize} truncate`}>
+              {awayShort}
+            </span>
+          </div>
         </div>
 
-        {/* Vertical Divider */}
-        <div className="flex items-center justify-center px-6">
-          <div className="h-12 w-px bg-gray-200 mr-4"></div>
-          
-          {/* Score or Time */}
+        {/* Right Side - Time/Score */}
+        <div className="flex items-center justify-center ml-4">
           {showScore ? (
             <div className="text-center min-w-[60px]">
               <div className={`${scoreSize} font-bold text-gray-900 mb-1`}>
-                {homeScore} - {awayScore}
+                {homeScore}
+              </div>
+              <div className={`${scoreSize} font-bold text-gray-900 mb-1`}>
+                {awayScore}
               </div>
               <div className="text-xs text-gray-500 font-medium">
                 {status === 'live' ? 'LIVE' : 'Full time'}
@@ -108,36 +132,11 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
             </div>
           ) : (
             <div className="text-center min-w-[60px]">
-              <div className={`${size === 'sm' ? 'text-base' : 'text-lg'} font-semibold text-gray-900 mb-1`}>
+              <div className={`${size === 'sm' ? 'text-lg' : 'text-xl'} font-semibold text-gray-900`}>
                 {formattedTime}
               </div>
-              <div className="text-xs text-gray-500 font-medium">
-                {formattedDate}
-              </div>
             </div>
           )}
-          
-          <div className="h-12 w-px bg-gray-200 ml-4"></div>
-        </div>
-
-        {/* Right Side - Away Team */}
-        <div className="flex items-center space-x-3 flex-1">
-          {awayTeam.logo ? (
-            <img 
-              src={awayTeam.logo} 
-              alt={awayTeam.name} 
-              className={`${logoSize} object-contain flex-shrink-0`}
-            />
-          ) : (
-            <div className={`${logoSize} bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0`}>
-              <span className="text-sm font-bold text-gray-600">
-                {awayTeam.name[0]}
-              </span>
-            </div>
-          )}
-          <span className={`font-medium text-gray-900 ${textSize} truncate`}>
-            {awayShort}
-          </span>
         </div>
       </div>
 
