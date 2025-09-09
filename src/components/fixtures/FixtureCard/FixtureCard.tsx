@@ -27,7 +27,6 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
     status,
     homeScore,
     awayScore,
-    competition,
     venue,
     aiInsight
   } = fixture;
