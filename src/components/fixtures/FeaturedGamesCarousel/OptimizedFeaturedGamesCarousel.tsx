@@ -43,6 +43,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     <div className={`w-full ${className}`} role="region" aria-label="Featured Games Carousel">
       <Swiper
         modules={[Navigation, Pagination, FreeMode]}
+        autoHeight = {true}
         navigation
         pagination={{
           clickable: true,
