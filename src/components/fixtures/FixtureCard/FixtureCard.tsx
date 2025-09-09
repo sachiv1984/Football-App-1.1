@@ -213,27 +213,28 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
           </div>
 
           {/* Right Side - Time/Score */}
-          <div className="flex items-center justify-center ml-4 pl-4 border-l border-gray-100">
-            {showScore ? (
-              <div className="text-center min-w-[60px]">
-                <div className={`${scoreSize} font-bold text-gray-900 mb-1`}>
-                  {homeScore}
-                </div>
-                <div className={`${scoreSize} font-bold text-gray-900 mb-1`}>
-                  {awayScore}
-                </div>
-                <div className="text-xs text-gray-500 font-medium">
-                  {status === 'live' ? 'LIVE' : 'Full time'}
-                </div>
-              </div>
-            ) : (
-              <div className="text-center min-w-[60px]">
-                <div className={`${size === 'sm' ? 'text-lg' : 'text-xl'} font-semibold text-gray-900`}>
-                  {formattedTime}
-                </div>
-              </div>
-            )}
-          </div>
+<div className="flex items-center justify-center ml-4 pl-4 border-l border-gray-100">
+  {isFinished ? (
+    <div className="text-center min-w-[60px]">
+      <div className={`${scoreSize} font-bold text-gray-900 mb-1`}>
+        {homeScore ?? 0}
+      </div>
+      <div className={`${scoreSize} font-bold text-gray-900 mb-1`}>
+        {awayScore ?? 0}
+      </div>
+      <div className="text-xs text-gray-500 font-medium">
+        {status === 'live' ? 'LIVE' : 'Full time'}
+      </div>
+    </div>
+  ) : (
+    <div className="text-center min-w-[60px]">
+      <div className={`${size === 'sm' ? 'text-lg' : 'text-xl'} font-semibold text-gray-900`}>
+        {formattedTime}
+      </div>
+    </div>
+  )}
+</div>
+
         </div>
 
         {/* Optional sections */}
