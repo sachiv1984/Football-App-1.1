@@ -66,6 +66,9 @@ module.exports = {
         'status-upcoming': '#F59E0B',
         'status-finished': '#6B7280',
         'status-featured': '#FFD700',
+
+        // Custom Colors
+        'electric-yellow': '#FFFF00',
       },
 
       // ===== TYPOGRAPHY =====
