@@ -11,6 +11,10 @@ interface RawMatch {
   awayTeam: { id: number; name: string; shortName?: string; tla?: string; crest?: string };
   venue?: string;
   competition: { id: string; code: string; name: string; emblem?: string };
+  score?: {
+    fullTime?: {
+      home?: number;
+      away?: number;
 }
 
 interface RawStanding {
