@@ -72,7 +72,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
           return (
             <SwiperSlide key={fixture.id}>
               <button
-                className="carousel-card flex flex-col justify-between w-full h-full p-4 bg-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-focus-gold rounded-xl shadow-md transition-all duration-300"
+                className="carousel-card flex flex-col justify-between w-full p-4 bg-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-focus-gold rounded-xl shadow-md transition-all duration-300"
                 onClick={() => onGameSelect?.(fixture)}
                 aria-label={`View match between ${fixture.homeTeam.name} and ${fixture.awayTeam.name}`}
               >
