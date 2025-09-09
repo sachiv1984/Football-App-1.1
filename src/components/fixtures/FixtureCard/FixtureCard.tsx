@@ -127,7 +127,6 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
       homeScore,
       awayScore,
       venue,
-      aiInsight
     } = fixture;
 
     const handleClick = () => {
