@@ -245,13 +245,6 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
             </span>
           </div>
         )}
-
-        {showVenue && venue && (
-          <div className="mt-2">
-            <span className="text-xs text-gray-500">📍 {venue}</span>
-          </div>
-        )}
-
       </div>
     );
   };
