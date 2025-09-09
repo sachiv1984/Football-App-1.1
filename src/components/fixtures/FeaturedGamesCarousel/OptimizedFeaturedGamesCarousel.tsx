@@ -42,7 +42,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   return (
     <div 
       className={`w-full ${className}`} 
-      style={{overflow: 'visable'}}
+      style={{overflow: 'visible'}}
       role="region" 
       aria-label="Featured Games Carousel"
       >
@@ -138,7 +138,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                   )}
                 </div>
               </button>
-                <div>
+              </div>
             </SwiperSlide>
           );
         })}
