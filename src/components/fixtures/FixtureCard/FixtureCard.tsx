@@ -237,7 +237,7 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
         {showCompetition && fixture.competition && (
           <div className="mt-3 pt-3 border-t border-gray-100">
             <span className="text-xs text-gray-500 font-medium">
-              {fixture.competition}
+              {fixture.competition.name}
             </span>
           </div>
         )}
