@@ -27,7 +27,6 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
     status,
     homeScore,
     awayScore,
-    competition,
     venue,
     aiInsight
   } = fixture;
@@ -39,13 +38,12 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
   const isFinished = status === 'finished' || status === 'live';
   const showScore = isFinished && (homeScore !== undefined && awayScore !== undefined);
 
-  // Format date and time
+  // Use the shortName already set by FixtureService (same logic as carousel)
+  const homeShort = fixture.homeTeam.shortName;
+  const awayShort = fixture.awayTeam.shortName;
+
+  // Format time only (no date since we have header date)
   const matchDate = new Date(dateTime);
-  const formattedDate = matchDate.toLocaleDateString('en-GB', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  });
   const formattedTime = matchDate.toLocaleTimeString('en-GB', {
     hour: '2-digit',
     minute: '2-digit',
@@ -65,10 +63,6 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
     ${onClick ? 'cursor-pointer' : ''}
     ${className}
   `.trim();
-
-  // Use the shortName already set by FixtureService (same logic as carousel)
-  const homeShort = fixture.homeTeam.shortName;
-  const awayShort = fixture.awayTeam.shortName;
 
   return (
     <div className={cardClasses} onClick={handleClick}>
