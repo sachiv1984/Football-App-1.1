@@ -38,24 +38,24 @@ if (isLoading) {
           <SwiperSlide key={idx}>
             <div className="bg-white rounded-xl shadow-md p-4 animate-pulse">
               <div className="flex justify-between items-center mb-4">
-                <div className="w-12 h-12 bg-gray-200 rounded"></div>
-                <div className="w-16 h-4 bg-gray-200 rounded"></div>
+                <div className="w-12 h-12 bg-neutral-200 rounded"></div>
+                <div className="w-16 h-4 bg-neutral-200 rounded"></div>
               </div>
               <div className="flex justify-center items-center gap-6 mb-4">
                 <div className="flex flex-col items-center">
-                  <div className="w-16 h-16 bg-gray-200 rounded-full mb-1"></div>
-                  <div className="w-12 h-3 bg-gray-200 rounded"></div>
+                  <div className="w-16 h-16 bg-neutral-200 rounded-full mb-1"></div>
+                  <div className="w-12 h-3 bg-neutral-200 rounded"></div>
                 </div>
                 <div className="flex flex-col items-center">
-                  <div className="w-12 h-6 bg-gray-200 rounded mb-1"></div>
-                  <div className="w-16 h-3 bg-gray-200 rounded"></div>
+                  <div className="w-12 h-6 bg-neutral-200 rounded mb-1"></div>
+                  <div className="w-16 h-3 bg-neutral-200 rounded"></div>
                 </div>
                 <div className="flex flex-col items-center">
-                  <div className="w-16 h-16 bg-gray-200 rounded-full mb-1"></div>
-                  <div className="w-12 h-3 bg-gray-200 rounded"></div>
+                  <div className="w-16 h-16 bg-neutral-200 rounded-full mb-1"></div>
+                  <div className="w-12 h-3 bg-neutral-200 rounded"></div>
                 </div>
               </div>
-              <div className="w-20 h-3 bg-gray-200 rounded mx-auto"></div>
+              <div className="w-20 h-3 bg-neutral-200 rounded mx-auto"></div>
             </div>
           </SwiperSlide>
         ))}
@@ -63,7 +63,7 @@ if (isLoading) {
       <div className="flex justify-center mt-4">
         <div className="flex space-x-2">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="w-4 h-4 bg-gray-200 rounded-full animate-pulse"></div>
+            <div key={i} className="w-4 h-4 bg-neutral-200 rounded-full animate-pulse"></div>
           ))}
         </div>
       </div>
@@ -135,7 +135,7 @@ if (isLoading) {
                       {fixture.homeTeam.logo ? (
                         <img src={fixture.homeTeam.logo} alt={fixture.homeTeam.name} className="w-16 h-16 object-contain mb-1" />
                       ) : (
-                        <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-1">
+                        <div className="w-16 h-16 bg-neutral-200 rounded-full flex items-center justify-center mb-1">
                           <span className="text-lg font-bold text-gray-600">{fixture.homeTeam.name[0]}</span>
                         </div>
                       )}
@@ -156,7 +156,7 @@ if (isLoading) {
                       {fixture.awayTeam.logo ? (
                         <img src={fixture.awayTeam.logo} alt={fixture.awayTeam.name} className="w-16 h-16 object-contain mb-1" />
                       ) : (
-                        <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-1">
+                        <div className="w-16 h-16 bg-neutral-200 rounded-full flex items-center justify-center mb-1">
                           <span className="text-lg font-bold text-gray-600">{fixture.awayTeam.name[0]}</span>
                         </div>
                       )}
