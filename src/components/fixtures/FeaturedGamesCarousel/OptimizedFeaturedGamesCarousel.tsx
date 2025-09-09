@@ -48,7 +48,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
       >
       <Swiper
         modules={[Navigation, Pagination, FreeMode]}
-        autoHeight = {true}
         navigation
         pagination={{
           clickable: true,
@@ -76,6 +75,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
           return (
             <SwiperSlide key={fixture.id}>
+              <div classnane="py-4">
               <button
                 className="carousel-card flex flex-col justify-between w-full p-4 py-6 bg-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-focus-gold rounded-xl shadow-md transition-all duration-300"
                 onClick={() => onGameSelect?.(fixture)}
@@ -138,6 +138,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                   )}
                 </div>
               </button>
+                <div>
             </SwiperSlide>
           );
         })}
