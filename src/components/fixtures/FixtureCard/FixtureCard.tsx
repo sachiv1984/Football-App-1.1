@@ -111,7 +111,7 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
         </div>
 
         {/* Right Side - Time/Score */}
-        <div className="flex items-center justify-center ml-4">
+        <div className="flex items-center justify-center ml-4 pl-4 border-l border-gray-100">
           {showScore ? (
             <div className="text-center min-w-[60px]">
               <div className={`${scoreSize} font-bold text-gray-900 mb-1`}>
