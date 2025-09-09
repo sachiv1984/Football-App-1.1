@@ -126,8 +126,8 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
       awayTeam,
       dateTime,
       status,
-      homeScore = fixture.homeScore ?? fixture.score?.fullTime?.home ?? 0;
-      awayScore = fixture.awayScore ?? fixture.score?.fullTime?.away ?? 0;
+      homeScore = fixture.homeScore ?? fixture.score?.fullTime?.home ?? 0,
+      awayScore = fixture.awayScore ?? fixture.score?.fullTime?.away ?? 0,
     } = fixture;
 
     const handleClick = () => {
