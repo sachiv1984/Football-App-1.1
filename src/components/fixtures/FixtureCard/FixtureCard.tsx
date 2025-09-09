@@ -248,14 +248,6 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
           </div>
         )}
 
-        {showAIInsight && aiInsight && (
-          <div className="mt-3 pt-3 border-t border-gray-100">
-            <div className="flex items-start space-x-2">
-              <span className="text-xs text-blue-600">🤖</span>
-              <p className="text-xs text-gray-600 leading-relaxed">{aiInsight}</p>
-            </div>
-          </div>
-        )}
       </div>
     );
   };
