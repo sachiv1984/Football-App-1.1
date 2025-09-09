@@ -134,8 +134,8 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
       if (onClick) onClick(fixture);
     };
 
-    const isFinished = status === 'finished' || status === 'live';
-    // const showScore = isFinished && (homeScore !== undefined && awayScore !== undefined);
+    const isFinished = ['FINISHED', 'IN_PLAY', 'LIVE'].includes(fixture.status);
+    
 
     // Use the shortName already set by FixtureService (same logic as carousel)
     const homeShort = fixture.homeTeam.shortName;
@@ -231,17 +231,7 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
     </div>
   )}
 </div>
-
         </div>
-
-        {/* Optional sections */}
-        {showCompetition && fixture.competition && (
-          <div className="mt-3 pt-3 border-t border-gray-100">
-            <span className="text-xs text-gray-500 font-medium">
-              {fixture.competition.name}
-            </span>
-          </div>
-        )}
       </div>
     );
   };
