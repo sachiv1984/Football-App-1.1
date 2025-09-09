@@ -129,16 +129,20 @@ if (isLoading) {
                 </div>
 
                 {/* Teams & Time */}
-                <div className="flex flex-col items-center min-w-0 flex-1 max-w-[90px]">
-                {fixture.homeTeam.logo ? (
-                <img src={fixture.homeTeam.logo} alt={fixture.homeTeam.name} className="team-logo w-16 h-16 mb-1" />
-                 ) : (
-                <div className="w-16 h-16 bg-neutral-200 rounded-full flex items-center justify-center mb-1">
-                <span className="text-lg font-bold text-neutral-600">{fixture.homeTeam.name[0]}</span>
-                </div>
-                  )}
-                <span className="text-xs text-center w-full leading-tight">{homeShort}</span>
-                </div>
+                <div className="flex justify-center items-center mb-4 w-full">
+                  <div className="flex items-center justify-center gap-6 max-w-full">
+                    <div className="flex flex-col items-center min-w-0 flex-1 max-w-[90px]">
+  {fixture.homeTeam.logo ? (
+    <img src={fixture.homeTeam.logo} alt={fixture.homeTeam.name} className="team-logo w-16 h-16 mb-1" />
+  ) : (
+    <div className="w-16 h-16 bg-neutral-200 rounded-full flex items-center justify-center mb-1">
+      <span className="text-lg font-bold text-neutral-600">{fixture.homeTeam.name[0]}
+	</span>
+    </div>
+  )}
+  <span className="text-xs text-center w-full leading-tight">{homeShort}
+</span>
+</div>
 
                     {/* Time */}
                     <div className="flex flex-col items-center text-center min-w-[60px] flex-shrink-0">
