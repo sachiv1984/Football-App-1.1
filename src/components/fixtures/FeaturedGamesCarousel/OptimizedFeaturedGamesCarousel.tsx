@@ -83,7 +83,7 @@ const FeaturedGamesCarousel: React.FC<Props> = ({
 
   return (
     <div className={`w-full ${className}`} role="region" aria-label="Featured Games Carousel">
-      <Swiper
+   <Swiper
   modules={[Navigation, Pagination, FreeMode]}
   navigation
   pagination={{
@@ -104,7 +104,7 @@ const FeaturedGamesCarousel: React.FC<Props> = ({
     1280: { slidesPerView: 3 },
   }}
   centeredSlides={true}
-  className="h-[var(--carousel-card-min-height)]" // Adjust height using design tokens
+  className="min-h-[calc(var(--carousel-card-min-height)+var(--space-lg))]" // Add padding to the minimum height
 >
         {fixtures.map((fixture) => {
           const homeShort = fixture.homeTeam.shortName;
