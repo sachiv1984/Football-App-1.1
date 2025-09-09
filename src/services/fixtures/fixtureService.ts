@@ -255,6 +255,116 @@ export class FixtureService {
   }
 
   // -------------------------
+  // Game Week Logic
+  // -------------------------
+  
+  /**
+   * Determines the current game week based on fixtures
+   * Returns the week that has unfinished games, or next week if current is complete
+   */
+  private getCurrentGameWeek(fixtures: FeaturedFixtureWithImportance[]): number {
+    // Group fixtures by matchWeek
+    const weekGroups = fixtures.reduce((acc, fixture) => {
+      const week = fixture.matchWeek;
+      if (!acc[week]) acc[week] = [];
+      acc[week].push(fixture);
+      return acc;
+    }, {} as Record<number, FeaturedFixtureWithImportance[]>);
+
+    // Find the earliest week that has unfinished games
+    const sortedWeeks = Object.keys(weekGroups)
+      .map(Number)
+      .sort((a, b) => a - b);
+
+    for (const week of sortedWeeks) {
+      const weekFixtures = weekGroups[week];
+      const hasUnfinishedGames = weekFixtures.some(fixture => 
+        fixture.status === 'scheduled' || 
+        fixture.status === 'upcoming' || 
+        fixture.status === 'live'
+      );
+
+      if (hasUnfinishedGames) {
+        return week;
+      }
+    }
+
+    // If no unfinished games found, return the next week
+    const lastWeek = Math.max(...sortedWeeks);
+    return lastWeek + 1;
+  }
+
+  /**
+   * Checks if a game week is complete (all games finished)
+   */
+  private isGameWeekComplete(fixtures: FeaturedFixtureWithImportance[], gameWeek: number): boolean {
+    const weekFixtures = fixtures.filter(f => f.matchWeek === gameWeek);
+    
+    if (weekFixtures.length === 0) return true; // No games = complete
+    
+    return weekFixtures.every(fixture => 
+      fixture.status === 'finished' || 
+      fixture.status === 'postponed'
+    );
+  }
+
+  /**
+   * Gets fixtures for the current game week display logic
+   * Shows current week if incomplete, or next week if current is complete
+   */
+  async getCurrentGameWeekFixtures(): Promise<FeaturedFixtureWithImportance[]> {
+    if (!this.isCacheValid()) await this.refreshCache();
+    
+    const allFixtures = this.matchesCache;
+    const currentGameWeek = this.getCurrentGameWeek(allFixtures);
+    
+    // Get all fixtures for the current game week
+    const currentWeekFixtures = allFixtures.filter(
+      fixture => fixture.matchWeek === currentGameWeek
+    );
+
+    // Sort by date/time, keeping finished games in chronological order
+    return currentWeekFixtures.sort((a, b) => {
+      const dateA = new Date(a.dateTime).getTime();
+      const dateB = new Date(b.dateTime).getTime();
+      return dateA - dateB;
+    });
+  }
+
+  /**
+   * Gets game week info for display purposes
+   */
+  async getGameWeekInfo(): Promise<{
+    currentWeek: number;
+    isComplete: boolean;
+    totalGames: number;
+    finishedGames: number;
+    upcomingGames: number;
+  }> {
+    if (!this.isCacheValid()) await this.refreshCache();
+    
+    const allFixtures = this.matchesCache;
+    const currentGameWeek = this.getCurrentGameWeek(allFixtures);
+    const weekFixtures = allFixtures.filter(f => f.matchWeek === currentGameWeek);
+    
+    const finishedGames = weekFixtures.filter(f => 
+      f.status === 'finished' || f.status === 'postponed'
+    ).length;
+    
+    const upcomingGames = weekFixtures.filter(f => 
+      f.status === 'scheduled' || f.status === 'upcoming' || f.status === 'live'
+    ).length;
+    
+    return {
+      currentWeek: currentGameWeek,
+      isComplete: this.isGameWeekComplete(allFixtures, currentGameWeek),
+      totalGames: weekFixtures.length,
+      finishedGames,
+      upcomingGames
+    };
+  }
+ 
+ // -------------------------
   // Public methods
   // -------------------------
   async getFeaturedFixtures(limit: number = 8): Promise<FeaturedFixtureWithImportance[]> {
