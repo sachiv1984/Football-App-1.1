@@ -119,6 +119,7 @@ const FeaturedGamesCarousel: React.FC<Props> = ({
                 <div className="carousel-card flex flex-col justify-between w-full h-full p-[var(--space-md)] bg-[var(--color-background)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-focus-gold)] rounded-xl shadow-card transition-all duration-300">
                 onClick={() => onGameSelect?.(fixture)}
                 aria-label={`View match between ${fixture.homeTeam.name} and ${fixture.awayTeam.name}`}
+                </div>
               >
                 {/* Competition & Week */}
                 <div className="flex justify-between items-center mb-[var(--space-sm)] w-full">
