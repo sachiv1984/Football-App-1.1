@@ -12,7 +12,8 @@ import { FixturesDebugTable } from '../components/FixturesDebugTable';
 import { ErrorBoundary, CarouselErrorBoundary } from '../components/ErrorBoundary';
 import { useFixtures } from '../hooks/useFixtures';
 import { useGameWeekFixtures } from '../hooks/useGameWeekFixtures';
-import { FeaturedFixtureWithImportance } from '../types';
+import { FeaturedFixtureWithImportance, Game } from '../types';
+
 
 // -------------------------
 // HomePage Component
