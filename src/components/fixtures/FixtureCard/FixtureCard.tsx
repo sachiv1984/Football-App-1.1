@@ -232,32 +232,6 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
             )}
           </div>
         </div>
-
-        {/* Optional sections */}
-        {showCompetition && fixture.competition && (
-          <div className="mt-3 pt-3 border-t border-gray-100">
-            <span className="text-xs text-gray-500 font-medium">
-              {fixture.competition}
-            </span>
-          </div>
-        )}
-
-        {showVenue && venue && (
-          <div className="mt-2">
-            <span className="text-xs text-gray-500">📍 {venue}</span>
-          </div>
-        )}
-
-        {showAIInsight && aiInsight && (
-          <div className="mt-3 pt-3 border-t border-gray-100">
-            <div className="flex items-start space-x-2">
-              <span className="text-xs text-blue-600">🤖</span>
-              <p className="text-xs text-gray-600 leading-relaxed">{aiInsight}</p>
-            </div>
-          </div>
-        )}
-      </div>
-    );
   };
 
   // Game week mode: render multiple fixtures with header
