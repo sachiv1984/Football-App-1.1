@@ -7,7 +7,6 @@ interface FixtureCardProps {
   size?: 'sm' | 'md' | 'lg';
   showAIInsight?: boolean;
   showCompetition?: boolean;
-  showVenue?: boolean;
   onClick?: (fixture: Fixture) => void;
   className?: string;
   // New prop to enable game week mode
@@ -30,7 +29,6 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
   size = 'md',
   showAIInsight = false,
   showCompetition = false,
-  showVenue = false,
   onClick,
   className = '',
   useGameWeekMode = false,
@@ -130,7 +128,6 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
       status,
       homeScore,
       awayScore,
-      venue,
     } = fixture;
 
     const handleClick = () => {
