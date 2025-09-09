@@ -13,7 +13,7 @@ interface Props {
   isLoading?: boolean;
 }
 
-const FeaturedGamesCarousel: React.FC<Props> = ({
+const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   fixtures,
   onGameSelect,
   className = '',
@@ -145,4 +145,4 @@ const FeaturedGamesCarousel: React.FC<Props> = ({
   );
 };
 
-export default FeaturedGamesCarousel;
+export default OptimizedFeaturedGamesCarousel;
