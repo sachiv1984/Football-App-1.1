@@ -138,7 +138,7 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
     };
 
     const isFinished = status === 'finished' || status === 'live';
-    const showScore = isFinished && (homeScore !== undefined && awayScore !== undefined);
+    // const showScore = isFinished && (homeScore !== undefined && awayScore !== undefined);
 
     // Use the shortName already set by FixtureService (same logic as carousel)
     const homeShort = fixture.homeTeam.shortName;
