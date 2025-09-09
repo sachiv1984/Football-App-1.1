@@ -66,27 +66,14 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
     ${className}
   `.trim();
 
+  // Use the shortName already set by FixtureService (same logic as carousel)
+  const homeShort = fixture.homeTeam.shortName;
+  const awayShort = fixture.awayTeam.shortName;
+
   return (
     <div className={cardClasses} onClick={handleClick}>
-      {/* Competition Header */}
-      {showCompetition && competition && (
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-2">
-            {competition.logo && (
-              <img src={competition.logo} alt={competition.name} className="w-4 h-4 object-contain" />
-            )}
-            <span className="text-xs font-medium text-gray-600 uppercase tracking-wider">
-              {competition.shortName || competition.name}
-            </span>
-          </div>
-          <div className="text-xs text-gray-500">
-            {formattedDate}
-          </div>
-        </div>
-      )}
-
-      <div className="flex items-center justify-between">
-        {/* Home Team */}
+      <div className="flex items-center">
+        {/* Left Side - Home Team */}
         <div className="flex items-center space-x-3 flex-1">
           {homeTeam.logo ? (
             <img 
@@ -102,14 +89,17 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
             </div>
           )}
           <span className={`font-medium text-gray-900 ${textSize} truncate`}>
-            {size === 'sm' ? (homeTeam.shortName || homeTeam.name) : homeTeam.name}
+            {homeShort}
           </span>
         </div>
 
-        {/* Score or Time */}
-        <div className="flex items-center justify-center min-w-0 px-4">
+        {/* Vertical Divider */}
+        <div className="flex items-center justify-center px-6">
+          <div className="h-12 w-px bg-gray-200 mr-4"></div>
+          
+          {/* Score or Time */}
           {showScore ? (
-            <div className="text-center">
+            <div className="text-center min-w-[60px]">
               <div className={`${scoreSize} font-bold text-gray-900 mb-1`}>
                 {homeScore} - {awayScore}
               </div>
@@ -118,7 +108,7 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
               </div>
             </div>
           ) : (
-            <div className="text-center">
+            <div className="text-center min-w-[60px]">
               <div className={`${size === 'sm' ? 'text-base' : 'text-lg'} font-semibold text-gray-900 mb-1`}>
                 {formattedTime}
               </div>
@@ -127,13 +117,12 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
               </div>
             </div>
           )}
+          
+          <div className="h-12 w-px bg-gray-200 ml-4"></div>
         </div>
 
-        {/* Away Team */}
-        <div className="flex items-center space-x-3 flex-1 justify-end">
-          <span className={`font-medium text-gray-900 ${textSize} truncate text-right`}>
-            {size === 'sm' ? (awayTeam.shortName || awayTeam.name) : awayTeam.name}
-          </span>
+        {/* Right Side - Away Team */}
+        <div className="flex items-center space-x-3 flex-1">
           {awayTeam.logo ? (
             <img 
               src={awayTeam.logo} 
@@ -147,6 +136,9 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
               </span>
             </div>
           )}
+          <span className={`font-medium text-gray-900 ${textSize} truncate`}>
+            {awayShort}
+          </span>
         </div>
       </div>
 
