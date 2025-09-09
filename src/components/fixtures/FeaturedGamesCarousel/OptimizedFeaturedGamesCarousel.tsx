@@ -169,7 +169,7 @@ if (isLoading) {
                 <div className="flex flex-col items-center w-full">
                   <div className="text-xs text-gray-500 truncate text-center w-full px-2">{fixture.venue}</div>
                   {fixture.importance >= 80 && (
-                    <span className="mt-2 inline-block bg-yellow-400 text-gray-900 px-2 py-1 rounded-full text-[10px] sm:text-[12px] font-medium">Featured</span>
+                    <span className="mt-2 inline-block bg-[var(--color-focus-gold)] text-[var(--color-neutral-800)] px-2 py-1 rounded-full text-xs sm:text-sm font-medium">Featured</span>
                   )}
                 </div>
               </button>
