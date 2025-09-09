@@ -1,4 +1,3 @@
-// src/components/fixtures/FixtureCard/FixtureCard.tsx
 import React from 'react';
 import type { Fixture } from '../../../types';
 
