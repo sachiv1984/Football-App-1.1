@@ -213,25 +213,32 @@ export class FixtureService {
     const importance = this.calculateImportance(match, standings);
     const tags = this.generateTags(match, importance);
 
-    return {
-      id: match.id.toString(),
-      dateTime: match.utcDate,
-      homeTeam,
-      awayTeam,
-      venue: match.venue || 'TBD',
-      competition: {
-        id: match.competition.code,
-        name: match.competition.name,
-        logo: match.competition.emblem || '',
-      },
-      matchWeek: match.matchday,
-      importance,
-      importanceScore: importance,
-      tags,
-      isBigMatch: importance >= 8,
-      status: this.mapStatus(match.status),
-    };
-  }
+  // Ensure scores are numeric, default to 0 if missing
+  const homeScore = match.homeScore ?? match.score?.fullTime?.home ?? 0;
+  const awayScore = match.awayScore ?? match.score?.fullTime?.away ?? 0;
+
+
+     return {
+    id: match.id.toString(),
+    dateTime: match.utcDate,
+    homeTeam,
+    awayTeam,
+    venue: match.venue || 'TBD',
+    competition: {
+      id: match.competition.code,
+      name: match.competition.name,
+      logo: match.competition.emblem || '',
+    },
+    matchWeek: match.matchday,
+    importance,
+    importanceScore: importance,
+    tags,
+    isBigMatch: importance >= 8,
+    status: this.mapStatus(match.status),
+    homeScore,
+    awayScore,
+  };
+}
 
   private async refreshCache(): Promise<void> {
     const [matches, standings] = await Promise.all([this.fetchMatches(), this.fetchStandings()]);
