@@ -262,18 +262,6 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
           </div>
         )}
 
-        {/* Progress Bar */}
-        {gameWeekInfo && !gameWeekInfo.isComplete && (
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-              style={{
-                width: `${(gameWeekInfo.finishedGames / gameWeekInfo.totalGames) * 100}%`
-              }}
-            />
-          </div>
-        )}
-
         {/* Fixtures Grid */}
         <div className="grid grid-cols-1 gap-4">
           {fixturesToRender.map((fixture, index) => renderFixtureCard(fixture, index))}
