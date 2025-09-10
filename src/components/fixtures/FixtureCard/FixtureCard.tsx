@@ -1,279 +1,169 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { FixtureService } from '../../../services/fixtures/fixtureService';
-import type { Fixture, FeaturedFixtureWithImportance } from '../../../types';
+import React from 'react';
+import type { FeaturedFixtureWithImportance } from '../../../types';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import 'swiper/css';
+import 'swiper/css/navigation';
+import 'swiper/css/pagination';
+import { Navigation, Pagination, FreeMode } from 'swiper/modules';
 
-interface FixtureCardProps {
-  fixture?: Fixture;
-  size?: 'sm' | 'md' | 'lg';
-  showCompetition?: boolean;
-  onClick?: (fixture: Fixture) => void;
-  showAIInsight?: boolean;
-  showVenue?: boolean;
+interface Props {
+  fixtures: FeaturedFixtureWithImportance[];
+  onGameSelect?: (fixture: FeaturedFixtureWithImportance) => void;
   className?: string;
-  // New prop to enable game week mode
-  useGameWeekMode?: boolean;
-  refreshInterval?: number;
+  isLoading?: boolean;
 }
 
-interface GameWeekInfo {
-  currentWeek: number;
-  isComplete: boolean;
-  totalGames: number;
-  finishedGames: number;
-  upcomingGames: number;
-}
-
-const fixtureService = new FixtureService();
-
-const FixtureCard: React.FC<FixtureCardProps> = ({
-  fixture: singleFixture,
-  size = 'md',
-  showCompetition = false,
-  onClick,
+const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
+  fixtures,
+  onGameSelect,
   className = '',
-  useGameWeekMode = false,
-  refreshInterval = 5 * 60 * 1000, // 5 minutes
+  isLoading = false,
 }) => {
-  // Game week mode states
-  const [gameWeekFixtures, setGameWeekFixtures] = useState<FeaturedFixtureWithImportance[]>([]);
-  const [gameWeekInfo, setGameWeekInfo] = useState<GameWeekInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(useGameWeekMode);
-  const [error, setError] = useState<string | null>(null);
-
-  // Fetch game week data
-  const fetchGameWeekData = useCallback(async () => {
-    if (!useGameWeekMode) return;
-    
-    try {
-      setError(null);
-      
-      const [weekFixtures, weekInfo] = await Promise.all([
-        fixtureService.getCurrentGameWeekFixtures(),
-        fixtureService.getGameWeekInfo()
-      ]);
-
-      setGameWeekFixtures(weekFixtures);
-      setGameWeekInfo(weekInfo);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch fixtures');
-      console.error('Error fetching game week fixtures:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [useGameWeekMode]);
-
-  // Set up game week data fetching and refresh interval
-  useEffect(() => {
-    if (useGameWeekMode) {
-      fetchGameWeekData();
-
-      // Set up interval for live updates
-      const interval = setInterval(fetchGameWeekData, refreshInterval);
-      return () => clearInterval(interval);
-    }
-  }, [fetchGameWeekData, refreshInterval, useGameWeekMode]);
-
-  // Determine which fixtures to render
-  const fixturesToRender = useGameWeekMode
-  ? gameWeekFixtures.filter(f => f.status === 'live' || f.status === 'finished' || f.status === 'upcoming')
-  : singleFixture
-  ? [singleFixture]
-  : [];
-
-  // Loading state for game week mode
-  if (useGameWeekMode && isLoading) {
+  if (isLoading) {
     return (
-      <div className={`space-y-4 ${className}`}>
-        <div className="flex justify-between items-center">
-          <div className="h-6 skeleton rounded w-32"></div>
-          <div className="h-4 skeleton rounded w-24"></div>
-        </div>
-        {[...Array(6)].map((_, idx) => (
-          <div key={idx} className="skeleton rounded-xl h-20" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 p-6">
+        {[...Array(3)].map((_, idx) => (
+          <div key={idx} className="skeleton rounded-xl p-6 h-64" />
         ))}
       </div>
     );
   }
 
-  // Error state for game week mode
-  if (useGameWeekMode && error) {
+  if (fixtures.length === 0) {
     return (
-      <div className={`text-center py-8 ${className}`}>
-        <p className="text-error mb-4">Failed to load fixtures: {error}</p>
-        <button
-          onClick={fetchGameWeekData}
-          className="btn btn-secondary px-4 py-2"
-        >
-          Try Again
-        </button>
+      <div className="flex flex-col items-center justify-center text-center py-20 px-6">
+        <p className="text-lg font-medium text-neutral-700 mb-4">
+          Check back later for featured games
+        </p>
       </div>
     );
   }
 
-  // No fixtures to show
-  if (fixturesToRender.length === 0) {
-    return useGameWeekMode ? (
-      <div className={`text-center py-8 ${className}`}>
-        <p className="text-neutral-600">No fixtures available</p>
-      </div>
-    ) : null;
-  }
+  return (
+    <div 
+      className={`w-full ${className}`} 
+      style={{overflow: 'visible'}}
+      role="region" 
+      aria-label="Featured Games Carousel"
+      >
+      <Swiper
+        modules={[Navigation, Pagination, FreeMode]}
+        navigation
+        pagination={{
+          clickable: true,
+          el: '.swiper-pagination-container',
+          renderBullet: (index: number, className: string) => {
+            return `<span class="${className} carousel-dot"></span>`;
+          },
+        }}
+        loop={true}
+        freeMode={{ enabled: true, momentum: true }}
+        spaceBetween={20}
+        slidesPerView={1}
+        breakpoints={{
+          640: { slidesPerView: 1.25 },
+          768: { slidesPerView: 1.5 },
+          1024: { slidesPerView: 2.2 },
+          1280: { slidesPerView: 3 },
+        }}
+        centeredSlides={true}
+      >
+        {fixtures.map((fixture) => {
+          // Use the shortName already set by FixtureService
+          const homeShort = fixture.homeTeam.shortName;
+          const awayShort = fixture.awayTeam.shortName;
 
-  // Single fixture card renderer
-  const renderFixtureCard = (fixture: Fixture, index?: number) => {
-    const {
-      homeTeam,
-      awayTeam,
-      dateTime,
-      //status,
-      homeScore = fixture.homeScore ?? fixture.score?.fullTime?.home ?? 0,
-      awayScore = fixture.awayScore ?? fixture.score?.fullTime?.away ?? 0,
-    } = fixture;
-
-    const handleClick = () => {
-      if (onClick) onClick(fixture);
-    };
-
-    const isFinished = ['finished', 'live'].includes(fixture.status ?? '');
-    //const homeScoreValue = fixture.homeScore ?? fixture.score?.fullTime?.home ?? 0;
-    //const awayScoreValue = fixture.awayScore ?? fixture.score?.fullTime?.away ?? 0;
-
-    // Use the shortName already set by FixtureService (same logic as carousel)
-    const homeShort = fixture.homeTeam.shortName;
-    const awayShort = fixture.awayTeam.shortName;
-
-    // Format time only (no date since we have header date)
-    const matchDate = new Date(dateTime);
-    const formattedTime = matchDate.toLocaleTimeString('en-GB', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    });
-
-    // Size-based styling
-    const logoSize = size === 'sm' ? 'w-6 h-6' : size === 'lg' ? 'w-10 h-10' : 'w-8 h-8';
-    const textSize = size === 'sm' ? 'text-sm' : size === 'lg' ? 'text-lg' : 'text-base';
-    const cardPadding = size === 'sm' ? 'p-3' : size === 'lg' ? 'p-8' : 'p-6';
-    const scoreSize = size === 'sm' ? 'text-lg' : size === 'lg' ? 'text-3xl' : 'text-2xl';
-
-    const cardClasses = `
-      carousel-card
-      ${cardPadding}
-      ${onClick ? 'cursor-pointer' : ''}
-      ${useGameWeekMode ? '' : className}
-    `.trim();
-
-    return (
-      <div key={fixture.id || index} className={cardClasses} onClick={handleClick}>
-        <div className="flex items-center justify-between">
-          {/* Left Side - Teams Stacked */}
-          <div className="flex flex-col space-y-4 flex-1">
-            {/* Home Team */}
-            <div className="flex items-center space-x-3">
-              {homeTeam.logo ? (
-                <img 
-                  src={homeTeam.logo} 
-                  alt={homeTeam.name} 
-                  className={`${logoSize} object-contain flex-shrink-0 team-logo`}
-                />
-              ) : (
-                <div className={`${logoSize} bg-neutral-200 rounded-full flex items-center justify-center flex-shrink-0`}>
-                  <span className="text-sm font-bold text-neutral-600">
-                    {homeTeam.name[0]}
-                  </span>
+          return (
+            <SwiperSlide key={fixture.id}>
+              <div className="py-4">
+              <button
+                className="carousel-card flex flex-col justify-between w-full p-4 py-6"
+                onClick={() => onGameSelect?.(fixture)}
+                aria-label={`View match between ${fixture.homeTeam.name} and ${fixture.awayTeam.name}`}
+              >
+                {/* Competition & Week */}
+                <div className="flex justify-between items-center mb-4 w-full">
+                  <div className="flex items-center justify-start flex-1">
+                    {fixture.competition.logo && (
+                      <img 
+                        src={fixture.competition.logo} 
+                        alt={fixture.competition.name} 
+                        className="w-12 h-12 object-contain team-logo" 
+                      />
+                    )}
+                  </div>
+                  <div className="flex items-center justify-end flex-1">
+                    <span className="text-xs text-neutral-500 font-medium">Week {fixture.matchWeek || 1}</span>
+                  </div>
                 </div>
-              )}
-              <span className={`font-medium text-neutral-800 ${textSize}`}>
-                {homeShort}
-              </span>
-            </div>
 
-            {/* Away Team */}
-            <div className="flex items-center space-x-3">
-              {awayTeam.logo ? (
-                <img 
-                  src={awayTeam.logo} 
-                  alt={awayTeam.name} 
-                  className={`${logoSize} object-contain flex-shrink-0 team-logo`}
-                />
-              ) : (
-                <div className={`${logoSize} bg-neutral-200 rounded-full flex items-center justify-center flex-shrink-0`}>
-                  <span className="text-sm font-bold text-neutral-600">
-                    {awayTeam.name[0]}
-                  </span>
+                {/* Teams & Time */}
+                <div className="flex justify-center items-center mb-4 w-full">
+                  <div className="flex items-center justify-center gap-6 max-w-full">
+                    <div className="flex flex-col items-center min-w-0 flex-1 max-w-[90px]">
+                      {fixture.homeTeam.logo ? (
+                        <img 
+                          src={fixture.homeTeam.logo} 
+                          alt={fixture.homeTeam.name} 
+                          className="w-16 h-16 object-contain mb-1 team-logo" 
+                        />
+                      ) : (
+                        <div className="w-16 h-16 bg-neutral-200 rounded-full flex items-center justify-center mb-1">
+                          <span className="text-lg font-bold text-neutral-600">{fixture.homeTeam.name[0]}</span>
+                        </div>
+                      )}
+                      <span className="text-sm font-medium text-neutral-700 text-center truncate w-full leading-tight">
+                        {homeShort}
+                      </span>
+                    </div>
+
+                    {/* Time */}
+                    <div className="flex flex-col items-center text-center min-w-[60px] flex-shrink-0">
+                      <span className="text-neutral-800 font-medium text-base whitespace-nowrap">
+                        {new Date(fixture.dateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                      </span>
+                      <span className="text-xs text-neutral-500 whitespace-nowrap">
+                        {new Date(fixture.dateTime).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col items-center min-w-0 flex-1 max-w-[90px]">
+                      {fixture.awayTeam.logo ? (
+                        <img 
+                          src={fixture.awayTeam.logo} 
+                          alt={fixture.awayTeam.name} 
+                          className="w-16 h-16 object-contain mb-1 team-logo" 
+                        />
+                      ) : (
+                        <div className="w-16 h-16 bg-neutral-200 rounded-full flex items-center justify-center mb-1">
+                          <span className="text-lg font-bold text-neutral-600">{fixture.awayTeam.name[0]}</span>
+                        </div>
+                      )}
+                      <span className="text-sm font-medium text-neutral-700 text-center truncate w-full leading-tight">
+                        {awayShort}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              )}
-              <span className={`font-medium text-neutral-800 ${textSize}`}>
-                {awayShort}
-              </span>
-            </div>
-          </div>
 
-          {/* Right Side - Time/Score */}
-          <div className="flex items-center justify-center ml-6 pl-6 border-l border-neutral-200">
-            {isFinished ? (
-            <div className="text-center min-w-[70px]">
-              <div className={`${scoreSize} font-bold text-neutral-800 mb-1`}>
-                {homeScore}
+                {/* Venue & Badge */}
+                <div className="flex flex-col items-center w-full">
+                  <div className="text-xs text-neutral-500 truncate text-center w-full px-2">{fixture.venue}</div>
+                  {fixture.importance >= 80 && (
+                    <span className="carousel-ribbon mt-2">Featured</span>
+                  )}
+                </div>
+              </button>
               </div>
-              <div className={`${scoreSize} font-bold text-neutral-800 mb-1`}>
-                {awayScore}
-              </div>
-              <div className="text-xs text-neutral-500 font-medium">
-                {fixture.status === 'live' ? (
-                  <span className="status-live">LIVE</span>
-                ) : (
-                  'Full time'
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="text-center min-w-[70px]">
-              <div className={`${size === 'sm' ? 'text-base' : size === 'lg' ? 'text-2xl' : 'text-xl'} font-semibold text-neutral-800`}>
-                {formattedTime}
-              </div>
-            </div>
-          )}
-          </div>
-        </div>
-      </div>
-    );
-  };
+            </SwiperSlide>
+          );
+        })}
+      </Swiper>
 
-  // Game week mode: render multiple fixtures with header
-  if (useGameWeekMode) {
-    return (
-      <div className={`space-y-4 ${className}`}>
-        {/* Game Week Header */}
-        {gameWeekInfo && (
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold text-neutral-800">
-              Matchday {gameWeekInfo.currentWeek}
-            </h2>
-            <div className="text-sm text-neutral-600">
-              {gameWeekInfo.isComplete ? (
-                <span className="px-3 py-1 bg-success-light text-success rounded-full font-medium">
-                  Complete
-                </span>
-              ) : (
-                <span className="text-neutral-600">
-                  {gameWeekInfo.finishedGames}/{gameWeekInfo.totalGames} played
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Fixtures Grid */}
-        <div className="grid grid-cols-1 gap-4">
-          {fixturesToRender.map((fixture, index) => renderFixtureCard(fixture, index))}
-        </div>
-      </div>
-    );
-  }
-
-  // Single fixture mode: render just the fixture card
-  return renderFixtureCard(fixturesToRender[0]);
+      {/* Centered Pagination below */}
+      <div className="carousel-pagination swiper-pagination-container mt-6 flex justify-center" />
+    </div>
+  );
 };
 
-export default FixtureCard;
+export default OptimizedFeaturedGamesCarousel;
