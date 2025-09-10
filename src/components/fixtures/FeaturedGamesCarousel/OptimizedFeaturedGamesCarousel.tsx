@@ -41,7 +41,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
   return (
     <div 
-      className={`w-full ${className}`} 
+      className={`featured-games-carousel w-full ${className}`} 
       style={{overflow: 'visible'}}
       role="region" 
       aria-label="Featured Games Carousel"
