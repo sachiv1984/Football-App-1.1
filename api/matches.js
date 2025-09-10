@@ -110,6 +110,7 @@ module.exports = async function handler(req, res) {
           homeTeam: match.homeTeam,
           awayTeam: match.awayTeam,
           venue,
+          score: match.score || null,
           competition: match.competition || {},
         };
       })
