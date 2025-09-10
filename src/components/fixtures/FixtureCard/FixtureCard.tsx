@@ -134,7 +134,7 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
       if (onClick) onClick(fixture);
     };
 
-    const isFinished = ['FINISHED', 'IN_PLAY', 'LIVE'].includes(fixture.status ?? '');
+    const isFinished = ['finished', 'live'].includes(fixture.status ?? '');
     //const homeScoreValue = fixture.homeScore ?? fixture.score?.fullTime?.home ?? 0;
     //const awayScoreValue = fixture.awayScore ?? fixture.score?.fullTime?.away ?? 0;
 
