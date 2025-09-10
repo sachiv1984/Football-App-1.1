@@ -149,7 +149,7 @@ const HomePage: React.FC = () => {
                 {/* Group fixtures by date */}
                 {Object.entries(
                   gameWeekFixtures.reduce((groups, fixture) => {
-                    const date = new Date(fixture.utcDate).toLocaleDateString('en-GB', {
+                    const date = new Date(fixture.dateTime).toLocaleDateString('en-GB', {
                       weekday: 'long',
                       year: 'numeric',
                       month: 'long',
