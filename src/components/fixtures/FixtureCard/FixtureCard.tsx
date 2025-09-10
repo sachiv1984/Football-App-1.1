@@ -85,11 +85,11 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
     return (
       <div className={`space-y-4 ${className}`}>
         <div className="flex justify-between items-center">
-          <div className="h-6 bg-gray-200 rounded w-32 animate-pulse"></div>
-          <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
+          <div className="h-6 skeleton rounded w-32"></div>
+          <div className="h-4 skeleton rounded w-24"></div>
         </div>
         {[...Array(6)].map((_, idx) => (
-          <div key={idx} className="bg-gray-200 animate-pulse rounded-2xl h-20" />
+          <div key={idx} className="skeleton rounded-xl h-20" />
         ))}
       </div>
     );
@@ -99,10 +99,10 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
   if (useGameWeekMode && error) {
     return (
       <div className={`text-center py-8 ${className}`}>
-        <p className="text-red-600 mb-4">Failed to load fixtures: {error}</p>
+        <p className="text-error mb-4">Failed to load fixtures: {error}</p>
         <button
           onClick={fetchGameWeekData}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="btn btn-secondary px-4 py-2"
         >
           Try Again
         </button>
@@ -114,7 +114,7 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
   if (fixturesToRender.length === 0) {
     return useGameWeekMode ? (
       <div className={`text-center py-8 ${className}`}>
-        <p className="text-gray-600">No fixtures available</p>
+        <p className="text-neutral-600">No fixtures available</p>
       </div>
     ) : null;
   }
@@ -157,8 +157,7 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
     const scoreSize = size === 'sm' ? 'text-lg' : size === 'lg' ? 'text-3xl' : 'text-2xl';
 
     const cardClasses = `
-      bg-white rounded-2xl shadow-sm border border-gray-100
-      transition-all duration-200 hover:shadow-md hover:border-gray-200
+      carousel-card
       ${cardPadding}
       ${onClick ? 'cursor-pointer' : ''}
       ${useGameWeekMode ? '' : className}
@@ -168,23 +167,23 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
       <div key={fixture.id || index} className={cardClasses} onClick={handleClick}>
         <div className="flex items-center justify-between">
           {/* Left Side - Teams Stacked */}
-          <div className="flex flex-col space-y-3 flex-1">
+          <div className="flex flex-col space-y-4 flex-1">
             {/* Home Team */}
             <div className="flex items-center space-x-3">
               {homeTeam.logo ? (
                 <img 
                   src={homeTeam.logo} 
                   alt={homeTeam.name} 
-                  className={`${logoSize} object-contain flex-shrink-0`}
+                  className={`${logoSize} object-contain flex-shrink-0 team-logo`}
                 />
               ) : (
-                <div className={`${logoSize} bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0`}>
-                  <span className="text-sm font-bold text-gray-600">
+                <div className={`${logoSize} bg-neutral-200 rounded-full flex items-center justify-center flex-shrink-0`}>
+                  <span className="text-sm font-bold text-neutral-600">
                     {homeTeam.name[0]}
                   </span>
                 </div>
               )}
-              <span className={`font-medium text-gray-900 ${textSize} truncate`}>
+              <span className={`font-medium text-neutral-800 ${textSize}`}>
                 {homeShort}
               </span>
             </div>
@@ -195,44 +194,47 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
                 <img 
                   src={awayTeam.logo} 
                   alt={awayTeam.name} 
-                  className={`${logoSize} object-contain flex-shrink-0`}
+                  className={`${logoSize} object-contain flex-shrink-0 team-logo`}
                 />
               ) : (
-                <div className={`${logoSize} bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0`}>
-                  <span className="text-sm font-bold text-gray-600">
+                <div className={`${logoSize} bg-neutral-200 rounded-full flex items-center justify-center flex-shrink-0`}>
+                  <span className="text-sm font-bold text-neutral-600">
                     {awayTeam.name[0]}
                   </span>
                 </div>
               )}
-              <span className={`font-medium text-gray-900 ${textSize} truncate`}>
+              <span className={`font-medium text-neutral-800 ${textSize}`}>
                 {awayShort}
               </span>
             </div>
           </div>
 
           {/* Right Side - Time/Score */}
-<div className="flex items-center justify-center ml-4 pl-4 border-l border-gray-100">
-  {isFinished ? (
-  <div className="text-center min-w-[60px]">
-    <div className={`${scoreSize} font-bold text-gray-900 mb-1`}>
-      {homeScore}
-    </div>
-    <div className={`${scoreSize} font-bold text-gray-900 mb-1`}>
-      {awayScore}
-    </div>
-    <div className="text-xs text-gray-500 font-medium">
-      {fixture.status === 'live' ? 'LIVE' : 'Full time'}
-    </div>
-  </div>
-) : (
-  <div className="text-center min-w-[60px]">
-    <div className={`${size === 'sm' ? 'text-lg' : 'text-xl'} font-semibold text-gray-900`}>
-      {formattedTime}
-    </div>
-  </div>
-)}
-
-</div>
+          <div className="flex items-center justify-center ml-6 pl-6 border-l border-neutral-200">
+            {isFinished ? (
+            <div className="text-center min-w-[70px]">
+              <div className={`${scoreSize} font-bold text-neutral-800 mb-1`}>
+                {homeScore}
+              </div>
+              <div className={`${scoreSize} font-bold text-neutral-800 mb-1`}>
+                {awayScore}
+              </div>
+              <div className="text-xs text-neutral-500 font-medium">
+                {fixture.status === 'live' ? (
+                  <span className="status-live">LIVE</span>
+                ) : (
+                  'Full time'
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="text-center min-w-[70px]">
+              <div className={`${size === 'sm' ? 'text-base' : size === 'lg' ? 'text-2xl' : 'text-xl'} font-semibold text-neutral-800`}>
+                {formattedTime}
+              </div>
+            </div>
+          )}
+          </div>
         </div>
       </div>
     );
@@ -245,16 +247,16 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
         {/* Game Week Header */}
         {gameWeekInfo && (
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold text-gray-900">
+            <h2 className="text-xl font-bold text-neutral-800">
               Matchday {gameWeekInfo.currentWeek}
             </h2>
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-neutral-600">
               {gameWeekInfo.isComplete ? (
-                <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full font-medium">
+                <span className="px-3 py-1 bg-success-light text-success rounded-full font-medium">
                   Complete
                 </span>
               ) : (
-                <span className="text-gray-600">
+                <span className="text-neutral-600">
                   {gameWeekInfo.finishedGames}/{gameWeekInfo.totalGames} played
                 </span>
               )}
