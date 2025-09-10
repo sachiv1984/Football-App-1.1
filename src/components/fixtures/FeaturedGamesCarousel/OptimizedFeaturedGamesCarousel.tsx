@@ -161,7 +161,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
       </Swiper>
 
       {/* Centered Pagination below */}
-      <div className="carousel-pagination swiper-pagination-container" />
+      <div className="carousel-pagination swiper-pagination-container mt-6 flex justify-center" />
     </div>
   );
 };
