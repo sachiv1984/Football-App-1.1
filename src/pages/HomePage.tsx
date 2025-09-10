@@ -155,18 +155,6 @@ const handleGameSelect = (fixture: FeaturedFixtureWithImportance | Game) => {
                           </button>
                         </div>
                         
-                        {/* Progress Bar */}
-                        {!gameWeekInfo.isComplete && (
-                          <div className="w-full bg-gray-200 rounded-full h-3 mb-4">
-                            <div
-                              className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-500"
-                              style={{
-                                width: `${(gameWeekInfo.finishedGames / gameWeekInfo.totalGames) * 100}%`
-                              }}
-                            />
-                          </div>
-                        )}
-                        
                         {/* Stats Grid */}
                         <div className="grid grid-cols-3 gap-4">
                           <div className="text-center">
