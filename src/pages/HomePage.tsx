@@ -145,17 +145,43 @@ const HomePage: React.FC = () => {
                 </div>
               </div>
             ) : gameWeekFixtures.length > 0 ? (
-              <div className="space-y-4">
-                {gameWeekFixtures.map((fixture) => (
-                  <FixtureCard
-                    key={fixture.id}
-                    fixture={fixture}
-                    onClick={handleGameSelect}
-                    size="lg"
-                    showVenue={true}
-                    showAIInsight={true}
-                    className="hover:scale-[1.02] transition-transform duration-200"
-                  />
+              <div className="space-y-6">
+                {/* Group fixtures by date */}
+                {Object.entries(
+                  gameWeekFixtures.reduce((groups, fixture) => {
+                    const date = new Date(fixture.utcDate).toLocaleDateString('en-GB', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    });
+                    if (!groups[date]) {
+                      groups[date] = [];
+                    }
+                    groups[date].push(fixture);
+                    return groups;
+                  }, {} as Record<string, typeof gameWeekFixtures>)
+                ).map(([date, fixtures]) => (
+                  <div key={date} className="space-y-4">
+                    {/* Date heading */}
+                    <h3 className="text-lg font-medium text-gray-800 text-left">
+                      {date}
+                    </h3>
+                    {/* Fixtures for this date */}
+                    <div className="space-y-3">
+                      {fixtures.map((fixture) => (
+                        <FixtureCard
+                          key={fixture.id}
+                          fixture={fixture}
+                          onClick={handleGameSelect}
+                          size="lg"
+                          showVenue={true}
+                          showAIInsight={true}
+                          className="hover:scale-[1.02] transition-transform duration-200"
+                        />
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
             ) : (
