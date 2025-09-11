@@ -5,25 +5,39 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Poppins:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 /* -------------------------
-   Enhanced Design Tokens → CSS Vars
+   Design Tokens → CSS Variables
 ------------------------- */
 :root {
   /* ===== BRAND COLORS ===== */
   /* Primary - Premier League Purple */
   --color-primary-50: #F8F4FF;
   --color-primary-100: #EDE4FF;
+  --color-primary-200: #DCC7FF;
+  --color-primary-300: #C8A4FF;
+  --color-primary-400: #A855F7;
   --color-primary-500: #3D195B;
   --color-primary-600: #2D1343;
+  --color-primary-700: #1E0D2D;
+  --color-primary-800: #150820;
   --color-primary-900: #0A0410;
   --color-premier-purple: #3D195B;
   --color-royal-purple: #4C1D6B;
 
   /* Secondary - Electric & Pitch Colors */
+  --color-secondary-50: #EFF9FF;
+  --color-secondary-100: #DEF3FF;
+  --color-secondary-200: #B6E7FF;
+  --color-secondary-300: #75D4FF;
   --color-secondary-400: #007FFF;
   --color-secondary-500: #0066CC;
+  --color-secondary-600: #004499;
+  --color-secondary-700: #003366;
+  --color-secondary-800: #002244;
+  --color-secondary-900: #001122;
   --color-electric-blue: #007FFF;
   --color-pitch-green: #00A86B;
   --color-sky-blue: #0EA5E9;
+  --color-emerald-green: #059669;
 
   /* Tertiary Support */
   --color-warm-gold: #FFB800;
@@ -74,7 +88,12 @@
   --color-finished: #6B7280;
   --color-featured: #FFD700;
 
-  /* ===== PREMIUM SHADOWS ===== */
+  /* ===== TYPOGRAPHY ===== */
+  --font-heading: 'Poppins', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', Consolas, monospace;
+
+  /* ===== SHADOWS ===== */
   --shadow-card: 0 4px 12px rgba(61, 25, 91, 0.1);
   --shadow-card-hover: 0 6px 18px rgba(61, 25, 91, 0.15);
   --shadow-card-active: 0 8px 24px rgba(61, 25, 91, 0.2);
@@ -83,33 +102,7 @@
   --shadow-glow: 0 0 20px rgba(0, 127, 255, 0.3);
   --shadow-gold-glow: 0 0 20px rgba(255, 215, 0, 0.4);
 
-  /* ===== CAROUSEL SPECIFIC ===== */
-  /* Layout */
-  --carousel-gap-mobile: 16px;
-  --carousel-gap-tablet: 24px;
-  --carousel-gap-desktop: 32px;
-  --carousel-card-min-height: 280px;
-  --carousel-card-max-width: 320px;
-
-  /* Interactive Elements */
-  --carousel-navigation-size: 44px;
-  --carousel-dot-size: 12px;
-  --carousel-dot-active-size: 32px;
-  --carousel-dot-radius: 9999px;
-
-  /* Colors */
-  --carousel-focus: var(--color-electric-blue);
-  --carousel-active: var(--color-premier-purple);
-  --carousel-hover: var(--color-pitch-green);
-  --carousel-dot-active: var(--color-focus-gold);
-  --carousel-dot-inactive: var(--color-neutral-400);
-
-  /* Transforms & Animations */
-  --card-scale-hover: 1.02;
-  --card-scale-active: 1.04;
-  --card-scale-focus: 1.05;
-
-  /* Timing Functions */
+  /* ===== TIMING FUNCTIONS ===== */
   --timing-fast: 150ms;
   --timing-normal: 300ms;
   --timing-slow: 500ms;
@@ -117,50 +110,39 @@
   --easing-premium: cubic-bezier(0.23, 1, 0.32, 1);
   --easing-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
 
-  /* ===== TYPOGRAPHY ===== */
-  --font-heading: 'Poppins', system-ui, sans-serif;
-  --font-body: 'Inter', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', Consolas, monospace;
-
-  /* ===== SPACING ===== */
-  --space-xs: 0.25rem;
-  --space-sm: 0.5rem;
-  --space-md: 1rem;
-  --space-lg: 1.5rem;
-  --space-xl: 2rem;
-  --space-2xl: 2.5rem;
-  --space-3xl: 3rem;
-  --space-4xl: 4rem;
-}
-
-/* Dark mode support (future enhancement) */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-background: #0F0F0F;
-    --color-text: #E5E5E5;
-    /* Additional dark mode variables can be added here */
-  }
+  /* ===== CAROUSEL SPECIFIC ===== */
+  --carousel-gap-mobile: 16px;
+  --carousel-gap-tablet: 24px;
+  --carousel-gap-desktop: 32px;
+  --carousel-card-min-height: 280px;
+  --carousel-card-max-width: 320px;
+  --carousel-navigation-size: 44px;
+  --carousel-dot-size: 12px;
+  --carousel-dot-active-size: 32px;
+  --card-scale-hover: 1.02;
+  --card-scale-active: 1.04;
+  --card-scale-focus: 1.05;
 }
 
 /* -------------------------
-   Enhanced Base Layer
+   Base Layer
 ------------------------- */
 @layer base {
-  /* Smooth scrolling and font optimization */
   html {
     font-family: var(--font-body);
     scroll-behavior: smooth;
   }
 
   body {
-    @apply bg-gray-50 text-gray-900 antialiased;
+    @apply bg-neutral-50 text-neutral-900 antialiased;
+    background-color: var(--color-neutral-50);
+    color: var(--color-neutral-900);
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Enhanced typography hierarchy */
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-heading);
     font-weight: 600;
@@ -177,39 +159,82 @@
   h5 { @apply text-lg lg:text-xl font-medium; }
   h6 { @apply text-base lg:text-lg font-medium; }
 
-  /* Enhanced focus states */
   *:focus-visible {
     @apply outline-none ring-2 ring-offset-2;
-    ring-color: var(--color-focus);
+    --tw-ring-color: var(--color-focus);
     transition: box-shadow var(--timing-fast) var(--easing-smooth);
   }
 
-  /* Premium selection styling */
   ::selection {
     background-color: var(--color-focus-gold);
     color: var(--color-neutral-800);
   }
 
-  /* Smooth transitions for interactive elements */
   a, button {
     transition: all var(--timing-fast) var(--easing-smooth);
-  }
-
-  /* Enhanced form elements */
-  input, textarea, select {
-    @apply border border-gray-300 rounded-lg px-3 py-2 bg-white;
-    transition: border-color var(--timing-fast) var(--easing-smooth);
-  }
-
-  input:focus, textarea:focus, select:focus {
-    @apply border-focus-gold ring-1 ring-focus-gold;
   }
 }
 
 /* -------------------------
-   Enhanced Components Layer
+   Components Layer
 ------------------------- */
 @layer components {
+  /* ===== UNIFIED CARD SYSTEM ===== */
+  .fixture-card,
+  .carousel-card {
+    @apply bg-white rounded-xl border cursor-pointer select-none;
+    border-color: var(--color-neutral-200);
+    box-shadow: var(--shadow-card);
+    transition: all var(--timing-normal) var(--easing-premium);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Subtle background pattern for premium feel */
+  .fixture-card::before,
+  .carousel-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 50% 50%, rgba(61, 25, 91, 0.02) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .fixture-card > *,
+  .carousel-card > * {
+    position: relative;
+    z-index: 2;
+  }
+
+  /* Enhanced hover states */
+  .fixture-card:hover,
+  .carousel-card:hover {
+    transform: scale(var(--card-scale-hover)) translateY(-2px);
+    box-shadow: var(--shadow-card-hover);
+    border-color: var(--color-pitch-green);
+  }
+
+  /* Active state */
+  .fixture-card.active,
+  .carousel-card.active {
+    transform: scale(var(--card-scale-active)) translateY(-4px);
+    box-shadow: var(--shadow-card-active);
+    border: 2px solid var(--color-focus-gold);
+    background: linear-gradient(135deg, #ffffff 0%, #fefefe 100%);
+  }
+
+  /* Focus state */
+  .fixture-card:focus-visible,
+  .carousel-card:focus-visible {
+    transform: scale(var(--card-scale-focus));
+    box-shadow: var(--shadow-card-focus), var(--shadow-card-hover);
+    outline: none;
+  }
+
   /* ===== BUTTON SYSTEM ===== */
   .btn {
     @apply inline-flex items-center justify-center font-semibold rounded-lg transition-all duration-200
@@ -230,160 +255,15 @@
     box-shadow: var(--shadow-card);
   }
 
-  .btn-accent {
-    background: var(--color-pitch-green);
-    @apply text-white hover:shadow-lg transform hover:scale-105;
-    box-shadow: var(--shadow-card);
-  }
-
-  .btn-outline {
-    @apply border-2 border-current bg-transparent hover:bg-current hover:text-white;
-    color: var(--color-premier-purple);
-  }
-
-  /* ===== ENHANCED CARD SYSTEM ===== */
-  .card,
-  .carousel-card {
-    @apply rounded-xl bg-white cursor-pointer select-none border border-gray-200;
-    box-shadow: var(--shadow-card);
-    transition: all var(--timing-normal) var(--easing-premium);
-    position: relative;
-    overflow: hidden;
-  }
-
-  /* Subtle background pattern for premium feel */
-  .carousel-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-image: radial-gradient(circle at 50% 50%, rgba(61, 25, 91, 0.02) 0%, transparent 70%);
-    pointer-events: none;
-    z-index: 1;
-  }
-
-  .carousel-card > * {
-    position: relative;
-    z-index: 2;
-  }
-
-  /* Enhanced hover states */
-  .carousel-card:hover {
-    transform: scale(var(--card-scale-hover)) translateY(-2px);
-    box-shadow: var(--shadow-card-hover);
-    border-color: var(--color-pitch-green);
-  }
-
-  /* Active state with premium styling */
-  .carousel-card.active {
-    transform: scale(var(--card-scale-active)) translateY(-4px);
-    box-shadow: var(--shadow-card-active);
-    border: 2px solid var(--color-focus-gold);
-    background: linear-gradient(135deg, #ffffff 0%, #fefefe 100%);
-  }
-
-  /* Focus state */
-  .carousel-card:focus-visible {
-    transform: scale(var(--card-scale-focus));
-    box-shadow: var(--shadow-card-focus), var(--shadow-card-hover);
-    outline: none;
-  }
-
-  /* Premium blur effect for inactive cards */
-  .carousel-card:not(.active):not(:hover):not(:focus-visible) {
-    filter: blur(0.5px);
-    opacity: 0.85;
-    transition: all var(--timing-normal) var(--easing-smooth);
-  }
-
-  /* ===== CAROUSEL NAVIGATION ===== */
-  .carousel-nav {
-    @apply absolute top-1/2 transform -translate-y-1/2 z-20;
-    width: var(--carousel-navigation-size);
-    height: var(--carousel-navigation-size);
-    background: white;
-    border-radius: 50%;
-    box-shadow: var(--shadow-card);
+  /* ===== TEAM LOGO STYLING ===== */
+  .team-logo {
+    @apply object-contain drop-shadow-sm;
     transition: all var(--timing-fast) var(--easing-smooth);
   }
 
-  .carousel-nav:hover {
-    background: var(--color-electric-blue);
-    color: white;
-    transform: translateY(-50%) scale(1.1);
-    box-shadow: var(--shadow-card-hover);
-  }
-
-  .carousel-nav:active {
-    transform: translateY(-50%) scale(0.95);
-  }
-
-  .carousel-nav.prev {
-    left: -22px;
-  }
-
-  .carousel-nav.next {
-    right: -22px;
-  }
-
-  /* ===== ENHANCED PAGINATION DOTS ===== */
-  .carousel-pagination {
-    @apply flex justify-center items-center gap-2 mt-6;
-  }
-
-  .carousel-dot {
-    width: var(--carousel-dot-size);
-    height: var(--carousel-dot-size);
-    border-radius: var(--carousel-dot-radius);
-    background-color: var(--carousel-dot-inactive);
-    transition: all var(--timing-normal) var(--easing-premium);
-    cursor: pointer;
-    border: none;
-    outline: none;
-    opacity: 0.6;
-  }
-
-  .carousel-dot:hover {
-    opacity: 0.8;
-    transform: scale(1.2);
-  }
-
-  .carousel-dot.active {
-    width: var(--carousel-dot-active-size);
-    background: linear-gradient(90deg, var(--color-focus-gold) 0%, var(--color-warm-gold) 100%);
-    opacity: 1;
-    box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4);
-  }
-
-  .carousel-dot:focus-visible {
-    ring-color: var(--color-focus-gold);
-    ring-width: 2px;
-    ring-offset-width: 2px;
-  }
-
-  /* ===== ENHANCED RIBBON/BADGE SYSTEM ===== */
-  .carousel-ribbon {
-    @apply inline-flex items-center justify-center font-semibold px-2 py-1 rounded-full text-xs;
-    background: linear-gradient(135deg, var(--color-focus-gold) 0%, var(--color-warm-gold) 100%);
-    color: var(--color-neutral-800);
-    box-shadow: 0 2px 4px rgba(255, 215, 0, 0.3);
-    transform: rotate(-1deg);
-    animation: subtle-pulse 2s ease-in-out infinite;
-  }
-
-  .carousel-ribbon.featured {
-    background: linear-gradient(135deg, var(--color-crimson-red) 0%, var(--color-sunset-orange) 100%);
-    color: white;
-    font-weight: 700;
-    transform: rotate(2deg);
-  }
-
-  .carousel-ribbon.live {
-    background: linear-gradient(135deg, var(--color-live) 0%, var(--color-pitch-green) 100%);
-    color: white;
-    animation: live-pulse 1.5s ease-in-out infinite;
+  .team-logo:hover {
+    transform: scale(1.05);
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
   }
 
   /* ===== STATUS INDICATORS ===== */
@@ -409,52 +289,94 @@
     color: var(--color-finished);
   }
 
-  /* ===== TEAM LOGO ENHANCEMENTS ===== */
-  .team-logo {
-    @apply object-contain drop-shadow-sm;
+  /* ===== CAROUSEL NAVIGATION ===== */
+  .carousel-nav {
+    @apply absolute top-1/2 transform -translate-y-1/2 z-20 bg-white rounded-full shadow-lg;
+    width: var(--carousel-navigation-size);
+    height: var(--carousel-navigation-size);
+    box-shadow: var(--shadow-card);
     transition: all var(--timing-fast) var(--easing-smooth);
   }
 
-  .team-logo:hover {
-    transform: scale(1.05);
-    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
+  .carousel-nav:hover {
+    background: var(--color-electric-blue);
+    color: white;
+    transform: translateY(-50%) scale(1.1);
+    box-shadow: var(--shadow-card-hover);
+  }
+
+  .carousel-nav.prev {
+    left: -22px;
+  }
+
+  .carousel-nav.next {
+    right: -22px;
+  }
+
+  /* ===== PAGINATION DOTS ===== */
+  .carousel-pagination {
+    @apply flex justify-center items-center gap-2 mt-6;
+  }
+
+  .carousel-dot {
+    width: var(--carousel-dot-size);
+    height: var(--carousel-dot-size);
+    border-radius: 50%;
+    background-color: var(--color-neutral-400);
+    transition: all var(--timing-normal) var(--easing-premium);
+    cursor: pointer;
+    border: none;
+    outline: none;
+    opacity: 0.6;
+  }
+
+  .carousel-dot:hover {
+    opacity: 0.8;
+    transform: scale(1.2);
+  }
+
+  .carousel-dot.active,
+  .carousel-dot.swiper-pagination-bullet-active {
+    width: var(--carousel-dot-active-size);
+    background: linear-gradient(90deg, var(--color-focus-gold) 0%, var(--color-warm-gold) 100%);
+    opacity: 1;
+    box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4);
+  }
+
+  /* ===== RIBBON/BADGE SYSTEM ===== */
+  .carousel-ribbon {
+    @apply inline-flex items-center justify-center font-semibold px-2 py-1 rounded-full text-xs;
+    background: linear-gradient(135deg, var(--color-focus-gold) 0%, var(--color-warm-gold) 100%);
+    color: var(--color-neutral-800);
+    box-shadow: 0 2px 4px rgba(255, 215, 0, 0.3);
+    transform: rotate(-1deg);
+    animation: subtle-pulse 2s ease-in-out infinite;
+  }
+
+  .carousel-ribbon.featured {
+    background: linear-gradient(135deg, var(--color-crimson-red) 0%, var(--color-sunset-orange) 100%);
+    color: white;
+    font-weight: 700;
+    transform: rotate(2deg);
+  }
+
+  .carousel-ribbon.live {
+    background: linear-gradient(135deg, var(--color-live) 0%, var(--color-pitch-green) 100%);
+    color: white;
+    animation: live-pulse 1.5s ease-in-out infinite;
   }
 
   /* ===== LOADING STATES ===== */
   .skeleton {
-    @apply animate-pulse bg-gray-200;
+    @apply animate-pulse;
     background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
     background-size: 200% 100%;
     animation: skeleton-loading 1.5s infinite;
   }
 
-  .loading-shimmer {
-    position: relative;
-    overflow: hidden;
-  }
-
-  .loading-shimmer::after {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    transform: translateX(-100%);
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
-    animation: shimmer 2s infinite;
-    content: '';
-  }
-
   /* ===== UTILITY CLASSES ===== */
   .text-gradient-primary {
     background: linear-gradient(135deg, var(--color-premier-purple), var(--color-electric-blue));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  .text-gradient-accent {
-    background: linear-gradient(135deg, var(--color-pitch-green), var(--color-focus-gold));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -467,146 +389,34 @@
   .bg-gradient-secondary {
     background: linear-gradient(135deg, var(--color-electric-blue) 0%, var(--color-sky-blue) 100%);
   }
-
-  .bg-gradient-accent {
-    background: linear-gradient(135deg, var(--color-pitch-green) 0%, var(--color-warm-gold) 100%);
-  }
-
-  /* Glass morphism effect */
-  .glass {
-    backdrop-filter: blur(10px);
-    background: rgba(255, 255, 255, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-  }
-
-  .glass-dark {
-    backdrop-filter: blur(10px);
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
-  /* ===== RESPONSIVE TYPOGRAPHY ===== */
-  .heading-xl {
-    @apply text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold;
-    font-family: var(--font-heading);
-    line-height: 1.1;
-    letter-spacing: -0.02em;
-  }
-
-  .heading-lg {
-    @apply text-xl md:text-2xl lg:text-3xl font-semibold;
-    font-family: var(--font-heading);
-  }
-
-  .heading-md {
-    @apply text-lg md:text-xl lg:text-2xl font-medium;
-    font-family: var(--font-heading);
-  }
-
-  .body-lg {
-    @apply text-base md:text-lg;
-    line-height: 1.7;
-  }
-
-  .body-sm {
-    @apply text-sm md:text-base;
-    line-height: 1.6;
-  }
 }
 
 /* -------------------------
-   Enhanced Utilities Layer
+   Utilities Layer
 ------------------------- */
 @layer utilities {
-  /* ===== CUSTOM TRANSFORMS ===== */
-  .scale-102 {
-    transform: scale(1.02);
-  }
+  /* Custom transforms */
+  .scale-102 { transform: scale(1.02); }
+  .scale-104 { transform: scale(1.04); }
+  .scale-108 { transform: scale(1.08); }
 
-  .scale-104 {
-    transform: scale(1.04);
-  }
+  /* Premium shadows */
+  .shadow-card { box-shadow: var(--shadow-card); }
+  .shadow-card-hover { box-shadow: var(--shadow-card-hover); }
+  .shadow-card-active { box-shadow: var(--shadow-card-active); }
+  .shadow-premium { box-shadow: var(--shadow-premium); }
+  .shadow-glow { box-shadow: var(--shadow-glow); }
+  .shadow-gold-glow { box-shadow: var(--shadow-gold-glow); }
 
-  .scale-108 {
-    transform: scale(1.08);
-  }
+  /* Focus utilities */
+  .focus-gold { --tw-ring-color: var(--color-focus-gold); }
+  .focus-primary { --tw-ring-color: var(--color-premier-purple); }
+  .focus-secondary { --tw-ring-color: var(--color-electric-blue); }
 
-  /* ===== PREMIUM SHADOWS ===== */
-  .shadow-card {
-    box-shadow: var(--shadow-card);
-  }
-
-  .shadow-card-hover {
-    box-shadow: var(--shadow-card-hover);
-  }
-
-  .shadow-card-active {
-    box-shadow: var(--shadow-card-active);
-  }
-
-  .shadow-premium {
-    box-shadow: var(--shadow-premium);
-  }
-
-  .shadow-glow {
-    box-shadow: var(--shadow-glow);
-  }
-
-  .shadow-gold-glow {
-    box-shadow: var(--shadow-gold-glow);
-  }
-
-  /* ===== FOCUS UTILITIES ===== */
-  .focus-gold {
-    --tw-ring-color: var(--color-focus-gold);
-  }
-
-  .focus-primary {
-    --tw-ring-color: var(--color-premier-purple);
-  }
-
-  .focus-secondary {
-    --tw-ring-color: var(--color-electric-blue);
-  }
-
-  /* ===== ANIMATION UTILITIES ===== */
-  .animate-fade-in {
-    animation: fade-in 0.5s ease-out;
-  }
-
-  .animate-slide-up {
-    animation: slide-up 0.5s ease-out;
-  }
-
-  .animate-scale-in {
-    animation: scale-in 0.3s ease-out;
-  }
-
-  /* ===== RESPONSIVE SPACING ===== */
-  .space-responsive {
-    @apply space-y-4 md:space-y-6 lg:space-y-8;
-  }
-
-  .gap-responsive {
-    @apply gap-4 md:gap-6 lg:gap-8;
-  }
-
-  /* ===== CONTAINER UTILITIES ===== */
-  .container-narrow {
-    max-width: 768px;
-    margin-left: auto;
-    margin-right: auto;
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
-
-  .container-wide {
-    max-width: 1400px;
-    margin-left: auto;
-    margin-right: auto;
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
+  /* Animation utilities */
+  .animate-fade-in { animation: fade-in 0.5s ease-out; }
+  .animate-slide-up { animation: slide-up 0.5s ease-out; }
+  .animate-scale-in { animation: scale-in 0.3s ease-out; }
 }
 
 /* -------------------------
@@ -632,11 +442,6 @@
   100% { background-position: 200% 0; }
 }
 
-@keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -653,6 +458,71 @@
 }
 
 /* -------------------------
+   Swiper Specific Overrides
+------------------------- */
+.swiper {
+  overflow: visible !important;
+}
+
+.swiper-slide {
+  height: auto;
+}
+
+.swiper-pagination-container {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  margin-top: 1.5rem !important;
+}
+
+.swiper-pagination-container .swiper-pagination-bullet {
+  width: var(--carousel-dot-size) !important;
+  height: var(--carousel-dot-size) !important;
+  background-color: var(--color-neutral-400) !important;
+  opacity: 0.6 !important;
+  border-radius: 50% !important;
+  transition: all var(--timing-normal) var(--easing-premium) !important;
+  margin: 0 !important;
+}
+
+.swiper-pagination-container .swiper-pagination-bullet:hover {
+  opacity: 0.8 !important;
+  transform: scale(1.2) !important;
+}
+
+.swiper-pagination-container .swiper-pagination-bullet-active {
+  width: var(--carousel-dot-active-size) !important;
+  background: linear-gradient(90deg, var(--color-focus-gold) 0%, var(--color-warm-gold) 100%) !important;
+  opacity: 1 !important;
+  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4) !important;
+}
+
+.swiper-button-next,
+.swiper-button-prev {
+  width: var(--carousel-navigation-size) !important;
+  height: var(--carousel-navigation-size) !important;
+  background: white !important;
+  border-radius: 50% !important;
+  box-shadow: var(--shadow-card) !important;
+  color: var(--color-neutral-700) !important;
+  transition: all var(--timing-fast) var(--easing-smooth) !important;
+}
+
+.swiper-button-next:hover,
+.swiper-button-prev:hover {
+  background: var(--color-electric-blue) !important;
+  color: white !important;
+  transform: scale(1.1) !important;
+  box-shadow: var(--shadow-card-hover) !important;
+}
+
+.swiper-button-next:after,
+.swiper-button-prev:after {
+  font-size: 16px !important;
+}
+
+/* -------------------------
    Motion Preferences
 ------------------------- */
 @media (prefers-reduced-motion: reduce) {
@@ -664,115 +534,13 @@
     transition-duration: 0.01ms !important;
   }
 
+  .fixture-card,
   .carousel-card,
+  .fixture-card:hover,
   .carousel-card:hover,
+  .fixture-card.active,
   .carousel-card.active {
     transform: none !important;
     transition: none !important;
   }
-
-  .carousel-dot,
-  .carousel-nav,
-  .team-logo {
-    transform: none !important;
-    transition: none !important;
-  }
-}
-
-/* -------------------------
-   High Contrast Mode Support
-------------------------- */
-@media (prefers-contrast: high) {
-  .carousel-card {
-    border: 2px solid var(--color-neutral-800);
-  }
-
-  .carousel-card:hover,
-  .carousel-card.active {
-    border-color: var(--color-focus-gold);
-    background: var(--color-neutral-50);
-  }
-
-  .carousel-dot {
-    border: 1px solid var(--color-neutral-800);
-  }
-}
-
-/* -------------------------
-   Print Styles
-------------------------- */
-@media print {
-  .carousel-nav,
-  .carousel-pagination {
-    display: none !important;
-  }
-
-  .carousel-card {
-    break-inside: avoid;
-    box-shadow: none !important;
-    border: 1px solid #000 !important;
-  }
-}
-/* Add this to your CSS file to ensure carousel cards are working */
-
-/* Force carousel card styling in case CSS variables aren't loading */
-.carousel-card {
-  background: white !important;
-  border-radius: 0.75rem !important; /* rounded-xl */
-  box-shadow: 0 4px 12px rgba(61, 25, 91, 0.1) !important;
-  border: 1px solid #E5E5E5 !important;
-  transition: all 300ms cubic-bezier(0.23, 1, 0.32, 1) !important;
-  position: relative;
-  overflow: hidden;
-}
-
-.carousel-card:hover {
-  transform: scale(1.02) translateY(-2px) !important;
-  box-shadow: 0 6px 18px rgba(61, 25, 91, 0.15) !important;
-  border-color: #00A86B !important; /* pitch green */
-}
-
-.carousel-card:focus-visible {
-  outline: none !important;
-  box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.3), 0 6px 18px rgba(61, 25, 91, 0.15) !important;
-}
-
-/* Ensure Swiper pagination is centered */
-.swiper-pagination-container {
-  display: flex !important;
-  justify-content: center !important;
-  align-items: center !important;
-  gap: 0.5rem !important;
-}
-
-/* Custom pagination bullet styling */
-.swiper-pagination-container .swiper-pagination-bullet {
-  width: 12px !important;
-  height: 12px !important;
-  background-color: #A3A3A3 !important;
-  opacity: 0.6 !important;
-  border-radius: 50% !important;
-  transition: all 300ms ease !important;
-}
-
-.swiper-pagination-container .swiper-pagination-bullet:hover {
-  opacity: 0.8 !important;
-  transform: scale(1.2) !important;
-}
-
-.swiper-pagination-container .swiper-pagination-bullet-active {
-  width: 32px !important;
-  background: linear-gradient(90deg, #FFD700 0%, #FFB800 100%) !important;
-  opacity: 1 !important;
-  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4) !important;
-}
-
-/* Team logo hover effects */
-.team-logo {
-  transition: all 150ms ease !important;
-}
-
-.team-logo:hover {
-  transform: scale(1.05) !important;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15)) !important;
 }
