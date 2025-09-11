@@ -2,11 +2,12 @@
 import React from 'react';
 import type { FeaturedFixtureWithImportance } from '../../../types';
 import { Swiper, SwiperSlide } from 'swiper/react';
+import { Navigation, Pagination, FreeMode } from 'swiper/modules';
+import UnifiedFixtureCard from '../FixtureCard/UnifiedFixtureCard';
+
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
-import { Navigation, Pagination, FreeMode } from 'swiper/modules';
-import UnifiedFixtureCard from '../FixtureCard/UnifiedFixtureCard';
 
 interface Props {
   fixtures: FeaturedFixtureWithImportance[];
@@ -61,6 +62,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
         navigation={{
           nextEl: '.swiper-button-next',
           prevEl: '.swiper-button-prev',
+          enabled: true,
         }}
         pagination={{
           clickable: true,
@@ -69,7 +71,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
             return `<span class="${className} carousel-dot" aria-label="Go to slide ${index + 1}"></span>`;
           },
         }}
-        loop={fixtures.length > 1}
+        loop={fixtures.length > 2} // Only enable loop if we have more than 2 slides
         freeMode={{ 
           enabled: true, 
           momentum: true,
@@ -97,7 +99,9 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
         }}
         centeredSlides={true}
         grabCursor={true}
+        watchOverflow={true} // Hide navigation when not needed
         className="carousel-swiper"
+        style={{ paddingLeft: '50px', paddingRight: '50px' }} // Add padding for arrows
       >
         {fixtures.map((fixture) => (
           <SwiperSlide key={fixture.id}>
@@ -109,7 +113,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                 showCompetition={true}
                 showVenue={true}
                 showImportanceBadge={true}
-                // onClick={onGameSelect}
+                onClick={onGameSelect}
               />
             </div>
           </SwiperSlide>
