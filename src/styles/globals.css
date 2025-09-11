@@ -1,3 +1,4 @@
+// src/styles/globals.css
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -290,27 +291,69 @@
   }
 
   /* ===== CAROUSEL NAVIGATION ===== */
-  .carousel-nav {
-    @apply absolute top-1/2 transform -translate-y-1/2 z-20 bg-white rounded-full shadow-lg;
+  .carousel-nav,
+  .swiper-button-next,
+  .swiper-button-prev {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 20;
     width: var(--carousel-navigation-size);
     height: var(--carousel-navigation-size);
+    background: white;
+    border-radius: 50%;
     box-shadow: var(--shadow-card);
     transition: all var(--timing-fast) var(--easing-smooth);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: 1px solid rgba(0, 0, 0, 0.1);
   }
 
-  .carousel-nav:hover {
+  .carousel-nav:hover,
+  .swiper-button-next:hover,
+  .swiper-button-prev:hover {
     background: var(--color-electric-blue);
     color: white;
     transform: translateY(-50%) scale(1.1);
     box-shadow: var(--shadow-card-hover);
   }
 
-  .carousel-nav.prev {
+  .carousel-nav:active,
+  .swiper-button-next:active,
+  .swiper-button-prev:active {
+    transform: translateY(-50%) scale(0.95);
+  }
+
+  .carousel-nav.prev,
+  .swiper-button-prev {
     left: -22px;
   }
 
-  .carousel-nav.next {
+  .carousel-nav.next,
+  .swiper-button-next {
     right: -22px;
+  }
+
+  /* Override default Swiper button styles */
+  .swiper-button-next:after,
+  .swiper-button-prev:after {
+    content: none; /* Remove default arrows */
+  }
+
+  /* Ensure buttons are visible */
+  .swiper-button-next.swiper-button-disabled,
+  .swiper-button-prev.swiper-button-disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  .swiper-button-next.swiper-button-disabled:hover,
+  .swiper-button-prev.swiper-button-disabled:hover {
+    background: white;
+    color: inherit;
+    transform: translateY(-50%);
   }
 
   /* ===== PAGINATION DOTS ===== */
