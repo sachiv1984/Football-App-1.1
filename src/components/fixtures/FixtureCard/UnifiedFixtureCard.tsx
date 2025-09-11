@@ -1,3 +1,4 @@
+// src/components/fixtures/FixtureCard/UnifiedFixtureCard.tsx
 import React from 'react';
 import type { Fixture, FeaturedFixtureWithImportance } from '../../../types';
 
@@ -41,7 +42,6 @@ const UnifiedFixtureCard: React.FC<UnifiedFixtureCardProps> = ({
   // Status checks
   const isLive = status === 'live';
   const isFinished = status === 'finished';
-  const isUpcoming = status === 'upcoming';
   const hasScore = isLive || isFinished;
 
   // Format date and time
@@ -58,7 +58,7 @@ const UnifiedFixtureCard: React.FC<UnifiedFixtureCardProps> = ({
   });
 
   // Team name handling - use shortName if available, otherwise truncate
-  const getTeamDisplayName = (team: typeof homeTeam) => {
+  const getTeamDisplayName = (team: typeof homeTeam): string => {
     if (team.shortName) return team.shortName;
     return team.name.length > 12 ? team.name.substring(0, 12) + '...' : team.name;
   };
@@ -104,7 +104,28 @@ const UnifiedFixtureCard: React.FC<UnifiedFixtureCardProps> = ({
 
   const sizeClasses = getSizeClasses();
 
-  // Variant-based layout
+  // Render team logo
+  const renderTeamLogo = (team: typeof homeTeam, sizeClass: string) => {
+    if (team.logo) {
+      return (
+        <img 
+          src={team.logo} 
+          alt={team.name} 
+          className={`${sizeClass} object-contain team-logo`}
+        />
+      );
+    }
+    
+    return (
+      <div className={`${sizeClass} bg-neutral-200 rounded-full flex items-center justify-center`}>
+        <span className="text-sm font-bold text-neutral-600">
+          {team.name[0]}
+        </span>
+      </div>
+    );
+  };
+
+  // Carousel layout - vertical teams
   const renderCarouselLayout = () => (
     <div className="flex flex-col justify-between h-full">
       {/* Header - Competition & Week */}
@@ -135,19 +156,7 @@ const UnifiedFixtureCard: React.FC<UnifiedFixtureCardProps> = ({
         <div className="flex items-center justify-center gap-6 w-full">
           {/* Home Team */}
           <div className="flex flex-col items-center flex-1 min-w-0 max-w-[90px]">
-            {homeTeam.logo ? (
-              <img 
-                src={homeTeam.logo} 
-                alt={homeTeam.name} 
-                className="w-16 h-16 object-contain mb-2 team-logo" 
-              />
-            ) : (
-              <div className="w-16 h-16 bg-neutral-200 rounded-full flex items-center justify-center mb-2">
-                <span className="text-lg font-bold text-neutral-600">
-                  {homeTeam.name[0]}
-                </span>
-              </div>
-            )}
+            {renderTeamLogo(homeTeam, 'w-16 h-16 mb-2')}
             <span className="text-sm font-medium text-neutral-700 text-center truncate w-full leading-tight">
               {homeDisplayName}
             </span>
@@ -181,19 +190,7 @@ const UnifiedFixtureCard: React.FC<UnifiedFixtureCardProps> = ({
 
           {/* Away Team */}
           <div className="flex flex-col items-center flex-1 min-w-0 max-w-[90px]">
-            {awayTeam.logo ? (
-              <img 
-                src={awayTeam.logo} 
-                alt={awayTeam.name} 
-                className="w-16 h-16 object-contain mb-2 team-logo" 
-              />
-            ) : (
-              <div className="w-16 h-16 bg-neutral-200 rounded-full flex items-center justify-center mb-2">
-                <span className="text-lg font-bold text-neutral-600">
-                  {awayTeam.name[0]}
-                </span>
-              </div>
-            )}
+            {renderTeamLogo(awayTeam, 'w-16 h-16 mb-2')}
             <span className="text-sm font-medium text-neutral-700 text-center truncate w-full leading-tight">
               {awayDisplayName}
             </span>
@@ -215,25 +212,14 @@ const UnifiedFixtureCard: React.FC<UnifiedFixtureCardProps> = ({
     </div>
   );
 
+  // List layout - horizontal teams
   const renderListLayout = () => (
     <div className="flex items-center justify-between w-full">
       {/* Left Side - Teams */}
       <div className={`flex flex-col ${sizeClasses.teamSpacing} flex-1`}>
         {/* Home Team */}
         <div className={`flex items-center ${sizeClasses.spacing}`}>
-          {homeTeam.logo ? (
-            <img 
-              src={homeTeam.logo} 
-              alt={homeTeam.name} 
-              className={`${sizeClasses.logo} object-contain flex-shrink-0 team-logo`}
-            />
-          ) : (
-            <div className={`${sizeClasses.logo} bg-neutral-200 rounded-full flex items-center justify-center flex-shrink-0`}>
-              <span className="text-sm font-bold text-neutral-600">
-                {homeTeam.name[0]}
-              </span>
-            </div>
-          )}
+          {renderTeamLogo(homeTeam, `${sizeClasses.logo} flex-shrink-0`)}
           <span className={`font-medium text-neutral-800 ${sizeClasses.teamText} truncate`}>
             {homeDisplayName}
           </span>
@@ -241,19 +227,7 @@ const UnifiedFixtureCard: React.FC<UnifiedFixtureCardProps> = ({
 
         {/* Away Team */}
         <div className={`flex items-center ${sizeClasses.spacing}`}>
-          {awayTeam.logo ? (
-            <img 
-              src={awayTeam.logo} 
-              alt={awayTeam.name} 
-              className={`${sizeClasses.logo} object-contain flex-shrink-0 team-logo`}
-            />
-          ) : (
-            <div className={`${sizeClasses.logo} bg-neutral-200 rounded-full flex items-center justify-center flex-shrink-0`}>
-              <span className="text-sm font-bold text-neutral-600">
-                {awayTeam.name[0]}
-              </span>
-            </div>
-          )}
+          {renderTeamLogo(awayTeam, `${sizeClasses.logo} flex-shrink-0`)}
           <span className={`font-medium text-neutral-800 ${sizeClasses.teamText} truncate`}>
             {awayDisplayName}
           </span>
@@ -292,24 +266,13 @@ const UnifiedFixtureCard: React.FC<UnifiedFixtureCardProps> = ({
     </div>
   );
 
+  // Compact layout - side by side teams
   const renderCompactLayout = () => (
     <div className="flex items-center justify-between w-full">
       {/* Teams - Side by side */}
       <div className="flex items-center gap-4 flex-1">
         <div className="flex items-center gap-2">
-          {homeTeam.logo ? (
-            <img 
-              src={homeTeam.logo} 
-              alt={homeTeam.name} 
-              className="w-6 h-6 object-contain team-logo" 
-            />
-          ) : (
-            <div className="w-6 h-6 bg-neutral-200 rounded-full flex items-center justify-center">
-              <span className="text-xs font-bold text-neutral-600">
-                {homeTeam.name[0]}
-              </span>
-            </div>
-          )}
+          {renderTeamLogo(homeTeam, 'w-6 h-6')}
           <span className="text-sm font-medium text-neutral-800 truncate max-w-[80px]">
             {homeDisplayName}
           </span>
@@ -318,19 +281,7 @@ const UnifiedFixtureCard: React.FC<UnifiedFixtureCardProps> = ({
         <span className="text-neutral-400 text-sm">vs</span>
 
         <div className="flex items-center gap-2">
-          {awayTeam.logo ? (
-            <img 
-              src={awayTeam.logo} 
-              alt={awayTeam.name} 
-              className="w-6 h-6 object-contain team-logo" 
-            />
-          ) : (
-            <div className="w-6 h-6 bg-neutral-200 rounded-full flex items-center justify-center">
-              <span className="text-xs font-bold text-neutral-600">
-                {awayTeam.name[0]}
-              </span>
-            </div>
-          )}
+          {renderTeamLogo(awayTeam, 'w-6 h-6')}
           <span className="text-sm font-medium text-neutral-800 truncate max-w-[80px]">
             {awayDisplayName}
           </span>
@@ -369,7 +320,17 @@ const UnifiedFixtureCard: React.FC<UnifiedFixtureCardProps> = ({
 
   // Handle click
   const handleClick = () => {
-    if (onClick) onClick(fixture);
+    if (onClick) {
+      onClick(fixture);
+    }
+  };
+
+  // Handle keyboard navigation
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (onClick && (event.key === 'Enter' || event.key === ' ')) {
+      event.preventDefault();
+      handleClick();
+    }
   };
 
   // Container classes
@@ -384,16 +345,11 @@ const UnifiedFixtureCard: React.FC<UnifiedFixtureCardProps> = ({
   return (
     <div 
       className={containerClasses}
-      onClick={handleClick}
+      onClick={onClick ? handleClick : undefined}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
       aria-label={onClick ? `View match between ${homeTeam.name} and ${awayTeam.name}` : undefined}
-      onKeyDown={onClick ? (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          handleClick();
-        }
-      } : undefined}
+      onKeyDown={onClick ? handleKeyDown : undefined}
     >
       {renderContent()}
     </div>
