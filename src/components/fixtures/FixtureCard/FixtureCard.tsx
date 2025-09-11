@@ -7,7 +7,7 @@ interface FixtureCardProps {
   fixture?: Fixture | FeaturedFixtureWithImportance;
   size?: 'sm' | 'md' | 'lg';
   showCompetition?: boolean;
-  onClick?: (fixture: Fixture) => void;
+  onClick,
   showAIInsight?: boolean;
   showVenue?: boolean;
   className?: string;
