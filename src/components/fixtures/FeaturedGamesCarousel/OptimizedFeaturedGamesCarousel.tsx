@@ -1,5 +1,5 @@
 // src/components/fixtures/FeaturedGamesCarousel/OptimizedFeaturedGamesCarousel.tsx
-import React from 'react';
+import React, { useRef } from 'react';
 import type { FeaturedFixtureWithImportance } from '../../../types';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Pagination, FreeMode } from 'swiper/modules';
@@ -22,6 +22,8 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   className = '',
   isLoading = false,
 }) => {
+  const swiperRef = useRef<any>(null);
+
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 p-6">
