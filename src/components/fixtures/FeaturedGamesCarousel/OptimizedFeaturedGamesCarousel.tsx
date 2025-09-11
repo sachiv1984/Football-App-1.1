@@ -61,9 +61,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
     >
       <Swiper
         modules={[Navigation, Pagination, FreeMode]}
-        onSwiper={(swiper) => {
-          swiperRef.current = swiper;
-        }}
         navigation={{
           nextEl: '.swiper-button-next',
           prevEl: '.swiper-button-prev',
