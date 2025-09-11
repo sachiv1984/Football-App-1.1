@@ -5,6 +5,7 @@ import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 import { Navigation, Pagination, FreeMode } from 'swiper/modules';
+import './styles/globals.css';
 
 interface Props {
   fixtures: FeaturedFixtureWithImportance[];
