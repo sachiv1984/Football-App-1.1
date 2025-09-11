@@ -83,8 +83,8 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
   }
 
   const fixturesToRender = useGameWeekMode
-    ? gameWeekFixtures.filter(f => ['live', 'finished', 'upcoming'].includes(f.status))
-    : fixture
+  ? gameWeekFixtures.filter(f => ['live', 'finished', 'upcoming'].includes(f.status ?? ''))
+  : fixture
     ? [fixture]
     : [];
 
