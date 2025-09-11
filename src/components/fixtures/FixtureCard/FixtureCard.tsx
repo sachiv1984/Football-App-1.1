@@ -30,7 +30,7 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
   fixture,
   size = 'md',
   showCompetition = false,
-  onClick,
+  onClick?: (fixture: Fixture | FeaturedFixtureWithImportance | Game) => void;
   className = '',
   useGameWeekMode = false,
   refreshInterval = 5 * 60 * 1000,
