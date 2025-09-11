@@ -5,7 +5,6 @@ import Footer from '../components/common/Footer/Footer';
 import FixtureCard from '../components/fixtures/FixtureCard/FixtureCard';
 import { designTokens } from '../styles/designTokens';
 import OptimizedFeaturedGamesCarousel from '../components/fixtures/FeaturedGamesCarousel/OptimizedFeaturedGamesCarousel';
-import { FixturesDebugTable } from '../components/FixturesDebugTable';
 import { ErrorBoundary, CarouselErrorBoundary } from '../components/ErrorBoundary';
 import { useFixtures } from '../hooks/useFixtures';
 import { useGameWeekFixtures } from '../hooks/useGameWeekFixtures';
@@ -17,7 +16,6 @@ import { FeaturedFixtureWithImportance, Game } from '../types';
 // -------------------------
 const HomePage: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [showDebugTable, setShowDebugTable] = useState(true);
 
   // Existing hooks
   const { featuredFixtures, loading, error } = useFixtures();
