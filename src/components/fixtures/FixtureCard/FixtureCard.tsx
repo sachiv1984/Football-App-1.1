@@ -1,17 +1,19 @@
+// src/components/fixtures/FixtureCard/FixtureCard.tsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { FixtureService } from '../../../services/fixtures/fixtureService';
 import type { Fixture, FeaturedFixtureWithImportance } from '../../../types';
 
 interface FixtureCardProps {
-  fixture?: Fixture;
+  fixture?: Fixture | FeaturedFixtureWithImportance;
   size?: 'sm' | 'md' | 'lg';
   showCompetition?: boolean;
-  onClick?: (fixture: Fixture | FeaturedFixtureWithImportance) => void;
+  onClick?: (fixture: Fixture) => void;
   showAIInsight?: boolean;
   showVenue?: boolean;
   className?: string;
   useGameWeekMode?: boolean;
-  refreshInterval?: number; // ms
+  refreshInterval?: number;
+  isSkeleton?: boolean; // NEW
 }
 
 interface GameWeekInfo {
@@ -25,39 +27,30 @@ interface GameWeekInfo {
 const fixtureService = new FixtureService();
 
 const FixtureCard: React.FC<FixtureCardProps> = ({
-  fixture: singleFixture,
+  fixture,
   size = 'md',
   showCompetition = false,
   onClick,
   className = '',
   useGameWeekMode = false,
   refreshInterval = 5 * 60 * 1000,
+  isSkeleton = false,
 }) => {
-  // -------------------------
-  // State
-  // -------------------------
   const [gameWeekFixtures, setGameWeekFixtures] = useState<FeaturedFixtureWithImportance[]>([]);
   const [gameWeekInfo, setGameWeekInfo] = useState<GameWeekInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(useGameWeekMode);
+  const [isLoading, setIsLoading] = useState(useGameWeekMode && !isSkeleton);
   const [error, setError] = useState<string | null>(null);
 
-  // -------------------------
-  // Fetch game week data
-  // -------------------------
   const fetchGameWeekData = useCallback(async () => {
     if (!useGameWeekMode) return;
-
     try {
       setError(null);
-      setIsLoading(true);
-
       const [weekFixtures, weekInfo] = await Promise.all([
         fixtureService.getCurrentGameWeekFixtures(),
-        fixtureService.getGameWeekInfo(),
+        fixtureService.getGameWeekInfo()
       ]);
-
-      setGameWeekFixtures(weekFixtures ?? []);
-      setGameWeekInfo(weekInfo ?? null);
+      setGameWeekFixtures(weekFixtures);
+      setGameWeekInfo(weekInfo);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch fixtures');
       console.error('Error fetching game week fixtures:', err);
@@ -67,36 +60,39 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
   }, [useGameWeekMode]);
 
   useEffect(() => {
-    if (useGameWeekMode) {
+    if (useGameWeekMode && !isSkeleton) {
       fetchGameWeekData();
       const interval = setInterval(fetchGameWeekData, refreshInterval);
       return () => clearInterval(interval);
     }
-  }, [fetchGameWeekData, refreshInterval, useGameWeekMode]);
+  }, [fetchGameWeekData, refreshInterval, useGameWeekMode, isSkeleton]);
 
-  // -------------------------
-  // Determine fixtures to render
-  // -------------------------
-  const fixturesToRender: (Fixture | FeaturedFixtureWithImportance)[] = useGameWeekMode
-    ? gameWeekFixtures.filter((f) =>
-        ['live', 'finished', 'upcoming'].includes(f.status ?? '')
-      )
-    : singleFixture
-    ? [singleFixture]
+  if (isSkeleton) {
+    // Skeleton card layout
+    const padding = size === 'sm' ? 'p-3' : size === 'lg' ? 'p-8' : 'p-6';
+    return (
+      <div className={`carousel-card ${padding} space-y-3 ${className}`}>
+        <div className="h-6 bg-neutral-300 rounded w-1/2 animate-pulse" />
+        <div className="flex justify-between items-center">
+          <div className="h-10 w-10 bg-neutral-300 rounded-full animate-pulse" />
+          <div className="h-10 w-10 bg-neutral-300 rounded-full animate-pulse" />
+          <div className="h-6 w-12 bg-neutral-300 rounded animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+
+  const fixturesToRender = useGameWeekMode
+    ? gameWeekFixtures.filter(f => ['live', 'finished', 'upcoming'].includes(f.status))
+    : fixture
+    ? [fixture]
     : [];
 
-  // -------------------------
-  // Loading / Error / Empty States
-  // -------------------------
   if (useGameWeekMode && isLoading) {
     return (
       <div className={`space-y-4 ${className}`}>
-        <div className="flex justify-between items-center">
-          <div className="h-6 skeleton rounded w-32"></div>
-          <div className="h-4 skeleton rounded w-24"></div>
-        </div>
         {[...Array(6)].map((_, idx) => (
-          <div key={idx} className="skeleton rounded-xl h-20" />
+          <FixtureCard key={idx} isSkeleton size={size} />
         ))}
       </div>
     );
@@ -124,34 +120,21 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
     ) : null;
   }
 
-  // -------------------------
-  // Single fixture card renderer
-  // -------------------------
-  const renderFixtureCard = (fixture: Fixture | FeaturedFixtureWithImportance, index?: number) => {
+  const renderFixtureCard = (f: Fixture, index?: number) => {
     const {
       homeTeam,
       awayTeam,
       dateTime,
-      status,
-      homeScore = fixture.homeScore ?? fixture.score?.fullTime?.home ?? 0,
-      awayScore = fixture.awayScore ?? fixture.score?.fullTime?.away ?? 0,
-    } = fixture;
+      homeScore = f.homeScore ?? f.score?.fullTime?.home ?? 0,
+      awayScore = f.awayScore ?? f.score?.fullTime?.away ?? 0,
+    } = f;
 
-    const handleClick = () => {
-      if (onClick) onClick(fixture);
-    };
-
-    const isFinished = ['finished', 'live'].includes(status ?? '');
-
-    const homeShort = homeTeam.shortName ?? homeTeam.name;
-    const awayShort = awayTeam.shortName ?? awayTeam.name;
-
+    const handleClick = () => onClick?.(f);
+    const isFinished = ['finished', 'live'].includes(f.status ?? '');
+    const homeShort = f.homeTeam.shortName;
+    const awayShort = f.awayTeam.shortName;
     const matchDate = new Date(dateTime);
-    const formattedTime = matchDate.toLocaleTimeString('en-GB', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    });
+    const formattedTime = matchDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
 
     const logoSize = size === 'sm' ? 'w-6 h-6' : size === 'lg' ? 'w-10 h-10' : 'w-8 h-8';
     const textSize = size === 'sm' ? 'text-sm' : size === 'lg' ? 'text-lg' : 'text-base';
@@ -159,13 +142,8 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
     const scoreSize = size === 'sm' ? 'text-lg' : size === 'lg' ? 'text-3xl' : 'text-2xl';
 
     return (
-      <div
-        key={fixture.id || index}
-        className={`carousel-card ${cardPadding} ${onClick ? 'cursor-pointer' : ''} ${useGameWeekMode ? '' : className}`}
-        onClick={handleClick}
-      >
+      <div key={f.id || index} className={`carousel-card ${cardPadding} ${onClick ? 'cursor-pointer' : ''} ${className}`} onClick={handleClick}>
         <div className="flex items-center justify-between">
-          {/* Teams */}
           <div className="flex flex-col space-y-4 flex-1">
             {/* Home */}
             <div className="flex items-center space-x-3">
@@ -192,19 +170,21 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
             </div>
           </div>
 
-          {/* Time / Score */}
-          <div className="flex items-center justify-center ml-6 pl-6 border-l border-neutral-200 min-w-[70px] text-center">
+          {/* Score / Time */}
+          <div className="flex items-center justify-center ml-6 pl-6 border-l border-neutral-200">
             {isFinished ? (
-              <>
-                <div className={`${scoreSize} font-bold text-neutral-800`}>{homeScore}</div>
-                <div className={`${scoreSize} font-bold text-neutral-800`}>{awayScore}</div>
+              <div className="text-center min-w-[70px]">
+                <div className={`${scoreSize} font-bold text-neutral-800 mb-1`}>{homeScore}</div>
+                <div className={`${scoreSize} font-bold text-neutral-800 mb-1`}>{awayScore}</div>
                 <div className="text-xs text-neutral-500 font-medium">
-                  {status === 'live' ? <span className="status-live">LIVE</span> : 'Full time'}
+                  {f.status === 'live' ? <span className="status-live">LIVE</span> : 'Full time'}
                 </div>
-              </>
+              </div>
             ) : (
-              <div className={`${size === 'sm' ? 'text-base' : size === 'lg' ? 'text-2xl' : 'text-xl'} font-semibold text-neutral-800`}>
-                {formattedTime}
+              <div className="text-center min-w-[70px]">
+                <div className={`${size === 'sm' ? 'text-base' : size === 'lg' ? 'text-2xl' : 'text-xl'} font-semibold text-neutral-800`}>
+                  {formattedTime}
+                </div>
               </div>
             )}
           </div>
@@ -213,35 +193,27 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
     );
   };
 
-  // -------------------------
-  // Render for game week mode
-  // -------------------------
   if (useGameWeekMode) {
     return (
       <div className={`space-y-4 ${className}`}>
-        {/* Header */}
         {gameWeekInfo && (
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-bold text-gray-800">Matchday {gameWeekInfo.currentWeek}</h2>
             <div className="text-sm text-gray-600">
-              {gameWeekInfo.isComplete ? (
-                <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full font-medium">Complete</span>
-              ) : (
-                <span>{gameWeekInfo.finishedGames}/{gameWeekInfo.totalGames} played</span>
-              )}
+              {gameWeekInfo.isComplete
+                ? <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full font-medium">Complete</span>
+                : <span>{gameWeekInfo.finishedGames}/{gameWeekInfo.totalGames} played</span>}
             </div>
           </div>
         )}
 
-        {/* Fixtures */}
         <div className="grid grid-cols-1 gap-4">
-          {fixturesToRender.map((fixture, idx) => renderFixtureCard(fixture, idx))}
+          {fixturesToRender.map((f, idx) => renderFixtureCard(f, idx))}
         </div>
       </div>
     );
   }
 
-  // Single fixture mode
   return renderFixtureCard(fixturesToRender[0]);
 };
 
