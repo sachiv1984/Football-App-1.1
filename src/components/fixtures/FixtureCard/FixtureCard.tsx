@@ -1,13 +1,15 @@
+src/components/fixtures/FixtureCard/FixtureCard.tsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { FixtureService } from '../../../services/fixtures/fixtureService';
 import type { Fixture, FeaturedFixtureWithImportance } from '../../../types';
+import UnifiedFixtureCard from './UnifiedFixtureCard';
 
 interface FixtureCardProps {
   fixture?: Fixture;
   size?: 'sm' | 'md' | 'lg';
+  variant?: 'list' | 'compact';
   showCompetition?: boolean;
   onClick?: (fixture: Fixture) => void;
-  showAIInsight?: boolean;
   showVenue?: boolean;
   className?: string;
   // New prop to enable game week mode
@@ -28,8 +30,10 @@ const fixtureService = new FixtureService();
 const FixtureCard: React.FC<FixtureCardProps> = ({
   fixture: singleFixture,
   size = 'md',
+  variant = 'list',
   showCompetition = false,
   onClick,
+  showVenue = true,
   className = '',
   useGameWeekMode = false,
   refreshInterval = 5 * 60 * 1000, // 5 minutes
@@ -75,10 +79,10 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
 
   // Determine which fixtures to render
   const fixturesToRender = useGameWeekMode
-  ? gameWeekFixtures.filter(f => f.status === 'live' || f.status === 'finished' || f.status === 'upcoming')
-  : singleFixture
-  ? [singleFixture]
-  : [];
+    ? gameWeekFixtures.filter(f => f.status === 'live' || f.status === 'finished' || f.status === 'upcoming')
+    : singleFixture
+    ? [singleFixture]
+    : [];
 
   // Loading state for game week mode
   if (useGameWeekMode && isLoading) {
@@ -99,10 +103,16 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
   if (useGameWeekMode && error) {
     return (
       <div className={`text-center py-8 ${className}`}>
-        <p className="text-error mb-4">Failed to load fixtures: {error}</p>
+        <div className="w-12 h-12 bg-error-light rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg className="w-6 h-6 text-error" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <p className="text-error mb-4">Failed to load fixtures</p>
+        <p className="text-neutral-500 text-sm mb-6">{error}</p>
         <button
           onClick={fetchGameWeekData}
-          className="btn btn-secondary px-4 py-2"
+          className="btn-secondary px-4 py-2 text-sm"
         >
           Try Again
         </button>
@@ -114,166 +124,164 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
   if (fixturesToRender.length === 0) {
     return useGameWeekMode ? (
       <div className={`text-center py-8 ${className}`}>
-        <p className="text-neutral-600">No fixtures available</p>
+        <div className="w-12 h-12 bg-neutral-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg className="w-6 h-6 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 002 2v12a2 2 0 002 2z" />
+          </svg>
+        </div>
+        <h3 className="text-lg font-semibold text-neutral-700 mb-2">No Fixtures Available</h3>
+        <p className="text-neutral-500">Check back later for upcoming matches.</p>
       </div>
     ) : null;
   }
 
-  // Single fixture card renderer
-  const renderFixtureCard = (fixture: Fixture, index?: number) => {
-    const {
-      homeTeam,
-      awayTeam,
-      dateTime,
-      //status,
-      homeScore = fixture.homeScore ?? fixture.score?.fullTime?.home ?? 0,
-      awayScore = fixture.awayScore ?? fixture.score?.fullTime?.away ?? 0,
-    } = fixture;
-
-    const handleClick = () => {
-      if (onClick) onClick(fixture);
-    };
-
-    const isFinished = ['finished', 'live'].includes(fixture.status ?? '');
-    //const homeScoreValue = fixture.homeScore ?? fixture.score?.fullTime?.home ?? 0;
-    //const awayScoreValue = fixture.awayScore ?? fixture.score?.fullTime?.away ?? 0;
-
-    // Use the shortName already set by FixtureService (same logic as carousel)
-    const homeShort = fixture.homeTeam.shortName;
-    const awayShort = fixture.awayTeam.shortName;
-
-    // Format time only (no date since we have header date)
-    const matchDate = new Date(dateTime);
-    const formattedTime = matchDate.toLocaleTimeString('en-GB', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    });
-
-    // Size-based styling
-    const logoSize = size === 'sm' ? 'w-6 h-6' : size === 'lg' ? 'w-10 h-10' : 'w-8 h-8';
-    const textSize = size === 'sm' ? 'text-sm' : size === 'lg' ? 'text-lg' : 'text-base';
-    const cardPadding = size === 'sm' ? 'p-3' : size === 'lg' ? 'p-8' : 'p-6';
-    const scoreSize = size === 'sm' ? 'text-lg' : size === 'lg' ? 'text-3xl' : 'text-2xl';
-
-    const cardClasses = `
-      carousel-card
-      ${cardPadding}
-      ${onClick ? 'cursor-pointer' : ''}
-      ${useGameWeekMode ? '' : className}
-    `.trim();
-
-    return (
-      <div key={fixture.id || index} className={cardClasses} onClick={handleClick}>
-        <div className="flex items-center justify-between">
-          {/* Left Side - Teams Stacked */}
-          <div className="flex flex-col space-y-4 flex-1">
-            {/* Home Team */}
-            <div className="flex items-center space-x-3">
-              {homeTeam.logo ? (
-                <img 
-                  src={homeTeam.logo} 
-                  alt={homeTeam.name} 
-                  className={`${logoSize} object-contain flex-shrink-0 team-logo`}
-                />
-              ) : (
-                <div className={`${logoSize} bg-neutral-200 rounded-full flex items-center justify-center flex-shrink-0`}>
-                  <span className="text-sm font-bold text-neutral-600">
-                    {homeTeam.name[0]}
-                  </span>
-                </div>
-              )}
-              <span className={`font-medium text-neutral-800 ${textSize}`}>
-                {homeShort}
-              </span>
-            </div>
-
-            {/* Away Team */}
-            <div className="flex items-center space-x-3">
-              {awayTeam.logo ? (
-                <img 
-                  src={awayTeam.logo} 
-                  alt={awayTeam.name} 
-                  className={`${logoSize} object-contain flex-shrink-0 team-logo`}
-                />
-              ) : (
-                <div className={`${logoSize} bg-neutral-200 rounded-full flex items-center justify-center flex-shrink-0`}>
-                  <span className="text-sm font-bold text-neutral-600">
-                    {awayTeam.name[0]}
-                  </span>
-                </div>
-              )}
-              <span className={`font-medium text-neutral-800 ${textSize}`}>
-                {awayShort}
-              </span>
-            </div>
-          </div>
-
-          {/* Right Side - Time/Score */}
-          <div className="flex items-center justify-center ml-6 pl-6 border-l border-neutral-200">
-            {isFinished ? (
-            <div className="text-center min-w-[70px]">
-              <div className={`${scoreSize} font-bold text-neutral-800 mb-1`}>
-                {homeScore}
-              </div>
-              <div className={`${scoreSize} font-bold text-neutral-800 mb-1`}>
-                {awayScore}
-              </div>
-              <div className="text-xs text-neutral-500 font-medium">
-                {fixture.status === 'live' ? (
-                  <span className="status-live">LIVE</span>
-                ) : (
-                  'Full time'
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="text-center min-w-[70px]">
-              <div className={`${size === 'sm' ? 'text-base' : size === 'lg' ? 'text-2xl' : 'text-xl'} font-semibold text-neutral-800`}>
-                {formattedTime}
-              </div>
-            </div>
-          )}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   // Game week mode: render multiple fixtures with header
   if (useGameWeekMode) {
+    // Group fixtures by status for better organization
+    const liveFixtures = fixturesToRender.filter(f => f.status === 'live');
+    const upcomingFixtures = fixturesToRender.filter(f => f.status === 'upcoming');
+    const finishedFixtures = fixturesToRender.filter(f => f.status === 'finished');
+
     return (
-      <div className={`space-y-4 ${className}`}>
+      <div className={`space-y-6 ${className}`}>
         {/* Game Week Header */}
         {gameWeekInfo && (
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold text-gray-800">
-              Matchday {gameWeekInfo.currentWeek}
-            </h2>
-            <div className="text-sm text-gray-600">
+          <div className="flex justify-between items-center pb-4 border-b border-neutral-200">
+            <div>
+              <h2 className="text-2xl font-bold text-neutral-800">
+                Matchday {gameWeekInfo.currentWeek}
+              </h2>
+              <p className="text-neutral-600 text-sm mt-1">
+                {gameWeekInfo.totalGames} matches this week
+              </p>
+            </div>
+            <div className="text-right">
               {gameWeekInfo.isComplete ? (
-                <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full font-medium">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-success-light text-success">
+                  <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
                   Complete
                 </span>
               ) : (
-                <span className="text-gray-600">
-                  {gameWeekInfo.finishedGames}/{gameWeekInfo.totalGames} played
-                </span>
+                <div className="text-sm text-neutral-600">
+                  <div className="font-medium">
+                    {gameWeekInfo.finishedGames}/{gameWeekInfo.totalGames} played
+                  </div>
+                  {gameWeekInfo.upcomingGames > 0 && (
+                    <div className="text-xs text-neutral-500">
+                      {gameWeekInfo.upcomingGames} upcoming
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>
         )}
 
-        {/* Fixtures Grid */}
-        <div className="grid grid-cols-1 gap-4">
-          {fixturesToRender.map((fixture, index) => renderFixtureCard(fixture, index))}
+        {/* Live Fixtures */}
+        {liveFixtures.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-success rounded-full animate-live-pulse"></div>
+              <h3 className="text-lg font-semibold text-neutral-800">Live Now</h3>
+              <span className="text-xs bg-success-light text-success px-2 py-1 rounded-full font-medium">
+                {liveFixtures.length}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 gap-3">
+              {liveFixtures.map((fixture) => (
+                <UnifiedFixtureCard
+                  key={fixture.id}
+                  fixture={fixture}
+                  variant={variant}
+                  size={size}
+                  showCompetition={showCompetition}
+                  showVenue={showVenue}
+                  onClick={onClick}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Upcoming Fixtures */}
+        {upcomingFixtures.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-warning rounded-full"></div>
+              <h3 className="text-lg font-semibold text-neutral-800">Upcoming</h3>
+              <span className="text-xs bg-warning-light text-warning px-2 py-1 rounded-full font-medium">
+                {upcomingFixtures.length}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 gap-3">
+              {upcomingFixtures.map((fixture) => (
+                <UnifiedFixtureCard
+                  key={fixture.id}
+                  fixture={fixture}
+                  variant={variant}
+                  size={size}
+                  showCompetition={showCompetition}
+                  showVenue={showVenue}
+                  onClick={onClick}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Finished Fixtures */}
+        {finishedFixtures.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-neutral-400 rounded-full"></div>
+              <h3 className="text-lg font-semibold text-neutral-800">Results</h3>
+              <span className="text-xs bg-neutral-100 text-neutral-600 px-2 py-1 rounded-full font-medium">
+                {finishedFixtures.length}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 gap-3">
+              {finishedFixtures.map((fixture) => (
+                <UnifiedFixtureCard
+                  key={fixture.id}
+                  fixture={fixture}
+                  variant={variant}
+                  size={size}
+                  showCompetition={showCompetition}
+                  showVenue={showVenue}
+                  onClick={onClick}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Refresh indicator */}
+        <div className="text-center pt-4 border-t border-neutral-100">
+          <p className="text-xs text-neutral-500">
+            Last updated: {new Date().toLocaleTimeString('en-GB', { 
+              hour: '2-digit', 
+              minute: '2-digit' 
+            })}
+          </p>
         </div>
       </div>
     );
   }
 
   // Single fixture mode: render just the fixture card
-  return renderFixtureCard(fixturesToRender[0]);
+  return (
+    <UnifiedFixtureCard
+      fixture={fixturesToRender[0]}
+      variant={variant}
+      size={size}
+      showCompetition={showCompetition}
+      showVenue={showVenue}
+      onClick={onClick}
+      className={className}
+    />
+  );
 };
 
 export default FixtureCard;
