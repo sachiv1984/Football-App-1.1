@@ -1,4 +1,5 @@
 // src/components/fixtures/FeaturedGamesCarousel/OptimizedFeaturedGamesCarousel.tsx
+import React, { useRef } from 'react';
 import type { FeaturedFixtureWithImportance } from '../../../types';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Pagination, FreeMode } from 'swiper/modules';
@@ -117,18 +118,6 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
           </SwiperSlide>
         ))}
       </Swiper>
-
-      {/* Custom Navigation Buttons */}
-      <div className="swiper-button-prev carousel-nav prev" aria-label="Previous slide">
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-        </svg>
-      </div>
-      <div className="swiper-button-next carousel-nav next" aria-label="Next slide">
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-        </svg>
-      </div>
 
       {/* Custom Pagination */}
       <div 
