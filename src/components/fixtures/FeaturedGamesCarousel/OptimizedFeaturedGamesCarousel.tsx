@@ -68,7 +68,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
               <FixtureCard
                 fixture={fixture}
                 size="md"
-                onClick={onGameSelect}
+                // onClick={onGameSelect}
                 className="carousel-card"
               />
             </div>
