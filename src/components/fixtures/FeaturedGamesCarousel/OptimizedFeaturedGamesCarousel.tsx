@@ -1,4 +1,4 @@
-src/components/fixtures/FeaturedGamesCarousel/OptimizedFeaturedGamesCarousel.tsx
+// src/components/fixtures/FeaturedGamesCarousel/OptimizedFeaturedGamesCarousel.tsx
 import React from 'react';
 import type { FeaturedFixtureWithImportance } from '../../../types';
 import { Swiper, SwiperSlide } from 'swiper/react';
