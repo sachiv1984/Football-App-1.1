@@ -33,6 +33,7 @@ module.exports = {
           800: "var(--color-electric-blue-800)",
           900: "var(--color-electric-blue-900)",
           DEFAULT: "var(--color-electric-blue)",
+          yellow: "var(--color-electric-yellow)",
         },
         pitch: {
           50: "var(--color-pitch-green-50)",
