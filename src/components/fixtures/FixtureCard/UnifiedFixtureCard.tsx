@@ -36,7 +36,7 @@ const UnifiedFixtureCard: React.FC<UnifiedFixtureCardProps> = ({
   const awayScore = fixture.awayScore ?? fixture.score?.fullTime?.away ?? 0;
 
   // Check if this is a featured fixture with importance
-  const isFeaturedFixture = 'importance' in fixture;
+  //const isFeaturedFixture = 'importance' in fixture;
   //const importance = isFeaturedFixture ? fixture.importance : 0;
 
   // Status checks
