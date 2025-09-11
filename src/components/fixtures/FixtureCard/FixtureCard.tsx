@@ -1,4 +1,4 @@
-src/components/fixtures/FixtureCard/FixtureCard.tsx
+// src/components/fixtures/FixtureCard/FixtureCard.tsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { FixtureService } from '../../../services/fixtures/fixtureService';
 import type { Fixture, FeaturedFixtureWithImportance } from '../../../types';
