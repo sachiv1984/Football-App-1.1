@@ -37,7 +37,7 @@ const UnifiedFixtureCard: React.FC<UnifiedFixtureCardProps> = ({
 
   // Check if this is a featured fixture with importance
   const isFeaturedFixture = 'importance' in fixture;
-  const importance = isFeaturedFixture ? fixture.importance : 0;
+  //const importance = isFeaturedFixture ? fixture.importance : 0;
 
   // Status checks
   const isLive = status === 'live';
