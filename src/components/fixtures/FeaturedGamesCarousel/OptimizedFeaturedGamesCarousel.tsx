@@ -22,7 +22,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
   className = '',
   isLoading = false,
 }) => {
-  const swiperRef = useRef<any>(null);
+  const swiperRef = useRef<SwiperType | null>(null);
 
   if (isLoading) {
     return (
