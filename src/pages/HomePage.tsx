@@ -176,7 +176,6 @@ const HomePage: React.FC = () => {
                           onClick={handleGameSelect}
                           size="lg"
                           showVenue={true}
-                          showAIInsight={true}
                           className="hover:scale-[1.02] transition-transform duration-200"
                         />
                       ))}
