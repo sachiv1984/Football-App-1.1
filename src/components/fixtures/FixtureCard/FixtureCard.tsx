@@ -7,7 +7,7 @@ interface FixtureCardProps {
   fixture?: Fixture | FeaturedFixtureWithImportance;
   size?: 'sm' | 'md' | 'lg';
   showCompetition?: boolean;
-  <button onClick={() => fixture && onClick?.(fixture)}>View Fixture</button>
+  onClick?: (fixture: Fixture | FeaturedFixtureWithImportance | Game) => void;
   showAIInsight?: boolean;
   showVenue?: boolean;
   className?: string;
@@ -30,7 +30,7 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
   fixture,
   size = 'md',
   showCompetition = false,
-  onClick?: (fixture: Fixture | FeaturedFixtureWithImportance | Game) => void;
+  <button onClick={() => fixture && onClick?.(fixture)}>View Fixture</button>
   className = '',
   useGameWeekMode = false,
   refreshInterval = 5 * 60 * 1000,
