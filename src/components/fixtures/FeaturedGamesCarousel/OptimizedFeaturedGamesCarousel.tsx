@@ -130,7 +130,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
 
       {/* Custom Pagination */}
       <div 
-        className="carousel-pagination swiper-pagination-container" 
+        className="carousel-pagination swiper-pagination-container mt-6 flex justify-center" 
         role="tablist"
         aria-label="Carousel pagination"
       />
