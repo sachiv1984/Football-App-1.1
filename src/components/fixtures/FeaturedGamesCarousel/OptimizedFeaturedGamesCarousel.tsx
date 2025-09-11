@@ -1,5 +1,4 @@
 // src/components/fixtures/FeaturedGamesCarousel/OptimizedFeaturedGamesCarousel.tsx
-import React, { useRef } from 'react';
 import type { FeaturedFixtureWithImportance } from '../../../types';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Pagination, FreeMode } from 'swiper/modules';
