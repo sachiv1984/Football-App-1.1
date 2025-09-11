@@ -291,6 +291,10 @@
   }
 
   /* ===== CAROUSEL NAVIGATION ===== */
+  .featured-games-carousel {
+    position: relative;
+  }
+
   .carousel-nav,
   .swiper-button-next,
   .swiper-button-prev {
@@ -309,6 +313,7 @@
     justify-content: center;
     cursor: pointer;
     border: 1px solid rgba(0, 0, 0, 0.1);
+    margin-top: 0; /* Override Swiper default */
   }
 
   .carousel-nav:hover,
@@ -328,12 +333,12 @@
 
   .carousel-nav.prev,
   .swiper-button-prev {
-    left: -22px;
+    left: 10px; /* Changed from -22px to be more flexible */
   }
 
   .carousel-nav.next,
   .swiper-button-next {
-    right: -22px;
+    right: 10px; /* Changed from -22px to be more flexible */
   }
 
   /* Override default Swiper button styles */
@@ -342,7 +347,7 @@
     content: none; /* Remove default arrows */
   }
 
-  /* Ensure buttons are visible */
+  /* Ensure buttons are visible and positioned correctly */
   .swiper-button-next.swiper-button-disabled,
   .swiper-button-prev.swiper-button-disabled {
     opacity: 0.3;
@@ -354,6 +359,31 @@
     background: white;
     color: inherit;
     transform: translateY(-50%);
+  }
+
+  /* Responsive positioning for arrows */
+  @media (max-width: 640px) {
+    .carousel-nav.prev,
+    .swiper-button-prev {
+      left: 5px;
+    }
+    
+    .carousel-nav.next,
+    .swiper-button-next {
+      right: 5px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .carousel-nav.prev,
+    .swiper-button-prev {
+      left: -22px; /* Back to original position on larger screens */
+    }
+    
+    .carousel-nav.next,
+    .swiper-button-next {
+      right: -22px; /* Back to original position on larger screens */
+    }
   }
 
   /* ===== PAGINATION DOTS ===== */
