@@ -109,7 +109,7 @@ const OptimizedFeaturedGamesCarousel: React.FC<Props> = ({
                 showCompetition={true}
                 showVenue={true}
                 showImportanceBadge={true}
-                onClick={onGameSelect}
+                // onClick={onGameSelect}
               />
             </div>
           </SwiperSlide>
