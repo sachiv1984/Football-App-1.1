@@ -205,9 +205,6 @@ const UnifiedFixtureCard: React.FC<UnifiedFixtureCardProps> = ({
             {venue}
           </div>
         )}
-        {showImportanceBadge && importance >= 80 && (
-          <span className="carousel-ribbon">Featured</span>
-        )}
       </div>
     </div>
   );
