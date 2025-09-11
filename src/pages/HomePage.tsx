@@ -56,25 +56,6 @@ const HomePage: React.FC = () => {
         {/* Header to Carousel Spacing - spacing.md mobile, spacing.lg desktop */}
         <div className="mt-4 lg:mt-6" />
 
-        {/* Debug Table */}
-        {showDebugTable && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4 flex justify-between items-center">
-              <div>
-                <h3 className="font-semibold text-yellow-800">🔍 API Debug Mode</h3>
-                <p className="text-sm text-yellow-700">Review API data</p>
-              </div>
-              <button
-                onClick={() => setShowDebugTable(false)}
-                className="text-yellow-600 hover:text-yellow-800 text-sm"
-              >
-                Hide Debug Table
-              </button>
-            </div>
-            <FixturesDebugTable />
-          </div>
-        )}
-
         {/* Featured Fixtures Section */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Section Heading */}
