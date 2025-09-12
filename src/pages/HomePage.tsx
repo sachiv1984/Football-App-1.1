@@ -22,7 +22,7 @@ const HomePage: React.FC = () => {
   // New game week hook
   const {
     fixtures: gameWeekFixtures,
-    gameWeekInfo,
+    //gameWeekInfo,
     isLoading: gameWeekLoading,
     error: gameWeekError,
     refetch: refetchGameWeek,
