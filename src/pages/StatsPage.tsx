@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import Header from '../components/common/Header/Header';
 import Footer from '../components/common/Footer/Footer';
-import MatchHeader from '../components/match/MatchHeader/MatchHeader';
+import MatchHeader from '../components/stats/match/MatchHeader';
 import { useFixtureNavigation } from '../hooks/useNavigation';
 import { useFixtures } from '../hooks/useFixtures';
 import { useGameWeekFixtures } from '../hooks/useGameWeekFixtures';
