@@ -55,7 +55,7 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({ fixture, className = '' }) =>
   const isLive = status === 'live';
 
   return (
-    <div className={`bg-white border-b border-gray-200 shadow-sm ${className}`}>
+    <div className={`bg-white border-b shadow-card ${className}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="py-6 lg:py-8">
           {/* Main Match Info */}
@@ -67,21 +67,21 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({ fixture, className = '' }) =>
                   <img 
                     src={homeTeam.logo} 
                     alt={homeTeam.name} 
-                    className="w-16 h-16 lg:w-20 lg:h-20 object-contain mx-auto"
+                    className="w-16 h-16 lg:w-20 lg:h-20 team-logo"
                   />
                 ) : (
-                  <div className="w-16 h-16 lg:w-20 lg:h-20 bg-gray-200 rounded-full flex items-center justify-center mx-auto">
-                    <span className="text-2xl lg:text-3xl font-bold text-gray-600">
+                  <div className="w-16 h-16 lg:w-20 lg:h-20 bg-neutral-200 rounded-full flex items-center justify-center">
+                    <span className="text-2xl lg:text-3xl font-bold text-neutral-600">
                       {homeTeam.name[0]}
                     </span>
                   </div>
                 )}
               </div>
-              <h2 className="text-lg lg:text-xl font-semibold text-gray-900 text-center max-w-[120px] lg:max-w-[150px]">
+              <h2 className="text-lg lg:text-xl font-semibold text-neutral-800 text-center max-w-[120px] lg:max-w-[150px] leading-tight">
                 {homeTeam.shortName || homeTeam.name}
               </h2>
               {isFinished && (
-                <div className="mt-2 text-3xl lg:text-4xl font-bold text-gray-800">
+                <div className="mt-2 text-3xl lg:text-4xl font-bold text-neutral-800">
                   {homeScore}
                 </div>
               )}
@@ -90,14 +90,14 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({ fixture, className = '' }) =>
             {/* Center - Date/Time/Score/Venue */}
             <div className="flex-shrink-0 px-6 lg:px-8 text-center min-w-[200px] lg:min-w-[250px]">
               {/* Date and Time */}
-              <div className="mb-2">
-                <div className="text-lg lg:text-xl font-semibold text-gray-900">
+              <div className="mb-3">
+                <div className="text-lg lg:text-xl font-semibold text-neutral-900">
                   {date}
                 </div>
-                <div className="text-base lg:text-lg text-gray-600">
+                <div className="text-base lg:text-lg text-neutral-600 flex items-center justify-center gap-2">
                   {time}
                   {isLive && (
-                    <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                    <span className="status-live font-medium">
                       LIVE
                     </span>
                   )}
@@ -106,26 +106,19 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({ fixture, className = '' }) =>
 
               {/* Score (if finished) or VS */}
               {isFinished ? (
-                <div className="text-2xl lg:text-3xl font-bold text-gray-800 mb-2">
+                <div className="text-2xl lg:text-3xl font-bold text-neutral-800 mb-3">
                   {homeScore} - {awayScore}
                 </div>
               ) : (
-                <div className="text-xl lg:text-2xl font-semibold text-gray-500 mb-2">
+                <div className="text-xl lg:text-2xl font-semibold text-neutral-500 mb-3">
                   VS
                 </div>
               )}
 
               {/* Venue */}
               {venue && (
-                <div className="text-sm lg:text-base text-gray-600 max-w-[180px] lg:max-w-[220px] mx-auto">
+                <div className="text-sm lg:text-base text-neutral-600 max-w-[180px] lg:max-w-[220px] mx-auto leading-tight">
                   {venue}
-                </div>
-              )}
-
-              {/* Match Status */}
-              {status && status !== 'upcoming' && !isLive && (
-                <div className="mt-2 text-xs lg:text-sm text-gray-500 font-medium uppercase">
-                  {status === 'finished' ? 'Full Time' : status}
                 </div>
               )}
             </div>
@@ -137,35 +130,23 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({ fixture, className = '' }) =>
                   <img 
                     src={awayTeam.logo} 
                     alt={awayTeam.name} 
-                    className="w-16 h-16 lg:w-20 lg:h-20 object-contain mx-auto"
+                    className="w-16 h-16 lg:w-20 lg:h-20 team-logo"
                   />
                 ) : (
-                  <div className="w-16 h-16 lg:w-20 lg:h-20 bg-gray-200 rounded-full flex items-center justify-center mx-auto">
-                    <span className="text-2xl lg:text-3xl font-bold text-gray-600">
+                  <div className="w-16 h-16 lg:w-20 lg:h-20 bg-neutral-200 rounded-full flex items-center justify-center">
+                    <span className="text-2xl lg:text-3xl font-bold text-neutral-600">
                       {awayTeam.name[0]}
                     </span>
                   </div>
                 )}
               </div>
-              <h2 className="text-lg lg:text-xl font-semibold text-gray-900 text-center max-w-[120px] lg:max-w-[150px]">
+              <h2 className="text-lg lg:text-xl font-semibold text-neutral-800 text-center max-w-[120px] lg:max-w-[150px] leading-tight">
                 {awayTeam.shortName || awayTeam.name}
               </h2>
               {isFinished && (
-                <div className="mt-2 text-3xl lg:text-4xl font-bold text-gray-800">
+                <div className="mt-2 text-3xl lg:text-4xl font-bold text-neutral-800">
                   {awayScore}
                 </div>
-              )}
-            </div>
-          </div>
-
-          {/* Additional Info Row (Optional) */}
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <div className="flex justify-center items-center space-x-6 text-sm text-gray-600">
-              {fixture.competition && (
-                <span className="font-medium">{fixture.competition.name}</span>
-              )}
-              {status && (
-                <span className="capitalize">{status}</span>
               )}
             </div>
           </div>
