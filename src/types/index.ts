@@ -49,6 +49,12 @@ export interface Game {
   competition: Competition; // always an object
   homeScore?: number;
   awayScore?: number;
+  score?: {
+    fullTime?: {
+      home?: number;
+      away?: number;
+    };
+  };
   status?: 'scheduled' | 'live' | 'finished' | 'postponed' | 'upcoming';
   aiInsight?: AIInsight;
 }
