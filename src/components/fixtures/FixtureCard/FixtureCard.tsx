@@ -88,10 +88,25 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
           <div className="h-6 skeleton rounded w-32"></div>
           <div className="h-4 skeleton rounded w-24"></div>
         </div>
-        {/* Desktop: 3 column grid, Mobile: single column */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Loading skeleton with same flex layout */}
+        <div 
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '1rem'
+          }}
+        >
           {[...Array(6)].map((_, idx) => (
-            <div key={idx} className="skeleton rounded-xl h-24 md:h-28" />
+            <div 
+              key={idx}
+              style={{
+                flex: '1 1 calc(33.333% - 0.75rem)',
+                minWidth: '280px',
+                maxWidth: '100%'
+              }}
+            >
+              <div className="skeleton rounded-xl h-24 md:h-28" />
+            </div>
           ))}
         </div>
       </div>
