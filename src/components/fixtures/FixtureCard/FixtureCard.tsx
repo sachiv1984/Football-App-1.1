@@ -88,9 +88,12 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
           <div className="h-6 skeleton rounded w-32"></div>
           <div className="h-4 skeleton rounded w-24"></div>
         </div>
-        {[...Array(6)].map((_, idx) => (
-          <div key={idx} className="skeleton rounded-xl h-20" />
-        ))}
+        {/* Desktop: 3 column grid, Mobile: single column */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[...Array(6)].map((_, idx) => (
+            <div key={idx} className="skeleton rounded-xl h-24 md:h-28" />
+          ))}
+        </div>
       </div>
     );
   }
@@ -125,7 +128,6 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
       homeTeam,
       awayTeam,
       dateTime,
-      //status,
       homeScore = fixture.homeScore ?? fixture.score?.fullTime?.home ?? 0,
       awayScore = fixture.awayScore ?? fixture.score?.fullTime?.away ?? 0,
     } = fixture;
@@ -135,8 +137,6 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
     };
 
     const isFinished = ['finished', 'live'].includes(fixture.status ?? '');
-    //const homeScoreValue = fixture.homeScore ?? fixture.score?.fullTime?.home ?? 0;
-    //const awayScoreValue = fixture.awayScore ?? fixture.score?.fullTime?.away ?? 0;
 
     // Use the shortName already set by FixtureService (same logic as carousel)
     const homeShort = fixture.homeTeam.shortName;
@@ -150,26 +150,55 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
       hour12: false
     });
 
-    // Size-based styling
-    const logoSize = size === 'sm' ? 'w-6 h-6' : size === 'lg' ? 'w-10 h-10' : 'w-8 h-8';
-    const textSize = size === 'sm' ? 'text-sm' : size === 'lg' ? 'text-lg' : 'text-base';
-    const cardPadding = size === 'sm' ? 'p-3' : size === 'lg' ? 'p-8' : 'p-6';
-    const scoreSize = size === 'sm' ? 'text-lg' : size === 'lg' ? 'text-3xl' : 'text-2xl';
+    // Responsive size-based styling
+    const getResponsiveSizes = () => {
+      if (useGameWeekMode) {
+        // Game week mode: smaller on mobile, larger on desktop
+        return {
+          logoSize: 'w-5 h-5 md:w-7 md:h-7',
+          textSize: 'text-sm md:text-base',
+          cardPadding: 'p-3 md:p-4',
+          scoreSize: 'text-base md:text-xl',
+          timeSize: 'text-sm md:text-lg'
+        };
+      } else {
+        // Single fixture mode: use size prop
+        const logoSize = size === 'sm' ? 'w-5 h-5 md:w-6 md:h-6' : 
+                         size === 'lg' ? 'w-8 h-8 md:w-10 md:h-10' : 
+                         'w-6 h-6 md:w-8 md:h-8';
+        const textSize = size === 'sm' ? 'text-sm md:text-base' : 
+                        size === 'lg' ? 'text-lg md:text-xl' : 
+                        'text-base md:text-lg';
+        const cardPadding = size === 'sm' ? 'p-3 md:p-4' : 
+                           size === 'lg' ? 'p-6 md:p-8' : 
+                           'p-4 md:p-6';
+        const scoreSize = size === 'sm' ? 'text-lg md:text-xl' : 
+                         size === 'lg' ? 'text-2xl md:text-3xl' : 
+                         'text-xl md:text-2xl';
+        const timeSize = size === 'sm' ? 'text-base md:text-lg' : 
+                        size === 'lg' ? 'text-xl md:text-2xl' : 
+                        'text-lg md:text-xl';
+        return { logoSize, textSize, cardPadding, scoreSize, timeSize };
+      }
+    };
+
+    const { logoSize, textSize, cardPadding, scoreSize, timeSize } = getResponsiveSizes();
 
     const cardClasses = `
       carousel-card
       ${cardPadding}
-      ${onClick ? 'cursor-pointer' : ''}
-      ${useGameWeekMode ? '' : className}
+      ${onClick ? 'cursor-pointer hover:shadow-lg transition-shadow duration-200' : ''}
+      ${useGameWeekMode ? 'h-full' : className}
+      min-h-[100px] md:min-h-[120px]
     `.trim();
 
     return (
       <div key={fixture.id || index} className={cardClasses} onClick={handleClick}>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between h-full">
           {/* Left Side - Teams Stacked */}
-          <div className="flex flex-col space-y-4 flex-1">
+          <div className="flex flex-col justify-center space-y-2 md:space-y-3 flex-1">
             {/* Home Team */}
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2 md:space-x-3">
               {homeTeam.logo ? (
                 <img 
                   src={homeTeam.logo} 
@@ -178,18 +207,18 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
                 />
               ) : (
                 <div className={`${logoSize} bg-neutral-200 rounded-full flex items-center justify-center flex-shrink-0`}>
-                  <span className="text-sm font-bold text-neutral-600">
+                  <span className="text-xs md:text-sm font-bold text-neutral-600">
                     {homeTeam.name[0]}
                   </span>
                 </div>
               )}
-              <span className={`font-medium text-neutral-800 ${textSize}`}>
+              <span className={`font-medium text-neutral-800 ${textSize} truncate`}>
                 {homeShort}
               </span>
             </div>
 
             {/* Away Team */}
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2 md:space-x-3">
               {awayTeam.logo ? (
                 <img 
                   src={awayTeam.logo} 
@@ -198,42 +227,42 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
                 />
               ) : (
                 <div className={`${logoSize} bg-neutral-200 rounded-full flex items-center justify-center flex-shrink-0`}>
-                  <span className="text-sm font-bold text-neutral-600">
+                  <span className="text-xs md:text-sm font-bold text-neutral-600">
                     {awayTeam.name[0]}
                   </span>
                 </div>
               )}
-              <span className={`font-medium text-neutral-800 ${textSize}`}>
+              <span className={`font-medium text-neutral-800 ${textSize} truncate`}>
                 {awayShort}
               </span>
             </div>
           </div>
 
           {/* Right Side - Time/Score */}
-          <div className="flex items-center justify-center ml-6 pl-6 border-l border-neutral-200">
+          <div className="flex items-center justify-center ml-4 md:ml-6 pl-3 md:pl-6 border-l border-neutral-200">
             {isFinished ? (
-            <div className="text-center min-w-[70px]">
-              <div className={`${scoreSize} font-bold text-neutral-800 mb-1`}>
-                {homeScore}
+              <div className="text-center min-w-[50px] md:min-w-[70px]">
+                <div className={`${scoreSize} font-bold text-neutral-800 mb-1`}>
+                  {homeScore}
+                </div>
+                <div className={`${scoreSize} font-bold text-neutral-800 mb-1`}>
+                  {awayScore}
+                </div>
+                <div className="text-xs text-neutral-500 font-medium">
+                  {fixture.status === 'live' ? (
+                    <span className="status-live">LIVE</span>
+                  ) : (
+                    'Full time'
+                  )}
+                </div>
               </div>
-              <div className={`${scoreSize} font-bold text-neutral-800 mb-1`}>
-                {awayScore}
+            ) : (
+              <div className="text-center min-w-[50px] md:min-w-[70px]">
+                <div className={`${timeSize} font-semibold text-neutral-800`}>
+                  {formattedTime}
+                </div>
               </div>
-              <div className="text-xs text-neutral-500 font-medium">
-                {fixture.status === 'live' ? (
-                  <span className="status-live">LIVE</span>
-                ) : (
-                  'Full time'
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="text-center min-w-[70px]">
-              <div className={`${size === 'sm' ? 'text-base' : size === 'lg' ? 'text-2xl' : 'text-xl'} font-semibold text-neutral-800`}>
-                {formattedTime}
-              </div>
-            </div>
-          )}
+            )}
           </div>
         </div>
       </div>
@@ -247,12 +276,12 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
         {/* Game Week Header */}
         {gameWeekInfo && (
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold text-gray-800">
+            <h2 className="text-lg md:text-xl font-bold text-gray-800">
               Matchday {gameWeekInfo.currentWeek}
             </h2>
-            <div className="text-sm text-gray-600">
+            <div className="text-xs md:text-sm text-gray-600">
               {gameWeekInfo.isComplete ? (
-                <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full font-medium">
+                <span className="px-2 md:px-3 py-1 bg-green-100 text-green-800 rounded-full font-medium text-xs md:text-sm">
                   Complete
                 </span>
               ) : (
@@ -264,8 +293,8 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
           </div>
         )}
 
-        {/* Fixtures Grid */}
-        <div className="grid grid-cols-1 gap-4">
+        {/* Fixtures Grid - Responsive: 1 col mobile, 2 col tablet, 3 col desktop */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
           {fixturesToRender.map((fixture, index) => renderFixtureCard(fixture, index))}
         </div>
       </div>
