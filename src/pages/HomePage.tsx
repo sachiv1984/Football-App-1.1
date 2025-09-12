@@ -29,6 +29,7 @@ const HomePage: React.FC = () => {
 
   const handleToggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
+  // Optional: Keep for logging/analytics, but navigation will handle the actual routing
   const handleGameSelect = (fixture: FeaturedFixtureWithImportance | Game) => {
     console.log('Selected fixture:', fixture.id);
 
@@ -36,6 +37,8 @@ const HomePage: React.FC = () => {
     if ('importanceScore' in fixture) {
       console.log('Importance Score:', fixture.importanceScore);
     }
+    
+    // Note: Navigation will be handled automatically by FixtureCard when enableNavigation={true}
   };
 
   return (
@@ -83,6 +86,7 @@ const HomePage: React.FC = () => {
                 onGameSelect={handleGameSelect}
                 isLoading={loading}
                 className="mb-8 lg:mb-12"
+                // If this carousel uses FixtureCard internally, you may need to pass enableNavigation prop
               />
             )}
           </CarouselErrorBoundary>
@@ -147,9 +151,9 @@ const HomePage: React.FC = () => {
                         <FixtureCard
                           key={fixture.id}
                           fixture={fixture}
-                          onClick={handleGameSelect}
                           size="lg"
                           showVenue={true}
+                          enableNavigation={true}  // This enables navigation to stats page
                           className="hover:scale-[1.02] transition-transform duration-200"
                         />
                       ))}
