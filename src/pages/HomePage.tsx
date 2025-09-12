@@ -10,7 +10,6 @@ import { useFixtures } from '../hooks/useFixtures';
 import { useGameWeekFixtures } from '../hooks/useGameWeekFixtures';
 import { FeaturedFixtureWithImportance, Game } from '../types';
 
-
 // -------------------------
 // HomePage Component
 // -------------------------
@@ -19,18 +18,18 @@ const HomePage: React.FC = () => {
 
   // Existing hooks
   const { featuredFixtures, loading, error } = useFixtures();
-  
+
   // New game week hook
-  const { 
-    fixtures: gameWeekFixtures, 
-    gameWeekInfo, 
-    isLoading: gameWeekLoading, 
+  const {
+    fixtures: gameWeekFixtures,
+    gameWeekInfo,
+    isLoading: gameWeekLoading,
     error: gameWeekError,
-    refetch: refetchGameWeek
+    refetch: refetchGameWeek,
   } = useGameWeekFixtures();
 
   const handleToggleDarkMode = () => setIsDarkMode(!isDarkMode);
-  
+
   const handleGameSelect = (fixture: FeaturedFixtureWithImportance | Game) => {
     console.log('Selected fixture:', fixture.id);
 
@@ -91,22 +90,21 @@ const HomePage: React.FC = () => {
         </div>
 
         {/* Matchday Section */}
-<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
-  {/* Matchday Heading */}
-  <div className="mb-6">
-    <h2 className="text-2xl lg:text-3xl font-semibold text-gray-900 text-center">
-      Current Matchday
-    </h2>
-  </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
+          {/* Matchday Heading */}
+          <div className="mb-6">
+            <h2 className="text-2xl lg:text-3xl font-semibold text-gray-900 text-center">
+              Current Matchday
+            </h2>
+          </div>
 
-  {/* Use FixtureCard in Game Week Mode */}
-  <FixtureCard
-    useGameWeekMode={true}
-    onClick={handleGameSelect}
-    className=""
-    refreshInterval={5 * 60 * 1000} // 5 minutes
-  />
-</div>
+          {/* Use FixtureCard in Game Week Mode */}
+          <FixtureCard
+            useGameWeekMode={true}
+            onClick={handleGameSelect}
+            className=""
+            refreshInterval={5 * 60 * 1000} // 5 minutes
+          />
 
           {/* Matchday Content */}
           <div className="space-y-6">
@@ -139,7 +137,7 @@ const HomePage: React.FC = () => {
                       weekday: 'long',
                       year: 'numeric',
                       month: 'long',
-                      day: 'numeric'
+                      day: 'numeric',
                     });
                     if (!groups[date]) {
                       groups[date] = [];
@@ -150,9 +148,7 @@ const HomePage: React.FC = () => {
                 ).map(([date, fixtures]) => (
                   <div key={date} className="space-y-4">
                     {/* Date heading */}
-                    <h3 className="text-lg font-medium text-gray-800 text-left">
-                      {date}
-                    </h3>
+                    <h3 className="text-lg font-medium text-gray-800 text-left">{date}</h3>
                     {/* Fixtures for this date */}
                     <div className="space-y-3">
                       {fixtures.map((fixture) => (
