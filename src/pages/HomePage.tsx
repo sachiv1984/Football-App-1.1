@@ -91,15 +91,22 @@ const HomePage: React.FC = () => {
         </div>
 
         {/* Matchday Section */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
-          {/* Matchday Heading */}
-          {gameWeekInfo && (
-            <div className="mb-6">
-              <h2 className="text-2xl lg:text-3xl font-semibold text-gray-900 text-center">
-                Matchday {gameWeekInfo.currentWeek}
-              </h2>
-            </div>
-          )}
+<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
+  {/* Matchday Heading */}
+  <div className="mb-6">
+    <h2 className="text-2xl lg:text-3xl font-semibold text-gray-900 text-center">
+      Current Matchday
+    </h2>
+  </div>
+
+  {/* Use FixtureCard in Game Week Mode */}
+  <FixtureCard
+    useGameWeekMode={true}
+    onClick={handleGameSelect}
+    className=""
+    refreshInterval={5 * 60 * 1000} // 5 minutes
+  />
+</div>
 
           {/* Matchday Content */}
           <div className="space-y-6">
