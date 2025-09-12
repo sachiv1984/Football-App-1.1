@@ -22,7 +22,6 @@ const HomePage: React.FC = () => {
   // New game week hook
   const {
     fixtures: gameWeekFixtures,
-    //gameWeekInfo,
     isLoading: gameWeekLoading,
     error: gameWeekError,
     refetch: refetchGameWeek,
@@ -98,16 +97,8 @@ const HomePage: React.FC = () => {
             </h2>
           </div>
 
-          {/* Use FixtureCard in Game Week Mode */}
-          <FixtureCard
-            useGameWeekMode={true}
-            onClick={handleGameSelect}
-            className=""
-            refreshInterval={5 * 60 * 1000} // 5 minutes
-          />
-
           {/* Matchday Content */}
-          <div className="space-y-6">
+          <div className="space-y-10">
             {gameWeekLoading ? (
               <div className="text-center py-12">
                 <div className="inline-flex items-center space-x-2">
@@ -129,7 +120,7 @@ const HomePage: React.FC = () => {
                 </div>
               </div>
             ) : gameWeekFixtures.length > 0 ? (
-              <div className="space-y-6">
+              <div className="space-y-10">
                 {/* Group fixtures by date */}
                 {Object.entries(
                   gameWeekFixtures.reduce((groups, fixture) => {
@@ -149,8 +140,9 @@ const HomePage: React.FC = () => {
                   <div key={date} className="space-y-4">
                     {/* Date heading */}
                     <h3 className="text-lg font-medium text-gray-800 text-left">{date}</h3>
-                    {/* Fixtures for this date */}
-                    <div className="space-y-3">
+
+                    {/* Fixtures grid for this date */}
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                       {fixtures.map((fixture) => (
                         <FixtureCard
                           key={fixture.id}
