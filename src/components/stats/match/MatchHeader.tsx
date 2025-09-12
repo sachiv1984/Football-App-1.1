@@ -164,11 +164,8 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({ fixture, className = '' }) =>
               {fixture.competition && (
                 <span className="font-medium">{fixture.competition.name}</span>
               )}
-              {fixture.round && (
-                <span>Matchday {fixture.round}</span>
-              )}
-              {fixture.referee && (
-                <span>Referee: {fixture.referee}</span>
+              {status && (
+                <span className="capitalize">{status}</span>
               )}
             </div>
           </div>
