@@ -1,8 +1,8 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import './styles/globals.css'; // Add this line
+import './styles/globals.css';
 import HomePage from './pages/HomePage';
-import StatsPage from './pages/StatsPage;
+import StatsPage from './pages/StatsPage'; // Fixed: Added closing quote
 
 function App() {
   return (
@@ -21,6 +21,3 @@ function App() {
 }
 
 export default App;
-
-
- 
