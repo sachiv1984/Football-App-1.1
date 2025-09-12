@@ -162,7 +162,7 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({ fixture, className = '' }) =>
           <div className="mt-4 pt-4 border-t border-gray-100">
             <div className="flex justify-center items-center space-x-6 text-sm text-gray-600">
               {fixture.competition && (
-                <span className="font-medium">{fixture.competition}</span>
+                <span className="font-medium">{fixture.competition.name}</span>
               )}
               {fixture.round && (
                 <span>Matchday {fixture.round}</span>
