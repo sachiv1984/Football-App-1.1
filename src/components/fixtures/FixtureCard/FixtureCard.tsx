@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FixtureService } from '../../../services/fixtures/fixtureService';
+import { useFixtureNavigation } from '../../../hooks/useNavigation';
 import type { Fixture, FeaturedFixtureWithImportance } from '../../../types';
 
 interface FixtureCardProps {
@@ -13,6 +14,8 @@ interface FixtureCardProps {
   // New prop to enable game week mode
   useGameWeekMode?: boolean;
   refreshInterval?: number;
+  // New prop to enable navigation to stats page
+  enableNavigation?: boolean;
 }
 
 interface GameWeekInfo {
@@ -33,13 +36,19 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
   className = '',
   useGameWeekMode = false,
   refreshInterval = 5 * 60 * 1000, // 5 minutes
+  enableNavigation = false, // Default to false to preserve existing behavior
 }) => {
+  // Navigation hook
+  const { goToStats } = useFixtureNavigation();
+
   // Game week mode states
   const [gameWeekFixtures, setGameWeekFixtures] = useState<FeaturedFixtureWithImportance[]>([]);
   const [gameWeekInfo, setGameWeekInfo] = useState<GameWeekInfo | null>(null);
   const [isLoading, setIsLoading] = useState(useGameWeekMode);
   const [error, setError] = useState<string | null>(null);
 
+  // ... [keep all your existing fetchGameWeekData and useEffect logic] ...
+  
   // Fetch game week data
   const fetchGameWeekData = useCallback(async () => {
     if (!useGameWeekMode) return;
@@ -73,12 +82,14 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
     }
   }, [fetchGameWeekData, refreshInterval, useGameWeekMode]);
 
+  // ... [keep all your existing logic for determining fixtures to render, loading states, etc.] ...
+
   // Determine which fixtures to render
   const fixturesToRender = useGameWeekMode
-  ? gameWeekFixtures.filter(f => f.status === 'live' || f.status === 'finished' || f.status === 'upcoming')
-  : singleFixture
-  ? [singleFixture]
-  : [];
+    ? gameWeekFixtures.filter(f => f.status === 'live' || f.status === 'finished' || f.status === 'upcoming')
+    : singleFixture
+    ? [singleFixture]
+    : [];
 
   // Loading state for game week mode
   if (useGameWeekMode && isLoading) {
@@ -148,9 +159,16 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
     } = fixture;
 
     const handleClick = () => {
-      if (onClick) onClick(fixture);
+      if (enableNavigation) {
+        // Use the navigation utility
+        goToStats(fixture);
+      } else if (onClick) {
+        // Use the existing onClick prop
+        onClick(fixture);
+      }
     };
 
+    // ... [keep all your existing styling and rendering logic] ...
     const isFinished = ['finished', 'live'].includes(fixture.status ?? '');
 
     // Use the shortName already set by FixtureService (same logic as carousel)
@@ -202,7 +220,7 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
     const cardClasses = `
       carousel-card
       ${cardPadding}
-      ${onClick ? 'cursor-pointer hover:shadow-lg transition-shadow duration-200' : ''}
+      ${(enableNavigation || onClick) ? 'cursor-pointer hover:shadow-lg transition-shadow duration-200' : ''}
       ${useGameWeekMode ? 'h-full' : className}
       min-h-[100px] md:min-h-[120px]
     `.trim();
@@ -276,6 +294,11 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
                 <div className={`${timeSize} font-semibold text-neutral-800`}>
                   {formattedTime}
                 </div>
+                {enableNavigation && (
+                  <div className="text-xs text-blue-600 mt-1">
+                    View Stats →
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -283,6 +306,8 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
       </div>
     );
   };
+
+  // ... [keep all your existing rendering logic for game week mode and single fixture mode] ...
 
   // Game week mode: render multiple fixtures with header
   if (useGameWeekMode) {
