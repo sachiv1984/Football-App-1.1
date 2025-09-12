@@ -268,28 +268,23 @@
   }
 
    /* ===== RESPONSIVE FIXTURES GRID ===== */
-.fixtures-responsive-grid {
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: 1fr; /* Mobile: 1 column */
+.fixture-grid-mobile {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 1rem !important;
 }
 
-/* Tablet: 2 columns */
-@media (min-width: 768px) {
-  .fixtures-responsive-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.25rem;
-  }
+.fixture-grid-tablet {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 1.25rem !important;
 }
 
-/* Desktop: 3 columns */
-@media (min-width: 1024px) {
-  .fixtures-responsive-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1.5rem;
-  }
+.fixture-grid-desktop {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 1.5rem !important;
 }
-
   /* ===== STATUS INDICATORS ===== */
   .status-live {
     @apply inline-flex items-center gap-1 text-xs font-medium;
