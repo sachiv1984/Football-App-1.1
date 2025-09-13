@@ -22,6 +22,7 @@ const StatsPage: React.FC = () => {
 
   const handleToggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
+  // Find the fixture based on matchId
   useEffect(() => {
     if (!matchId) return;
 
@@ -51,6 +52,7 @@ const StatsPage: React.FC = () => {
     setCurrentFixture(foundFixture || null);
   }, [matchId, featuredFixtures, gameWeekFixtures]);
 
+  // Mock form data
   const getFormData = () =>
     currentFixture
       ? {
@@ -71,6 +73,7 @@ const StatsPage: React.FC = () => {
         }
       : null;
 
+  // Mock stats data
   const getStatsData = () =>
     currentFixture
       ? {
@@ -107,14 +110,12 @@ const StatsPage: React.FC = () => {
           isDarkMode={isDarkMode}
           onToggleDarkMode={handleToggleDarkMode}
         />
-
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center">
             <div className="inline-flex items-center space-x-2 mb-4">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
               <span className="text-gray-600">Loading match details...</span>
             </div>
-
             <div className="mt-8">
               <p className="text-gray-600 mb-4">
                 Match ID:{' '}
@@ -166,58 +167,4 @@ const StatsPage: React.FC = () => {
           <div className="flex gap-2">
             <button
               onClick={goBack}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium"
-            >
-              ← Back
-            </button>
-            <button
-              onClick={goHome}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-            >
-              Home
-            </button>
-          </div>
-        </div>
-
-        <div className="space-y-8">
-          {statsData && formData && (
-            <ModernStatsTable
-              homeTeam={currentFixture.homeTeam}
-              awayTeam={currentFixture.awayTeam}
-              stats={statsData}
-              formData={formData}
-              league="Premier League"
-              season="25/26"
-            />
-          )}
-
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">
-              Betting Insights
-            </h2>
-            <p className="text-gray-600 mb-4">
-              Best bets and predictions will go here
-            </p>
-            <div className="bg-blue-50 rounded-lg p-4">
-              <p className="text-sm text-blue-800 mb-2">
-                <strong>This section will include:</strong>
-              </p>
-              <ul className="text-sm text-blue-800 space-y-1 ml-4">
-                <li>• Recommended bets based on analysis</li>
-                <li>• Odds comparison</li>
-                <li>• Predictions and insights</li>
-                <li>• Historical head-to-head data</li>
-                <li>• Form analysis and trends</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </main>
-
-      <div className="mt-12 lg:mt-16" />
-      <Footer />
-    </div>
-  );
-};
-
-export default StatsPage;
+              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover
