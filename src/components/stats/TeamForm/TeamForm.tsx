@@ -91,17 +91,10 @@ const TeamForm: React.FC<TeamFormProps> = ({
           </div>
         </div>
 
-        {/* Season labels */}
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-lg text-gray-700 font-medium">{league} {season}</h3>
-          <h3 className="text-lg text-gray-700 font-medium">{league} {season}</h3>
-        </div>
-
         {/* Form display */}
         <div className="flex justify-between items-center mb-8">
           {/* Home team form */}
           <div className="flex space-x-2">
-            {/* Fill empty slots with gray boxes */}
             {Array.from({ length: 5 - homeForm.results.length }).map((_, index) => (
               <div key={`empty-home-${index}`} className="w-8 h-8 rounded border border-gray-200 bg-gray-50"></div>
             ))}
@@ -120,7 +113,6 @@ const TeamForm: React.FC<TeamFormProps> = ({
             {awayForm.results.map((result, index) => (
               <FormResult key={`away-${index}`} result={result} />
             ))}
-            {/* Fill empty slots with gray boxes */}
             {Array.from({ length: 5 - awayForm.results.length }).map((_, index) => (
               <div key={`empty-away-${index}`} className="w-8 h-8 rounded border border-gray-200 bg-gray-50"></div>
             ))}
