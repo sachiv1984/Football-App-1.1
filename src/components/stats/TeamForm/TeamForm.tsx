@@ -95,7 +95,13 @@ const TeamForm: React.FC<TeamFormProps> = ({
         {/* Team logos and title */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center">
-            <img src={homeTeam.logo} alt={homeTeam.name} className="w-12 h-12 object-contain" />
+            {homeTeam.logo ? (
+              <img src={homeTeam.logo} alt={homeTeam.name} className="w-12 h-12 object-contain" />
+            ) : (
+              <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                <span className="text-gray-600 font-semibold text-sm">{homeTeam.shortName.charAt(0)}</span>
+              </div>
+            )}
           </div>
           
           <div className="text-center">
@@ -103,7 +109,13 @@ const TeamForm: React.FC<TeamFormProps> = ({
           </div>
           
           <div className="flex items-center">
-            <img src={awayTeam.logo} alt={awayTeam.name} className="w-12 h-12 object-contain" />
+            {awayTeam.logo ? (
+              <img src={awayTeam.logo} alt={awayTeam.name} className="w-12 h-12 object-contain" />
+            ) : (
+              <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                <span className="text-gray-600 font-semibold text-sm">{awayTeam.shortName.charAt(0)}</span>
+              </div>
+            )}
           </div>
         </div>
 
