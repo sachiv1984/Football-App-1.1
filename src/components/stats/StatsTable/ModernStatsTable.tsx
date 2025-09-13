@@ -10,7 +10,18 @@ interface StatValue {
 }
 
 interface StatsData {
-  [key: string]: StatValue | undefined;
+  goalsScored?: StatValue;
+  goalsConceded?: StatValue;
+  goalDifference?: StatValue;
+  corners?: StatValue;
+  cornersAgainst?: StatValue;
+  yellowCards?: StatValue;
+  redCards?: StatValue;
+  shotsOnTarget?: StatValue;
+  totalShots?: StatValue;
+  shotAccuracy?: StatValue;
+  fouls?: StatValue;
+  foulsWon?: StatValue;
   recentForm?: {
     homeResults: ('W' | 'D' | 'L')[];
     awayResults: ('W' | 'D' | 'L')[];
@@ -31,8 +42,8 @@ interface ModernStatsTableProps {
 type StatCategory = 'form' | 'goals' | 'corners' | 'cards' | 'shooting' | 'fouls';
 
 const FormResult: React.FC<{ result: 'W' | 'D' | 'L' }> = ({ result }) => {
-  const getResultStyle = (result: 'W' | 'D' | 'L') => {
-    switch (result) {
+  const getResultStyle = (r: 'W' | 'D' | 'L') => {
+    switch (r) {
       case 'W':
         return 'bg-green-100 text-green-700 border-green-200';
       case 'D':
@@ -43,7 +54,9 @@ const FormResult: React.FC<{ result: 'W' | 'D' | 'L' }> = ({ result }) => {
   };
   return (
     <div
-      className={`w-8 h-8 rounded border flex items-center justify-center text-sm font-semibold ${getResultStyle(result)}`}
+      className={`w-6 h-6 sm:w-8 sm:h-8 rounded border flex items-center justify-center text-xs sm:text-sm font-semibold ${getResultStyle(
+        result
+      )}`}
     >
       {result}
     </div>
@@ -106,14 +119,16 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   const currentStats = getStatsForCategory(activeTab);
 
   return (
-    <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
+    <div
+      className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-x-auto ${className}`}
+    >
       {/* Tabs */}
       <div className="flex border-b border-gray-200 bg-gray-50 overflow-x-auto">
         {tabs.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`px-6 py-4 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+            className={`px-4 sm:px-6 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
               activeTab === tab.key
                 ? 'text-purple-600 border-purple-600 bg-white'
                 : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
@@ -125,95 +140,98 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
       </div>
 
       {/* League indicator */}
-      <div className="px-6 py-3 bg-gray-50 border-b border-gray-100">
+      <div className="px-4 sm:px-6 py-2 bg-gray-50 border-b border-gray-100">
         <p className="text-sm text-gray-600">
           Showing stats for {league} {season}
         </p>
       </div>
 
       {/* Tab content */}
-      <div className="p-6">
+      <div className="p-4 sm:p-6 min-w-[500px]">
         {activeTab === 'form' && stats.recentForm ? (
           <div>
             {/* Team logos */}
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex justify-between items-center mb-4">
               <div className="flex items-center">
                 {homeTeam.logo ? (
-                  <img src={homeTeam.logo} alt={homeTeam.name} className="w-12 h-12 object-contain" />
+                  <img src={homeTeam.logo} alt={homeTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
                 ) : (
-                  <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                    <span className="text-gray-600 font-semibold text-sm">{homeTeam.shortName.charAt(0)}</span>
+                  <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                    <span className="text-gray-600 font-semibold text-xs sm:text-sm">{homeTeam.shortName.charAt(0)}</span>
                   </div>
                 )}
               </div>
 
               <div className="text-center">
-                <h2 className="text-2xl font-bold text-gray-900">Team Form</h2>
+                <h2 className="text-lg sm:text-2xl font-bold text-gray-900">Team Form</h2>
               </div>
 
               <div className="flex items-center">
                 {awayTeam.logo ? (
-                  <img src={awayTeam.logo} alt={awayTeam.name} className="w-12 h-12 object-contain" />
+                  <img src={awayTeam.logo} alt={awayTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
                 ) : (
-                  <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                    <span className="text-gray-600 font-semibold text-sm">{awayTeam.shortName.charAt(0)}</span>
+                  <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                    <span className="text-gray-600 font-semibold text-xs sm:text-sm">{awayTeam.shortName.charAt(0)}</span>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Form display */}
-            <div className="flex justify-between items-center mb-8">
-              <div className="flex space-x-2">
-                {Array.from({ length: 5 - stats.recentForm.homeResults.length }).map((_, index) => (
-                  <div key={`empty-home-${index}`} className="w-8 h-8 rounded border border-gray-200 bg-gray-50"></div>
-                ))}
-                {stats.recentForm.homeResults.map((result, index) => (
-                  <FormResult key={`home-${index}`} result={result} />
+            {/* Form results */}
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex space-x-1 sm:space-x-2">
+                {stats.recentForm.homeResults.map((r, i) => (
+                  <FormResult key={`home-${i}`} result={r} />
                 ))}
               </div>
 
               <div className="text-center">
-                <span className="text-lg font-semibold text-gray-700">Form</span>
+                <span className="text-sm sm:text-lg font-semibold text-gray-700">Form</span>
               </div>
 
-              <div className="flex space-x-2">
-                {stats.recentForm.awayResults.map((result, index) => (
-                  <FormResult key={`away-${index}`} result={result} />
-                ))}
-                {Array.from({ length: 5 - stats.recentForm.awayResults.length }).map((_, index) => (
-                  <div key={`empty-away-${index}`} className="w-8 h-8 rounded border border-gray-200 bg-gray-50"></div>
+              <div className="flex space-x-1 sm:space-x-2">
+                {stats.recentForm.awayResults.map((r, i) => (
+                  <FormResult key={`away-${i}`} result={r} />
                 ))}
               </div>
             </div>
 
-            {/* Stats comparison */}
-            <div className="space-y-6">
-              {['matchesPlayed', 'won', 'drawn', 'lost'].map((key) => (
-                <div key={key} className="flex justify-between items-center">
-                  <span className="text-2xl font-bold text-gray-900">{stats.recentForm!.homeStats[key as keyof typeof stats.recentForm.homeStats]}</span>
-                  <span className="text-lg font-medium text-gray-700">{key.charAt(0).toUpperCase() + key.slice(1)}</span>
-                  <span className="text-2xl font-bold text-gray-900">{stats.recentForm!.awayStats[key as keyof typeof stats.recentForm.awayStats]}</span>
-                </div>
-              ))}
+            {/* Stats numbers */}
+            <div className="flex justify-between text-sm sm:text-base font-semibold text-gray-900">
+              <span>{stats.recentForm.homeStats.matchesPlayed} MP</span>
+              <span>{stats.recentForm.homeStats.won} W</span>
+              <span>{stats.recentForm.homeStats.drawn} D</span>
+              <span>{stats.recentForm.homeStats.lost} L</span>
+              <span className="ml-auto">
+                {stats.recentForm.awayStats.matchesPlayed} MP
+              </span>
+              <span>{stats.recentForm.awayStats.won} W</span>
+              <span>{stats.recentForm.awayStats.drawn} D</span>
+              <span>{stats.recentForm.awayStats.lost} L</span>
             </div>
           </div>
         ) : (
-          <div className="space-y-6">
-            {Object.entries(currentStats).map(([statName, statData]) => (
-              <div key={statName} className="flex justify-between items-center">
-                <span className="text-2xl font-bold text-gray-900">{statData?.homeValue}{statData?.unit || ''}</span>
-                <div className="text-center">
-                  <span className="text-lg font-medium text-gray-700">{statName}</span>
-                  {statData?.leagueAverage && (
-                    <div className="text-sm text-gray-500 mt-1">
-                      Avg: {statData.leagueAverage}{statData.unit || ''}
-                    </div>
-                  )}
+          <div className="space-y-4">
+            {Object.entries(currentStats).map(([statName, stat]) => {
+              if (!stat) return null;
+              const total = stat.homeValue + stat.awayValue;
+              const homePercent = total > 0 ? (stat.homeValue / total) * 100 : 50;
+              const awayPercent = total > 0 ? (stat.awayValue / total) * 100 : 50;
+
+              return (
+                <div key={statName}>
+                  <div className="flex justify-between text-sm sm:text-base font-medium">
+                    <span>{stat.homeValue}{stat.unit || ''}</span>
+                    <span className="text-center">{statName}</span>
+                    <span>{stat.awayValue}{stat.unit || ''}</span>
+                  </div>
+                  <div className="flex h-2 sm:h-3 bg-gray-200 rounded-full overflow-hidden mt-1">
+                    <div className="bg-blue-500" style={{ width: `${homePercent}%` }} />
+                    <div className="bg-red-500" style={{ width: `${awayPercent}%` }} />
+                  </div>
                 </div>
-                <span className="text-2xl font-bold text-gray-900">{statData?.awayValue}{statData?.unit || ''}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
