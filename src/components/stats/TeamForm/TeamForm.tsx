@@ -1,17 +1,10 @@
 // src/components/stats/TeamForm/TeamForm.tsx
 import React from 'react';
+import { Team } from '../../../types';
 
 interface TeamFormProps {
-  homeTeam: {
-    name: string;
-    shortName: string;
-    logo: string;
-  };
-  awayTeam: {
-    name: string;
-    shortName: string;
-    logo: string;
-  };
+  homeTeam: Team;
+  awayTeam: Team;
   homeForm: {
     results: ('W' | 'D' | 'L')[];
     matchesPlayed: number;
