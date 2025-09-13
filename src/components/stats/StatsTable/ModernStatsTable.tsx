@@ -134,21 +134,22 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   return (
     <div className={`bg-white rounded-lg shadow-sm border border-gray-200 ${className}`}>
       {/* Responsive Tabs */}
-      <div className="flex border-b border-gray-200 bg-gray-50 overflow-x-auto flex-nowrap">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
-              activeTab === tab.key
-                ? 'text-purple-600 border-purple-600 bg-white'
-                : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+<div className="flex border-b border-gray-200 bg-gray-50 overflow-x-hidden">
+  {tabs.map((tab) => (
+    <button
+      key={tab.key}
+      onClick={() => setActiveTab(tab.key)}
+      className={`flex-1 px-2 py-2 text-xs sm:px-4 sm:py-3 sm:text-sm font-medium text-center whitespace-nowrap border-b-2 transition-colors ${
+        activeTab === tab.key
+          ? 'text-purple-600 border-purple-600 bg-white'
+          : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
+      }`}
+    >
+      {tab.label}
+    </button>
+  ))}
+</div>
+
 
       {/* League indicator */}
       <div className="px-4 sm:px-6 py-2 bg-gray-50 border-b border-gray-100">
