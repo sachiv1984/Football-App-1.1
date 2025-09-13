@@ -62,7 +62,7 @@ const FormResultBox: React.FC<FormResultBoxProps> = ({ result, isLast, size = 'n
   };
 
   const style = getStyle(result);
-  const boxSize = size === 'small' ? 'w-6 h-6 sm:w-8 sm:h-8 text-xs sm:text-sm' : 'w-8 h-8 sm:w-10 sm:h-10 text-sm';
+  const boxSize = size === 'small' ? 'w-5 h-5 sm:w-8 sm:h-8 text-[10px] sm:text-sm' : 'w-8 h-8 sm:w-10 sm:h-10 text-sm';
 
   return (
     <div className="relative flex flex-col items-center">
@@ -134,7 +134,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   return (
     <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-x-auto ${className}`}>
       {/* Tabs */}
-      <div className="flex border-b border-gray-200 bg-gray-50 overflow-x-auto">
+      <div className="flex border-b border-gray-200 bg-gray-50 overflow-x-auto space-x-2">
         {tabs.map((tab) => (
           <button
             key={tab.key}
@@ -158,7 +158,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
       </div>
 
       {/* Tab content */}
-      <div className="p-4 sm:p-6 min-w-[500px]">
+      <div className="p-4 sm:p-6 overflow-x-auto min-w-[350px] sm:min-w-[500px]">
         {activeTab === 'form' && stats.recentForm ? (
           <div>
             {/* Team logos */}
@@ -188,11 +188,11 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
               </div>
             </div>
 
-            {/* Unified form with aligned stats */}
-            <div className="flex justify-between items-start mb-4">
+            {/* Unified form with scrollable container */}
+            <div className="flex justify-between items-start min-w-[350px] sm:min-w-[500px]">
               {/* Home */}
               <div className="flex flex-col items-center space-y-1">
-                <div className="flex space-x-1 sm:space-x-2">
+                <div className="flex flex-wrap space-x-0.5 sm:space-x-2">
                   {Array.from({ length: 5 }).map((_, i) => {
                     const idx = stats.recentForm!.homeResults.length - 5 + i;
                     const result = idx >= 0 ? stats.recentForm!.homeResults[idx] : undefined;
@@ -208,7 +208,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
                 </div>
               </div>
 
-              {/* Center heading */}
+              {/* Heading */}
               <div className="flex flex-col items-center space-y-2">
                 <span className="text-base font-semibold text-gray-900">Form</span>
                 <div className="flex flex-col items-center text-base font-semibold text-gray-900 space-y-1 mt-1">
@@ -221,7 +221,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
               {/* Away */}
               <div className="flex flex-col items-center space-y-1">
-                <div className="flex space-x-1 sm:space-x-2">
+                <div className="flex flex-wrap space-x-0.5 sm:space-x-2">
                   {Array.from({ length: 5 }).map((_, i) => {
                     const idx = stats.recentForm!.awayResults.length - 5 + i;
                     const result = idx >= 0 ? stats.recentForm!.awayResults[idx] : undefined;
@@ -248,7 +248,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
               return (
                 <div key={statName}>
-                  <div className="flex justify-between text-base font-semibold">
+                  <div className="flex justify-between text-sm sm:text-base font-medium">
                     <span>{stat.homeValue}{stat.unit || ''}</span>
                     <span className="text-center">{statName}</span>
                     <span>{stat.awayValue}{stat.unit || ''}</span>
