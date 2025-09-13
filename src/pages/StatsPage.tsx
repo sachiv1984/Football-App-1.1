@@ -54,10 +54,7 @@ const StatsPage: React.FC = () => {
     setCurrentFixture(foundFixture || null);
   }, [matchId, featuredFixtures, gameWeekFixtures]);
 
-  // Mock data for the new components
-  const getTeamFormData = () => {
-    if (!currentFixture) return null;
-
+  
     return {
       homeForm: {
         results: ['W', 'W', 'L'] as ('W' | 'D' | 'L')[],
