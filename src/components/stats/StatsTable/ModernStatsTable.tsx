@@ -19,11 +19,7 @@ interface StatValue {
 interface ModernStatsTableProps {
   homeTeam: Team;
   awayTeam: Team;
-  stats: {
-    [key: string]: StatValue;
-  } & {
-    recentForm?: FormData;
-  };
+  stats: Record<string, any>;
   league?: string;
   season?: string;
   className?: string;
