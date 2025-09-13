@@ -1,17 +1,10 @@
 // src/components/stats/StatsTable/ModernStatsTable.tsx
 import React, { useState } from 'react';
+import { Team } from '../../../types';
 
 interface ModernStatsTableProps {
-  homeTeam: {
-    name: string;
-    shortName: string;
-    logo: string;
-  };
-  awayTeam: {
-    name: string;
-    shortName: string;
-    logo: string;
-  };
+  homeTeam: Team;
+  awayTeam: Team;
   stats: {
     [key: string]: {
       homeValue: number;
