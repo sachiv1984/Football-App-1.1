@@ -1,3 +1,4 @@
+// src/pages/StatsPage.tsx
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import Header from '../components/common/Header/Header';
@@ -62,16 +63,19 @@ const StatsPage: React.FC = () => {
           redCards: { homeValue: 0, awayValue: 1, leagueAverage: 0.3 },
           shotsOnTarget: { homeValue: 15, awayValue: 12, leagueAverage: 13.5 },
           totalShots: { homeValue: 42, awayValue: 38, leagueAverage: 40.2 },
-          shotAccuracy: { homeValue: 36, awayValue: 32, leagueAverage: 34, unit: '%' },
+          shotAccuracy: {
+            homeValue: 36,
+            awayValue: 32,
+            leagueAverage: 34,
+            unit: '%',
+          },
           fouls: { homeValue: 33, awayValue: 41, leagueAverage: 37.8 },
           foulsWon: { homeValue: 38, awayValue: 35, leagueAverage: 36.5 },
           recentForm: {
-            homeValue: 3,
-            awayValue: 3,
-            results: {
-              home: ['W', 'W', 'L'],
-              away: ['L', 'D', 'W'],
-            },
+            homeResults: ['W', 'W', 'L'] as ('W' | 'D' | 'L')[],
+            awayResults: ['L', 'D', 'W'] as ('W' | 'D' | 'L')[],
+            homeStats: { matchesPlayed: 3, won: 2, drawn: 0, lost: 1 },
+            awayStats: { matchesPlayed: 3, won: 1, drawn: 1, lost: 1 },
           },
         }
       : null;
@@ -85,7 +89,10 @@ const StatsPage: React.FC = () => {
           minHeight: '100vh',
         }}
       >
-        <Header isDarkMode={isDarkMode} onToggleDarkMode={handleToggleDarkMode} />
+        <Header
+          isDarkMode={isDarkMode}
+          onToggleDarkMode={handleToggleDarkMode}
+        />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center">
@@ -93,6 +100,7 @@ const StatsPage: React.FC = () => {
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
               <span className="text-gray-600">Loading match details...</span>
             </div>
+
             <div className="mt-8">
               <p className="text-gray-600 mb-4">
                 Match ID:{' '}
@@ -174,18 +182,6 @@ const StatsPage: React.FC = () => {
             <p className="text-gray-600 mb-4">
               Best bets and predictions will go here
             </p>
-            <div className="bg-blue-50 rounded-lg p-4">
-              <p className="text-sm text-blue-800 mb-2">
-                <strong>This section will include:</strong>
-              </p>
-              <ul className="text-sm text-blue-800 space-y-1 ml-4">
-                <li>• Recommended bets based on analysis</li>
-                <li>• Odds comparison</li>
-                <li>• Predictions and insights</li>
-                <li>• Historical head-to-head data</li>
-                <li>• Form analysis and trends</li>
-              </ul>
-            </div>
           </div>
         </div>
       </main>
