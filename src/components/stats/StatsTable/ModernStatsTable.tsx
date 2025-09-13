@@ -41,27 +41,6 @@ interface ModernStatsTableProps {
 
 type StatCategory = 'form' | 'goals' | 'corners' | 'cards' | 'shooting' | 'fouls';
 
-const StatBox: React.FC<{ value: number }> = ({ value }) => (
-  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded border flex items-center justify-center text-sm sm:text-base font-semibold bg-gray-100 text-gray-900">
-    {value}
-  </div>
-);
-
-const FormResult: React.FC<{ result: 'W' | 'D' | 'L' }> = ({ result }) => {
-  const getResultStyle = (r: 'W' | 'D' | 'L') => {
-    switch (r) {
-      case 'W': return 'bg-green-100 text-green-700 border-green-200';
-      case 'D': return 'bg-gray-100 text-gray-700 border-gray-200';
-      case 'L': return 'bg-red-100 text-red-700 border-red-200';
-    }
-  };
-  return (
-    <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded border flex items-center justify-center text-xs sm:text-sm font-semibold ${getResultStyle(result)}`}>
-      {result}
-    </div>
-  );
-};
-
 const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   homeTeam,
   awayTeam,
@@ -117,6 +96,33 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
   const currentStats = getStatsForCategory(activeTab);
 
+  const FormResultBox: React.FC<{ result?: 'W' | 'D' | 'L'; isLast?: boolean }> = ({ result, isLast }) => {
+    const baseStyle = result
+      ? result === 'W'
+        ? 'bg-green-100 text-green-700 border-green-200'
+        : result === 'D'
+        ? 'bg-gray-100 text-gray-700 border-gray-200'
+        : 'bg-red-100 text-red-700 border-red-200'
+      : 'bg-gray-50 text-gray-400 border-gray-200';
+
+    const underscoreColor = result
+      ? result === 'W'
+        ? 'bg-green-700'
+        : result === 'D'
+        ? 'bg-gray-700'
+        : 'bg-red-700'
+      : '';
+
+    return (
+      <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded border flex items-center justify-center text-xs sm:text-sm font-semibold relative ${baseStyle}`}>
+        {result || ''}
+        {isLast && result && (
+          <span className={`absolute bottom-0 left-0 right-0 h-1 rounded-b ${underscoreColor}`} />
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-x-auto ${className}`}>
       {/* Tabs */}
@@ -138,7 +144,9 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
       {/* League indicator */}
       <div className="px-4 sm:px-6 py-2 bg-gray-50 border-b border-gray-100">
-        <p className="text-sm text-gray-600">Showing stats for {league} {season}</p>
+        <p className="text-sm text-gray-600">
+          Showing stats for {league} {season}
+        </p>
       </div>
 
       {/* Tab content */}
@@ -148,10 +156,13 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
             {/* Team logos */}
             <div className="flex justify-between items-center mb-4">
               <div className="flex items-center">
-                {homeTeam.logo ? <img src={homeTeam.logo} alt={homeTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" /> :
+                {homeTeam.logo ? (
+                  <img src={homeTeam.logo} alt={homeTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
+                ) : (
                   <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
                     <span className="text-gray-600 font-semibold text-xs sm:text-sm">{homeTeam.shortName.charAt(0)}</span>
-                  </div>}
+                  </div>
+                )}
               </div>
 
               <div className="text-center">
@@ -159,34 +170,55 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
               </div>
 
               <div className="flex items-center">
-                {awayTeam.logo ? <img src={awayTeam.logo} alt={awayTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" /> :
+                {awayTeam.logo ? (
+                  <img src={awayTeam.logo} alt={awayTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
+                ) : (
                   <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
                     <span className="text-gray-600 font-semibold text-xs sm:text-sm">{awayTeam.shortName.charAt(0)}</span>
-                  </div>}
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Form W/D/L boxes */}
-            <div className="flex justify-between items-center mb-6">
-              <div className="flex space-x-1 sm:space-x-2">{stats.recentForm.homeResults.map((r, i) => <FormResult key={`home-${i}`} result={r} />)}</div>
+            {/* Form boxes */}
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex space-x-1 sm:space-x-2">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <FormResultBox
+                    key={`home-${i}`}
+                    result={stats.recentForm?.homeResults[i]}
+                    isLast={i === stats.recentForm.homeResults.length - 1}
+                  />
+                ))}
+              </div>
+
               <div className="text-center text-sm sm:text-lg font-semibold text-gray-700">Form</div>
-              <div className="flex space-x-1 sm:space-x-2">{stats.recentForm.awayResults.map((r, i) => <FormResult key={`away-${i}`} result={r} />)}</div>
+
+              <div className="flex space-x-1 sm:space-x-2">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <FormResultBox
+                    key={`away-${i}`}
+                    result={stats.recentForm?.awayResults[i]}
+                    isLast={i === stats.recentForm.awayResults.length - 1}
+                  />
+                ))}
+              </div>
             </div>
 
-            {/* Stats metric boxes */}
-            <div className="space-y-2">
-              {[
-                { label: 'Matches Played', home: stats.recentForm.homeStats.matchesPlayed, away: stats.recentForm.awayStats.matchesPlayed },
-                { label: 'Won', home: stats.recentForm.homeStats.won, away: stats.recentForm.awayStats.won },
-                { label: 'Drawn', home: stats.recentForm.homeStats.drawn, away: stats.recentForm.awayStats.drawn },
-                { label: 'Lost', home: stats.recentForm.homeStats.lost, away: stats.recentForm.awayStats.lost },
-              ].map((item) => (
-                <div key={item.label} className="flex justify-between items-center">
-                  <StatBox value={item.home} />
-                  <span className="text-sm sm:text-base font-medium text-gray-700">{item.label}</span>
-                  <StatBox value={item.away} />
-                </div>
-              ))}
+            {/* Matches Played / Won / Drawn / Lost */}
+            <div className="flex justify-between text-sm sm:text-base font-semibold text-gray-900">
+              <div className="flex space-x-4 sm:space-x-6">
+                <span>MP: {stats.recentForm.homeStats.matchesPlayed}</span>
+                <span>W: {stats.recentForm.homeStats.won}</span>
+                <span>D: {stats.recentForm.homeStats.drawn}</span>
+                <span>L: {stats.recentForm.homeStats.lost}</span>
+              </div>
+              <div className="flex space-x-4 sm:space-x-6">
+                <span>MP: {stats.recentForm.awayStats.matchesPlayed}</span>
+                <span>W: {stats.recentForm.awayStats.won}</span>
+                <span>D: {stats.recentForm.awayStats.drawn}</span>
+                <span>L: {stats.recentForm.awayStats.lost}</span>
+              </div>
             </div>
           </div>
         ) : (
@@ -196,6 +228,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
               const total = stat.homeValue + stat.awayValue;
               const homePercent = total > 0 ? (stat.homeValue / total) * 100 : 50;
               const awayPercent = total > 0 ? (stat.awayValue / total) * 100 : 50;
+
               return (
                 <div key={statName}>
                   <div className="flex justify-between text-sm sm:text-base font-medium">
