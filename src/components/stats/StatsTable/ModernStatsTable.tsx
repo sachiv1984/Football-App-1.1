@@ -90,9 +90,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   };
 
   const renderFormContent = () => {
-    const formData = stats.recentForm as FormData | undefined;
-    
-    if (!formData) {
+    if (!stats.recentForm) {
       return (
         <div className="text-center py-8">
           <p className="text-gray-600">No form data available</p>
@@ -100,7 +98,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
       );
     }
 
-    const { homeResults, awayResults, homeStats, awayStats } = formData;
+    const { homeResults, awayResults, homeStats, awayStats } = stats.recentForm;
 
     return (
       <div className="space-y-8">
