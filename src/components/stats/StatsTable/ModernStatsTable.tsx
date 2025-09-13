@@ -123,7 +123,13 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
             {/* Team headers */}
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center space-x-3">
-                <img src={homeTeam.logo} alt={homeTeam.name} className="w-12 h-12 object-contain" />
+                {homeTeam.logo ? (
+                  <img src={homeTeam.logo} alt={homeTeam.name} className="w-12 h-12 object-contain" />
+                ) : (
+                  <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                    <span className="text-gray-600 font-semibold text-sm">{homeTeam.shortName.charAt(0)}</span>
+                  </div>
+                )}
                 <span className="font-semibold text-lg text-gray-900">{homeTeam.shortName}</span>
               </div>
               
@@ -133,7 +139,13 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
               
               <div className="flex items-center space-x-3">
                 <span className="font-semibold text-lg text-gray-900">{awayTeam.shortName}</span>
-                <img src={awayTeam.logo} alt={awayTeam.name} className="w-12 h-12 object-contain" />
+                {awayTeam.logo ? (
+                  <img src={awayTeam.logo} alt={awayTeam.name} className="w-12 h-12 object-contain" />
+                ) : (
+                  <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                    <span className="text-gray-600 font-semibold text-sm">{awayTeam.shortName.charAt(0)}</span>
+                  </div>
+                )}
               </div>
             </div>
 
