@@ -54,27 +54,6 @@ const TeamForm: React.FC<TeamFormProps> = ({
 }) => {
   return (
     <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
-      {/* Header with navigation tabs */}
-      <div className="flex border-b border-gray-200 bg-gray-50">
-        <button className="px-6 py-4 text-sm font-medium text-purple-600 border-b-2 border-purple-600 bg-white">
-          Form
-        </button>
-        <button className="px-6 py-4 text-sm font-medium text-gray-500 hover:text-gray-700">
-          Goals
-        </button>
-        <button className="px-6 py-4 text-sm font-medium text-gray-500 hover:text-gray-700">
-          Corners
-        </button>
-        <button className="px-6 py-4 text-sm font-medium text-gray-500 hover:text-gray-700">
-          Cards
-        </button>
-        <button className="px-6 py-4 text-sm font-medium text-gray-500 hover:text-gray-700">
-          Shooting
-        </button>
-        <button className="px-6 py-4 text-sm font-medium text-gray-500 hover:text-gray-700">
-          Fouls
-        </button>
-      </div>
 
       {/* League indicator */}
       <div className="px-6 py-3 bg-gray-50 border-b border-gray-100">
