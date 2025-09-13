@@ -4,7 +4,8 @@ import { useParams } from 'react-router-dom';
 import Header from '../components/common/Header/Header';
 import Footer from '../components/common/Footer/Footer';
 import MatchHeader from '../components/stats/match/MatchHeader';
-import StatsTable from '../components/stats/StatsTable/StatsTable';
+import TeamForm from '../components/stats/TeamForm/TeamForm';
+import ModernStatsTable from '../components/stats/StatsTable/ModernStatsTable';
 import { useFixtureNavigation } from '../hooks/useNavigation';
 import { useFixtures } from '../hooks/useFixtures';
 import { useGameWeekFixtures } from '../hooks/useGameWeekFixtures';
@@ -54,46 +55,44 @@ const StatsPage: React.FC = () => {
     setCurrentFixture(foundFixture || null);
   }, [matchId, featuredFixtures, gameWeekFixtures]);
 
-  // Mock stats data - replace with actual data from your API/hooks
-  const getMockStats = () => {
+  // Mock data for the new components
+  const getTeamFormData = () => {
     if (!currentFixture) return null;
 
     return {
-      fixtureId: currentFixture.id || matchId || '',
-      lastUpdated: new Date().toISOString(),
-      homeTeamStats: {
-        shotsOnTarget: 5,
-        totalShots: 12,
-        corners: 7,
-        possession: 58,
-        passAccuracy: 87,
-        fouls: 11,
-        yellowCards: 2,
-        redCards: 0,
-        offsides: 3
+      homeForm: {
+        results: ['W', 'W', 'L'] as ('W' | 'D' | 'L')[],
+        matchesPlayed: 3,
+        won: 2,
+        drawn: 0,
+        lost: 1
       },
-      awayTeamStats: {
-        shotsOnTarget: 3,
-        totalShots: 8,
-        corners: 4,
-        possession: 42,
-        passAccuracy: 81,
-        fouls: 14,
-        yellowCards: 3,
-        redCards: 1,
-        offsides: 2
-      },
-      leagueAverages: {
-        shotsOnTarget: 4.2,
-        totalShots: 11.5,
-        corners: 5.8,
-        possession: 50,
-        passAccuracy: 84,
-        fouls: 12.3,
-        yellowCards: 2.1,
-        redCards: 0.2,
-        offsides: 2.7
+      awayForm: {
+        results: ['L', 'D', 'W'] as ('W' | 'D' | 'L')[],
+        matchesPlayed: 3,
+        won: 1,
+        drawn: 1,
+        lost: 1
       }
+    };
+  };
+
+  const getModernStatsData = () => {
+    if (!currentFixture) return null;
+
+    return {
+      goalsScored: { homeValue: 8, awayValue: 5, leagueAverage: 6.2 },
+      goalsConceded: { homeValue: 3, awayValue: 6, leagueAverage: 4.8 },
+      goalDifference: { homeValue: 5, awayValue: -1, leagueAverage: 1.4 },
+      corners: { homeValue: 21, awayValue: 15, leagueAverage: 18.3 },
+      cornersAgainst: { homeValue: 12, awayValue: 19, leagueAverage: 15.7 },
+      yellowCards: { homeValue: 6, awayValue: 9, leagueAverage: 7.2 },
+      redCards: { homeValue: 0, awayValue: 1, leagueAverage: 0.3 },
+      shotsOnTarget: { homeValue: 15, awayValue: 12, leagueAverage: 13.5 },
+      totalShots: { homeValue: 42, awayValue: 38, leagueAverage: 40.2 },
+      shotAccuracy: { homeValue: 36, awayValue: 32, leagueAverage: 34, unit: '%' },
+      fouls: { homeValue: 33, awayValue: 41, leagueAverage: 37.8 },
+      foulsWon: { homeValue: 38, awayValue: 35, leagueAverage: 36.5 }
     };
   };
 
@@ -142,7 +141,8 @@ const StatsPage: React.FC = () => {
     );
   }
 
-  const statsData = getMockStats();
+  const teamFormData = getTeamFormData();
+  const modernStatsData = getModernStatsData();
 
   return (
     <div
@@ -182,13 +182,26 @@ const StatsPage: React.FC = () => {
 
         {/* Content Sections */}
         <div className="space-y-8">
-          {/* Match Statistics - Now using StatsTable component */}
-          {statsData && (
-            <StatsTable
+          {/* Team Form Component */}
+          {teamFormData && (
+            <TeamForm
               homeTeam={currentFixture.homeTeam}
               awayTeam={currentFixture.awayTeam}
-              stats={statsData}
-              className="shadow-sm"
+              homeForm={teamFormData.homeForm}
+              awayForm={teamFormData.awayForm}
+              league="Premier League"
+              season="25/26"
+            />
+          )}
+
+          {/* Modern Stats Table with Tabs */}
+          {modernStatsData && (
+            <ModernStatsTable
+              homeTeam={currentFixture.homeTeam}
+              awayTeam={currentFixture.awayTeam}
+              stats={modernStatsData}
+              league="Premier League"
+              season="25/26"
             />
           )}
 
@@ -208,82 +221,6 @@ const StatsPage: React.FC = () => {
                 <li>• Form analysis and trends</li>
               </ul>
             </div>
-          </div>
-
-          {/* Additional Statistics Cards */}
-          <div className="grid gap-6 md:grid-cols-2">
-            {/* Form Guide */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Form</h3>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">{currentFixture.homeTeam.shortName}</span>
-                  <div className="flex space-x-1">
-                    {['W', 'W', 'D', 'L', 'W'].map((result, index) => (
-                      <span
-                        key={index}
-                        className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ${
-                          result === 'W' ? 'bg-green-500' :
-                          result === 'D' ? 'bg-yellow-500' : 'bg-red-500'
-                        }`}
-                      >
-                        {result}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">{currentFixture.awayTeam.shortName}</span>
-                  <div className="flex space-x-1">
-                    {['L', 'W', 'W', 'D', 'L'].map((result, index) => (
-                      <span
-                        key={index}
-                        className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ${
-                          result === 'W' ? 'bg-green-500' :
-                          result === 'D' ? 'bg-yellow-500' : 'bg-red-500'
-                        }`}
-                      >
-                        {result}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Head to Head */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Head to Head</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span>Total Meetings</span>
-                  <span className="font-semibold">12</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>{currentFixture.homeTeam.shortName} Wins</span>
-                  <span className="font-semibold text-blue-600">5</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Draws</span>
-                  <span className="font-semibold text-gray-600">3</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>{currentFixture.awayTeam.shortName} Wins</span>
-                  <span className="font-semibold text-red-600">4</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Debug Info (remove this later) */}
-          <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-            <h3 className="text-green-800 font-semibold mb-2">Debug Info (Remove Later)</h3>
-            <p className="text-green-700 text-sm mb-2">
-              Successfully found fixture: {currentFixture.homeTeam.shortName} vs {currentFixture.awayTeam.shortName}
-            </p>
-            <p className="text-green-700 text-sm">
-              Match ID: <span className="font-mono bg-green-100 px-1 rounded">{matchId}</span>
-            </p>
           </div>
         </div>
       </main>
