@@ -59,6 +59,8 @@ const StatsPage: React.FC = () => {
     if (!currentFixture) return null;
 
     return {
+      fixtureId: currentFixture.id || matchId || '',
+      lastUpdated: new Date().toISOString(),
       homeTeamStats: {
         shotsOnTarget: 5,
         totalShots: 12,
