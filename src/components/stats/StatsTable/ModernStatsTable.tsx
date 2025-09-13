@@ -2,16 +2,27 @@
 import React, { useState } from 'react';
 import { Team } from '../../../types';
 
+interface FormData {
+  homeResults: ('W' | 'D' | 'L')[];
+  awayResults: ('W' | 'D' | 'L')[];
+  homeStats: { matchesPlayed: number; won: number; drawn: number; lost: number };
+  awayStats: { matchesPlayed: number; won: number; drawn: number; lost: number };
+}
+
+interface StatValue {
+  homeValue: number;
+  awayValue: number;
+  leagueAverage?: number;
+  unit?: string;
+}
+
 interface ModernStatsTableProps {
   homeTeam: Team;
   awayTeam: Team;
   stats: {
-    [key: string]: {
-      homeValue: number;
-      awayValue: number;
-      leagueAverage?: number;
-      unit?: string;
-    };
+    [key: string]: StatValue;
+  } & {
+    recentForm?: FormData;
   };
   league?: string;
   season?: string;
@@ -39,13 +50,18 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     { key: 'fouls', label: 'Fouls' }
   ];
 
-  const getStatsForCategory = (category: StatCategory) => {
+  const getStatsForCategory = (category: StatCategory): Record<string, StatValue> => {
     switch (category) {
       case 'goals':
         return {
-          'Goals Scored': stats.goalsScored || { homeValue: 0, awayValue: 0 },
-          'Goals Conceded': stats.goalsConceded || { homeValue: 0, awayValue: 0 },
-          'Goal Difference': stats.goalDifference || { homeValue: 0, awayValue: 0 },
+          'Matches Played': stats.matchesPlayed || { homeValue: 0, awayValue: 0 },
+          'Goals For': stats.goalsFor || { homeValue: 0, awayValue: 0 },
+          'Goals Against': stats.goalsAgainst || { homeValue: 0, awayValue: 0 },
+          'Total Goals': stats.totalGoals || { homeValue: 0, awayValue: 0 },
+          'Over 1.5 Goals': stats.over15Goals || { homeValue: 0, awayValue: 0, unit: '%' },
+          'Over 2.5 Goals': stats.over25Goals || { homeValue: 0, awayValue: 0, unit: '%' },
+          'Over 3.5 Goals': stats.over35Goals || { homeValue: 0, awayValue: 0, unit: '%' },
+          'Both Teams Score': stats.bothTeamsScore || { homeValue: 0, awayValue: 0, unit: '%' },
         };
       case 'corners':
         return {
@@ -71,6 +87,115 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
       default:
         return {};
     }
+  };
+
+  const renderFormContent = () => {
+    if (!stats.recentForm) {
+      return (
+        <div className="text-center py-8">
+          <p className="text-gray-600">No form data available</p>
+        </div>
+      );
+    }
+
+    const { homeResults, awayResults, homeStats, awayStats } = stats.recentForm;
+
+    return (
+      <div className="space-y-8">
+        {/* Team headers */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center space-x-3">
+            {homeTeam.logo ? (
+              <img src={homeTeam.logo} alt={homeTeam.name} className="w-12 h-12 object-contain" />
+            ) : (
+              <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                <span className="text-gray-600 font-semibold text-sm">{homeTeam.shortName.charAt(0)}</span>
+              </div>
+            )}
+            <span className="font-semibold text-lg text-gray-900">{homeTeam.shortName}</span>
+          </div>
+          
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-900">Recent Form</h2>
+          </div>
+          
+          <div className="flex items-center space-x-3">
+            <span className="font-semibold text-lg text-gray-900">{awayTeam.shortName}</span>
+            {awayTeam.logo ? (
+              <img src={awayTeam.logo} alt={awayTeam.name} className="w-12 h-12 object-contain" />
+            ) : (
+              <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                <span className="text-gray-600 font-semibold text-sm">{awayTeam.shortName.charAt(0)}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Form badges */}
+        <div className="flex justify-between items-center">
+          <div className="flex space-x-2">
+            {homeResults.map((result, index) => (
+              <span
+                key={index}
+                className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold text-white ${
+                  result === 'W' ? 'bg-green-500' : result === 'D' ? 'bg-yellow-500' : 'bg-red-500'
+                }`}
+              >
+                {result}
+              </span>
+            ))}
+          </div>
+          
+          <div className="text-center">
+            <span className="text-sm text-gray-600">Last {Math.max(homeResults.length, awayResults.length)} matches</span>
+          </div>
+          
+          <div className="flex space-x-2">
+            {awayResults.map((result, index) => (
+              <span
+                key={index}
+                className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold text-white ${
+                  result === 'W' ? 'bg-green-500' : result === 'D' ? 'bg-yellow-500' : 'bg-red-500'
+                }`}
+              >
+                {result}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Form stats */}
+        <div className="grid grid-cols-3 gap-8">
+          <div className="text-center">
+            <div className="text-2xl font-bold text-gray-900">{homeStats.won}</div>
+            <div className="text-sm text-gray-600">Wins</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-gray-900">{homeStats.drawn}</div>
+            <div className="text-sm text-gray-600">Draws</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-gray-900">{homeStats.lost}</div>
+            <div className="text-sm text-gray-600">Losses</div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-8">
+          <div className="text-center">
+            <div className="text-2xl font-bold text-gray-900">{awayStats.won}</div>
+            <div className="text-sm text-gray-600">Wins</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-gray-900">{awayStats.drawn}</div>
+            <div className="text-sm text-gray-600">Draws</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-gray-900">{awayStats.lost}</div>
+            <div className="text-sm text-gray-600">Losses</div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const currentStats = getStatsForCategory(activeTab);
@@ -104,13 +229,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
       {/* Content */}
       <div className="p-6">
         {activeTab === 'form' ? (
-          // Form content would go here - you could integrate your TeamForm component
-          <div className="text-center py-8">
-            <p className="text-gray-600">Form component would be rendered here</p>
-            <p className="text-sm text-gray-500 mt-2">
-              You can integrate the TeamForm component above
-            </p>
-          </div>
+          renderFormContent()
         ) : (
           <div className="space-y-6">
             {/* Team headers */}
