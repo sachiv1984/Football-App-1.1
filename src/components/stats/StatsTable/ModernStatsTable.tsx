@@ -239,50 +239,48 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
         ) : (
           <div className="space-y-6">
             {/* Team headers */}
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center space-x-3">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center">
                 {homeTeam.logo ? (
-                  <img src={homeTeam.logo} alt={homeTeam.name} className="w-12 h-12 object-contain" />
+                  <img src={homeTeam.logo} alt={homeTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
                 ) : (
-                  <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                    <span className="text-gray-600 font-semibold text-sm">{homeTeam.shortName.charAt(0)}</span>
+                  <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                    <span className="text-gray-600 font-semibold text-xs sm:text-sm">{homeTeam.shortName.charAt(0)}</span>
                   </div>
                 )}
-                <span className="font-semibold text-lg text-gray-900">{homeTeam.shortName}</span>
               </div>
               
               <div className="text-center">
-                <h2 className="text-2xl font-bold text-gray-900 capitalize">{activeTab}</h2>
+                <h2 className="text-lg sm:text-2xl font-bold text-gray-900 capitalize">{activeTab}</h2>
               </div>
               
-              <div className="flex items-center space-x-3">
-                <span className="font-semibold text-lg text-gray-900">{awayTeam.shortName}</span>
+              <div className="flex items-center">
                 {awayTeam.logo ? (
-                  <img src={awayTeam.logo} alt={awayTeam.name} className="w-12 h-12 object-contain" />
+                  <img src={awayTeam.logo} alt={awayTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
                 ) : (
-                  <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                    <span className="text-gray-600 font-semibold text-sm">{awayTeam.shortName.charAt(0)}</span>
+                  <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                    <span className="text-gray-600 font-semibold text-xs sm:text-sm">{awayTeam.shortName.charAt(0)}</span>
                   </div>
                 )}
               </div>
             </div>
 
             {/* Stats */}
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {Object.entries(currentStats).map(([statName, statData]) => (
                 <div key={statName} className="flex justify-between items-center">
-                  <span className="text-2xl font-bold text-gray-900">
+                  <span className="text-lg sm:text-2xl font-bold text-gray-900">
                     {statData.homeValue}{statData.unit || ''}
                   </span>
-                  <div className="text-center">
-                    <span className="text-lg font-medium text-gray-700">{statName}</span>
+                  <div className="text-center px-2">
+                    <span className="text-sm sm:text-lg font-medium text-gray-700">{statName}</span>
                     {statData.leagueAverage && (
-                      <div className="text-sm text-gray-500 mt-1">
+                      <div className="text-xs sm:text-sm text-gray-500 mt-1">
                         Avg: {statData.leagueAverage}{statData.unit || ''}
                       </div>
                     )}
                   </div>
-                  <span className="text-2xl font-bold text-gray-900">
+                  <span className="text-lg sm:text-2xl font-bold text-gray-900">
                     {statData.awayValue}{statData.unit || ''}
                   </span>
                 </div>
@@ -290,7 +288,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
             </div>
 
             {/* Visual comparison bars */}
-            <div className="mt-8 space-y-4">
+            <div className="mt-6 sm:mt-8 space-y-3 sm:space-y-4">
               {Object.entries(currentStats).map(([statName, statData]) => {
                 const total = statData.homeValue + statData.awayValue;
                 const homePercentage = total > 0 ? (statData.homeValue / total) * 100 : 50;
@@ -298,8 +296,8 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
                 
                 return (
                   <div key={`${statName}-bar`} className="space-y-2">
-                    <div className="text-sm font-medium text-gray-700 text-center">{statName}</div>
-                    <div className="flex h-3 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="text-xs sm:text-sm font-medium text-gray-700 text-center">{statName}</div>
+                    <div className="flex h-2 sm:h-3 bg-gray-200 rounded-full overflow-hidden">
                       <div 
                         className="bg-blue-500 transition-all duration-300"
                         style={{ width: `${homePercentage}%` }}
@@ -310,8 +308,8 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
                       />
                     </div>
                     <div className="flex justify-between text-xs text-gray-500">
-                      <span>{homeTeam.shortName}: {statData.homeValue}{statData.unit || ''}</span>
-                      <span>{awayTeam.shortName}: {statData.awayValue}{statData.unit || ''}</span>
+                      <span className="truncate">{homeTeam.shortName}: {statData.homeValue}{statData.unit || ''}</span>
+                      <span className="truncate">{awayTeam.shortName}: {statData.awayValue}{statData.unit || ''}</span>
                     </div>
                   </div>
                 );
