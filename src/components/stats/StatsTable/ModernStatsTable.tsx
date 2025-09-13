@@ -221,16 +221,26 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
               </div>
             </div>
 
-            {/* MP/W/D/L centered */}
-            <div className="grid grid-cols-3 text-center text-sm sm:text-base font-semibold text-gray-900 gap-2 mt-4">
-              <div className="flex justify-end space-x-2">
+            {/* MP/W/D/L vertical */}
+            <div className="grid grid-cols-3 text-sm sm:text-base font-semibold text-gray-900 mt-4">
+              {/* Home */}
+              <div className="flex flex-col items-end space-y-1">
                 <span>{stats.recentForm.homeStats.matchesPlayed} MP</span>
                 <span>{stats.recentForm.homeStats.won} W</span>
                 <span>{stats.recentForm.homeStats.drawn} D</span>
                 <span>{stats.recentForm.homeStats.lost} L</span>
               </div>
-              <div className="font-semibold">Matches</div>
-              <div className="flex justify-start space-x-2">
+
+              {/* Headers */}
+              <div className="flex flex-col justify-center space-y-1">
+                <span>MP</span>
+                <span>W</span>
+                <span>D</span>
+                <span>L</span>
+              </div>
+
+              {/* Away */}
+              <div className="flex flex-col items-start space-y-1">
                 <span>{stats.recentForm.awayStats.matchesPlayed} MP</span>
                 <span>{stats.recentForm.awayStats.won} W</span>
                 <span>{stats.recentForm.awayStats.drawn} D</span>
