@@ -205,15 +205,16 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
                 <span className="text-sm sm:text-lg font-semibold text-gray-700">Form</span>
               </div>
 
-              {/* Away form (newest → oldest, last game leftmost) */}
-              <div className="flex space-x-1 sm:space-x-2">
-                {Array.from({ length: 5 }).map((_, i) => {
-                  const idx = i;
-                  const result = idx < stats.recentForm!.awayResults.length ? stats.recentForm!.awayResults[idx] : undefined;
-                  const isLast = idx === stats.recentForm!.awayResults.length - 1;
-                  return <FormResultBox key={`away-${i}`} result={result} isLast={isLast} size="small" />;
-                })}
-              </div>
+              {/* Away form (oldest → newest, last game next to heading) */}
+<div className="flex space-x-1 sm:space-x-2">
+  {Array.from({ length: 5 }).map((_, i) => {
+    const idx = stats.recentForm!.awayResults.length - 5 + i; // last 5 games
+    const result = idx >= 0 ? stats.recentForm!.awayResults[idx] : undefined;
+    const isLast = idx === stats.recentForm!.awayResults.length - 1; // underline last game
+    return <FormResultBox key={`away-${i}`} result={result} isLast={isLast} size="small" />;
+  }).reverse()} {/* reverse to make last game next to heading */}
+</div>
+
             </div>
 
             {/* MP/W/D/L vertically with full names */}
