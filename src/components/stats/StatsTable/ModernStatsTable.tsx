@@ -1,4 +1,4 @@
-// src/components/stats/StatsTable/ModernStatsTable.tsx
+l// src/components/stats/StatsTable/ModernStatsTable.tsx
 import React, { useState } from 'react';
 import { Team } from '../../../types';
 
@@ -174,7 +174,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
               </div>
 
               <div className="text-center">
-                <h2 className="text-lg sm:text-2xl font-bold text-gray-900">Team Form</h2>
+                <h2 className="text-base font-semibold text-gray-900">Team Form</h2>
               </div>
 
               <div className="flex items-center">
@@ -200,7 +200,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
                     return <FormResultBox key={`home-${i}`} result={result} isLast={isLast} size="small" />;
                   })}
                 </div>
-                <div className="flex flex-col items-center text-sm sm:text-base font-semibold text-gray-900 mt-1">
+                <div className="flex flex-col items-center text-base font-semibold text-gray-900 mt-1">
                   <span>{stats.recentForm.homeStats.matchesPlayed}</span>
                   <span>{stats.recentForm.homeStats.won}</span>
                   <span>{stats.recentForm.homeStats.drawn}</span>
@@ -210,8 +210,8 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
               {/* Center heading */}
               <div className="flex flex-col items-center space-y-2">
-                <span className="text-sm sm:text-lg font-semibold text-gray-700">Form</span>
-                <div className="flex flex-col items-center text-sm sm:text-base font-semibold text-gray-900 space-y-1 mt-1">
+                <span className="text-base font-semibold text-gray-900">Form</span>
+                <div className="flex flex-col items-center text-base font-semibold text-gray-900 space-y-1 mt-1">
                   <span>Matches played</span>
                   <span>Won</span>
                   <span>Drawn</span>
@@ -229,7 +229,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
                     return <FormResultBox key={`away-${i}`} result={result} isLast={isLast} size="small" />;
                   }).reverse()}
                 </div>
-                <div className="flex flex-col items-center text-sm sm:text-base font-semibold text-gray-900 mt-1">
+                <div className="flex flex-col items-center text-base font-semibold text-gray-900 mt-1">
                   <span>{stats.recentForm.awayStats.matchesPlayed}</span>
                   <span>{stats.recentForm.awayStats.won}</span>
                   <span>{stats.recentForm.awayStats.drawn}</span>
@@ -248,7 +248,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
               return (
                 <div key={statName}>
-                  <div className="flex justify-between text-sm sm:text-base font-medium">
+                  <div className="flex justify-between text-base font-semibold">
                     <span>{stat.homeValue}{stat.unit || ''}</span>
                     <span className="text-center">{statName}</span>
                     <span>{stat.awayValue}{stat.unit || ''}</span>
