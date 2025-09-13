@@ -3,28 +3,16 @@ import React, { useState } from 'react';
 import { Team } from '../../../types';
 
 interface StatValue {
-  homeValue: number | string;
-  awayValue: number | string;
+  homeValue: number;
+  awayValue: number;
   leagueAverage?: number;
   unit?: string;
-}
-
-interface GoalsExtraStats {
-  matchesPlayed: number;
-  goalsFor: number;
-  goalsAgainst: number;
-  totalGoals: number;
-  over15: string;
-  over25: string;
-  over35: string;
-  btts: string;
 }
 
 interface StatsData {
   goalsScored?: StatValue;
   goalsConceded?: StatValue;
   goalDifference?: StatValue;
-  goalsExtra?: GoalsExtraStats; // ✅ NEW
   corners?: StatValue;
   cornersAgainst?: StatValue;
   yellowCards?: StatValue;
@@ -74,7 +62,7 @@ const FormResultBox: React.FC<FormResultBoxProps> = ({ result, isLast, size = 'n
   };
 
   const style = getStyle(result);
-  const boxSize = size === 'small' ? 'w-6 h-6 sm:w-8 sm:h-8 text-xs sm:text-sm' : 'w-8 h-8 sm:w-10 sm:h-10 text-sm';
+  const boxSize = size === 'small' ? 'w-5 h-5 sm:w-8 sm:h-8 text-[10px] sm:text-sm' : 'w-8 h-8 sm:w-10 sm:h-10 text-sm';
 
   return (
     <div className="relative flex flex-col items-center">
@@ -114,18 +102,6 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
           'Goals Scored': stats.goalsScored || { homeValue: 0, awayValue: 0 },
           'Goals Conceded': stats.goalsConceded || { homeValue: 0, awayValue: 0 },
           'Goal Difference': stats.goalDifference || { homeValue: 0, awayValue: 0 },
-          ...(stats.goalsExtra
-            ? {
-                'Matches Played': { homeValue: stats.goalsExtra.matchesPlayed, awayValue: stats.goalsExtra.matchesPlayed },
-                'Goals For': { homeValue: stats.goalsExtra.goalsFor, awayValue: stats.goalsExtra.goalsFor },
-                'Goals Against': { homeValue: stats.goalsExtra.goalsAgainst, awayValue: stats.goalsExtra.goalsAgainst },
-                'Total Goals': { homeValue: stats.goalsExtra.totalGoals, awayValue: stats.goalsExtra.totalGoals },
-                'Over 1.5 Match Goals': { homeValue: stats.goalsExtra.over15, awayValue: stats.goalsExtra.over15 },
-                'Over 2.5 Match Goals': { homeValue: stats.goalsExtra.over25, awayValue: stats.goalsExtra.over25 },
-                'Over 3.5 Match Goals': { homeValue: stats.goalsExtra.over35, awayValue: stats.goalsExtra.over35 },
-                'Both Teams To Score': { homeValue: stats.goalsExtra.btts, awayValue: stats.goalsExtra.btts },
-              }
-            : {}),
         };
       case 'corners':
         return {
@@ -155,30 +131,25 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
   const currentStats = getStatsForCategory(activeTab);
 
-  const formatValue = (value: number | string | undefined, unit?: string) => {
-    if (value === undefined) return '-';
-    if (typeof value === 'string') return value;
-    return `${value}${unit || ''}`;
-  };
-
   return (
-    <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-x-auto ${className}`}>
+    <div className={`bg-white rounded-lg shadow-sm border border-gray-200 ${className}`}>
       {/* Responsive Tabs */}
-      <div className="flex border-b border-gray-200 bg-gray-50 overflow-x-hidden">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`flex-1 px-2 py-2 text-xs sm:px-4 sm:py-3 sm:text-sm font-medium text-center whitespace-nowrap border-b-2 transition-colors ${
-              activeTab === tab.key
-                ? 'text-purple-600 border-purple-600 bg-white'
-                : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+<div className="flex border-b border-gray-200 bg-gray-50 overflow-x-hidden">
+  {tabs.map((tab) => (
+    <button
+      key={tab.key}
+      onClick={() => setActiveTab(tab.key)}
+      className={`flex-1 px-2 py-2 text-xs sm:px-4 sm:py-3 sm:text-sm font-medium text-center whitespace-nowrap border-b-2 transition-colors ${
+        activeTab === tab.key
+          ? 'text-purple-600 border-purple-600 bg-white'
+          : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
+      }`}
+    >
+      {tab.label}
+    </button>
+  ))}
+</div>
+
 
       {/* League indicator */}
       <div className="px-4 sm:px-6 py-2 bg-gray-50 border-b border-gray-100">
@@ -188,7 +159,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
       </div>
 
       {/* Tab content */}
-      <div className="p-4 sm:p-6 min-w-[500px]">
+      <div className="p-4 sm:p-6 overflow-x-auto min-w-[350px] sm:min-w-[500px]">
         {activeTab === 'form' && stats.recentForm ? (
           <div>
             {/* Team logos */}
@@ -204,7 +175,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
               </div>
 
               <div className="text-center">
-                <h2 className="text-lg sm:text-2xl font-bold text-gray-900">Team Form</h2>
+                <h2 className="text-base font-semibold text-gray-900">Team Form</h2>
               </div>
 
               <div className="flex items-center">
@@ -218,60 +189,53 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
               </div>
             </div>
 
-            {/* Form results */}
-            <div className="flex justify-between items-center mb-4">
-              {/* Home form */}
-              <div className="flex space-x-1 sm:space-x-2">
-                {Array.from({ length: 5 }).map((_, i) => {
-                  const idx = stats.recentForm!.homeResults.length - 5 + i;
-                  const result = idx >= 0 ? stats.recentForm!.homeResults[idx] : undefined;
-                  const isLast = idx === stats.recentForm!.homeResults.length - 1;
-                  return <FormResultBox key={`home-${i}`} result={result} isLast={isLast} size="small" />;
-                })}
+            {/* Unified form section */}
+            <div className="flex justify-between items-start min-w-[350px] sm:min-w-[500px]">
+              {/* Home */}
+              <div className="flex flex-col items-center space-y-1">
+                <div className="flex flex-wrap space-x-0.5 sm:space-x-2">
+                  {Array.from({ length: 5 }).map((_, i) => {
+                    const idx = stats.recentForm!.homeResults.length - 5 + i;
+                    const result = idx >= 0 ? stats.recentForm!.homeResults[idx] : undefined;
+                    const isLast = idx === stats.recentForm!.homeResults.length - 1;
+                    return <FormResultBox key={`home-${i}`} result={result} isLast={isLast} size="small" />;
+                  })}
+                </div>
+                <div className="flex flex-col items-center text-base font-semibold text-gray-900 mt-1">
+                  <span>{stats.recentForm.homeStats.matchesPlayed}</span>
+                  <span>{stats.recentForm.homeStats.won}</span>
+                  <span>{stats.recentForm.homeStats.drawn}</span>
+                  <span>{stats.recentForm.homeStats.lost}</span>
+                </div>
               </div>
 
               {/* Heading */}
-              <div className="text-center">
-                <span className="text-sm sm:text-lg font-semibold text-gray-700">Form</span>
+              <div className="flex flex-col items-center space-y-2">
+                <span className="text-base font-semibold text-gray-900">Form</span>
+                <div className="flex flex-col items-center text-base font-semibold text-gray-900 space-y-1 mt-1">
+                  <span>Matches played</span>
+                  <span>Won</span>
+                  <span>Drawn</span>
+                  <span>Lost</span>
+                </div>
               </div>
 
-              {/* Away form */}
-              <div className="flex space-x-1 sm:space-x-2">
-                {Array.from({ length: 5 })
-                  .map((_, i) => {
+              {/* Away */}
+              <div className="flex flex-col items-center space-y-1">
+                <div className="flex flex-wrap space-x-0.5 sm:space-x-2">
+                  {Array.from({ length: 5 }).map((_, i) => {
                     const idx = stats.recentForm!.awayResults.length - 5 + i;
                     const result = idx >= 0 ? stats.recentForm!.awayResults[idx] : undefined;
                     const isLast = idx === stats.recentForm!.awayResults.length - 1;
                     return <FormResultBox key={`away-${i}`} result={result} isLast={isLast} size="small" />;
-                  })
-                  .reverse()}
-              </div>
-            </div>
-
-            {/* MP/W/D/L */}
-            <div className="grid grid-cols-3 text-center text-sm sm:text-base font-semibold text-gray-900 mt-4">
-              {/* Home */}
-              <div className="flex flex-col items-end space-y-1">
-                <span>{stats.recentForm.homeStats.matchesPlayed}</span>
-                <span>{stats.recentForm.homeStats.won}</span>
-                <span>{stats.recentForm.homeStats.drawn}</span>
-                <span>{stats.recentForm.homeStats.lost}</span>
-              </div>
-
-              {/* Heading */}
-              <div className="flex flex-col items-center space-y-1">
-                <span>Matches played</span>
-                <span>Won</span>
-                <span>Drawn</span>
-                <span>Lost</span>
-              </div>
-
-              {/* Away */}
-              <div className="flex flex-col items-start space-y-1">
-                <span>{stats.recentForm.awayStats.matchesPlayed}</span>
-                <span>{stats.recentForm.awayStats.won}</span>
-                <span>{stats.recentForm.awayStats.drawn}</span>
-                <span>{stats.recentForm.awayStats.lost}</span>
+                  }).reverse()}
+                </div>
+                <div className="flex flex-col items-center text-base font-semibold text-gray-900 mt-1">
+                  <span>{stats.recentForm.awayStats.matchesPlayed}</span>
+                  <span>{stats.recentForm.awayStats.won}</span>
+                  <span>{stats.recentForm.awayStats.drawn}</span>
+                  <span>{stats.recentForm.awayStats.lost}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -279,25 +243,21 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
           <div className="space-y-4">
             {Object.entries(currentStats).map(([statName, stat]) => {
               if (!stat) return null;
-
-              const isNumeric = typeof stat.homeValue === 'number' && typeof stat.awayValue === 'number';
-              const total = isNumeric ? (stat.homeValue as number) + (stat.awayValue as number) : 0;
-              const homePercent = isNumeric && total > 0 ? Math.round(((stat.homeValue as number) / total) * 100) : 50;
-              const awayPercent = isNumeric && total > 0 ? Math.round(((stat.awayValue as number) / total) * 100) : 50;
+              const total = stat.homeValue + stat.awayValue;
+              const homePercent = total > 0 ? Math.round((stat.homeValue / total) * 100) : 50;
+              const awayPercent = total > 0 ? Math.round((stat.awayValue / total) * 100) : 50;
 
               return (
                 <div key={statName}>
                   <div className="flex justify-between text-sm sm:text-base font-medium">
-                    <span>{formatValue(stat.homeValue, stat.unit)}</span>
+                    <span>{stat.homeValue}{stat.unit || ''}</span>
                     <span className="text-center">{statName}</span>
-                    <span>{formatValue(stat.awayValue, stat.unit)}</span>
+                    <span>{stat.awayValue}{stat.unit || ''}</span>
                   </div>
-                  {isNumeric && (
-                    <div className="flex h-2 sm:h-3 bg-gray-200 rounded-full overflow-hidden mt-1">
-                      <div className="bg-blue-500" style={{ width: `${homePercent}%` }} />
-                      <div className="bg-red-500" style={{ width: `${awayPercent}%` }} />
-                    </div>
-                  )}
+                  <div className="flex h-2 sm:h-3 bg-gray-200 rounded-full overflow-hidden mt-1">
+                    <div className="bg-blue-500" style={{ width: `${homePercent}%` }} />
+                    <div className="bg-red-500" style={{ width: `${awayPercent}%` }} />
+                  </div>
                 </div>
               );
             })}
@@ -309,26 +269,3 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 };
 
 export default ModernStatsTable;
-
-// --- Example Mock Data ---
-export const mockStats: StatsData = {
-  goalsScored: { homeValue: 5, awayValue: 7 },
-  goalsConceded: { homeValue: 3, awayValue: 6 },
-  goalDifference: { homeValue: 2, awayValue: 1 },
-  goalsExtra: {
-    matchesPlayed: 3,
-    goalsFor: 1.62,
-    goalsAgainst: 1.42,
-    totalGoals: 2,
-    over15: "100%",
-    over25: "50%",
-    over35: "25%",
-    btts: "43%",
-  },
-  recentForm: {
-    homeResults: ['W', 'D', 'L'],
-    awayResults: ['L', 'W'],
-    homeStats: { matchesPlayed: 3, won: 1, drawn: 1, lost: 1 },
-    awayStats: { matchesPlayed: 2, won: 1, drawn: 0, lost: 1 },
-  },
-};
