@@ -190,10 +190,10 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
             {/* Form results */}
             <div className="flex justify-between items-center mb-4">
-              {/* Home form */}
+              {/* Home form (oldest → newest, last game rightmost) */}
               <div className="flex space-x-1 sm:space-x-2">
                 {Array.from({ length: 5 }).map((_, i) => {
-                  const idx = stats.recentForm!.homeResults.length - 1 - i;
+                  const idx = stats.recentForm!.homeResults.length - 5 + i;
                   const result = idx >= 0 ? stats.recentForm!.homeResults[idx] : undefined;
                   const isLast = idx === stats.recentForm!.homeResults.length - 1;
                   return <FormResultBox key={`home-${i}`} result={result} isLast={isLast} size="small" />;
@@ -205,11 +205,11 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
                 <span className="text-sm sm:text-lg font-semibold text-gray-700">Form</span>
               </div>
 
-              {/* Away form */}
+              {/* Away form (newest → oldest, last game leftmost) */}
               <div className="flex space-x-1 sm:space-x-2">
                 {Array.from({ length: 5 }).map((_, i) => {
-                  const idx = stats.recentForm!.awayResults.length - 1 - i;
-                  const result = idx >= 0 ? stats.recentForm!.awayResults[idx] : undefined;
+                  const idx = i;
+                  const result = idx < stats.recentForm!.awayResults.length ? stats.recentForm!.awayResults[idx] : undefined;
                   const isLast = idx === stats.recentForm!.awayResults.length - 1;
                   return <FormResultBox key={`away-${i}`} result={result} isLast={isLast} size="small" />;
                 })}
@@ -248,8 +248,8 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
             {Object.entries(currentStats).map(([statName, stat]) => {
               if (!stat) return null;
               const total = stat.homeValue + stat.awayValue;
-              const homePercent = total > 0 ? (stat.homeValue / total) * 100 : 50;
-              const awayPercent = total > 0 ? (stat.awayValue / total) * 100 : 50;
+              const homePercent = total > 0 ? Math.round((stat.homeValue / total) * 100) : 50;
+              const awayPercent = total > 0 ? Math.round((stat.awayValue / total) * 100) : 50;
 
               return (
                 <div key={statName}>
