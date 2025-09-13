@@ -1,3 +1,4 @@
+// src/components/stats/StatsTable/ModernStatsTable.tsx
 import React, { useState } from 'react';
 import { Team } from '../../../types';
 
@@ -17,10 +18,26 @@ interface RecentForm {
   };
 }
 
+interface StatsData {
+  goalsScored: StatValue;
+  goalsConceded: StatValue;
+  goalDifference: StatValue;
+  corners: StatValue;
+  cornersAgainst: StatValue;
+  yellowCards: StatValue;
+  redCards: StatValue;
+  shotsOnTarget: StatValue;
+  totalShots: StatValue;
+  shotAccuracy: StatValue;
+  fouls: StatValue;
+  foulsWon: StatValue;
+  recentForm?: RecentForm;
+}
+
 interface ModernStatsTableProps {
   homeTeam: Team;
   awayTeam: Team;
-  stats: Record<string, StatValue> & { recentForm?: RecentForm };
+  stats: StatsData;
   league?: string;
   season?: string;
   className?: string;
@@ -71,30 +88,30 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     switch (category) {
       case 'goals':
         return {
-          'Goals Scored': stats.goalsScored || { homeValue: 0, awayValue: 0 },
-          'Goals Conceded': stats.goalsConceded || { homeValue: 0, awayValue: 0 },
-          'Goal Difference': stats.goalDifference || { homeValue: 0, awayValue: 0 },
+          'Goals Scored': stats.goalsScored,
+          'Goals Conceded': stats.goalsConceded,
+          'Goal Difference': stats.goalDifference,
         };
       case 'corners':
         return {
-          'Corners Won': stats.corners || { homeValue: 0, awayValue: 0 },
-          'Corners Conceded': stats.cornersAgainst || { homeValue: 0, awayValue: 0 },
+          'Corners Won': stats.corners,
+          'Corners Conceded': stats.cornersAgainst,
         };
       case 'cards':
         return {
-          'Yellow Cards': stats.yellowCards || { homeValue: 0, awayValue: 0 },
-          'Red Cards': stats.redCards || { homeValue: 0, awayValue: 0 },
+          'Yellow Cards': stats.yellowCards,
+          'Red Cards': stats.redCards,
         };
       case 'shooting':
         return {
-          'Shots on Target': stats.shotsOnTarget || { homeValue: 0, awayValue: 0 },
-          'Total Shots': stats.totalShots || { homeValue: 0, awayValue: 0 },
-          'Shot Accuracy': stats.shotAccuracy || { homeValue: 0, awayValue: 0, unit: '%' },
+          'Shots on Target': stats.shotsOnTarget,
+          'Total Shots': stats.totalShots,
+          'Shot Accuracy': stats.shotAccuracy,
         };
       case 'fouls':
         return {
-          'Fouls Committed': stats.fouls || { homeValue: 0, awayValue: 0 },
-          'Fouls Won': stats.foulsWon || { homeValue: 0, awayValue: 0 },
+          'Fouls Committed': stats.fouls,
+          'Fouls Won': stats.foulsWon,
         };
       default:
         return {};
@@ -104,7 +121,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   const currentStats = getStatsForCategory(activeTab);
 
   return (
-    <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-x-auto ${className}`}>
+    <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
       {/* Tabs */}
       <div className="flex border-b border-gray-200 bg-gray-50 overflow-x-auto">
         {tabs.map((tab) => (
@@ -132,31 +149,34 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
       {/* Tab content */}
       <div className="p-6">
         {activeTab === 'form' && stats.recentForm ? (
-          <div className="flex justify-between items-center">
-            {/* Home form */}
-            <div className="flex space-x-2">
-              {stats.recentForm.results.home.map((r, i) => (
-                <FormResult key={`home-${i}`} result={r} />
-              ))}
-            </div>
-
-            {/* Label */}
-            <div className="text-center">
+          <div className="space-y-6">
+            {/* Form display */}
+            <div className="flex justify-between items-center">
+              <div className="flex space-x-2">
+                {stats.recentForm.results.home.map((res, i) => (
+                  <FormResult key={i} result={res} />
+                ))}
+              </div>
               <span className="text-lg font-semibold text-gray-700">Form</span>
+              <div className="flex space-x-2">
+                {stats.recentForm.results.away.map((res, i) => (
+                  <FormResult key={i} result={res} />
+                ))}
+              </div>
             </div>
 
-            {/* Away form */}
-            <div className="flex space-x-2">
-              {stats.recentForm.results.away.map((r, i) => (
-                <FormResult key={`away-${i}`} result={r} />
-              ))}
+            {/* Stats comparison */}
+            <div className="flex justify-between items-center">
+              <span className="text-2xl font-bold text-gray-900">{stats.recentForm.homeValue}</span>
+              <span className="text-lg font-medium text-gray-700">Matches Played</span>
+              <span className="text-2xl font-bold text-gray-900">{stats.recentForm.awayValue}</span>
             </div>
           </div>
         ) : (
           <div className="space-y-6">
             {Object.entries(currentStats).map(([statName, statData]) => (
               <div key={statName} className="flex justify-between items-center">
-                <span className="text-xl font-bold text-gray-900">{statData.homeValue}{statData.unit || ''}</span>
+                <span className="text-2xl font-bold text-gray-900">{statData.homeValue}{statData.unit || ''}</span>
                 <div className="text-center">
                   <span className="text-lg font-medium text-gray-700">{statName}</span>
                   {statData.leagueAverage && (
@@ -165,7 +185,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
                     </div>
                   )}
                 </div>
-                <span className="text-xl font-bold text-gray-900">{statData.awayValue}{statData.unit || ''}</span>
+                <span className="text-2xl font-bold text-gray-900">{statData.awayValue}{statData.unit || ''}</span>
               </div>
             ))}
           </div>
