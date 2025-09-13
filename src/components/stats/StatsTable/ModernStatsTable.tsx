@@ -197,17 +197,24 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
             </div>
 
             {/* Stats numbers */}
-            <div className="flex justify-between text-sm sm:text-base font-semibold text-gray-900">
-              <span>{stats.recentForm.homeStats.matchesPlayed} MP</span>
-              <span>{stats.recentForm.homeStats.won} W</span>
-              <span>{stats.recentForm.homeStats.drawn} D</span>
-              <span>{stats.recentForm.homeStats.lost} L</span>
-              <span className="ml-auto">
-                {stats.recentForm.awayStats.matchesPlayed} MP
-              </span>
-              <span>{stats.recentForm.awayStats.won} W</span>
-              <span>{stats.recentForm.awayStats.drawn} D</span>
-              <span>{stats.recentForm.awayStats.lost} L</span>
+            <div className="grid grid-cols-5 gap-2 text-center font-semibold text-gray-900">
+              <div className="text-gray-700">MP</div>
+              <div className="text-gray-700">W</div>
+              <div className="text-gray-700">D</div>
+              <div className="text-gray-700">L</div>
+              <div></div>
+
+              <div>{stats.recentForm.homeStats.matchesPlayed}</div>
+              <div>{stats.recentForm.homeStats.won}</div>
+              <div>{stats.recentForm.homeStats.drawn}</div>
+              <div>{stats.recentForm.homeStats.lost}</div>
+              <div></div>
+
+              <div>{stats.recentForm.awayStats.matchesPlayed}</div>
+              <div>{stats.recentForm.awayStats.won}</div>
+              <div>{stats.recentForm.awayStats.drawn}</div>
+              <div>{stats.recentForm.awayStats.lost}</div>
+              <div></div>
             </div>
           </div>
         ) : (
