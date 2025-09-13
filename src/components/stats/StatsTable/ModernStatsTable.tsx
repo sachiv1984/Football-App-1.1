@@ -50,13 +50,13 @@ const FormResultBox: React.FC<FormResultBoxProps> = ({ result, isLast }) => {
   const getStyle = (r?: 'W' | 'D' | 'L') => {
     switch (r) {
       case 'W':
-        return { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-200' };
+        return { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-200', underline: 'bg-green-700' };
       case 'D':
-        return { bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-200' };
+        return { bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-200', underline: 'bg-gray-700' };
       case 'L':
-        return { bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-200' };
+        return { bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-200', underline: 'bg-red-700' };
       default:
-        return { bg: 'bg-gray-50', text: 'text-gray-300', border: 'border-gray-200' };
+        return { bg: 'bg-gray-50', text: 'text-gray-300', border: 'border-gray-200', underline: '' };
     }
   };
 
@@ -70,9 +70,7 @@ const FormResultBox: React.FC<FormResultBoxProps> = ({ result, isLast }) => {
         {result || ''}
       </div>
       {isLast && result && (
-        <span
-          className={`block w-full h-1 mt-1 ${result === 'W' ? 'bg-green-700' : result === 'D' ? 'bg-gray-700' : 'bg-red-700'}`}
-        />
+        <span className={`block w-full h-1 mt-1 ${style.underline}`} />
       )}
     </div>
   );
@@ -190,16 +188,19 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
               </div>
             </div>
 
-            {/* Form results */}
+            {/* Form results reversed */}
             <div className="flex justify-between items-center mb-4">
               <div className="flex space-x-1 sm:space-x-2">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <FormResultBox
-                    key={`home-${i}`}
-                    result={stats.recentForm?.homeResults[i]}
-                    isLast={stats.recentForm ? i === stats.recentForm.homeResults.length - 1 : false}
-                  />
-                ))}
+                {Array.from({ length: 5 }).map((_, i) => {
+                  const idx = 5 - 1 - i; // reverse index
+                  return (
+                    <FormResultBox
+                      key={`home-${i}`}
+                      result={stats.recentForm?.homeResults[idx]}
+                      isLast={idx === stats.recentForm.homeResults.length - 1}
+                    />
+                  );
+                })}
               </div>
 
               <div className="text-center">
@@ -207,26 +208,34 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
               </div>
 
               <div className="flex space-x-1 sm:space-x-2">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <FormResultBox
-                    key={`away-${i}`}
-                    result={stats.recentForm?.awayResults[i]}
-                    isLast={stats.recentForm ? i === stats.recentForm.awayResults.length - 1 : false}
-                  />
-                ))}
+                {Array.from({ length: 5 }).map((_, i) => {
+                  const idx = 5 - 1 - i;
+                  return (
+                    <FormResultBox
+                      key={`away-${i}`}
+                      result={stats.recentForm?.awayResults[idx]}
+                      isLast={idx === stats.recentForm.awayResults.length - 1}
+                    />
+                  );
+                })}
               </div>
             </div>
 
-            {/* Matches Played, Won, Drawn, Lost */}
-            <div className="flex justify-between items-center text-sm sm:text-base font-semibold text-gray-900 mt-4">
-              <span>{stats.recentForm.homeStats.matchesPlayed} MP</span>
-              <span>{stats.recentForm.homeStats.won} W</span>
-              <span>{stats.recentForm.homeStats.drawn} D</span>
-              <span>{stats.recentForm.homeStats.lost} L</span>
-              <span className="ml-auto">{stats.recentForm.awayStats.matchesPlayed} MP</span>
-              <span>{stats.recentForm.awayStats.won} W</span>
-              <span>{stats.recentForm.awayStats.drawn} D</span>
-              <span>{stats.recentForm.awayStats.lost} L</span>
+            {/* MP/W/D/L centered */}
+            <div className="grid grid-cols-3 text-center text-sm sm:text-base font-semibold text-gray-900 gap-2 mt-4">
+              <div className="flex justify-end space-x-2">
+                <span>{stats.recentForm.homeStats.matchesPlayed} MP</span>
+                <span>{stats.recentForm.homeStats.won} W</span>
+                <span>{stats.recentForm.homeStats.drawn} D</span>
+                <span>{stats.recentForm.homeStats.lost} L</span>
+              </div>
+              <div className="font-semibold">Matches</div>
+              <div className="flex justify-start space-x-2">
+                <span>{stats.recentForm.awayStats.matchesPlayed} MP</span>
+                <span>{stats.recentForm.awayStats.won} W</span>
+                <span>{stats.recentForm.awayStats.drawn} D</span>
+                <span>{stats.recentForm.awayStats.lost} L</span>
+              </div>
             </div>
           </div>
         ) : (
