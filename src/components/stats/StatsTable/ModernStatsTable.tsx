@@ -51,38 +51,46 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   ];
 
   const getStatsForCategory = (category: StatCategory): Record<string, StatValue> => {
+    const getStat = (key: string): StatValue => {
+      const stat = stats[key];
+      if (stat && typeof stat === 'object' && 'homeValue' in stat && 'awayValue' in stat) {
+        return stat as StatValue;
+      }
+      return { homeValue: 0, awayValue: 0 };
+    };
+
     switch (category) {
       case 'goals':
         return {
-          'Matches Played': stats.matchesPlayed || { homeValue: 0, awayValue: 0 },
-          'Goals For': stats.goalsFor || { homeValue: 0, awayValue: 0 },
-          'Goals Against': stats.goalsAgainst || { homeValue: 0, awayValue: 0 },
-          'Total Goals': stats.totalGoals || { homeValue: 0, awayValue: 0 },
-          'Over 1.5 Goals': stats.over15Goals || { homeValue: 0, awayValue: 0, unit: '%' },
-          'Over 2.5 Goals': stats.over25Goals || { homeValue: 0, awayValue: 0, unit: '%' },
-          'Over 3.5 Goals': stats.over35Goals || { homeValue: 0, awayValue: 0, unit: '%' },
-          'Both Teams Score': stats.bothTeamsScore || { homeValue: 0, awayValue: 0, unit: '%' },
+          'Matches Played': getStat('matchesPlayed'),
+          'Goals For': getStat('goalsFor'),
+          'Goals Against': getStat('goalsAgainst'),
+          'Total Goals': getStat('totalGoals'),
+          'Over 1.5 Goals': getStat('over15Goals'),
+          'Over 2.5 Goals': getStat('over25Goals'),
+          'Over 3.5 Goals': getStat('over35Goals'),
+          'Both Teams Score': getStat('bothTeamsScore'),
         };
       case 'corners':
         return {
-          'Corners Won': stats.corners || { homeValue: 0, awayValue: 0 },
-          'Corners Conceded': stats.cornersAgainst || { homeValue: 0, awayValue: 0 },
+          'Corners Won': getStat('corners'),
+          'Corners Conceded': getStat('cornersAgainst'),
         };
       case 'cards':
         return {
-          'Yellow Cards': stats.yellowCards || { homeValue: 0, awayValue: 0 },
-          'Red Cards': stats.redCards || { homeValue: 0, awayValue: 0 },
+          'Yellow Cards': getStat('yellowCards'),
+          'Red Cards': getStat('redCards'),
         };
       case 'shooting':
         return {
-          'Shots on Target': stats.shotsOnTarget || { homeValue: 0, awayValue: 0 },
-          'Total Shots': stats.totalShots || { homeValue: 0, awayValue: 0 },
-          'Shot Accuracy': stats.shotAccuracy || { homeValue: 0, awayValue: 0, unit: '%' },
+          'Shots on Target': getStat('shotsOnTarget'),
+          'Total Shots': getStat('totalShots'),
+          'Shot Accuracy': getStat('shotAccuracy'),
         };
       case 'fouls':
         return {
-          'Fouls Committed': stats.fouls || { homeValue: 0, awayValue: 0 },
-          'Fouls Won': stats.foulsWon || { homeValue: 0, awayValue: 0 },
+          'Fouls Committed': getStat('fouls'),
+          'Fouls Won': getStat('foulsWon'),
         };
       default:
         return {};
