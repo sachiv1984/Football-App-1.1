@@ -1,4 +1,3 @@
-// src/pages/StatsPage.tsx
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import Header from '../components/common/Header/Header';
@@ -22,7 +21,6 @@ const StatsPage: React.FC = () => {
 
   const handleToggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
-  // Find the fixture based on matchId
   useEffect(() => {
     if (!matchId) return;
 
@@ -52,28 +50,6 @@ const StatsPage: React.FC = () => {
     setCurrentFixture(foundFixture || null);
   }, [matchId, featuredFixtures, gameWeekFixtures]);
 
-  // Mock form data
-  const getFormData = () =>
-    currentFixture
-      ? {
-          homeForm: {
-            results: ['W', 'W', 'L'] as ('W' | 'D' | 'L')[],
-            matchesPlayed: 3,
-            won: 2,
-            drawn: 0,
-            lost: 1,
-          },
-          awayForm: {
-            results: ['L', 'D', 'W'] as ('W' | 'D' | 'L')[],
-            matchesPlayed: 3,
-            won: 1,
-            drawn: 1,
-            lost: 1,
-          },
-        }
-      : null;
-
-  // Mock stats data
   const getStatsData = () =>
     currentFixture
       ? {
@@ -86,14 +62,17 @@ const StatsPage: React.FC = () => {
           redCards: { homeValue: 0, awayValue: 1, leagueAverage: 0.3 },
           shotsOnTarget: { homeValue: 15, awayValue: 12, leagueAverage: 13.5 },
           totalShots: { homeValue: 42, awayValue: 38, leagueAverage: 40.2 },
-          shotAccuracy: {
-            homeValue: 36,
-            awayValue: 32,
-            leagueAverage: 34,
-            unit: '%',
-          },
+          shotAccuracy: { homeValue: 36, awayValue: 32, leagueAverage: 34, unit: '%' },
           fouls: { homeValue: 33, awayValue: 41, leagueAverage: 37.8 },
           foulsWon: { homeValue: 38, awayValue: 35, leagueAverage: 36.5 },
+          recentForm: {
+            homeValue: 3,
+            awayValue: 3,
+            results: {
+              home: ['W', 'W', 'L'],
+              away: ['L', 'D', 'W'],
+            },
+          },
         }
       : null;
 
@@ -106,10 +85,8 @@ const StatsPage: React.FC = () => {
           minHeight: '100vh',
         }}
       >
-        <Header
-          isDarkMode={isDarkMode}
-          onToggleDarkMode={handleToggleDarkMode}
-        />
+        <Header isDarkMode={isDarkMode} onToggleDarkMode={handleToggleDarkMode} />
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center">
             <div className="inline-flex items-center space-x-2 mb-4">
@@ -144,7 +121,6 @@ const StatsPage: React.FC = () => {
     );
   }
 
-  const formData = getFormData();
   const statsData = getStatsData();
 
   return (
@@ -181,12 +157,11 @@ const StatsPage: React.FC = () => {
         </div>
 
         <div className="space-y-8">
-          {statsData && formData && (
+          {statsData && (
             <ModernStatsTable
               homeTeam={currentFixture.homeTeam}
               awayTeam={currentFixture.awayTeam}
               stats={statsData}
-              formData={formData}
               league="Premier League"
               season="25/26"
             />
