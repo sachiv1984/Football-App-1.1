@@ -193,7 +193,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
               {/* Home form */}
               <div className="flex space-x-1 sm:space-x-2">
                 {Array.from({ length: 5 }).map((_, i) => {
-                  const idx = i - (5 - stats.recentForm!.homeResults.length);
+                  const idx = stats.recentForm!.homeResults.length - 1 - i;
                   const result = idx >= 0 ? stats.recentForm!.homeResults[idx] : undefined;
                   const isLast = idx === stats.recentForm!.homeResults.length - 1;
                   return <FormResultBox key={`home-${i}`} result={result} isLast={isLast} size="small" />;
@@ -208,7 +208,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
               {/* Away form */}
               <div className="flex space-x-1 sm:space-x-2">
                 {Array.from({ length: 5 }).map((_, i) => {
-                  const idx = i - (5 - stats.recentForm!.awayResults.length);
+                  const idx = stats.recentForm!.awayResults.length - 1 - i;
                   const result = idx >= 0 ? stats.recentForm!.awayResults[idx] : undefined;
                   const isLast = idx === stats.recentForm!.awayResults.length - 1;
                   return <FormResultBox key={`away-${i}`} result={result} isLast={isLast} size="small" />;
@@ -216,30 +216,30 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
               </div>
             </div>
 
-            {/* MP/W/D/L vertically */}
+            {/* MP/W/D/L vertically with full names */}
             <div className="grid grid-cols-3 text-center text-sm sm:text-base font-semibold text-gray-900 mt-4">
               {/* Home */}
               <div className="flex flex-col items-end space-y-1">
-                <span>{stats.recentForm.homeStats.matchesPlayed} MP</span>
-                <span>{stats.recentForm.homeStats.won} W</span>
-                <span>{stats.recentForm.homeStats.drawn} D</span>
-                <span>{stats.recentForm.homeStats.lost} L</span>
+                <span>{stats.recentForm.homeStats.matchesPlayed}</span>
+                <span>{stats.recentForm.homeStats.won}</span>
+                <span>{stats.recentForm.homeStats.drawn}</span>
+                <span>{stats.recentForm.homeStats.lost}</span>
               </div>
 
               {/* Heading */}
               <div className="flex flex-col items-center space-y-1">
-                <span>MP</span>
-                <span>W</span>
-                <span>D</span>
-                <span>L</span>
+                <span>Matches played</span>
+                <span>Won</span>
+                <span>Drawn</span>
+                <span>Lost</span>
               </div>
 
               {/* Away */}
               <div className="flex flex-col items-start space-y-1">
-                <span>{stats.recentForm.awayStats.matchesPlayed} MP</span>
-                <span>{stats.recentForm.awayStats.won} W</span>
-                <span>{stats.recentForm.awayStats.drawn} D</span>
-                <span>{stats.recentForm.awayStats.lost} L</span>
+                <span>{stats.recentForm.awayStats.matchesPlayed}</span>
+                <span>{stats.recentForm.awayStats.won}</span>
+                <span>{stats.recentForm.awayStats.drawn}</span>
+                <span>{stats.recentForm.awayStats.lost}</span>
               </div>
             </div>
           </div>
