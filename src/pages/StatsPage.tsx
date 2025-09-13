@@ -4,6 +4,7 @@ import { useParams } from 'react-router-dom';
 import Header from '../components/common/Header/Header';
 import Footer from '../components/common/Footer/Footer';
 import MatchHeader from '../components/stats/match/MatchHeader';
+import StatsTable from '../components/stats/StatsTable/StatsTable';
 import { useFixtureNavigation } from '../hooks/useNavigation';
 import { useFixtures } from '../hooks/useFixtures';
 import { useGameWeekFixtures } from '../hooks/useGameWeekFixtures';
@@ -53,6 +54,47 @@ const StatsPage: React.FC = () => {
     setCurrentFixture(foundFixture || null);
   }, [matchId, featuredFixtures, gameWeekFixtures]);
 
+  // Mock stats data - replace with actual data from your API/hooks
+  const getMockStats = () => {
+    if (!currentFixture) return null;
+
+    return {
+      homeTeamStats: {
+        shotsOnTarget: 5,
+        totalShots: 12,
+        corners: 7,
+        possession: 58,
+        passAccuracy: 87,
+        fouls: 11,
+        yellowCards: 2,
+        redCards: 0,
+        offsides: 3
+      },
+      awayTeamStats: {
+        shotsOnTarget: 3,
+        totalShots: 8,
+        corners: 4,
+        possession: 42,
+        passAccuracy: 81,
+        fouls: 14,
+        yellowCards: 3,
+        redCards: 1,
+        offsides: 2
+      },
+      leagueAverages: {
+        shotsOnTarget: 4.2,
+        totalShots: 11.5,
+        corners: 5.8,
+        possession: 50,
+        passAccuracy: 84,
+        fouls: 12.3,
+        yellowCards: 2.1,
+        redCards: 0.2,
+        offsides: 2.7
+      }
+    };
+  };
+
   // Loading state while we find the fixture
   if (!currentFixture) {
     return (
@@ -98,6 +140,8 @@ const StatsPage: React.FC = () => {
     );
   }
 
+  const statsData = getMockStats();
+
   return (
     <div
       style={{
@@ -136,23 +180,15 @@ const StatsPage: React.FC = () => {
 
         {/* Content Sections */}
         <div className="space-y-8">
-          {/* Match Statistics Card */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Match Statistics</h2>
-            <p className="text-gray-600 mb-4">Detailed match statistics will go here</p>
-            <div className="bg-gray-50 rounded-lg p-4">
-              <p className="text-sm text-gray-600 mb-2">
-                <strong>This section will include:</strong>
-              </p>
-              <ul className="text-sm text-gray-600 space-y-1 ml-4">
-                <li>• Possession percentage</li>
-                <li>• Shots on target / total shots</li>
-                <li>• Cards (yellow/red)</li>
-                <li>• Corners, fouls, offsides</li>
-                <li>• Pass accuracy and other detailed stats</li>
-              </ul>
-            </div>
-          </div>
+          {/* Match Statistics - Now using StatsTable component */}
+          {statsData && (
+            <StatsTable
+              homeTeam={currentFixture.homeTeam}
+              awayTeam={currentFixture.awayTeam}
+              stats={statsData}
+              className="shadow-sm"
+            />
+          )}
 
           {/* Betting Insights Card */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -169,6 +205,71 @@ const StatsPage: React.FC = () => {
                 <li>• Historical head-to-head data</li>
                 <li>• Form analysis and trends</li>
               </ul>
+            </div>
+          </div>
+
+          {/* Additional Statistics Cards */}
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Form Guide */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Form</h3>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">{currentFixture.homeTeam.shortName}</span>
+                  <div className="flex space-x-1">
+                    {['W', 'W', 'D', 'L', 'W'].map((result, index) => (
+                      <span
+                        key={index}
+                        className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ${
+                          result === 'W' ? 'bg-green-500' :
+                          result === 'D' ? 'bg-yellow-500' : 'bg-red-500'
+                        }`}
+                      >
+                        {result}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">{currentFixture.awayTeam.shortName}</span>
+                  <div className="flex space-x-1">
+                    {['L', 'W', 'W', 'D', 'L'].map((result, index) => (
+                      <span
+                        key={index}
+                        className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ${
+                          result === 'W' ? 'bg-green-500' :
+                          result === 'D' ? 'bg-yellow-500' : 'bg-red-500'
+                        }`}
+                      >
+                        {result}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Head to Head */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Head to Head</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span>Total Meetings</span>
+                  <span className="font-semibold">12</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>{currentFixture.homeTeam.shortName} Wins</span>
+                  <span className="font-semibold text-blue-600">5</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Draws</span>
+                  <span className="font-semibold text-gray-600">3</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>{currentFixture.awayTeam.shortName} Wins</span>
+                  <span className="font-semibold text-red-600">4</span>
+                </div>
+              </div>
             </div>
           </div>
 
