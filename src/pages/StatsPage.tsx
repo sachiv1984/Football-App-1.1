@@ -81,7 +81,7 @@ const StatsPage: React.FC = () => {
     if (!currentFixture) return null;
 
     return {
-      // Goals tab data (new format)
+      // Goals tab data
       matchesPlayed: { homeValue: 3, awayValue: 3 },
       goalsFor: { homeValue: 1.62, awayValue: 1.42 },
       goalsAgainst: { homeValue: 1.42, awayValue: 1.62 },
@@ -91,18 +91,24 @@ const StatsPage: React.FC = () => {
       over35Goals: { homeValue: 25, awayValue: 25, unit: '%' },
       bothTeamsScore: { homeValue: 43, awayValue: 43, unit: '%' },
       
-      // Other tab data
+      // Corners tab data
       corners: { homeValue: 21, awayValue: 15, leagueAverage: 18.3 },
       cornersAgainst: { homeValue: 12, awayValue: 19, leagueAverage: 15.7 },
+      
+      // Cards tab data
       yellowCards: { homeValue: 6, awayValue: 9, leagueAverage: 7.2 },
       redCards: { homeValue: 0, awayValue: 1, leagueAverage: 0.3 },
+      
+      // Shooting tab data
       shotsOnTarget: { homeValue: 15, awayValue: 12, leagueAverage: 13.5 },
       totalShots: { homeValue: 42, awayValue: 38, leagueAverage: 40.2 },
       shotAccuracy: { homeValue: 36, awayValue: 32, leagueAverage: 34, unit: '%' },
+      
+      // Fouls tab data
       fouls: { homeValue: 33, awayValue: 41, leagueAverage: 37.8 },
       foulsWon: { homeValue: 38, awayValue: 35, leagueAverage: 36.5 },
       
-      // Form data
+      // Form data (separate structure)
       recentForm: {
         homeResults: ['W', 'W', 'L'] as ('W' | 'D' | 'L')[],
         awayResults: ['L', 'D', 'W'] as ('W' | 'D' | 'L')[],
