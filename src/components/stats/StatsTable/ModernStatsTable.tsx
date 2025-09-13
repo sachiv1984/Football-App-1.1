@@ -1,6 +1,7 @@
 // src/components/stats/StatsTable/ModernStatsTable.tsx
 import React, { useState } from 'react';
 import { Team } from '../../../types';
+import TeamForm from '../TeamForm/TeamForm';
 
 interface ModernStatsTableProps {
   homeTeam: Team;
@@ -11,6 +12,22 @@ interface ModernStatsTableProps {
       awayValue: number;
       leagueAverage?: number;
       unit?: string;
+    };
+  };
+  formData?: {
+    homeForm: {
+      results: ('W' | 'D' | 'L')[];
+      matchesPlayed: number;
+      won: number;
+      drawn: number;
+      lost: number;
+    };
+    awayForm: {
+      results: ('W' | 'D' | 'L')[];
+      matchesPlayed: number;
+      won: number;
+      drawn: number;
+      lost: number;
     };
   };
   league?: string;
@@ -24,11 +41,14 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   homeTeam,
   awayTeam,
   stats,
+  formData,
   league = "Premier League",
   season = "25/26",
   className = ""
 }) => {
-  const [activeTab, setActiveTab] = useState<StatCategory>('form');
+  const [activeTab, setActiveTab] = useState<StatCategory>(
+    formData ? 'form' : 'goals' // 👈 default to "form" only if data exists
+  );
 
   const tabs: { key: StatCategory; label: string }[] = [
     { key: 'form', label: 'Form' },
@@ -88,6 +108,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
                 ? 'text-purple-600 border-purple-600 bg-white'
                 : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
             }`}
+            disabled={tab.key === 'form' && !formData}
           >
             {tab.label}
           </button>
@@ -103,15 +124,16 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
       {/* Content */}
       <div className="p-6">
-        {activeTab === 'form' ? (
-          // Form content would go here - you could integrate your TeamForm component
-          <div className="text-center py-8">
-            <p className="text-gray-600">Form component would be rendered here</p>
-            <p className="text-sm text-gray-500 mt-2">
-              You can integrate the TeamForm component above
-            </p>
-          </div>
-        ) : (
+        {activeTab === 'form' && formData ? (
+          <TeamForm
+            homeTeam={homeTeam}
+            awayTeam={awayTeam}
+            homeForm={formData.homeForm}
+            awayForm={formData.awayForm}
+            league={league}
+            season={season}
+          />
+        ) : activeTab !== 'form' ? (
           <div className="space-y-6">
             {/* Team headers */}
             <div className="flex items-center justify-between mb-8">
@@ -192,6 +214,10 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
                 );
               })}
             </div>
+          </div>
+        ) : (
+          <div className="text-center text-gray-600 py-8">
+            No data available for this tab
           </div>
         )}
       </div>
