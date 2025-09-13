@@ -44,9 +44,10 @@ type StatCategory = 'form' | 'goals' | 'corners' | 'cards' | 'shooting' | 'fouls
 interface FormResultBoxProps {
   result?: 'W' | 'D' | 'L';
   isLast?: boolean;
+  size?: 'small' | 'normal';
 }
 
-const FormResultBox: React.FC<FormResultBoxProps> = ({ result, isLast }) => {
+const FormResultBox: React.FC<FormResultBoxProps> = ({ result, isLast, size = 'normal' }) => {
   const getStyle = (r?: 'W' | 'D' | 'L') => {
     switch (r) {
       case 'W':
@@ -61,17 +62,16 @@ const FormResultBox: React.FC<FormResultBoxProps> = ({ result, isLast }) => {
   };
 
   const style = getStyle(result);
+  const boxSize = size === 'small' ? 'w-6 h-6 sm:w-8 sm:h-8 text-xs sm:text-sm' : 'w-8 h-8 sm:w-10 sm:h-10 text-sm';
 
   return (
     <div className="relative flex flex-col items-center">
       <div
-        className={`w-8 h-8 sm:w-10 sm:h-10 rounded border flex items-center justify-center text-sm font-semibold ${style.bg} ${style.text} ${style.border}`}
+        className={`rounded border flex items-center justify-center font-semibold ${boxSize} ${style.bg} ${style.text} ${style.border}`}
       >
         {result || ''}
       </div>
-      {isLast && result && (
-        <span className={`block w-full h-1 mt-1 ${style.underline}`} />
-      )}
+      {isLast && result && <span className={`block w-full h-1 mt-1 ${style.underline}`} />}
     </div>
   );
 };
@@ -188,55 +188,53 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
               </div>
             </div>
 
-            {/* Form results with empty boxes on left */}
+            {/* Form results */}
             <div className="flex justify-between items-center mb-4">
+              {/* Home form */}
               <div className="flex space-x-1 sm:space-x-2">
                 {Array.from({ length: 5 }).map((_, i) => {
-                  const idx = 5 - 1 - i; // reverse index
-                  const result = stats.recentForm?.homeResults[idx];
-                  return (
-                    <FormResultBox
-                      key={`home-${i}`}
-                      result={result}
-                      isLast={stats.recentForm ? idx === stats.recentForm.homeResults.length - 1 : false}
-                    />
-                  );
+                  const idx = i - (5 - stats.recentForm!.homeResults.length);
+                  const result = idx >= 0 ? stats.recentForm!.homeResults[idx] : undefined;
+                  const isLast = idx === stats.recentForm!.homeResults.length - 1;
+                  return <FormResultBox key={`home-${i}`} result={result} isLast={isLast} size="small" />;
                 })}
               </div>
 
+              {/* Heading */}
               <div className="text-center">
                 <span className="text-sm sm:text-lg font-semibold text-gray-700">Form</span>
               </div>
 
+              {/* Away form */}
               <div className="flex space-x-1 sm:space-x-2">
                 {Array.from({ length: 5 }).map((_, i) => {
-                  const idx = 5 - 1 - i;
-                  const result = stats.recentForm?.awayResults[idx];
-                  return (
-                    <FormResultBox
-                      key={`away-${i}`}
-                      result={result}
-                      isLast={stats.recentForm ? idx === stats.recentForm.awayResults.length - 1 : false}
-                    />
-                  );
+                  const idx = i - (5 - stats.recentForm!.awayResults.length);
+                  const result = idx >= 0 ? stats.recentForm!.awayResults[idx] : undefined;
+                  const isLast = idx === stats.recentForm!.awayResults.length - 1;
+                  return <FormResultBox key={`away-${i}`} result={result} isLast={isLast} size="small" />;
                 })}
               </div>
             </div>
 
-            {/* MP/W/D/L vertical and centered */}
+            {/* MP/W/D/L vertically */}
             <div className="grid grid-cols-3 text-center text-sm sm:text-base font-semibold text-gray-900 mt-4">
+              {/* Home */}
               <div className="flex flex-col items-end space-y-1">
                 <span>{stats.recentForm.homeStats.matchesPlayed} MP</span>
                 <span>{stats.recentForm.homeStats.won} W</span>
                 <span>{stats.recentForm.homeStats.drawn} D</span>
                 <span>{stats.recentForm.homeStats.lost} L</span>
               </div>
+
+              {/* Heading */}
               <div className="flex flex-col items-center space-y-1">
                 <span>MP</span>
                 <span>W</span>
                 <span>D</span>
                 <span>L</span>
               </div>
+
+              {/* Away */}
               <div className="flex flex-col items-start space-y-1">
                 <span>{stats.recentForm.awayStats.matchesPlayed} MP</span>
                 <span>{stats.recentForm.awayStats.won} W</span>
