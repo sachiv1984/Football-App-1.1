@@ -204,18 +204,6 @@ const StatsPage: React.FC = () => {
 
         {/* Content Sections */}
         <div className="space-y-8">
-          {/* Team Form Component */}
-          {teamFormData && (
-            <TeamForm
-              homeTeam={currentFixture.homeTeam}
-              awayTeam={currentFixture.awayTeam}
-              homeForm={teamFormData.homeForm}
-              awayForm={teamFormData.awayForm}
-              league="Premier League"
-              season="25/26"
-            />
-          )}
-
           {/* Modern Stats Table with Tabs */}
           {modernStatsData && (
             <ModernStatsTable
