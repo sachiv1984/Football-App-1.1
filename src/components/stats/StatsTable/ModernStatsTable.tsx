@@ -188,16 +188,17 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
               </div>
             </div>
 
-            {/* Form results reversed */}
+            {/* Form results with empty boxes on left */}
             <div className="flex justify-between items-center mb-4">
               <div className="flex space-x-1 sm:space-x-2">
                 {Array.from({ length: 5 }).map((_, i) => {
                   const idx = 5 - 1 - i; // reverse index
+                  const result = stats.recentForm?.homeResults[idx];
                   return (
                     <FormResultBox
                       key={`home-${i}`}
-                      result={stats.recentForm?.homeResults[idx]}
-                      isLast={idx === stats.recentForm.homeResults.length - 1}
+                      result={result}
+                      isLast={stats.recentForm ? idx === stats.recentForm.homeResults.length - 1 : false}
                     />
                   );
                 })}
@@ -210,36 +211,32 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
               <div className="flex space-x-1 sm:space-x-2">
                 {Array.from({ length: 5 }).map((_, i) => {
                   const idx = 5 - 1 - i;
+                  const result = stats.recentForm?.awayResults[idx];
                   return (
                     <FormResultBox
                       key={`away-${i}`}
-                      result={stats.recentForm?.awayResults[idx]}
-                      isLast={idx === stats.recentForm.awayResults.length - 1}
+                      result={result}
+                      isLast={stats.recentForm ? idx === stats.recentForm.awayResults.length - 1 : false}
                     />
                   );
                 })}
               </div>
             </div>
 
-            {/* MP/W/D/L vertical */}
-            <div className="grid grid-cols-3 text-sm sm:text-base font-semibold text-gray-900 mt-4">
-              {/* Home */}
+            {/* MP/W/D/L vertical and centered */}
+            <div className="grid grid-cols-3 text-center text-sm sm:text-base font-semibold text-gray-900 mt-4">
               <div className="flex flex-col items-end space-y-1">
                 <span>{stats.recentForm.homeStats.matchesPlayed} MP</span>
                 <span>{stats.recentForm.homeStats.won} W</span>
                 <span>{stats.recentForm.homeStats.drawn} D</span>
                 <span>{stats.recentForm.homeStats.lost} L</span>
               </div>
-
-              {/* Headers */}
-              <div className="flex flex-col justify-center space-y-1">
+              <div className="flex flex-col items-center space-y-1">
                 <span>MP</span>
                 <span>W</span>
                 <span>D</span>
                 <span>L</span>
               </div>
-
-              {/* Away */}
               <div className="flex flex-col items-start space-y-1">
                 <span>{stats.recentForm.awayStats.matchesPlayed} MP</span>
                 <span>{stats.recentForm.awayStats.won} W</span>
