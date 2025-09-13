@@ -1,4 +1,4 @@
-l// src/components/stats/StatsTable/ModernStatsTable.tsx
+// src/components/stats/StatsTable/ModernStatsTable.tsx
 import React, { useState } from 'react';
 import { Team } from '../../../types';
 
