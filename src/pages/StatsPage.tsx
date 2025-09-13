@@ -4,7 +4,6 @@ import { useParams } from 'react-router-dom';
 import Header from '../components/common/Header/Header';
 import Footer from '../components/common/Footer/Footer';
 import MatchHeader from '../components/stats/match/MatchHeader';
-import TeamForm from '../components/stats/TeamForm/TeamForm';
 import ModernStatsTable from '../components/stats/StatsTable/ModernStatsTable';
 import { useFixtureNavigation } from '../hooks/useNavigation';
 import { useFixtures } from '../hooks/useFixtures';
@@ -163,7 +162,6 @@ const StatsPage: React.FC = () => {
     );
   }
 
-  const teamFormData = getTeamFormData();
   const modernStatsData = getModernStatsData();
 
   return (
