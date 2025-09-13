@@ -188,59 +188,53 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
               </div>
             </div>
 
-            {/* Form results */}
-            <div className="flex justify-between items-center mb-4">
-              {/* Home form (oldest → newest, last game rightmost) */}
-              <div className="flex space-x-1 sm:space-x-2">
-                {Array.from({ length: 5 }).map((_, i) => {
-                  const idx = stats.recentForm!.homeResults.length - 5 + i;
-                  const result = idx >= 0 ? stats.recentForm!.homeResults[idx] : undefined;
-                  const isLast = idx === stats.recentForm!.homeResults.length - 1;
-                  return <FormResultBox key={`home-${i}`} result={result} isLast={isLast} size="small" />;
-                })}
-              </div>
-
-              {/* Heading */}
-              <div className="text-center">
-                <span className="text-sm sm:text-lg font-semibold text-gray-700">Form</span>
-              </div>
-
-              {/* Away form (oldest → newest, last game next to heading) */}
-<div className="flex space-x-1 sm:space-x-2">
-  {Array.from({ length: 5 }).map((_, i) => {
-    const idx = stats.recentForm!.awayResults.length - 5 + i; // last 5 games
-    const result = idx >= 0 ? stats.recentForm!.awayResults[idx] : undefined;
-    const isLast = idx === stats.recentForm!.awayResults.length - 1; // underline last game
-    return <FormResultBox key={`away-${i}`} result={result} isLast={isLast} size="small" />;
-  }).reverse()} {/* reverse to make last game next to heading */}
-</div>
-
-            </div>
-
-            {/* MP/W/D/L vertically with full names */}
-            <div className="grid grid-cols-3 text-center text-sm sm:text-base font-semibold text-gray-900 mt-4">
+            {/* Unified form with aligned stats */}
+            <div className="flex justify-between items-start mb-4">
               {/* Home */}
-              <div className="flex flex-col items-end space-y-1">
-                <span>{stats.recentForm.homeStats.matchesPlayed}</span>
-                <span>{stats.recentForm.homeStats.won}</span>
-                <span>{stats.recentForm.homeStats.drawn}</span>
-                <span>{stats.recentForm.homeStats.lost}</span>
+              <div className="flex flex-col items-center space-y-1">
+                <div className="flex space-x-1 sm:space-x-2">
+                  {Array.from({ length: 5 }).map((_, i) => {
+                    const idx = stats.recentForm!.homeResults.length - 5 + i;
+                    const result = idx >= 0 ? stats.recentForm!.homeResults[idx] : undefined;
+                    const isLast = idx === stats.recentForm!.homeResults.length - 1;
+                    return <FormResultBox key={`home-${i}`} result={result} isLast={isLast} size="small" />;
+                  })}
+                </div>
+                <div className="flex flex-col items-center text-sm sm:text-base font-semibold text-gray-900 mt-1">
+                  <span>{stats.recentForm.homeStats.matchesPlayed}</span>
+                  <span>{stats.recentForm.homeStats.won}</span>
+                  <span>{stats.recentForm.homeStats.drawn}</span>
+                  <span>{stats.recentForm.homeStats.lost}</span>
+                </div>
               </div>
 
-              {/* Heading */}
-              <div className="flex flex-col items-center space-y-1">
-                <span>Matches played</span>
-                <span>Won</span>
-                <span>Drawn</span>
-                <span>Lost</span>
+              {/* Center heading */}
+              <div className="flex flex-col items-center space-y-2">
+                <span className="text-sm sm:text-lg font-semibold text-gray-700">Form</span>
+                <div className="flex flex-col items-center text-sm sm:text-base font-semibold text-gray-900 space-y-1 mt-1">
+                  <span>Matches played</span>
+                  <span>Won</span>
+                  <span>Drawn</span>
+                  <span>Lost</span>
+                </div>
               </div>
 
               {/* Away */}
-              <div className="flex flex-col items-start space-y-1">
-                <span>{stats.recentForm.awayStats.matchesPlayed}</span>
-                <span>{stats.recentForm.awayStats.won}</span>
-                <span>{stats.recentForm.awayStats.drawn}</span>
-                <span>{stats.recentForm.awayStats.lost}</span>
+              <div className="flex flex-col items-center space-y-1">
+                <div className="flex space-x-1 sm:space-x-2">
+                  {Array.from({ length: 5 }).map((_, i) => {
+                    const idx = stats.recentForm!.awayResults.length - 5 + i;
+                    const result = idx >= 0 ? stats.recentForm!.awayResults[idx] : undefined;
+                    const isLast = idx === stats.recentForm!.awayResults.length - 1;
+                    return <FormResultBox key={`away-${i}`} result={result} isLast={isLast} size="small" />;
+                  }).reverse()}
+                </div>
+                <div className="flex flex-col items-center text-sm sm:text-base font-semibold text-gray-900 mt-1">
+                  <span>{stats.recentForm.awayStats.matchesPlayed}</span>
+                  <span>{stats.recentForm.awayStats.won}</span>
+                  <span>{stats.recentForm.awayStats.drawn}</span>
+                  <span>{stats.recentForm.awayStats.lost}</span>
+                </div>
               </div>
             </div>
           </div>
