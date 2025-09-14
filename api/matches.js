@@ -3,6 +3,20 @@ let matchesCache = { data: null, timestamp: 0 };
 let matchesEtag = null; // Store latest ETag from upstream
 const teamVenueCache = new Map(); // teamId -> { venue, ts }
 
+// --------------------------
+// Timing helper
+// --------------------------
+function measureTime(label) {
+  const start = Date.now();
+  return {
+    end: () => {
+      const duration = Date.now() - start;
+      console.log(`${label} took ${duration}ms`);
+      return duration;
+    }
+  };
+}
+
 // helper: fetch & cache venue from /teams endpoint
 async function getTeamVenue(teamId, API_TOKEN) {
   const cached = teamVenueCache.get(teamId);
@@ -72,21 +86,25 @@ module.exports = async function handler(req, res) {
       return res.status(200).json(matchesCache.data);
     }
 
-    // Fetch fresh
+    // --------------------------
+    // Fetch fresh with timing
+    // --------------------------
+    const fetchTimer = measureTime("Fetch matches");
     const headers = {
       "X-Auth-Token": API_TOKEN,
       "Content-Type": "application/json",
       ...(matchesEtag ? { "If-None-Match": matchesEtag } : {}),
     };
-
     const url = "https://api.football-data.org/v4/competitions/PL/matches";
     const response = await fetch(url, { headers });
+    const fetchDuration = fetchTimer.end();
 
     // Handle 304 Not Modified
     if (response.status === 304 && matchesCache.data) {
       matchesCache.timestamp = Date.now();
       res.setHeader("x-cache", "ETAG-NOTMODIFIED");
       res.setHeader("ETag", matchesEtag);
+      res.setHeader("x-timings-fetch", fetchDuration);
       return res.status(200).json(matchesCache.data);
     }
 
@@ -95,6 +113,7 @@ module.exports = async function handler(req, res) {
       if (response.status === 429 && matchesCache.data) {
         res.setHeader("x-cache", "STALE");
         res.setHeader("ETag", matchesEtag || "");
+        res.setHeader("x-timings-fetch", fetchDuration);
         return res.status(200).json(matchesCache.data);
       }
       return res
@@ -107,10 +126,10 @@ module.exports = async function handler(req, res) {
     const data = await response.json();
 
     // --------------------------
-    // Smart venue enrichment
+    // Smart venue enrichment with timing
     // --------------------------
+    const venueTimer = measureTime("Fetch team venues");
 
-    // 1. Identify all home teams missing a venue
     const teamsToFetch = new Set();
     (data.matches || []).forEach(match => {
       if (!match.venue && match.homeTeam?.id) {
@@ -118,15 +137,15 @@ module.exports = async function handler(req, res) {
       }
     });
 
-    // 2. Fetch missing venues in parallel, only once per team
     const fetchedVenues = {};
     await Promise.all(
       Array.from(teamsToFetch).map(async (teamId) => {
         fetchedVenues[teamId] = await getTeamVenue(teamId, API_TOKEN);
       })
     );
+    const venueDuration = venueTimer.end();
 
-    // 3. Enrich matches using fetchedVenues
+    const enrichTimer = measureTime("Enrich matches");
     const matches = (data.matches || []).map(match => {
       let venue = match.venue || "";
       if (!venue && match.homeTeam?.id) {
@@ -145,6 +164,7 @@ module.exports = async function handler(req, res) {
         competition: match.competition || {},
       };
     });
+    const enrichDuration = enrichTimer.end();
 
     // Save to cache
     matchesCache = { data: matches, timestamp: now };
@@ -152,6 +172,10 @@ module.exports = async function handler(req, res) {
     res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=600");
     res.setHeader("x-cache", "MISS");
     res.setHeader("ETag", matchesEtag);
+    res.setHeader("x-timings-fetch", fetchDuration);
+    res.setHeader("x-timings-venues", venueDuration);
+    res.setHeader("x-timings-enrich", enrichDuration);
+
     return res.status(200).json(matches);
   } catch (error) {
     if (matchesCache.data) {
