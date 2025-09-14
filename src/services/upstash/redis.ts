@@ -1,25 +1,27 @@
-import { Redis } from "@upstash/redis";
+// src/services/upstash/redis.ts
 
-const redis = new Redis({
+import { Redis } from '@upstash/redis';
+
+export const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_TOKEN!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
 });
 
-// Wrapper helpers
+// Generic GET
 export const redisGet = async <T = any>(key: string): Promise<T | null> => {
   const data = await redis.get(key);
-  return data ? JSON.parse(data) : null;
+
+  if (!data || typeof data !== 'string') return null;
+
+  return JSON.parse(data) as T;
 };
 
+// SET with optional TTL in seconds
 export const redisSet = async (key: string, value: any, ttlSeconds?: number) => {
-  const json = JSON.stringify(value);
+  const str = JSON.stringify(value);
   if (ttlSeconds) {
-    await redis.setex(key, ttlSeconds, json);
+    await redis.set(key, str, { ex: ttlSeconds });
   } else {
-    await redis.set(key, json);
+    await redis.set(key, str);
   }
-};
-
-export const redisDel = async (key: string) => {
-  await redis.del(key);
 };
