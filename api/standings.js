@@ -1,21 +1,11 @@
 // api/standings.js
 let standingsCache = { data: null, timestamp: 0 };
 let standingsEtag = null; // store latest ETag
-
-// Shared performance stats object (can be extended for Step 5)
-const perfStats = {
-  standings: [],
-};
-
-// Helper: measure time of async function
-async function measureTime(fn) {
-  const start = Date.now();
-  const result = await fn();
-  const duration = Date.now() - start;
-  return { result, duration };
-}
+const perfStats = { standings: [] }; // store timings
 
 module.exports = async function handler(req, res) {
+  const startTotal = Date.now();
+
   try {
     const API_TOKEN =
       process.env.FOOTBALL_DATA_TOKEN || process.env.REACT_APP_FOOTBALL_DATA_TOKEN;
@@ -48,6 +38,10 @@ module.exports = async function handler(req, res) {
       return res.status(200).json(standingsCache.data);
     }
 
+    // --------------------------
+    // Fetch fresh
+    // --------------------------
+    const startFetch = Date.now();
     const headers = {
       "X-Auth-Token": API_TOKEN,
       "Content-Type": "application/json",
@@ -55,30 +49,24 @@ module.exports = async function handler(req, res) {
     };
 
     const url = "https://api.football-data.org/v4/competitions/PL/standings";
-
-    // --------------------------
-    // Fetch standings with timing
-    // --------------------------
-    const { result: response, duration: fetchTime } = await measureTime(() =>
-      fetch(url, { headers })
-    );
+    const response = await fetch(url, { headers });
+    const fetchTime = Date.now() - startFetch;
 
     // Handle 304 Not Modified
     if (response.status === 304 && standingsCache.data) {
       standingsCache.timestamp = Date.now();
       res.setHeader("x-cache", "ETAG-NOTMODIFIED");
       res.setHeader("ETag", standingsEtag);
-      res.setHeader("x-timings-fetch", fetchTime.toString());
+      perfStats.standings.push({ fetchTime, parseTime: 0, totalTime: Date.now() - startTotal });
       return res.status(200).json(standingsCache.data);
     }
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Standings fetch error:", { status: response.status, errorText });
       if (response.status === 429 && standingsCache.data) {
         res.setHeader("x-cache", "STALE");
         res.setHeader("ETag", standingsEtag || "");
-        res.setHeader("x-timings-fetch", fetchTime.toString());
+        perfStats.standings.push({ fetchTime, parseTime: 0, totalTime: Date.now() - startTotal });
         return res.status(200).json(standingsCache.data);
       }
       return res
@@ -86,37 +74,37 @@ module.exports = async function handler(req, res) {
         .json({ error: "Football Data API error", details: errorText });
     }
 
-    // Update ETag if returned
-    standingsEtag = response.headers.get("etag") || standingsEtag;
+    // --------------------------
+    // Parse and cache
+    // --------------------------
+    const startParse = Date.now();
+    const data = await response.json();
+    const parseTime = Date.now() - startParse;
 
-    // Parse JSON with timing
-    const { result: data, duration: parseTime } = await measureTime(() => response.json());
     const standings = data.standings?.[0]?.table || [];
 
-    // Save to cache
     standingsCache = { data: standings, timestamp: now };
+    standingsEtag = response.headers.get("etag") || standingsEtag;
 
-    // Update perfStats
-    perfStats.standings.push({ fetchTime, parseTime, timestamp: now });
-    if (perfStats.standings.length > 50) perfStats.standings.shift(); // keep last 50
+    // Record performance
+    const totalTime = Date.now() - startTotal;
+    perfStats.standings.push({ fetchTime, parseTime, totalTime });
 
-    // Response headers
     res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=1800");
     res.setHeader("x-cache", "MISS");
     res.setHeader("ETag", standingsEtag);
-    res.setHeader("x-timings-fetch", fetchTime.toString());
-    res.setHeader("x-timings-parse", parseTime.toString());
-
     return res.status(200).json(standings);
   } catch (error) {
-    console.error("Standings handler error:", error);
     if (standingsCache.data) {
       res.setHeader("x-cache", "ERROR-STALE");
       res.setHeader("ETag", standingsEtag || "");
       return res.status(200).json(standingsCache.data);
     }
-    res
+    return res
       .status(500)
       .json({ error: error instanceof Error ? error.message : "Unknown error" });
   }
 };
+
+// Export perfStats so /api/perf can access it
+module.exports.perfStats = perfStats;
