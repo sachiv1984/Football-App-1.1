@@ -1,9 +1,8 @@
 // api/perf.js
 
-// Import the shared perfStats objects
-// Note: in a real app you might move these to a separate module so both endpoints can import them
-const { perfStats } = require('./matches');   // matches.js
-const { perfStats: standingsPerfStats } = require('./standings'); // standings.js
+// Import perfStats from matches.js and standings.js
+const { perfStats: matchesPerfStats } = require('./matches');
+const { perfStats: standingsPerfStats } = require('./standings');
 
 function average(arr) {
   if (!arr.length) return 0;
@@ -12,16 +11,22 @@ function average(arr) {
 
 module.exports = async function handler(req, res) {
   try {
+    // ----------------------
     // Matches stats
-    const matchTimes = perfStats.matches || [];
+    // ----------------------
+    const matchTimes = matchesPerfStats.matches || [];
     const avgFetch = average(matchTimes.map(m => m.fetchTime));
     const avgParse = average(matchTimes.map(m => m.parseTime));
-    const avgEnrich = average(matchTimes.map(m => m.enrichTime));
+    const avgEnrich = average(matchTimes.map(m => m.enrichTime || 0));
+    const avgTotal = average(matchTimes.map(m => m.totalTime || 0));
 
+    // ----------------------
     // Standings stats
+    // ----------------------
     const standingTimes = standingsPerfStats.standings || [];
     const avgStandingsFetch = average(standingTimes.map(m => m.fetchTime));
     const avgStandingsParse = average(standingTimes.map(m => m.parseTime));
+    const avgStandingsTotal = average(standingTimes.map(m => m.totalTime || 0));
 
     res.setHeader("Cache-Control", "s-maxage=30, stale-while-revalidate=60");
     return res.status(200).json({
@@ -31,6 +36,7 @@ module.exports = async function handler(req, res) {
           fetchTime: avgFetch,
           parseTime: avgParse,
           enrichTime: avgEnrich,
+          totalTime: avgTotal,
         }
       },
       standings: {
@@ -38,6 +44,7 @@ module.exports = async function handler(req, res) {
         average: {
           fetchTime: avgStandingsFetch,
           parseTime: avgStandingsParse,
+          totalTime: avgStandingsTotal,
         }
       }
     });
