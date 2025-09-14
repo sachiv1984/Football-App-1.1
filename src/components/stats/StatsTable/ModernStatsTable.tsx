@@ -168,7 +168,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
           {/* Center form label */}
           <div className="text-center px-2 sm:px-4">
-            <span className="text-sm sm:text-lg font-semibold text-gray-700">Form</span>
+            <span className="text-sm sm:text-lg font-medium text-gray-700">Form</span>
           </div>
 
           {/* Away team form */}
