@@ -1,10 +1,9 @@
-// api/matches.ts
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { redisGet, redisSet } from '../../services/upstash/redis';
+// api/matches.js
+import { redisGet, redisSet } from '../services/upstash/redis.js';
 
 // Memory management for venue cache
 const MAX_VENUE_CACHE_SIZE = 100;
-let teamVenueCache = new Map<number, { venue: string; ts: number }>();
+let teamVenueCache = new Map();
 
 // Clean up venue cache when it gets too large
 function cleanupVenueCache() {
@@ -17,10 +16,7 @@ function cleanupVenueCache() {
 }
 
 // Safe async timing helper
-async function measureTime<T>(
-  fn: () => Promise<T>,
-  fallback?: T
-): Promise<{ result: T; duration: number; error?: Error }> {
+async function measureTime(fn, fallback) {
   const start = Date.now();
   try {
     const result = await fn();
@@ -29,23 +25,23 @@ async function measureTime<T>(
   } catch (error) {
     const duration = Date.now() - start;
     if (fallback !== undefined) {
-      return { result: fallback, duration, error: error as Error };
+      return { result: fallback, duration, error };
     }
     throw error;
   }
 }
 
 // Safe Redis operations with fallbacks
-async function safeRedisGet<T>(key: string): Promise<T | null> {
+async function safeRedisGet(key) {
   try {
-    return await redisGet<T>(key);
+    return await redisGet(key);
   } catch (error) {
     console.warn(`Redis GET failed for key ${key}:`, error);
     return null;
   }
 }
 
-async function safeRedisSet(key: string, value: any, ttl?: number): Promise<void> {
+async function safeRedisSet(key, value, ttl) {
   try {
     await redisSet(key, value, ttl);
   } catch (error) {
@@ -55,7 +51,7 @@ async function safeRedisSet(key: string, value: any, ttl?: number): Promise<void
 }
 
 // Safer venue fetching with timeout and error handling
-async function getTeamVenue(teamId: number, API_TOKEN: string): Promise<string> {
+async function getTeamVenue(teamId, API_TOKEN) {
   try {
     const cached = teamVenueCache.get(teamId);
     const week = 7 * 24 * 60 * 60 * 1000;
@@ -99,11 +95,11 @@ async function getTeamVenue(teamId: number, API_TOKEN: string): Promise<string> 
 }
 
 // Enhanced match processing with better error handling
-async function processMatches(rawMatches: any[], API_TOKEN: string) {
+async function processMatches(rawMatches, API_TOKEN) {
   if (!Array.isArray(rawMatches)) return [];
 
   // Get unique teams that need venue lookup
-  const teamsNeedingVenues = new Set<number>();
+  const teamsNeedingVenues = new Set();
   rawMatches.forEach((match) => {
     if (!match?.venue && match?.homeTeam?.id) {
       teamsNeedingVenues.add(match.homeTeam.id);
@@ -113,12 +109,12 @@ async function processMatches(rawMatches: any[], API_TOKEN: string) {
   // Batch venue fetching with controlled concurrency
   const venuePromises = Array.from(teamsNeedingVenues).map(async (teamId) => {
     const venue = await getTeamVenue(teamId, API_TOKEN);
-    return [teamId, venue] as [number, string];
+    return [teamId, venue];
   });
 
   // Process in batches of 3 to respect rate limits
   const batchSize = 3;
-  const venueResults = new Map<number, string>();
+  const venueResults = new Map();
 
   for (let i = 0; i < venuePromises.length; i += batchSize) {
     const batch = venuePromises.slice(i, i + batchSize);
@@ -175,7 +171,7 @@ async function processMatches(rawMatches: any[], API_TOKEN: string) {
   }).filter(Boolean); // Remove any null entries
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req, res) {
   const startTime = Date.now();
   
   try {
@@ -190,10 +186,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Check Redis cache with fallback
     const cacheKey = 'matches:pl';
-    let cached: { data: any[]; etag: string; timestamp: number } | null = null;
+    let cached = null;
     
     try {
-      cached = await safeRedisGet<{ data: any[]; etag: string; timestamp: number }>(cacheKey);
+      cached = await safeRedisGet(cacheKey);
     } catch (error) {
       console.warn('Redis cache check failed:', error);
     }
@@ -235,7 +231,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Prepare headers for external API call
-    const headers: Record<string, string> = {
+    const headers = {
       'X-Auth-Token': API_TOKEN,
       'Content-Type': 'application/json',
     };
@@ -325,7 +321,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Parse response with error handling
     const etag = response.headers.get('etag') || '';
-    let data: any;
+    let data;
     
     try {
       data = await response.json();
@@ -370,7 +366,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     // Final fallback to cache
     try {
-      const cached = await safeRedisGet<{ data: any[]; etag: string; timestamp: number }>('matches:pl');
+      const cached = await safeRedisGet('matches:pl');
       if (cached?.data) {
         res.setHeader('x-cache', 'CRITICAL-ERROR-STALE');
         res.setHeader('ETag', cached.etag || '');
