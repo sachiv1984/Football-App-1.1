@@ -1,38 +1,8 @@
 // api/health.js - Health Check Endpoint
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { redisHealthCheck, getRedisStatus } from '../../services/upstash/redis';
-
-interface HealthCheckResult {
-  status: 'healthy' | 'degraded' | 'unhealthy';
-  timestamp: string;
-  uptime: number;
-  checks: {
-    redis: {
-      healthy: boolean;
-      latency?: number;
-      error?: string;
-      circuitBreakerOpen: boolean;
-    };
-    externalAPI: {
-      healthy: boolean;
-      latency?: number;
-      error?: string;
-    };
-    memory: {
-      usage: NodeJS.MemoryUsage;
-      healthScore: number;
-    };
-  };
-  version?: string;
-  environment?: string;
-}
+import { redisHealthCheck, getRedisStatus } from '../services/upstash/redis.js';
 
 // Test external API connectivity
-async function checkExternalAPI(): Promise<{
-  healthy: boolean;
-  latency?: number;
-  error?: string;
-}> {
+async function checkExternalAPI() {
   try {
     const API_TOKEN = process.env.FOOTBALL_DATA_TOKEN || process.env.REACT_APP_FOOTBALL_DATA_TOKEN;
     if (!API_TOKEN) {
@@ -82,10 +52,7 @@ async function checkExternalAPI(): Promise<{
 }
 
 // Analyze memory usage
-function checkMemoryHealth(): {
-  usage: NodeJS.MemoryUsage;
-  healthScore: number;
-} {
+function checkMemoryHealth() {
   const usage = process.memoryUsage();
   
   // Calculate health score based on heap usage (0-100)
@@ -110,12 +77,12 @@ function checkMemoryHealth(): {
       heapUsedMB: Math.round(heapUsedMB * 100) / 100,
       heapTotalMB: Math.round(heapTotalMB * 100) / 100,
       heapUsagePercent: Math.round(heapUsagePercent * 100) / 100
-    } as NodeJS.MemoryUsage,
+    },
     healthScore: Math.max(0, healthScore)
   };
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse<HealthCheckResult>) {
+export default async function handler(req, res) {
   const startTime = Date.now();
   
   try {
@@ -143,7 +110,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     const redisStatus = getRedisStatus();
 
     // Determine overall health status
-    let overallStatus: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
+    let overallStatus = 'healthy';
     
     if (!redisResult.healthy || !apiResult.healthy) {
       overallStatus = 'unhealthy';
@@ -156,7 +123,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       overallStatus = 'degraded';
     }
 
-    const result: HealthCheckResult = {
+    const result = {
       status: overallStatus,
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
@@ -185,7 +152,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
   } catch (error) {
     console.error('Health check error:', error);
     
-    const errorResult: HealthCheckResult = {
+    const errorResult = {
       status: 'unhealthy',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
