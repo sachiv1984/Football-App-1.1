@@ -1,5 +1,5 @@
 // api/health.js - Health Check Endpoint
-import { redisHealthCheck, getRedisStatus } from '../services/upstash/redis.js';
+import { redisHealthCheck, getRedisStatus } from '../services/upstash/redis.ts';
 
 // Test external API connectivity
 async function checkExternalAPI() {
