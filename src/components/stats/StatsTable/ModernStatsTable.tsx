@@ -25,7 +25,7 @@ interface ModernStatsTableProps {
   className?: string;
 }
 
-type StatCategory = 'form' | 'goals' | 'corners' | 'cards' | 'shooting' | 'fouls';
+type StatCategory = 'form' | 'corners' | 'cards' | 'shooting' | 'fouls';
 
 const FormResult: React.FC<{ result: 'W' | 'D' | 'L' }> = ({ result }) => {
   const getResultStyle = (result: 'W' | 'D' | 'L') => {
@@ -58,58 +58,81 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
   const tabs: { key: StatCategory; label: string }[] = [
     { key: 'form', label: 'Form' },
-    { key: 'goals', label: 'Goals' },
-    { key: 'corners', label: 'Corners' },
-    { key: 'cards', label: 'Cards' },
-    { key: 'shooting', label: 'Shooting' },
-    { key: 'fouls', label: 'Fouls' }
+    { key: 'corners', label: 'Team Corners' },
+    { key: 'cards', label: 'Team Cards' },
+    { key: 'shooting', label: 'Team Shooting' },
+    { key: 'fouls', label: 'Team Fouls' }
   ];
 
   const getStatsForCategory = (category: StatCategory): Record<string, StatValue> => {
-    const getStat = (key: string): StatValue => {
+    const getStat = (key: string, unit?: string): StatValue => {
       const stat = stats[key];
       if (stat && typeof stat === 'object' && 'homeValue' in stat && 'awayValue' in stat) {
-        return stat as StatValue;
+        return { ...stat, unit } as StatValue;
       }
-      return { homeValue: 0, awayValue: 0 };
+      return { homeValue: 0, awayValue: 0, unit };
     };
 
     switch (category) {
-      case 'goals':
-        return {
-          'Matches Played': getStat('matchesPlayed'),
-          'Goals For': getStat('goalsFor'),
-          'Goals Against': getStat('goalsAgainst'),
-          'Total Goals': getStat('totalGoals'),
-          'Over 1.5 Goals': getStat('over15Goals'),
-          'Over 2.5 Goals': getStat('over25Goals'),
-          'Over 3.5 Goals': getStat('over35Goals'),
-          'Both Teams Score': getStat('bothTeamsScore'),
-        };
       case 'corners':
         return {
-          'Corners Won': getStat('corners'),
-          'Corners Conceded': getStat('cornersAgainst'),
+          'Matches Played': getStat('cornersMatchesPlayed'),
+          'Corners Taken': getStat('cornersTaken'),
+          'Corners Against': getStat('cornersAgainst'),
+          'Total Corners': getStat('totalCorners'),
+          'Over 7.5 Match Corners': getStat('over75MatchCorners', '%'),
+          'Over 8.5 Match Corners': getStat('over85MatchCorners', '%'),
+          'Over 9.5 Match Corners': getStat('over95MatchCorners', '%'),
+          'Over 10.5 Match Corners': getStat('over105MatchCorners', '%'),
+          'Over 11.5 Match Corners': getStat('over115MatchCorners', '%'),
         };
       case 'cards':
         return {
-          'Yellow Cards': getStat('yellowCards'),
-          'Red Cards': getStat('redCards'),
+          'Matches Played': getStat('cardsMatchesPlayed'),
+          'Cards Shown': getStat('cardsShown'),
+          'Cards Against': getStat('cardsAgainst'),
+          'Total Cards': getStat('totalCards'),
+          'Over 0.5 Team Cards': getStat('over05TeamCards', '%'),
+          'Over 1.5 Team Cards': getStat('over15TeamCards', '%'),
+          'Over 2.5 Team Cards': getStat('over25TeamCards', '%'),
+          'Over 3.5 Team Cards': getStat('over35TeamCards', '%'),
         };
       case 'shooting':
         return {
+          'Matches Played': getStat('shootingMatchesPlayed'),
+          'Shots': getStat('shots'),
+          'Shots Against': getStat('shotsAgainst'),
           'Shots on Target': getStat('shotsOnTarget'),
-          'Total Shots': getStat('totalShots'),
-          'Shot Accuracy': getStat('shotAccuracy'),
+          'Shots on Target Against': getStat('shotsOnTargetAgainst'),
+          'Over 2.5 Team Shots on Target': getStat('over25TeamShotsOnTarget', '%'),
+          'Over 3.5 Team Shots on Target': getStat('over35TeamShotsOnTarget', '%'),
+          'Over 4.5 Team Shots on Target': getStat('over45TeamShotsOnTarget', '%'),
+          'Over 5.5 Team Shots on Target': getStat('over55TeamShotsOnTarget', '%'),
         };
       case 'fouls':
         return {
-          'Fouls Committed': getStat('fouls'),
+          'Matches Played': getStat('foulsMatchesPlayed'),
+          'Fouls Committed': getStat('foulsCommitted'),
           'Fouls Won': getStat('foulsWon'),
+          'Total Fouls': getStat('totalFouls'),
+          'Over 8.5 Team Fouls Committed': getStat('over85TeamFoulsCommitted', '%'),
+          'Over 9.5 Team Fouls Committed': getStat('over95TeamFoulsCommitted', '%'),
+          'Over 10.5 Team Fouls Committed': getStat('over105TeamFoulsCommitted', '%'),
+          'Over 11.5 Team Fouls Committed': getStat('over115TeamFoulsCommitted', '%'),
         };
       default:
         return {};
     }
+  };
+
+  const formatValue = (value: number, unit?: string, isMatchesPlayed?: boolean): string => {
+    if (isMatchesPlayed) {
+      return value.toString(); // Whole number for matches played
+    }
+    if (unit === '%') {
+      return `${value}%`; // Percentage with % symbol
+    }
+    return value.toFixed(2); // 2 decimal places for other stats
   };
 
   const renderFormContent = () => {
@@ -273,26 +296,29 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
               </div>
             </div>
 
-            {/* Stats comparison - improved mobile layout */}
+            {/* Stats comparison - improved mobile layout with proper formatting */}
             <div className="space-y-4 sm:space-y-6">
-              {Object.entries(currentStats).map(([statName, statData]) => (
-                <div key={statName} className="flex justify-between items-center">
-                  <span className="text-lg sm:text-2xl font-bold text-gray-900 min-w-0 flex-shrink-0 w-16 sm:w-auto text-left">
-                    {statData.homeValue}{statData.unit || ''}
-                  </span>
-                  <div className="text-center px-2 sm:px-4 flex-1 min-w-0">
-                    <span className="text-sm sm:text-lg font-medium text-gray-700 block leading-tight">{statName}</span>
-                    {statData.leagueAverage && (
-                      <div className="text-xs sm:text-sm text-gray-500 mt-1">
-                        Avg: {statData.leagueAverage}{statData.unit || ''}
-                      </div>
-                    )}
+              {Object.entries(currentStats).map(([statName, statData]) => {
+                const isMatchesPlayed = statName === 'Matches Played';
+                return (
+                  <div key={statName} className="flex justify-between items-center">
+                    <span className="text-lg sm:text-2xl font-medium text-gray-900 min-w-0 flex-shrink-0 w-16 sm:w-auto text-left">
+                      {formatValue(statData.homeValue, statData.unit, isMatchesPlayed)}
+                    </span>
+                    <div className="text-center px-2 sm:px-4 flex-1 min-w-0">
+                      <span className="text-sm sm:text-lg font-medium text-gray-700 block leading-tight">{statName}</span>
+                      {statData.leagueAverage && (
+                        <div className="text-xs sm:text-sm text-gray-500 mt-1">
+                          Avg: {formatValue(statData.leagueAverage, statData.unit, isMatchesPlayed)}
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-lg sm:text-2xl font-medium text-gray-900 min-w-0 flex-shrink-0 w-16 sm:w-auto text-right">
+                      {formatValue(statData.awayValue, statData.unit, isMatchesPlayed)}
+                    </span>
                   </div>
-                  <span className="text-lg sm:text-2xl font-bold text-gray-900 min-w-0 flex-shrink-0 w-16 sm:w-auto text-right">
-                    {statData.awayValue}{statData.unit || ''}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
