@@ -1,5 +1,5 @@
 // src/services/fixtures/fixtureService.ts
-import { redisGet, redisSet } from '../upstash/redis.ts';
+import { redisGet, redisSet } from '../upstash/redis';
 
 export class FixtureService {
   constructor() {
