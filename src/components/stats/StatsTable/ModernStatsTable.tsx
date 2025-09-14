@@ -136,7 +136,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   };
 
   const renderFormContent = () => {
-    const recentForm = stats.recentForm as FormData | undefined;
+    const recentForm = effectiveStats.recentForm as FormData | undefined;
     
     if (!recentForm) {
       return (
