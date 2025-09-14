@@ -106,27 +106,45 @@ module.exports = async function handler(req, res) {
     matchesEtag = response.headers.get("etag") || matchesEtag;
     const data = await response.json();
 
-    // Enrich each match with venue if missing
-    const matches = await Promise.all(
-      (data.matches || []).map(async (match) => {
-        let venue = match.venue || "";
-        if (!venue && match.homeTeam?.id) {
-          venue = await getTeamVenue(match.homeTeam.id, API_TOKEN);
-        }
-        return {
-          id: match.id,
-          utcDate: match.utcDate,
-          status: match.status,
-          matchday: match.matchday,
-          stage: match.stage || "REGULAR_SEASON",
-          homeTeam: match.homeTeam,
-          awayTeam: match.awayTeam,
-          venue,
-          score: match.score || null,
-          competition: match.competition || {},
-        };
+    // --------------------------
+    // Smart venue enrichment
+    // --------------------------
+
+    // 1. Identify all home teams missing a venue
+    const teamsToFetch = new Set();
+    (data.matches || []).forEach(match => {
+      if (!match.venue && match.homeTeam?.id) {
+        teamsToFetch.add(match.homeTeam.id);
+      }
+    });
+
+    // 2. Fetch missing venues in parallel, only once per team
+    const fetchedVenues = {};
+    await Promise.all(
+      Array.from(teamsToFetch).map(async (teamId) => {
+        fetchedVenues[teamId] = await getTeamVenue(teamId, API_TOKEN);
       })
     );
+
+    // 3. Enrich matches using fetchedVenues
+    const matches = (data.matches || []).map(match => {
+      let venue = match.venue || "";
+      if (!venue && match.homeTeam?.id) {
+        venue = fetchedVenues[match.homeTeam.id] || "";
+      }
+      return {
+        id: match.id,
+        utcDate: match.utcDate,
+        status: match.status,
+        matchday: match.matchday,
+        stage: match.stage || "REGULAR_SEASON",
+        homeTeam: match.homeTeam,
+        awayTeam: match.awayTeam,
+        venue,
+        score: match.score || null,
+        competition: match.competition || {},
+      };
+    });
 
     // Save to cache
     matchesCache = { data: matches, timestamp: now };
