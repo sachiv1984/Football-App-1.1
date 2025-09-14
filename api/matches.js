@@ -1,5 +1,6 @@
 // api/matches.js
 let matchesCache = { data: null, timestamp: 0 };
+let matchesEtag = null; // Store latest ETag from upstream
 const teamVenueCache = new Map(); // teamId -> { venue, ts }
 
 // helper: fetch & cache venue from /teams endpoint
@@ -49,7 +50,6 @@ module.exports = async function handler(req, res) {
     // Cache TTL logic (smart)
     // --------------------------
     let ttl = 60 * 60 * 1000; // default 1h
-
     if (matchesCache.data) {
       const hasLive = matchesCache.data.some((m) =>
         ["LIVE", "IN_PLAY", "PAUSED"].includes(m.status)
@@ -68,23 +68,33 @@ module.exports = async function handler(req, res) {
     // Serve from cache if still valid
     if (matchesCache.data && now - matchesCache.timestamp < ttl) {
       res.setHeader("x-cache", "HIT");
+      res.setHeader("ETag", matchesEtag || "");
       return res.status(200).json(matchesCache.data);
     }
 
     // Fetch fresh
+    const headers = {
+      "X-Auth-Token": API_TOKEN,
+      "Content-Type": "application/json",
+      ...(matchesEtag ? { "If-None-Match": matchesEtag } : {}),
+    };
+
     const url = "https://api.football-data.org/v4/competitions/PL/matches";
-    const response = await fetch(url, {
-      headers: {
-        "X-Auth-Token": API_TOKEN,
-        "Content-Type": "application/json",
-      },
-    });
+    const response = await fetch(url, { headers });
+
+    // Handle 304 Not Modified
+    if (response.status === 304 && matchesCache.data) {
+      matchesCache.timestamp = Date.now();
+      res.setHeader("x-cache", "ETAG-NOTMODIFIED");
+      res.setHeader("ETag", matchesEtag);
+      return res.status(200).json(matchesCache.data);
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
-      // If rate-limited, return stale cache
       if (response.status === 429 && matchesCache.data) {
         res.setHeader("x-cache", "STALE");
+        res.setHeader("ETag", matchesEtag || "");
         return res.status(200).json(matchesCache.data);
       }
       return res
@@ -92,6 +102,8 @@ module.exports = async function handler(req, res) {
         .json({ error: "Football Data API error", details: errorText });
     }
 
+    // Update ETag if returned
+    matchesEtag = response.headers.get("etag") || matchesEtag;
     const data = await response.json();
 
     // Enrich each match with venue if missing
@@ -121,10 +133,12 @@ module.exports = async function handler(req, res) {
 
     res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=600");
     res.setHeader("x-cache", "MISS");
+    res.setHeader("ETag", matchesEtag);
     return res.status(200).json(matches);
   } catch (error) {
     if (matchesCache.data) {
       res.setHeader("x-cache", "ERROR-STALE");
+      res.setHeader("ETag", matchesEtag || "");
       return res.status(200).json(matchesCache.data);
     }
     res
@@ -132,4 +146,3 @@ module.exports = async function handler(req, res) {
       .json({ error: error instanceof Error ? error.message : "Unknown error" });
   }
 };
-
