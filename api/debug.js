@@ -1,43 +1,12 @@
-// api/debug.ts - Debug Information Endpoint
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { redisGet, getRedisStatus } from '../../services/upstash/redis';
-
-interface DebugInfo {
-  timestamp: string;
-  environment: {
-    nodeVersion: string;
-    platform: string;
-    arch: string;
-    uptime: number;
-    memory: NodeJS.MemoryUsage & {
-      heapUsedMB: number;
-      heapTotalMB: number;
-      heapUsagePercent: number;
-    };
-  };
-  configuration: {
-    hasFootballToken: boolean;
-    hasRedisUrl: boolean;
-    hasRedisToken: boolean;
-    nodeEnv: string;
-  };
-  redis: {
-    status: ReturnType<typeof getRedisStatus>;
-    cacheKeys?: string[];
-    cacheStats?: {
-      matches?: any;
-      standings?: any;
-    };
-  };
-  recentErrors?: string[];
-}
+// api/debug.js - Debug Information Endpoint
+import { redisGet, getRedisStatus } from '../services/upstash/redis.js';
 
 // Capture recent console errors (simple in-memory store)
-const recentErrors: Array<{ timestamp: string; message: string }> = [];
+const recentErrors = [];
 const originalConsoleError = console.error;
 
 // Override console.error to capture errors
-console.error = (...args: any[]) => {
+console.error = (...args) => {
   const message = args.map(arg => 
     typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
   ).join(' ');
@@ -55,7 +24,7 @@ console.error = (...args: any[]) => {
   originalConsoleError(...args);
 };
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse<DebugInfo>) {
+export default async function handler(req, res) {
   try {
     // Only allow in development or with special header
     const isDevelopment = process.env.NODE_ENV === 'development';
@@ -64,7 +33,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     if (!isDevelopment && !hasDebugHeader) {
       return res.status(403).json({ 
         error: 'Debug endpoint not available' 
-      } as any);
+      });
     }
 
     // Gather environment info
@@ -84,7 +53,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     // Get Redis status and cache info
     const redisStatus = getRedisStatus();
     
-    let cacheStats: any = {};
+    let cacheStats = {};
     try {
       const [matchesCache, standingsCache] = await Promise.all([
         redisGet('matches:pl'),
@@ -111,7 +80,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       cacheStats.error = error instanceof Error ? error.message : 'Unknown error';
     }
 
-    const debugInfo: DebugInfo = {
+    const debugInfo = {
       timestamp: new Date().toISOString(),
       environment: {
         nodeVersion: process.version,
@@ -146,6 +115,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       timestamp: new Date().toISOString(),
       error: 'Debug endpoint failed',
       details: error instanceof Error ? error.message : 'Unknown error'
-    } as any);
+    });
   }
 }
