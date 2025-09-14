@@ -1,12 +1,8 @@
-// api/standings.ts
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { redisGet, redisSet } from '../../services/upstash/redis';
+// api/standings.js
+import { redisGet, redisSet } from '../services/upstash/redis.js';
 
 // Safe async timing helper
-async function measureTime<T>(
-  fn: () => Promise<T>,
-  fallback?: T
-): Promise<{ result: T; duration: number; error?: Error }> {
+async function measureTime(fn, fallback) {
   const start = Date.now();
   try {
     const result = await fn();
@@ -15,23 +11,23 @@ async function measureTime<T>(
   } catch (error) {
     const duration = Date.now() - start;
     if (fallback !== undefined) {
-      return { result: fallback, duration, error: error as Error };
+      return { result: fallback, duration, error };
     }
     throw error;
   }
 }
 
 // Safe Redis operations
-async function safeRedisGet<T>(key: string): Promise<T | null> {
+async function safeRedisGet(key) {
   try {
-    return await redisGet<T>(key);
+    return await redisGet(key);
   } catch (error) {
     console.warn(`Redis GET failed for key ${key}:`, error);
     return null;
   }
 }
 
-async function safeRedisSet(key: string, value: any, ttl?: number): Promise<void> {
+async function safeRedisSet(key, value, ttl) {
   try {
     await redisSet(key, value, ttl);
   } catch (error) {
@@ -40,7 +36,7 @@ async function safeRedisSet(key: string, value: any, ttl?: number): Promise<void
 }
 
 // Safe standings processing
-function processStandings(rawData: any): any[] {
+function processStandings(rawData) {
   try {
     // Handle different possible response structures
     if (rawData?.standings?.[0]?.table && Array.isArray(rawData.standings[0].table)) {
@@ -64,7 +60,7 @@ function processStandings(rawData: any): any[] {
   }
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req, res) {
   const startTime = Date.now();
   
   try {
@@ -79,10 +75,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Safe cache retrieval
     const cacheKey = 'standings:pl';
-    let cached: { data: any[]; etag: string; timestamp: number } | null = null;
+    let cached = null;
     
     try {
-      cached = await safeRedisGet<{ data: any[]; etag: string; timestamp: number }>(cacheKey);
+      cached = await safeRedisGet(cacheKey);
     } catch (error) {
       console.warn('Cache retrieval failed:', error);
     }
@@ -122,7 +118,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Prepare request headers
-    const headers: Record<string, string> = {
+    const headers = {
       'X-Auth-Token': API_TOKEN,
       'Content-Type': 'application/json',
     };
@@ -275,7 +271,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     // Final fallback attempt
     try {
-      const cached = await safeRedisGet<{ data: any[]; etag: string; timestamp: number }>('standings:pl');
+      const cached = await safeRedisGet('standings:pl');
       if (cached?.data) {
         res.setHeader('x-cache', 'CRITICAL-ERROR-STALE');
         res.setHeader('ETag', cached.etag || '');
