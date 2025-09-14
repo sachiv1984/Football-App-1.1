@@ -1,5 +1,6 @@
 // api/standings.js
 let standingsCache = { data: null, timestamp: 0 };
+let standingsEtag = null; // store latest ETag
 
 module.exports = async function handler(req, res) {
   try {
@@ -12,7 +13,9 @@ module.exports = async function handler(req, res) {
 
     const now = Date.now();
 
-    // Smart TTL: standings change slowly
+    // --------------------------
+    // Smart TTL
+    // --------------------------
     let ttl = 12 * 60 * 60 * 1000; // default 12h
     if (standingsCache.data) {
       const hasLive = standingsCache.data.some((s) => s.form?.includes("W"));
@@ -25,24 +28,36 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    // Serve from cache if valid
+    // Serve from cache if still valid
     if (standingsCache.data && now - standingsCache.timestamp < ttl) {
       res.setHeader("x-cache", "HIT");
+      res.setHeader("ETag", standingsEtag || "");
       return res.status(200).json(standingsCache.data);
     }
 
+    // Fetch fresh
+    const headers = {
+      "X-Auth-Token": API_TOKEN,
+      "Content-Type": "application/json",
+      ...(standingsEtag ? { "If-None-Match": standingsEtag } : {}),
+    };
+
     const url = "https://api.football-data.org/v4/competitions/PL/standings";
-    const response = await fetch(url, {
-      headers: {
-        "X-Auth-Token": API_TOKEN,
-        "Content-Type": "application/json",
-      },
-    });
+    const response = await fetch(url, { headers });
+
+    // Handle 304 Not Modified
+    if (response.status === 304 && standingsCache.data) {
+      standingsCache.timestamp = Date.now();
+      res.setHeader("x-cache", "ETAG-NOTMODIFIED");
+      res.setHeader("ETag", standingsEtag);
+      return res.status(200).json(standingsCache.data);
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
       if (response.status === 429 && standingsCache.data) {
         res.setHeader("x-cache", "STALE");
+        res.setHeader("ETag", standingsEtag || "");
         return res.status(200).json(standingsCache.data);
       }
       return res
@@ -50,17 +65,22 @@ module.exports = async function handler(req, res) {
         .json({ error: "Football Data API error", details: errorText });
     }
 
+    // Update ETag if returned
+    standingsEtag = response.headers.get("etag") || standingsEtag;
     const data = await response.json();
     const standings = data.standings?.[0]?.table || [];
 
+    // Save to cache
     standingsCache = { data: standings, timestamp: now };
 
     res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=1800");
     res.setHeader("x-cache", "MISS");
+    res.setHeader("ETag", standingsEtag);
     return res.status(200).json(standings);
   } catch (error) {
     if (standingsCache.data) {
       res.setHeader("x-cache", "ERROR-STALE");
+      res.setHeader("ETag", standingsEtag || "");
       return res.status(200).json(standingsCache.data);
     }
     res
