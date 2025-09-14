@@ -1,20 +1,25 @@
 // api/perf.js
 
-// Import perfStats from matches.js and standings.js
-const { perfStats: matchesPerfStats } = require('./matches');
-const { perfStats: standingsPerfStats } = require('./standings');
+// Simple in-memory performance stats (since we can't import from other modules easily)
+const perfStats = {
+  matches: [],
+  standings: []
+};
+
+// Export so other modules can use it
+export { perfStats };
 
 function average(arr) {
   if (!arr.length) return 0;
   return arr.reduce((sum, v) => sum + v, 0) / arr.length;
 }
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   try {
     // ----------------------
     // Matches stats
     // ----------------------
-    const matchTimes = matchesPerfStats.matches || [];
+    const matchTimes = perfStats.matches || [];
     const avgFetch = average(matchTimes.map(m => m.fetchTime));
     const avgParse = average(matchTimes.map(m => m.parseTime));
     const avgEnrich = average(matchTimes.map(m => m.enrichTime || 0));
@@ -23,7 +28,7 @@ module.exports = async function handler(req, res) {
     // ----------------------
     // Standings stats
     // ----------------------
-    const standingTimes = standingsPerfStats.standings || [];
+    const standingTimes = perfStats.standings || [];
     const avgStandingsFetch = average(standingTimes.map(m => m.fetchTime));
     const avgStandingsParse = average(standingTimes.map(m => m.parseTime));
     const avgStandingsTotal = average(standingTimes.map(m => m.totalTime || 0));
@@ -52,4 +57,4 @@ module.exports = async function handler(req, res) {
     console.error("Perf API error:", err);
     return res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' });
   }
-};
+}
