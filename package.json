@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "private": true,
   "homepage": ".",
-  "type": "module",
   "dependencies": {
     "@craco/craco": "^7.1.0",
     "@heroicons/react": "^2.2.0",
