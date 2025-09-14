@@ -1,5 +1,5 @@
 // api/matches.js
-import { redisGet, redisSet } from '../services/upstash/redis.js';
+import { redisGet, redisSet } from '../services/upstash/redis.ts';
 
 // Memory management for venue cache
 const MAX_VENUE_CACHE_SIZE = 100;
