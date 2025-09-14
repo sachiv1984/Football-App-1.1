@@ -163,7 +163,6 @@ const StatsPage: React.FC = () => {
     );
   }
 
-  const teamFormData = getTeamFormData();
   const modernStatsData = getModernStatsData();
 
   return (
