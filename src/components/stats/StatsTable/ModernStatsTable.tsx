@@ -58,10 +58,10 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
   const tabs: { key: StatCategory; label: string }[] = [
     { key: 'form', label: 'Form' },
-    { key: 'corners', label: 'Team Corners' },
-    { key: 'cards', label: 'Team Cards' },
-    { key: 'shooting', label: 'Team Shooting' },
-    { key: 'fouls', label: 'Team Fouls' }
+    { key: 'corners', label: 'Corners' },
+    { key: 'cards', label: 'Cards' },
+    { key: 'shooting', label: 'Shooting' },
+    { key: 'fouls', label: 'Fouls' }
   ];
 
   const getStatsForCategory = (category: StatCategory): Record<string, StatValue> => {
