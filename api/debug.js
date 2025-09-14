@@ -1,5 +1,5 @@
 // api/debug.js - Debug Information Endpoint
-import { redisGet, getRedisStatus } from '../services/upstash/redis.js';
+import { redisGet, getRedisStatus } from '../services/upstash/redis.ts';
 
 // Capture recent console errors (simple in-memory store)
 const recentErrors = [];
