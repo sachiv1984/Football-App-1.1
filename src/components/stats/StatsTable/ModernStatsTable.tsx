@@ -105,8 +105,8 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     over115TeamFoulsCommitted: { homeValue: 71, awayValue: 64 }
   };
 
-  // Use mock data if stats is empty or undefined
-  const effectiveStats = Object.keys(stats || {}).length > 0 ? stats : mockStats;
+  // Use mock data if stats is empty or undefined, or for debugging
+  const effectiveStats = (stats && Object.keys(stats).length > 0) ? stats : mockStats;
 
   const tabs: { key: StatCategory; label: string }[] = [
     { key: 'form', label: 'Form' },
