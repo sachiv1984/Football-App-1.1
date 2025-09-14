@@ -1,51 +1,24 @@
 // src/services/fixtures/fixtureService.ts
-import type { FeaturedFixtureWithImportance } from '../../types';
-import { redisGet, redisSet } from '../upstash/redis';
-
-interface RawMatch {
-  id: number;
-  utcDate: string;
-  status: string;
-  matchday: number;
-  stage: string;
-  homeTeam: { id: number; name: string; shortName?: string; tla?: string; crest?: string };
-  awayTeam: { id: number; name: string; shortName?: string; tla?: string; crest?: string };
-  venue?: string;
-  competition: { id: string; code: string; name: string; emblem?: string };
-  score?: { fullTime?: { home?: number; away?: number } };
-}
-
-interface RawStanding {
-  team: { id: number };
-  form?: string;
-  position: number;
-}
-
-interface TeamWithForm {
-  id: string;
-  name: string;
-  shortName: string;
-  logo?: string;
-  colors: { primary?: string; secondary?: string };
-  form?: ('W' | 'D' | 'L')[];
-}
+import { redisGet, redisSet } from '../upstash/redis.ts';
 
 export class FixtureService {
-  private matchesCache: FeaturedFixtureWithImportance[] = [];
-  private cacheTime = 0;
-  private readonly cacheTimeout = 10 * 60 * 1000; // 10 min
+  constructor() {
+    this.matchesCache = [];
+    this.cacheTime = 0;
+    this.cacheTimeout = 10 * 60 * 1000; // 10 min
+  }
 
   // -------------------------
   // Configurable lists
   // -------------------------
-  private readonly SHORT_NAME_OVERRIDES: Record<string, string> = {
+  SHORT_NAME_OVERRIDES = {
     "Manchester United FC": "Man Utd",
     "Brighton & Hove Albion FC": "Brighton",
   };
 
-  private readonly BIG_SIX = ['Arsenal', 'Chelsea', 'Liverpool', 'Manchester City', 'Manchester United', 'Tottenham Hotspur'];
+  BIG_SIX = ['Arsenal', 'Chelsea', 'Liverpool', 'Manchester City', 'Manchester United', 'Tottenham Hotspur'];
   
-  private readonly DERBIES: string[][] = [
+  DERBIES = [
     ['Arsenal', 'Tottenham Hotspur'],
     ['Liverpool', 'Everton'],
     ['Manchester United', 'Manchester City'],
@@ -55,7 +28,7 @@ export class FixtureService {
     ['Crystal Palace', 'Brighton & Hove Albion'],
   ];
 
-  private readonly TEAM_COLORS: Record<string, { primary?: string; secondary?: string }> = {
+  TEAM_COLORS = {
     Arsenal: { primary: '#EF0107', secondary: '#023474' },
     Chelsea: { primary: '#034694', secondary: '#FFFFFF' },
     Liverpool: { primary: '#C8102E', secondary: '#F6EB61' },
@@ -67,11 +40,11 @@ export class FixtureService {
   // -------------------------
   // Cache helpers
   // -------------------------
-  private isCacheValid(): boolean {
+  isCacheValid() {
     return this.matchesCache.length > 0 && (Date.now() - this.cacheTime < this.cacheTimeout);
   }
 
-  private clearCache(): void {
+  clearCache() {
     this.matchesCache = [];
     this.cacheTime = 0;
   }
@@ -79,9 +52,9 @@ export class FixtureService {
   // -------------------------
   // Data fetching
   // -------------------------
-  private async fetchMatches(): Promise<RawMatch[]> {
+  async fetchMatches() {
     // Attempt Redis cache first
-    const cached = await redisGet<RawMatch[]>('matches');
+    const cached = await redisGet('matches');
     if (cached) return cached;
 
     const res = await fetch('/api/matches');
@@ -93,8 +66,8 @@ export class FixtureService {
     return data;
   }
 
-  private async fetchStandings(): Promise<RawStanding[]> {
-    const cached = await redisGet<RawStanding[]>('standings');
+  async fetchStandings() {
+    const cached = await redisGet('standings');
     if (cached) return cached;
 
     const res = await fetch('/api/standings');
@@ -108,18 +81,18 @@ export class FixtureService {
   // -------------------------
   // Team helpers
   // -------------------------
-  private getTeamColors(teamName: string) {
+  getTeamColors(teamName) {
     return this.TEAM_COLORS[teamName] || {};
   }
 
-  private parseForm(formString?: string): ('W' | 'D' | 'L')[] {
+  parseForm(formString) {
     if (!formString) return [];
     return formString
       .split(',')
-      .map(f => (['W', 'D', 'L'].includes(f.trim()) ? f.trim() as 'W' | 'D' | 'L' : 'D'));
+      .map(f => (['W', 'D', 'L'].includes(f.trim()) ? f.trim() : 'D'));
   }
 
-  private async getTeamDetails(team: RawMatch['homeTeam'] | RawMatch['awayTeam'], standings: RawStanding[]): Promise<TeamWithForm> {
+  async getTeamDetails(team, standings) {
     const teamStanding = standings.find(s => s.team.id === team.id);
     const shortName = this.SHORT_NAME_OVERRIDES[team.name] || team.shortName || team.tla || team.name;
 
@@ -136,23 +109,23 @@ export class FixtureService {
   // -------------------------
   // Match helpers
   // -------------------------
-  private isDerby(home: string, away: string): boolean {
+  isDerby(home, away) {
     return this.DERBIES.some(d => d.includes(home) && d.includes(away));
   }
 
-  private isMatchFinished(status?: string) {
+  isMatchFinished(status) {
     return status && ['FINISHED', 'POSTPONED', 'SUSPENDED', 'CANCELLED'].includes(status);
   }
 
-  private isMatchUpcoming(status?: string) {
+  isMatchUpcoming(status) {
     return status && ['SCHEDULED', 'TIMED'].includes(status);
   }
 
-  private isMatchLive(status?: string) {
+  isMatchLive(status) {
     return status && ['LIVE', 'IN_PLAY', 'PAUSED', 'HALF_TIME'].includes(status);
   }
 
-  private calculateImportance(match: RawMatch, standings?: RawStanding[]): number {
+  calculateImportance(match, standings) {
     if (this.isMatchFinished(match.status)) return 0;
 
     let importance = 3;
@@ -181,7 +154,7 @@ export class FixtureService {
     return Math.min(importance, 10);
   }
 
-  private getDayTag(dateStr: string): string | null {
+  getDayTag(dateStr) {
     const day = new Date(dateStr).getDay();
     if (day === 0) return 'sunday-fixture';
     if (day === 6) return 'saturday-fixture';
@@ -189,8 +162,8 @@ export class FixtureService {
     return null;
   }
 
-  private generateTags(match: RawMatch, importance: number): string[] {
-    const tags: string[] = [];
+  generateTags(match, importance) {
+    const tags = [];
 
     if (match.matchday <= 5) tags.push('early-season');
     else if (match.matchday >= 35) tags.push('title-race', 'relegation-battle');
@@ -208,7 +181,7 @@ export class FixtureService {
     return tags;
   }
 
-  private mapStatus(status?: string): 'scheduled' | 'live' | 'finished' | 'postponed' | 'upcoming' {
+  mapStatus(status) {
     if (this.isMatchLive(status)) return 'live';
     if (this.isMatchUpcoming(status)) return 'upcoming';
     if (status === 'FINISHED') return 'finished';
@@ -216,7 +189,7 @@ export class FixtureService {
     return 'scheduled';
   }
 
-  private async transformMatch(match: RawMatch, standings: RawStanding[]): Promise<FeaturedFixtureWithImportance> {
+  async transformMatch(match, standings) {
     const [homeTeam, awayTeam] = await Promise.all([
       this.getTeamDetails(match.homeTeam, standings),
       this.getTeamDetails(match.awayTeam, standings),
@@ -250,7 +223,7 @@ export class FixtureService {
     };
   }
 
-  private async refreshCache(): Promise<void> {
+  async refreshCache() {
     const [matches, standings] = await Promise.all([this.fetchMatches(), this.fetchStandings()]);
     const transformed = await Promise.all(matches.map(m => this.transformMatch(m, standings)));
 
@@ -262,7 +235,7 @@ export class FixtureService {
     this.cacheTime = Date.now();
   }
 
-  private getNextNDaysMatches(days: number): FeaturedFixtureWithImportance[] {
+  getNextNDaysMatches(days) {
     const now = Date.now();
     const future = now + days * 24 * 60 * 60 * 1000;
     return this.matchesCache.filter(match => {
@@ -271,13 +244,13 @@ export class FixtureService {
     });
   }
 
-  private getCurrentGameWeek(fixtures: FeaturedFixtureWithImportance[]): number {
+  getCurrentGameWeek(fixtures) {
     const weekGroups = fixtures.reduce((acc, fixture) => {
       const week = fixture.matchWeek;
       if (!acc[week]) acc[week] = [];
       acc[week].push(fixture);
       return acc;
-    }, {} as Record<number, FeaturedFixtureWithImportance[]>);
+    }, {});
 
     const sortedWeeks = Object.keys(weekGroups).map(Number).sort((a, b) => a - b);
 
@@ -290,7 +263,7 @@ export class FixtureService {
     return Math.max(...sortedWeeks) + 1;
   }
 
-  private isGameWeekComplete(fixtures: FeaturedFixtureWithImportance[], gameWeek: number): boolean {
+  isGameWeekComplete(fixtures, gameWeek) {
     const weekFixtures = fixtures.filter(f => f.matchWeek === gameWeek);
     if (weekFixtures.length === 0) return true;
     return weekFixtures.every(f => f.status && ['finished', 'postponed'].includes(f.status));
@@ -299,7 +272,7 @@ export class FixtureService {
   // -------------------------
   // Public Methods
   // -------------------------
-  async getCurrentGameWeekFixtures(): Promise<FeaturedFixtureWithImportance[]> {
+  async getCurrentGameWeekFixtures() {
     if (!this.isCacheValid()) await this.refreshCache();
     const allFixtures = this.matchesCache;
     const currentGameWeek = this.getCurrentGameWeek(allFixtures);
@@ -326,7 +299,7 @@ export class FixtureService {
     };
   }
 
-  async getFeaturedFixtures(limit: number = 8) {
+  async getFeaturedFixtures(limit = 8) {
     if (!this.isCacheValid()) await this.refreshCache();
     return this.getNextNDaysMatches(7).slice(0, limit);
   }
@@ -336,14 +309,14 @@ export class FixtureService {
     return this.matchesCache;
   }
 
-  async getUpcomingImportantMatches(limit?: number) {
+  async getUpcomingImportantMatches(limit) {
     const allMatches = await this.getAllFixtures();
     const now = Date.now();
     const upcoming = allMatches.filter(m => m.importance > 0 && new Date(m.dateTime).getTime() >= now);
     return limit ? upcoming.slice(0, limit) : upcoming;
   }
 
-  async getMatchesByImportance(minImportance: number) {
+  async getMatchesByImportance(minImportance) {
     const allMatches = await this.getAllFixtures();
     return allMatches.filter(m => m.importance >= minImportance);
   }
