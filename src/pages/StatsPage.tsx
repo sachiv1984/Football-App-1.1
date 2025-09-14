@@ -4,7 +4,7 @@ import { useParams } from 'react-router-dom';
 import Header from '../components/common/Header/Header';
 import Footer from '../components/common/Footer/Footer';
 import MatchHeader from '../components/stats/match/MatchHeader';
-import TeamForm from '../components/stats/TeamForm/TeamForm';
+// Removed unused TeamForm import
 import ModernStatsTable from '../components/stats/StatsTable/ModernStatsTable';
 import { useFixtureNavigation } from '../hooks/useNavigation';
 import { useFixtures } from '../hooks/useFixtures';
@@ -55,27 +55,7 @@ const StatsPage: React.FC = () => {
     setCurrentFixture(foundFixture || null);
   }, [matchId, featuredFixtures, gameWeekFixtures]);
 
-  // Mock data for the new components
-  const getTeamFormData = () => {
-    if (!currentFixture) return null;
-
-    return {
-      homeForm: {
-        results: ['W', 'W', 'L'] as ('W' | 'D' | 'L')[],
-        matchesPlayed: 3,
-        won: 2,
-        drawn: 0,
-        lost: 1
-      },
-      awayForm: {
-        results: ['L', 'D', 'W'] as ('W' | 'D' | 'L')[],
-        matchesPlayed: 3,
-        won: 1,
-        drawn: 1,
-        lost: 1
-      }
-    };
-  };
+  // Removed unused getTeamFormData function
 
   const getModernStatsData = () => {
     if (!currentFixture) return null;
