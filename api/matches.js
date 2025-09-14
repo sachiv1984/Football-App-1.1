@@ -1,41 +1,31 @@
-// api/matches.js
-import { redis } from '../services/upstash/redis'; // your Redis wrapper
+// api/matches.ts
+import type { NextApiRequest, NextApiResponse } from 'next';
+import { redisGet, redisSet } from '../../services/upstash/redis';
 
-const TEAM_VENUE_CACHE_KEY = 'team:venues'; // optional Redis map for venues
-const MATCHES_KEY = 'matches:data';
-const MATCHES_ETAG_KEY = 'matches:etag';
-const PERF_KEY = 'matches:perf';
+let teamVenueCache = new Map<number, { venue: string; ts: number }>();
 
-// Helper: measure execution time
-async function measureTime(fn) {
+// Helper: measure async execution time
+async function measureTime<T>(fn: () => Promise<T>): Promise<{ result: T; duration: number }> {
   const start = Date.now();
   const result = await fn();
   const duration = Date.now() - start;
   return { result, duration };
 }
 
-// Fetch & cache team venue
-async function getTeamVenue(teamId, API_TOKEN) {
-  const cachedVenues = (await redis.get(TEAM_VENUE_CACHE_KEY)) || {};
-  const cached = cachedVenues[teamId];
-  const week = 7 * 24 * 60 * 60 * 1000; // 7 days
-
-  if (cached && Date.now() - cached.ts < week) {
-    return cached.venue;
-  }
+// Fetch team venue with 7-day cache
+async function getTeamVenue(teamId: number, API_TOKEN: string) {
+  const cached = teamVenueCache.get(teamId);
+  const week = 7 * 24 * 60 * 60 * 1000;
+  if (cached && Date.now() - cached.ts < week) return cached.venue;
 
   try {
-    const r = await fetch(`https://api.football-data.org/v4/teams/${teamId}`, {
+    const res = await fetch(`https://api.football-data.org/v4/teams/${teamId}`, {
       headers: { 'X-Auth-Token': API_TOKEN, 'Content-Type': 'application/json' },
     });
-    if (!r.ok) {
-      console.warn(`Failed to fetch venue for team ${teamId}: ${r.status}`);
-      return '';
-    }
-    const t = await r.json();
-    const venue = t.venue || '';
-    cachedVenues[teamId] = { venue, ts: Date.now() };
-    await redis.set(TEAM_VENUE_CACHE_KEY, JSON.stringify(cachedVenues));
+    if (!res.ok) return '';
+    const data = await res.json();
+    const venue = data.venue || '';
+    teamVenueCache.set(teamId, { venue, ts: Date.now() });
     return venue;
   } catch (err) {
     console.error('Error fetching team venue:', err);
@@ -43,107 +33,111 @@ async function getTeamVenue(teamId, API_TOKEN) {
   }
 }
 
-// Fetch matches from API
-async function fetchMatchesFromApi(API_TOKEN, etag) {
-  const headers = {
-    'X-Auth-Token': API_TOKEN,
-    'Content-Type': 'application/json',
-    ...(etag ? { 'If-None-Match': etag } : {}),
-  };
-  return fetch('https://api.football-data.org/v4/competitions/PL/matches', { headers });
-}
-
-export default async function handler(req, res) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
-    const API_TOKEN = process.env.FOOTBALL_DATA_TOKEN;
+    const API_TOKEN = process.env.FOOTBALL_DATA_TOKEN || process.env.REACT_APP_FOOTBALL_DATA_TOKEN;
     if (!API_TOKEN) return res.status(500).json({ error: 'API token not configured' });
 
-    const cachedMatches = await redis.get(MATCHES_KEY).then(d => d && JSON.parse(d));
-    const cachedEtag = await redis.get(MATCHES_ETAG_KEY);
+    // Check Redis cache first
+    const cacheKey = 'matches:pl';
+    const cached = await redisGet<{ data: any[]; etag: string; timestamp: number }>(cacheKey);
 
-    // Fetch matches with timing
-    const { result: response, duration: fetchTime } = await measureTime(() =>
-      fetchMatchesFromApi(API_TOKEN, cachedEtag)
-    );
+    const now = Date.now();
+    let ttl = 60 * 60 * 1000; // default 1h
 
-    // 304 Not Modified → return cache
-    if (response.status === 304 && cachedMatches) {
+    if (cached) {
+      const hasLive = cached.data.some((m) => ['LIVE', 'IN_PLAY', 'PAUSED'].includes(m.status));
+      if (hasLive) ttl = 30 * 1000;
+      else {
+        const today = new Date();
+        const hasTodayMatch = cached.data.some((m) => new Date(m.utcDate).toDateString() === today.toDateString());
+        if (hasTodayMatch) ttl = 15 * 60 * 1000;
+      }
+
+      if (now - cached.timestamp < ttl) {
+        res.setHeader('x-cache', 'HIT');
+        res.setHeader('ETag', cached.etag || '');
+        return res.status(200).json(cached.data);
+      }
+    }
+
+    const headers: Record<string, string> = {
+      'X-Auth-Token': API_TOKEN,
+      'Content-Type': 'application/json',
+      ...(cached?.etag ? { 'If-None-Match': cached.etag } : {}),
+    };
+
+    const url = 'https://api.football-data.org/v4/competitions/PL/matches';
+    const { result: response, duration: fetchTime } = await measureTime(() => fetch(url, { headers }));
+
+    if (response.status === 304 && cached) {
+      // Not Modified -> update timestamp only
+      cached.timestamp = Date.now();
+      await redisSet(cacheKey, cached, ttl / 1000);
       res.setHeader('x-cache', 'ETAG-NOTMODIFIED');
-      res.setHeader('ETag', cachedEtag);
-      return res.status(200).json(cachedMatches);
+      res.setHeader('ETag', cached.etag);
+      res.setHeader('x-timings-fetch', fetchTime.toString());
+      return res.status(200).json(cached.data);
     }
 
     if (!response.ok) {
-      const text = await response.text();
-      if (response.status === 429 && cachedMatches) {
+      const errorText = await response.text();
+      if (response.status === 429 && cached) {
         res.setHeader('x-cache', 'STALE');
-        res.setHeader('ETag', cachedEtag || '');
-        return res.status(200).json(cachedMatches);
+        res.setHeader('ETag', cached.etag || '');
+        res.setHeader('x-timings-fetch', fetchTime.toString());
+        return res.status(200).json(cached.data);
       }
-      return res.status(500).json({ error: 'Football Data API error', details: text });
+      return res.status(500).json({ error: 'Football Data API error', details: errorText });
     }
 
-    // Parse JSON
+    const etag = response.headers.get('etag') || '';
     const { result: data, duration: parseTime } = await measureTime(() => response.json());
 
-    // Venue enrichment
+    // Enrich missing venues
     const { result: matches, duration: enrichTime } = await measureTime(async () => {
-      const teamsToFetch = new Set();
-      (data.matches || []).forEach(match => {
+      const teamsToFetch = new Set<number>();
+      (data.matches || []).forEach((match: any) => {
         if (!match.venue && match.homeTeam?.id) teamsToFetch.add(match.homeTeam.id);
       });
 
-      const fetchedVenues = {};
+      const fetchedVenues: Record<number, string> = {};
       await Promise.all(
-        Array.from(teamsToFetch).map(async teamId => {
+        Array.from(teamsToFetch).map(async (teamId) => {
           fetchedVenues[teamId] = await getTeamVenue(teamId, API_TOKEN);
         })
       );
 
-      return (data.matches || []).map(match => {
+      return (data.matches || []).map((match: any) => {
         let venue = match.venue || '';
         if (!venue && match.homeTeam?.id) venue = fetchedVenues[match.homeTeam.id] || '';
-        return {
-          id: match.id,
-          utcDate: match.utcDate,
-          status: match.status,
-          matchday: match.matchday,
-          stage: match.stage || 'REGULAR_SEASON',
-          homeTeam: match.homeTeam,
-          awayTeam: match.awayTeam,
-          venue,
-          score: match.score || null,
-          competition: match.competition || {},
-        };
+        return { ...match, venue };
       });
     });
 
-    // Save to Redis
-    await redis.set(MATCHES_KEY, JSON.stringify(matches), { ex: 3600 });
-    await redis.set(MATCHES_ETAG_KEY, response.headers.get('etag') || '', { ex: 3600 });
+    // Save to Redis cache
+    await redisSet(cacheKey, { data: matches, etag, timestamp: now }, ttl / 1000);
 
-    // Update perf stats
-    const perfStats = (await redis.get(PERF_KEY).then(d => d && JSON.parse(d))) || [];
-    perfStats.push({ fetchTime, parseTime, enrichTime, timestamp: Date.now() });
-    if (perfStats.length > 50) perfStats.shift();
-    await redis.set(PERF_KEY, JSON.stringify(perfStats), { ex: 86400 });
-
-    // Response headers
     res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=600');
     res.setHeader('x-cache', 'MISS');
-    res.setHeader('ETag', response.headers.get('etag') || '');
+    res.setHeader('ETag', etag);
     res.setHeader('x-timings-fetch', fetchTime.toString());
     res.setHeader('x-timings-parse', parseTime.toString());
     res.setHeader('x-timings-enrich', enrichTime.toString());
 
     return res.status(200).json(matches);
-  } catch (err) {
-    console.error('Matches handler error:', err);
-    const cachedMatches = await redis.get(MATCHES_KEY).then(d => d && JSON.parse(d));
-    if (cachedMatches) {
+  } catch (error) {
+    console.error('Matches handler error:', error);
+
+    // Fallback to cached
+    const cacheKey = 'matches:pl';
+    const cached = await redisGet<{ data: any[]; etag: string; timestamp: number }>(cacheKey);
+    if (cached) {
       res.setHeader('x-cache', 'ERROR-STALE');
-      return res.status(200).json(cachedMatches);
+      res.setHeader('ETag', cached.etag || '');
+      return res.status(200).json(cached.data);
     }
-    return res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' });
+
+    return res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' });
   }
 }
