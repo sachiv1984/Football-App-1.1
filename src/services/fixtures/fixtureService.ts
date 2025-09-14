@@ -1,6 +1,5 @@
 // src/services/fixtures/fixtureService.ts
 import type { FeaturedFixtureWithImportance } from '../../types';
-import { redisGet, redisSet } from '../upstash/redis';
 
 interface RawMatch {
   id: number;
@@ -12,7 +11,12 @@ interface RawMatch {
   awayTeam: { id: number; name: string; shortName?: string; tla?: string; crest?: string };
   venue?: string;
   competition: { id: string; code: string; name: string; emblem?: string };
-  score?: { fullTime?: { home?: number; away?: number } };
+  score?: {
+    fullTime?: {
+      home?: number;
+      away?: number;
+};
+};
 }
 
 interface RawStanding {
@@ -31,10 +35,9 @@ interface TeamWithForm {
 }
 
 export class FixtureService {
-  // Declare class properties
   private matchesCache: FeaturedFixtureWithImportance[] = [];
-  private cacheTime: number = 0;
-  private readonly cacheTimeout: number = 10 * 60 * 1000; // 10 min
+  private cacheTime = 0;
+  private readonly cacheTimeout = 10 * 60 * 1000; // 10 min
 
   // -------------------------
   // Configurable lists
@@ -42,6 +45,7 @@ export class FixtureService {
   private readonly SHORT_NAME_OVERRIDES: Record<string, string> = {
     "Manchester United FC": "Man Utd",
     "Brighton & Hove Albion FC": "Brighton",
+    // add more as needed
   };
 
   private readonly BIG_SIX = ['Arsenal', 'Chelsea', 'Liverpool', 'Manchester City', 'Manchester United', 'Tottenham Hotspur'];
@@ -65,14 +69,6 @@ export class FixtureService {
     'Tottenham Hotspur': { primary: '#132257', secondary: '#FFFFFF' },
   };
 
-  // Constructor is now optional since we initialize properties above
-  constructor() {
-    // Properties are already initialized above, but you can override here if needed
-    // this.matchesCache = [];
-    // this.cacheTime = 0;
-    // this.cacheTimeout = 10 * 60 * 1000;
-  }
-
   // -------------------------
   // Cache helpers
   // -------------------------
@@ -89,35 +85,21 @@ export class FixtureService {
   // Data fetching
   // -------------------------
   private async fetchMatches(): Promise<RawMatch[]> {
-    // Attempt Redis cache first
-    const cached = await redisGet<RawMatch[]>('matches');
-    if (cached) return cached;
-
     const res = await fetch('/api/matches');
     if (!res.ok) throw new Error('Failed to fetch matches');
-    const data = await res.json();
-
-    await redisSet('matches', data, 60); // cache 1 min for live
-
-    return data;
+    return res.json();
   }
 
   private async fetchStandings(): Promise<RawStanding[]> {
-    const cached = await redisGet<RawStanding[]>('standings');
-    if (cached) return cached;
-
     const res = await fetch('/api/standings');
     if (!res.ok) throw new Error('Failed to fetch standings');
-    const data = await res.json();
-
-    await redisSet('standings', data, 300); // cache 5 min
-    return data;
+    return res.json();
   }
 
   // -------------------------
   // Team helpers
   // -------------------------
-  private getTeamColors(teamName: string) {
+  private getTeamColors(teamName: string): { primary?: string; secondary?: string } {
     return this.TEAM_COLORS[teamName] || {};
   }
 
@@ -149,16 +131,16 @@ export class FixtureService {
     return this.DERBIES.some(d => d.includes(home) && d.includes(away));
   }
 
-  private isMatchFinished(status?: string) {
-    return status && ['FINISHED', 'POSTPONED', 'SUSPENDED', 'CANCELLED'].includes(status);
+  private isMatchFinished(status: string) {
+    return ['FINISHED', 'POSTPONED', 'SUSPENDED', 'CANCELLED'].includes(status);
   }
 
-  private isMatchUpcoming(status?: string) {
-    return status && ['SCHEDULED', 'TIMED'].includes(status);
+  private isMatchUpcoming(status: string) {
+    return ['SCHEDULED', 'TIMED'].includes(status);
   }
 
-  private isMatchLive(status?: string) {
-    return status && ['LIVE', 'IN_PLAY', 'PAUSED', 'HALF_TIME'].includes(status);
+  private isMatchLive(status: string) {
+    return ['LIVE', 'IN_PLAY', 'PAUSED', 'HALF_TIME'].includes(status);
   }
 
   private calculateImportance(match: RawMatch, standings?: RawStanding[]): number {
@@ -166,10 +148,12 @@ export class FixtureService {
 
     let importance = 3;
 
+    // Matchday weight
     if (match.matchday >= 35) importance += 3;
     else if (match.matchday >= 25) importance += 2;
     else if (match.matchday >= 15) importance += 1;
 
+    // Standings weight
     if (standings) {
       const homePos = standings.find(s => s.team.id === match.homeTeam.id)?.position || 20;
       const awayPos = standings.find(s => s.team.id === match.awayTeam.id)?.position || 20;
@@ -179,6 +163,7 @@ export class FixtureService {
       else if (homePos >= 17 && awayPos >= 17) importance += 2;
     }
 
+    // Big six
     const homeBigSix = this.BIG_SIX.includes(match.homeTeam.name);
     const awayBigSix = this.BIG_SIX.includes(match.awayTeam.name);
     if (homeBigSix && awayBigSix) importance += 2;
@@ -217,11 +202,11 @@ export class FixtureService {
     return tags;
   }
 
-  private mapStatus(status?: string): 'scheduled' | 'live' | 'finished' | 'postponed' | 'upcoming' {
+  private mapStatus(status: RawMatch['status']): 'scheduled' | 'live' | 'finished' | 'postponed' | 'upcoming' {
     if (this.isMatchLive(status)) return 'live';
     if (this.isMatchUpcoming(status)) return 'upcoming';
     if (status === 'FINISHED') return 'finished';
-    if (['POSTPONED', 'SUSPENDED', 'CANCELLED'].includes(status || '')) return 'postponed';
+    if (['POSTPONED', 'SUSPENDED', 'CANCELLED'].includes(status)) return 'postponed';
     return 'scheduled';
   }
 
@@ -234,30 +219,31 @@ export class FixtureService {
     const importance = this.calculateImportance(match, standings);
     const tags = this.generateTags(match, importance);
 
-    const homeScore = match.score?.fullTime?.home ?? 0;
-    const awayScore = match.score?.fullTime?.away ?? 0;
+  // Ensure scores are numeric, default to 0 if missing
+  const homeScore = match.score?.fullTime?.home ?? 0;
+  const awayScore = match.score?.fullTime?.away ?? 0;
 
-    return {
-      id: match.id.toString(),
-      dateTime: match.utcDate,
-      homeTeam,
-      awayTeam,
-      venue: match.venue || 'TBD',
-      competition: {
-        id: match.competition.code,
-        name: match.competition.name,
-        logo: match.competition.emblem || '',
-      },
-      matchWeek: match.matchday,
-      importance,
-      importanceScore: importance,
-      tags,
-      isBigMatch: importance >= 8,
-      status: this.mapStatus(match.status),
-      homeScore,
-      awayScore,
-    };
-  }
+     return {
+    id: match.id.toString(),
+    dateTime: match.utcDate,
+    homeTeam,
+    awayTeam,
+    venue: match.venue || 'TBD',
+    competition: {
+      id: match.competition.code,
+      name: match.competition.name,
+      logo: match.competition.emblem || '',
+    },
+    matchWeek: match.matchday,
+    importance,
+    importanceScore: importance,
+    tags,
+    isBigMatch: importance >= 8,
+    status: this.mapStatus(match.status),
+    homeScore,
+    awayScore,
+  };
+}
 
   private async refreshCache(): Promise<void> {
     const [matches, standings] = await Promise.all([this.fetchMatches(), this.fetchStandings()]);
@@ -280,7 +266,16 @@ export class FixtureService {
     });
   }
 
+  // -------------------------
+  // Game Week Logic
+  // -------------------------
+  
+  /**
+   * Determines the current game week based on fixtures
+   * Returns the week that has unfinished games, or next week if current is complete
+   */
   private getCurrentGameWeek(fixtures: FeaturedFixtureWithImportance[]): number {
+    // Group fixtures by matchWeek
     const weekGroups = fixtures.reduce((acc, fixture) => {
       const week = fixture.matchWeek;
       if (!acc[week]) acc[week] = [];
@@ -288,71 +283,120 @@ export class FixtureService {
       return acc;
     }, {} as Record<number, FeaturedFixtureWithImportance[]>);
 
-    const sortedWeeks = Object.keys(weekGroups).map(Number).sort((a, b) => a - b);
+    // Find the earliest week that has unfinished games
+    const sortedWeeks = Object.keys(weekGroups)
+      .map(Number)
+      .sort((a, b) => a - b);
 
     for (const week of sortedWeeks) {
       const weekFixtures = weekGroups[week];
-      const hasUnfinished = weekFixtures.some(f => f.status && ['scheduled', 'upcoming', 'live'].includes(f.status));
-      if (hasUnfinished) return week;
+      const hasUnfinishedGames = weekFixtures.some(fixture => 
+        fixture.status === 'scheduled' || 
+        fixture.status === 'upcoming' || 
+        fixture.status === 'live'
+      );
+
+      if (hasUnfinishedGames) {
+        return week;
+      }
     }
 
-    return Math.max(...sortedWeeks) + 1;
+    // If no unfinished games found, return the next week
+    const lastWeek = Math.max(...sortedWeeks);
+    return lastWeek + 1;
   }
 
+  /**
+   * Checks if a game week is complete (all games finished)
+   */
   private isGameWeekComplete(fixtures: FeaturedFixtureWithImportance[], gameWeek: number): boolean {
     const weekFixtures = fixtures.filter(f => f.matchWeek === gameWeek);
-    if (weekFixtures.length === 0) return true;
-    return weekFixtures.every(f => f.status && ['finished', 'postponed'].includes(f.status));
+    
+    if (weekFixtures.length === 0) return true; // No games = complete
+    
+    return weekFixtures.every(fixture => 
+      fixture.status === 'finished' || 
+      fixture.status === 'postponed'
+    );
   }
 
-  // -------------------------
-  // Public Methods
-  // -------------------------
+  /**
+   * Gets fixtures for the current game week display logic
+   * Shows current week if incomplete, or next week if current is complete
+   */
   async getCurrentGameWeekFixtures(): Promise<FeaturedFixtureWithImportance[]> {
     if (!this.isCacheValid()) await this.refreshCache();
+    
     const allFixtures = this.matchesCache;
     const currentGameWeek = this.getCurrentGameWeek(allFixtures);
-    return allFixtures
-      .filter(f => f.matchWeek === currentGameWeek)
-      .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime());
+    
+    // Get all fixtures for the current game week
+    const currentWeekFixtures = allFixtures.filter(
+      fixture => fixture.matchWeek === currentGameWeek
+    );
+
+    // Sort by date/time, keeping finished games in chronological order
+    return currentWeekFixtures.sort((a, b) => {
+      const dateA = new Date(a.dateTime).getTime();
+      const dateB = new Date(b.dateTime).getTime();
+      return dateA - dateB;
+    });
   }
 
-  async getGameWeekInfo() {
+  /**
+   * Gets game week info for display purposes
+   */
+  async getGameWeekInfo(): Promise<{
+    currentWeek: number;
+    isComplete: boolean;
+    totalGames: number;
+    finishedGames: number;
+    upcomingGames: number;
+  }> {
     if (!this.isCacheValid()) await this.refreshCache();
+    
     const allFixtures = this.matchesCache;
     const currentGameWeek = this.getCurrentGameWeek(allFixtures);
     const weekFixtures = allFixtures.filter(f => f.matchWeek === currentGameWeek);
-
-    const finishedGames = weekFixtures.filter(f => f.status && ['finished', 'postponed'].includes(f.status)).length;
-    const upcomingGames = weekFixtures.filter(f => f.status && ['scheduled', 'upcoming', 'live'].includes(f.status)).length;
-
+    
+    const finishedGames = weekFixtures.filter(f => 
+      f.status === 'finished' || f.status === 'postponed'
+    ).length;
+    
+    const upcomingGames = weekFixtures.filter(f => 
+      f.status === 'scheduled' || f.status === 'upcoming' || f.status === 'live'
+    ).length;
+    
     return {
       currentWeek: currentGameWeek,
       isComplete: this.isGameWeekComplete(allFixtures, currentGameWeek),
       totalGames: weekFixtures.length,
       finishedGames,
-      upcomingGames,
+      upcomingGames
     };
   }
-
-  async getFeaturedFixtures(limit: number = 8) {
+ 
+ // -------------------------
+  // Public methods
+  // -------------------------
+  async getFeaturedFixtures(limit: number = 8): Promise<FeaturedFixtureWithImportance[]> {
     if (!this.isCacheValid()) await this.refreshCache();
     return this.getNextNDaysMatches(7).slice(0, limit);
   }
 
-  async getAllFixtures() {
+  async getAllFixtures(): Promise<FeaturedFixtureWithImportance[]> {
     if (!this.isCacheValid()) await this.refreshCache();
     return this.matchesCache;
   }
 
-  async getUpcomingImportantMatches(limit?: number) {
+  async getUpcomingImportantMatches(limit?: number): Promise<FeaturedFixtureWithImportance[]> {
     const allMatches = await this.getAllFixtures();
     const now = Date.now();
-    const upcoming = allMatches.filter(m => m.importance > 0 && new Date(m.dateTime).getTime() >= now);
-    return limit ? upcoming.slice(0, limit) : upcoming;
+    const upcomingImportant = allMatches.filter(m => m.importance > 0 && new Date(m.dateTime).getTime() >= now);
+    return limit ? upcomingImportant.slice(0, limit) : upcomingImportant;
   }
 
-  async getMatchesByImportance(minImportance: number) {
+  async getMatchesByImportance(minImportance: number): Promise<FeaturedFixtureWithImportance[]> {
     const allMatches = await this.getAllFixtures();
     return allMatches.filter(m => m.importance >= minImportance);
   }
