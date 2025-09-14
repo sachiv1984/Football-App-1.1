@@ -3,18 +3,18 @@ let matchesCache = { data: null, timestamp: 0 };
 let matchesEtag = null; // Store latest ETag from upstream
 const teamVenueCache = new Map(); // teamId -> { venue, ts }
 
-// --------------------------
-// Timing helper
-// --------------------------
-function measureTime(label) {
+// Shared performance stats object (Step 5)
+const perfStats = {
+  matches: [],
+  standings: [], // already used in standings.js
+};
+
+// Helper: measure time of async function
+async function measureTime(fn) {
   const start = Date.now();
-  return {
-    end: () => {
-      const duration = Date.now() - start;
-      console.log(`${label} took ${duration}ms`);
-      return duration;
-    }
-  };
+  const result = await fn();
+  const duration = Date.now() - start;
+  return { result, duration };
 }
 
 // helper: fetch & cache venue from /teams endpoint
@@ -86,34 +86,37 @@ module.exports = async function handler(req, res) {
       return res.status(200).json(matchesCache.data);
     }
 
-    // --------------------------
-    // Fetch fresh with timing
-    // --------------------------
-    const fetchTimer = measureTime("Fetch matches");
     const headers = {
       "X-Auth-Token": API_TOKEN,
       "Content-Type": "application/json",
       ...(matchesEtag ? { "If-None-Match": matchesEtag } : {}),
     };
+
     const url = "https://api.football-data.org/v4/competitions/PL/matches";
-    const response = await fetch(url, { headers });
-    const fetchDuration = fetchTimer.end();
+
+    // --------------------------
+    // Fetch matches with timing
+    // --------------------------
+    const { result: response, duration: fetchTime } = await measureTime(() =>
+      fetch(url, { headers })
+    );
 
     // Handle 304 Not Modified
     if (response.status === 304 && matchesCache.data) {
       matchesCache.timestamp = Date.now();
       res.setHeader("x-cache", "ETAG-NOTMODIFIED");
       res.setHeader("ETag", matchesEtag);
-      res.setHeader("x-timings-fetch", fetchDuration);
+      res.setHeader("x-timings-fetch", fetchTime.toString());
       return res.status(200).json(matchesCache.data);
     }
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error("Matches fetch error:", { status: response.status, errorText });
       if (response.status === 429 && matchesCache.data) {
         res.setHeader("x-cache", "STALE");
         res.setHeader("ETag", matchesEtag || "");
-        res.setHeader("x-timings-fetch", fetchDuration);
+        res.setHeader("x-timings-fetch", fetchTime.toString());
         return res.status(200).json(matchesCache.data);
       }
       return res
@@ -123,61 +126,67 @@ module.exports = async function handler(req, res) {
 
     // Update ETag if returned
     matchesEtag = response.headers.get("etag") || matchesEtag;
-    const data = await response.json();
+
+    // Parse JSON
+    const { result: data, duration: parseTime } = await measureTime(() => response.json());
 
     // --------------------------
-    // Smart venue enrichment with timing
+    // Smart venue enrichment
     // --------------------------
-    const venueTimer = measureTime("Fetch team venues");
+    const { result: matches, duration: enrichTime } = await measureTime(async () => {
+      // 1. Identify all home teams missing a venue
+      const teamsToFetch = new Set();
+      (data.matches || []).forEach(match => {
+        if (!match.venue && match.homeTeam?.id) teamsToFetch.add(match.homeTeam.id);
+      });
 
-    const teamsToFetch = new Set();
-    (data.matches || []).forEach(match => {
-      if (!match.venue && match.homeTeam?.id) {
-        teamsToFetch.add(match.homeTeam.id);
-      }
+      // 2. Fetch missing venues in parallel
+      const fetchedVenues = {};
+      await Promise.all(
+        Array.from(teamsToFetch).map(async (teamId) => {
+          fetchedVenues[teamId] = await getTeamVenue(teamId, API_TOKEN);
+        })
+      );
+
+      // 3. Enrich matches
+      return (data.matches || []).map(match => {
+        let venue = match.venue || "";
+        if (!venue && match.homeTeam?.id) {
+          venue = fetchedVenues[match.homeTeam.id] || "";
+        }
+        return {
+          id: match.id,
+          utcDate: match.utcDate,
+          status: match.status,
+          matchday: match.matchday,
+          stage: match.stage || "REGULAR_SEASON",
+          homeTeam: match.homeTeam,
+          awayTeam: match.awayTeam,
+          venue,
+          score: match.score || null,
+          competition: match.competition || {},
+        };
+      });
     });
-
-    const fetchedVenues = {};
-    await Promise.all(
-      Array.from(teamsToFetch).map(async (teamId) => {
-        fetchedVenues[teamId] = await getTeamVenue(teamId, API_TOKEN);
-      })
-    );
-    const venueDuration = venueTimer.end();
-
-    const enrichTimer = measureTime("Enrich matches");
-    const matches = (data.matches || []).map(match => {
-      let venue = match.venue || "";
-      if (!venue && match.homeTeam?.id) {
-        venue = fetchedVenues[match.homeTeam.id] || "";
-      }
-      return {
-        id: match.id,
-        utcDate: match.utcDate,
-        status: match.status,
-        matchday: match.matchday,
-        stage: match.stage || "REGULAR_SEASON",
-        homeTeam: match.homeTeam,
-        awayTeam: match.awayTeam,
-        venue,
-        score: match.score || null,
-        competition: match.competition || {},
-      };
-    });
-    const enrichDuration = enrichTimer.end();
 
     // Save to cache
     matchesCache = { data: matches, timestamp: now };
 
+    // Update perfStats
+    perfStats.matches.push({ fetchTime, parseTime, enrichTime, timestamp: now });
+    if (perfStats.matches.length > 50) perfStats.matches.shift(); // keep last 50
+
+    // Response headers
     res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=600");
     res.setHeader("x-cache", "MISS");
     res.setHeader("ETag", matchesEtag);
-    res.setHeader("x-timings-fetch", fetchDuration);
-    res.setHeader("x-timings-venues", venueDuration);
-    res.setHeader("x-timings-enrich", enrichDuration);
+    res.setHeader("x-timings-fetch", fetchTime.toString());
+    res.setHeader("x-timings-parse", parseTime.toString());
+    res.setHeader("x-timings-enrich", enrichTime.toString());
 
     return res.status(200).json(matches);
   } catch (error) {
+    console.error("Matches handler error:", error);
     if (matchesCache.data) {
       res.setHeader("x-cache", "ERROR-STALE");
       res.setHeader("ETag", matchesEtag || "");
