@@ -241,54 +241,54 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
       </div>
 
       {/* Content */}
-      <div className="p-6">
+      <div className="p-3 sm:p-6">
         {activeTab === 'form' ? (
           renderFormContent()
         ) : (
-          <div className="space-y-8">
-            {/* Team logos and title - consistent with TeamForm styling */}
-            <div className="flex items-center justify-between mb-8">
+          <div className="space-y-6 sm:space-y-8">
+            {/* Team logos and title - responsive */}
+            <div className="flex items-center justify-between mb-6 sm:mb-8">
               <div className="flex items-center">
                 {homeTeam.logo ? (
-                  <img src={homeTeam.logo} alt={homeTeam.name} className="w-12 h-12 object-contain" />
+                  <img src={homeTeam.logo} alt={homeTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
                 ) : (
-                  <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                    <span className="text-gray-600 font-semibold text-sm">{homeTeam.shortName.charAt(0)}</span>
+                  <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                    <span className="text-gray-600 font-semibold text-xs sm:text-sm">{homeTeam.shortName.charAt(0)}</span>
                   </div>
                 )}
               </div>
               
-              <div className="text-center">
-                <h2 className="text-2xl font-bold text-gray-900 capitalize">{activeTab}</h2>
+              <div className="text-center px-2">
+                <h2 className="text-lg sm:text-2xl font-bold text-gray-900 capitalize">{activeTab}</h2>
               </div>
               
               <div className="flex items-center">
                 {awayTeam.logo ? (
-                  <img src={awayTeam.logo} alt={awayTeam.name} className="w-12 h-12 object-contain" />
+                  <img src={awayTeam.logo} alt={awayTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
                 ) : (
-                  <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                    <span className="text-gray-600 font-semibold text-sm">{awayTeam.shortName.charAt(0)}</span>
+                  <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                    <span className="text-gray-600 font-semibold text-xs sm:text-sm">{awayTeam.shortName.charAt(0)}</span>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Stats comparison - consistent with TeamForm styling */}
-            <div className="space-y-6">
+            {/* Stats comparison - responsive layout */}
+            <div className="space-y-4 sm:space-y-6">
               {Object.entries(currentStats).map(([statName, statData]) => (
                 <div key={statName} className="flex justify-between items-center">
-                  <span className="text-2xl font-bold text-gray-900">
+                  <span className="text-lg sm:text-2xl font-bold text-gray-900 min-w-0 flex-shrink">
                     {statData.homeValue}{statData.unit || ''}
                   </span>
-                  <div className="text-center">
-                    <span className="text-lg font-medium text-gray-700">{statName}</span>
+                  <div className="text-center px-2 flex-1 min-w-0">
+                    <span className="text-sm sm:text-lg font-medium text-gray-700 block">{statName}</span>
                     {statData.leagueAverage && (
-                      <div className="text-sm text-gray-500 mt-1">
-                        League Avg: {statData.leagueAverage}{statData.unit || ''}
+                      <div className="text-xs sm:text-sm text-gray-500 mt-1">
+                        Avg: {statData.leagueAverage}{statData.unit || ''}
                       </div>
                     )}
                   </div>
-                  <span className="text-2xl font-bold text-gray-900">
+                  <span className="text-lg sm:text-2xl font-bold text-gray-900 min-w-0 flex-shrink">
                     {statData.awayValue}{statData.unit || ''}
                   </span>
                 </div>
