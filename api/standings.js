@@ -1,5 +1,5 @@
 // api/standings.js
-import { redisGet, redisSet } from '../services/upstash/redis.js';
+import { redisGet, redisSet } from '../services/upstash/redis.ts';
 
 // Safe async timing helper
 async function measureTime(fn, fallback) {
