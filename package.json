@@ -6,6 +6,7 @@
   "dependencies": {
     "@craco/craco": "^7.1.0",
     "@heroicons/react": "^2.2.0",
+    "@upstash/redis": "^1.35.3",
     "axios": "^1.11.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
