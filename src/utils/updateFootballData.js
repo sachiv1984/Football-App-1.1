@@ -1,4 +1,5 @@
-// scripts/updateFootballData.js
+// src/utils/updateFootballData.js
+require('dotenv').config(); // Add this line at the top
 const fs = require('fs').promises;
 const path = require('path');
 
