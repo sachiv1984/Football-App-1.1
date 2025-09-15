@@ -59,7 +59,7 @@ jobs:
       env:
         FOOTBALL_API_KEY: ${{ secrets.FOOTBALL_API_KEY }}
       run: |
-        node scripts/updateFootballData.js ${{ steps.update-type.outputs.type }}
+        node src/utils/updateFootballData.js ${{ steps.update-type.outputs.type }}
         
     - name: Check for changes
       id: verify-changes
