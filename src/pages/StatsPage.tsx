@@ -4,7 +4,6 @@ import { useParams } from 'react-router-dom';
 import Header from '../components/common/Header/Header';
 import Footer from '../components/common/Footer/Footer';
 import MatchHeader from '../components/stats/match/MatchHeader';
-// Removed unused TeamForm import
 import ModernStatsTable from '../components/stats/StatsTable/ModernStatsTable';
 import { useFixtureNavigation } from '../hooks/useNavigation';
 import { useFixtures } from '../hooks/useFixtures';
@@ -55,46 +54,59 @@ const StatsPage: React.FC = () => {
     setCurrentFixture(foundFixture || null);
   }, [matchId, featuredFixtures, gameWeekFixtures]);
 
-  // Removed unused getTeamFormData function
-
   const getModernStatsData = () => {
     if (!currentFixture) return null;
 
     return {
-      // Goals tab data
-      matchesPlayed: { homeValue: 3, awayValue: 3 },
-      goalsFor: { homeValue: 1.62, awayValue: 1.42 },
-      goalsAgainst: { homeValue: 1.42, awayValue: 1.62 },
-      totalGoals: { homeValue: 2, awayValue: 2 },
-      over15Goals: { homeValue: 100, awayValue: 100, unit: '%' },
-      over25Goals: { homeValue: 50, awayValue: 50, unit: '%' },
-      over35Goals: { homeValue: 25, awayValue: 25, unit: '%' },
-      bothTeamsScore: { homeValue: 43, awayValue: 43, unit: '%' },
-      
-      // Corners tab data
-      corners: { homeValue: 21, awayValue: 15, leagueAverage: 18.3 },
-      cornersAgainst: { homeValue: 12, awayValue: 19, leagueAverage: 15.7 },
-      
-      // Cards tab data
-      yellowCards: { homeValue: 6, awayValue: 9, leagueAverage: 7.2 },
-      redCards: { homeValue: 0, awayValue: 1, leagueAverage: 0.3 },
-      
-      // Shooting tab data
-      shotsOnTarget: { homeValue: 15, awayValue: 12, leagueAverage: 13.5 },
-      totalShots: { homeValue: 42, awayValue: 38, leagueAverage: 40.2 },
-      shotAccuracy: { homeValue: 36, awayValue: 32, leagueAverage: 34, unit: '%' },
-      
-      // Fouls tab data
-      fouls: { homeValue: 33, awayValue: 41, leagueAverage: 37.8 },
-      foulsWon: { homeValue: 38, awayValue: 35, leagueAverage: 36.5 },
-      
       // Form data (separate structure)
       recentForm: {
-        homeResults: ['W', 'W', 'L'] as ('W' | 'D' | 'L')[],
-        awayResults: ['L', 'D', 'W'] as ('W' | 'D' | 'L')[],
-        homeStats: { matchesPlayed: 3, won: 2, drawn: 0, lost: 1 },
-        awayStats: { matchesPlayed: 3, won: 1, drawn: 1, lost: 1 }
-      }
+        homeResults: ['W', 'W', 'L', 'D', 'W'] as ('W' | 'D' | 'L')[],
+        awayResults: ['L', 'D', 'W', 'L', 'W'] as ('W' | 'D' | 'L')[],
+        homeStats: { matchesPlayed: 28, won: 18, drawn: 6, lost: 4 },
+        awayStats: { matchesPlayed: 28, won: 12, drawn: 8, lost: 8 }
+      },
+
+      // Corners data
+      cornersMatchesPlayed: { homeValue: 28, awayValue: 28 },
+      cornersTaken: { homeValue: 156.00, awayValue: 134.00 },
+      cornersAgainst: { homeValue: 98.00, awayValue: 142.00 },
+      totalCorners: { homeValue: 254.00, awayValue: 276.00 },
+      over75MatchCorners: { homeValue: 89, awayValue: 82 },
+      over85MatchCorners: { homeValue: 82, awayValue: 75 },
+      over95MatchCorners: { homeValue: 75, awayValue: 68 },
+      over105MatchCorners: { homeValue: 64, awayValue: 57 },
+      over115MatchCorners: { homeValue: 50, awayValue: 43 },
+
+      // Cards data
+      cardsMatchesPlayed: { homeValue: 28, awayValue: 28 },
+      cardsShown: { homeValue: 67.00, awayValue: 54.00 },
+      cardsAgainst: { homeValue: 42.00, awayValue: 58.00 },
+      totalCards: { homeValue: 109.00, awayValue: 112.00 },
+      over05TeamCards: { homeValue: 100, awayValue: 96 },
+      over15TeamCards: { homeValue: 93, awayValue: 89 },
+      over25TeamCards: { homeValue: 79, awayValue: 71 },
+      over35TeamCards: { homeValue: 57, awayValue: 46 },
+
+      // Shooting data
+      shootingMatchesPlayed: { homeValue: 28, awayValue: 28 },
+      shots: { homeValue: 378.00, awayValue: 321.00 },
+      shotsAgainst: { homeValue: 287.00, awayValue: 356.00 },
+      shotsOnTarget: { homeValue: 142.00, awayValue: 118.00 },
+      shotsOnTargetAgainst: { homeValue: 98.00, awayValue: 134.00 },
+      over25TeamShotsOnTarget: { homeValue: 96, awayValue: 89 },
+      over35TeamShotsOnTarget: { homeValue: 89, awayValue: 82 },
+      over45TeamShotsOnTarget: { homeValue: 82, awayValue: 71 },
+      over55TeamShotsOnTarget: { homeValue: 68, awayValue: 57 },
+
+      // Fouls data
+      foulsMatchesPlayed: { homeValue: 28, awayValue: 28 },
+      foulsCommitted: { homeValue: 324.00, awayValue: 298.00 },
+      foulsWon: { homeValue: 276.00, awayValue: 312.00 },
+      totalFouls: { homeValue: 600.00, awayValue: 610.00 },
+      over85TeamFoulsCommitted: { homeValue: 93, awayValue: 86 },
+      over95TeamFoulsCommitted: { homeValue: 86, awayValue: 79 },
+      over105TeamFoulsCommitted: { homeValue: 79, awayValue: 71 },
+      over115TeamFoulsCommitted: { homeValue: 71, awayValue: 64 }
     };
   };
 
