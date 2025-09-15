@@ -9,6 +9,7 @@ import { ErrorBoundary, CarouselErrorBoundary } from '../components/ErrorBoundar
 import { useFixtures } from '../hooks/useFixtures';
 import { useGameWeekFixtures } from '../hooks/useGameWeekFixtures';
 import { FeaturedFixtureWithImportance, Game } from '../types';
+import DataDebug from '../components/debug/DataDebug';
 
 // -------------------------
 // HomePage Component
@@ -40,7 +41,7 @@ const HomePage: React.FC = () => {
     
     // Note: Navigation will be handled automatically by FixtureCard when enableNavigation={true}
   };
-
+<DataDebug />
   return (
     <ErrorBoundary>
       <div
