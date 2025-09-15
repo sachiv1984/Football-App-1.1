@@ -308,13 +308,13 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
   return (
     <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
-      {/* Header with navigation tabs - improved mobile scrolling */}
-      <div className="flex border-b border-gray-200 bg-gray-50 overflow-x-auto scrollbar-hide">
+      {/* Header with navigation tabs - full width */}
+      <div className="flex border-b border-gray-200 bg-gray-50 overflow-x-auto scrollbar-hide w-full">
         {tabs.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium whitespace-nowrap border-b-2 transition-colors flex-shrink-0 ${
+            className={`flex-1 px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
               activeTab === tab.key
                 ? 'text-purple-600 border-purple-600 bg-white'
                 : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
