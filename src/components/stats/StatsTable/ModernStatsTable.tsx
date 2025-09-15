@@ -135,7 +135,8 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
   const getStatsForCategory = (category: StatCategory): Record<string, StatValue> => {
     const getStat = (key: string, unit?: string): StatValue => {
-      const stat = effectiveStats[key];
+      // Fixed TypeScript error with type assertion
+      const stat = (effectiveStats as any)[key];
       if (stat && typeof stat === 'object' && 'homeValue' in stat && 'awayValue' in stat) {
         return { ...stat, unit } as StatValue;
       }
