@@ -93,7 +93,8 @@ class FootballDataService {
     }
 
     try {
-      const response = await fetch(`/data/${filename}`);
+      // For Create React App, files in public folder are served from root
+      const response = await fetch(`${process.env.PUBLIC_URL || ''}/data/${filename}`);
       if (!response.ok) {
         throw new Error(`Failed to fetch ${filename}: ${response.status}`);
       }
