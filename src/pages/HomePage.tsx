@@ -41,7 +41,7 @@ const HomePage: React.FC = () => {
     
     // Note: Navigation will be handled automatically by FixtureCard when enableNavigation={true}
   };
-<DataDebug />
+
   return (
     <ErrorBoundary>
       <div
@@ -55,6 +55,11 @@ const HomePage: React.FC = () => {
 
         {/* Header to Carousel Spacing - spacing.md mobile, spacing.lg desktop */}
         <div className="mt-4 lg:mt-6" />
+
+ {/* Debug Data Table */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 my-8">
+        <DataDebug />
+      </div>
 
         {/* Featured Fixtures Section */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
