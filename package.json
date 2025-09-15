@@ -10,6 +10,7 @@
     "axios": "^1.11.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "dotenv": "^16.4.5",
     "framer-motion": "^11.5.4",
     "lucide-react": "^0.541.0",
     "react": "^18.2.0",
@@ -25,6 +26,7 @@
     "@tailwindcss/typography": "^0.5.16",
     "@testing-library/jest-dom": "^6.8.0",
     "@testing-library/react": "^16.3.0",
+    "@types/node": "^20.0.0",
     "@types/react": "^18.3.24",
     "@types/react-dom": "^18.3.7",
     "@typescript-eslint/eslint-plugin": "^8.40.0",
@@ -33,11 +35,12 @@
     "gh-pages": "^6.3.0",
     "postcss": "^8.5.6",
     "prettier": "^3.6.2",
-    "prettier-plugin-tailwindcss": "^0.6.14"
+    "prettier-plugin-tailwindcss": "^0.6.14",
+    "typescript": "^5.0.0"
   },
   "scripts": {
     "start": "craco start",
-    "build": "craco build",
+    "build": "npm run update-data:all && craco build",
     "test": "craco test",
     "eject": "react-scripts eject",
     "lint": "eslint src --ext .ts,.tsx",
@@ -45,7 +48,11 @@
     "predeploy": "npm run build",
     "deploy": "gh-pages -d build",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,md}\"",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "update-data": "node src/utils/updateFootballData.js",
+    "update-data:fixtures": "node src/utils/updateFootballData.js fixtures",
+    "update-data:all": "node src/utils/updateFootballData.js all",
+    "test-data": "node test-update.js"
   },
   "jest": {
     "moduleNameMapper": {
