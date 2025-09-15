@@ -6,6 +6,10 @@ class WhoscoredScraper {
   constructor() {
     this.baseUrl = 'https://www.whoscored.com';
     this.premierLeagueUrl = 'https://www.whoscored.com/Regions/252/Tournaments/2/England-Premier-League';
+    
+    // Specific fixtures URL for 2025-26 season
+    this.fixturesUrl = 'https://www.whoscored.com/regions/252/tournaments/2/seasons/10743/stages/24533/fixtures/england-premier-league-2025-2026';
+    
     this.dataDir = path.join(process.cwd(), 'public', 'data');
     
     // Headers to mimic a real browser
@@ -76,8 +80,10 @@ class WhoscoredScraper {
     const fixtures = [];
     
     try {
-      // WhoScored uses JavaScript to load data, but we can extract from script tags
-      // Look for fixture data in script tags
+      console.log('🔍 Parsing fixtures from WhoScored fixtures page...');
+      
+      // WhoScored fixtures page typically has data in script tags
+      // Look for matchCentreData, fixtureData, or similar
       const scriptMatches = html.match(/<script[^>]*>(.*?)<\/script>/gis);
       
       if (!scriptMatches) {
@@ -85,49 +91,192 @@ class WhoscoredScraper {
         return fixtures;
       }
 
+      // Look for the main data object that contains fixtures
       for (const scriptMatch of scriptMatches) {
-        // Look for fixture data patterns
-        if (scriptMatch.includes('matchCentreData') || scriptMatch.includes('fixtureData') || scriptMatch.includes('matches')) {
-          console.log('🔍 Found potential fixture data in script tag');
-          
-          // Try to extract JSON data
-          const jsonMatches = scriptMatch.match(/(\{[^{}]*"(?:fixture|match|game)s?"[^{}]*\})/gi);
-          
-          if (jsonMatches) {
-            for (const jsonMatch of jsonMatches) {
-              try {
-                const data = JSON.parse(jsonMatch);
-                console.log('📋 Parsed JSON data:', Object.keys(data));
-              } catch (e) {
-                // Continue if JSON parsing fails
+        const scriptContent = scriptMatch.replace(/<\/?script[^>]*>/gi, '');
+        
+        // Common patterns in WhoScored for fixture data
+        const dataPatterns = [
+          /matchCentreData\s*=\s*(\{.*?\});/s,
+          /fixtureData\s*=\s*(\{.*?\});/s,
+          /var\s+data\s*=\s*(\{.*?\});/s,
+          /window\.data\s*=\s*(\{.*?\});/s,
+          /"fixtures"\s*:\s*(\[.*?\])/s,
+          /"matches"\s*:\s*(\[.*?\])/s
+        ];
+
+        for (const pattern of dataPatterns) {
+          const match = scriptContent.match(pattern);
+          if (match) {
+            try {
+              console.log(`🎯 Found potential data with pattern: ${pattern.source.substring(0, 30)}...`);
+              
+              const jsonData = JSON.parse(match[1]);
+              console.log('📋 Data keys found:', Object.keys(jsonData));
+              
+              // Extract fixtures from the data
+              const extractedFixtures = this.extractFixturesFromData(jsonData);
+              if (extractedFixtures.length > 0) {
+                fixtures.push(...extractedFixtures);
+                console.log(`✅ Extracted ${extractedFixtures.length} fixtures from JSON data`);
               }
+              
+            } catch (jsonError) {
+              console.log('❌ Failed to parse JSON from script:', jsonError.message);
+              continue;
             }
           }
         }
       }
 
-      // Alternative approach: Look for table data
-      console.log('🔍 Looking for fixture table data...');
+      // If no JSON data found, try HTML parsing
+      if (fixtures.length === 0) {
+        console.log('🔍 No JSON data found, trying HTML parsing...');
+        const htmlFixtures = this.parseFixturesFromTable(html);
+        fixtures.push(...htmlFixtures);
+      }
+
+    } catch (error) {
+      console.error('Error parsing fixtures:', error);
+    }
+
+    return fixtures;
+  }
+
+  extractFixturesFromData(data) {
+    const fixtures = [];
+    
+    try {
+      // Try different possible data structures
+      let fixturesArray = [];
       
-      // WhoScored typically has fixture data in tables or divs
-      // This is a simplified parser - you'd need to inspect the actual HTML structure
-      const tableMatches = html.match(/<table[^>]*class="[^"]*fixture[^"]*"[^>]*>(.*?)<\/table>/gis);
+      if (data.fixtures) {
+        fixturesArray = data.fixtures;
+      } else if (data.matches) {
+        fixturesArray = data.matches;
+      } else if (data.games) {
+        fixturesArray = data.games;
+      } else if (Array.isArray(data)) {
+        fixturesArray = data;
+      } else if (data.schedule) {
+        fixturesArray = data.schedule;
+      }
       
-      if (tableMatches) {
-        console.log(`📊 Found ${tableMatches.length} fixture table(s)`);
-        
-        for (const table of tableMatches) {
-          // Parse table rows
-          const rowMatches = table.match(/<tr[^>]*>(.*?)<\/tr>/gis);
+      console.log(`📊 Found ${fixturesArray.length} items in fixtures array`);
+      
+      for (const item of fixturesArray) {
+        const fixture = this.parseFixtureFromDataItem(item);
+        if (fixture) {
+          fixtures.push(fixture);
+        }
+      }
+      
+    } catch (error) {
+      console.error('Error extracting fixtures from data:', error);
+    }
+    
+    return fixtures;
+  }
+
+  parseFixtureFromDataItem(item) {
+    try {
+      // WhoScored typical data structure (adjust based on actual data)
+      const fixture = {
+        id: item.id || item.matchId || item.fixtureId || `ws-${Date.now()}-${Math.random()}`,
+        date: item.date || item.kickOff || item.startTime,
+        timestamp: item.timestamp || new Date(item.date || item.kickOff).getTime() / 1000,
+        status: this.parseStatusFromItem(item),
+        round: item.round || item.gameweek || item.matchday || 'Unknown',
+        homeTeam: {
+          id: item.homeTeam?.id || item.home?.id || this.generateTeamId(item.homeTeam?.name || item.home?.name),
+          name: item.homeTeam?.name || item.home?.name || item.homeTeamName,
+          logo: item.homeTeam?.logo || item.home?.logo || null
+        },
+        awayTeam: {
+          id: item.awayTeam?.id || item.away?.id || this.generateTeamId(item.awayTeam?.name || item.away?.name),
+          name: item.awayTeam?.name || item.away?.name || item.awayTeamName,
+          logo: item.awayTeam?.logo || item.away?.logo || null
+        },
+        goals: {
+          home: item.homeGoals ?? item.homeScore ?? item.score?.home ?? null,
+          away: item.awayGoals ?? item.awayScore ?? item.score?.away ?? null
+        },
+        venue: {
+          name: item.venue?.name || item.stadium || null,
+          city: item.venue?.city || null
+        },
+        source: 'whoscored'
+      };
+
+      // Only return if we have essential data
+      if (fixture.homeTeam.name && fixture.awayTeam.name) {
+        return fixture;
+      }
+      
+    } catch (error) {
+      console.error('Error parsing fixture item:', error);
+    }
+    
+    return null;
+  }
+
+  parseStatusFromItem(item) {
+    if (item.status) {
+      return {
+        long: item.status.long || item.status,
+        short: item.status.short || item.status.substring(0, 2),
+        elapsed: item.status.elapsed || item.minute || null
+      };
+    }
+    
+    if (item.finished || item.isFinished) {
+      return { long: "Match Finished", short: "FT", elapsed: 90 };
+    }
+    
+    if (item.live || item.isLive) {
+      return { long: "In Progress", short: "LIVE", elapsed: item.minute || null };
+    }
+    
+    return { long: "Not Started", short: "NS", elapsed: null };
+  }
+
+  parseFixturesFromTable(html) {
+    const fixtures = [];
+    
+    try {
+      console.log('🔍 Parsing fixtures from HTML tables/divs...');
+      
+      // Look for fixture containers - WhoScored often uses divs with specific classes
+      const fixturePatterns = [
+        /<div[^>]*class="[^"]*fixture[^"]*"[^>]*>(.*?)<\/div>/gis,
+        /<tr[^>]*class="[^"]*fixture[^"]*"[^>]*>(.*?)<\/tr>/gis,
+        /<div[^>]*class="[^"]*match[^"]*"[^>]*>(.*?)<\/div>/gis,
+        /<li[^>]*class="[^"]*fixture[^"]*"[^>]*>(.*?)<\/li>/gis
+      ];
+
+      for (const pattern of fixturePatterns) {
+        const matches = html.match(pattern);
+        if (matches) {
+          console.log(`📊 Found ${matches.length} potential fixtures with pattern`);
           
-          if (rowMatches) {
-            for (const row of rowMatches) {
-              // Extract team names, scores, dates, etc.
-              const cellMatches = row.match(/<t[dh][^>]*>(.*?)<\/t[dh]>/gis);
-              
-              if (cellMatches && cellMatches.length >= 3) {
-                // This is a simplified example - actual parsing would be more complex
-                const fixture = this.parseFixtureRow(cellMatches);
+          for (const match of matches.slice(0, 20)) { // Limit to first 20 for testing
+            const fixture = this.parseFixtureFromHtml(match);
+            if (fixture) {
+              fixtures.push(fixture);
+            }
+          }
+        }
+      }
+
+      // Also try table-based parsing
+      const tableMatches = html.match(/<table[^>]*>(.*?)<\/table>/gis);
+      if (tableMatches) {
+        for (const table of tableMatches) {
+          if (table.toLowerCase().includes('fixture') || table.toLowerCase().includes('match')) {
+            const rowMatches = table.match(/<tr[^>]*>(.*?)<\/tr>/gis);
+            if (rowMatches) {
+              for (const row of rowMatches) {
+                const fixture = this.parseFixtureFromTableRow(row);
                 if (fixture) {
                   fixtures.push(fixture);
                 }
@@ -137,25 +286,137 @@ class WhoscoredScraper {
         }
       }
 
-      // Look for div-based fixture data (modern websites often use divs instead of tables)
-      const fixtureMatches = html.match(/<div[^>]*class="[^"]*(?:fixture|match|game)[^"]*"[^>]*>(.*?)<\/div>/gis);
-      
-      if (fixtureMatches) {
-        console.log(`🎯 Found ${fixtureMatches.length} fixture div(s)`);
-        
-        for (const fixtureDiv of fixtureMatches.slice(0, 10)) { // Limit to first 10 for testing
-          const fixture = this.parseFixtureDiv(fixtureDiv);
-          if (fixture) {
-            fixtures.push(fixture);
-          }
-        }
-      }
-
     } catch (error) {
-      console.error('Error parsing fixtures:', error);
+      console.error('Error parsing HTML fixtures:', error);
     }
 
     return fixtures;
+  }
+
+  parseFixtureFromHtml(htmlString) {
+    try {
+      // Remove HTML tags and get text content
+      const text = htmlString.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+      
+      // Look for team names (common football team patterns)
+      const teamPattern = /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*(?:\s+(?:FC|United|City|Town|Rovers|Wanderers|Athletic|Albion|Palace|Forest|Villa|Hotspur|County|Wednesday|Argyle))?)/g;
+      const teams = text.match(teamPattern);
+      
+      // Look for score pattern
+      const scorePattern = /(\d+)\s*[-–]\s*(\d+)/;
+      const scoreMatch = text.match(scorePattern);
+      
+      // Look for time/date pattern
+      const timePattern = /(\d{1,2}:\d{2}|\d{1,2}\/\d{1,2}|\w{3}\s+\d{1,2})/;
+      const timeMatch = text.match(timePattern);
+
+      if (teams && teams.length >= 2) {
+        return {
+          id: `html-${Date.now()}-${Math.random()}`,
+          date: timeMatch ? this.parseDate(timeMatch[0]) : new Date().toISOString(),
+          homeTeam: {
+            id: this.generateTeamId(teams[0]),
+            name: teams[0].trim(),
+            logo: null
+          },
+          awayTeam: {
+            id: this.generateTeamId(teams[1]),
+            name: teams[1].trim(),
+            logo: null
+          },
+          goals: {
+            home: scoreMatch ? parseInt(scoreMatch[1]) : null,
+            away: scoreMatch ? parseInt(scoreMatch[2]) : null
+          },
+          status: {
+            long: scoreMatch ? "Match Finished" : "Not Started",
+            short: scoreMatch ? "FT" : "NS",
+            elapsed: scoreMatch ? 90 : null
+          },
+          source: 'whoscored-html'
+        };
+      }
+    } catch (error) {
+      console.error('Error parsing HTML fixture:', error);
+    }
+    
+    return null;
+  }
+
+  parseFixtureFromTableRow(rowHtml) {
+    try {
+      const cells = rowHtml.match(/<t[dh][^>]*>(.*?)<\/t[dh]>/gis);
+      if (!cells || cells.length < 3) return null;
+      
+      const cellTexts = cells.map(cell => cell.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim());
+      
+      // Assuming structure: Date | Home Team | Score | Away Team
+      if (cellTexts.length >= 4) {
+        return {
+          id: `table-${Date.now()}-${Math.random()}`,
+          date: this.parseDate(cellTexts[0]),
+          homeTeam: {
+            id: this.generateTeamId(cellTexts[1]),
+            name: cellTexts[1],
+            logo: null
+          },
+          awayTeam: {
+            id: this.generateTeamId(cellTexts[3]),
+            name: cellTexts[3],
+            logo: null
+          },
+          goals: this.parseScore(cellTexts[2]),
+          status: this.parseStatus(cellTexts[2]),
+          source: 'whoscored-table'
+        };
+      }
+    } catch (error) {
+      console.error('Error parsing table row:', error);
+    }
+    
+    return null;
+  }
+
+  parseDate(dateStr) {
+    try {
+      // Handle various date formats
+      if (dateStr.includes(':')) {
+        // Time format like "15:30"
+        const today = new Date();
+        const [hours, minutes] = dateStr.split(':');
+        today.setHours(parseInt(hours), parseInt(minutes));
+        return today.toISOString();
+      }
+      
+      if (dateStr.includes('/')) {
+        // Date format like "15/09"
+        const [day, month] = dateStr.split('/');
+        const year = new Date().getFullYear();
+        return new Date(year, parseInt(month) - 1, parseInt(day)).toISOString();
+      }
+      
+      // Try to parse as regular date
+      const parsed = new Date(dateStr);
+      if (!isNaN(parsed.getTime())) {
+        return parsed.toISOString();
+      }
+      
+    } catch (error) {
+      console.error('Error parsing date:', error);
+    }
+    
+    return new Date().toISOString();
+  }
+
+  parseScore(scoreStr) {
+    const scoreMatch = scoreStr.match(/(\d+)\s*[-–]\s*(\d+)/);
+    if (scoreMatch) {
+      return {
+        home: parseInt(scoreMatch[1]),
+        away: parseInt(scoreMatch[2])
+      };
+    }
+    return { home: null, away: null };
   }
 
   parseFixtureRow(cells) {
@@ -245,21 +506,41 @@ class WhoscoredScraper {
 
   async scrapeFixtures() {
     console.log('🕷️  Starting WhoScored fixture scraping...');
-    console.log('⚠️  Note: This is experimental and may need adjustments based on site structure');
+    console.log('📍 Targeting specific fixtures URL for 2025-26 season');
 
     await this.ensureDataDir();
 
     try {
-      // Get the main Premier League page
-      const html = await this.makeRequest(this.premierLeagueUrl);
+      // Get the specific fixtures page
+      const html = await this.makeRequest(this.fixturesUrl);
+      
+      if (!html || html.length < 1000) {
+        throw new Error('Received empty or too small HTML response');
+      }
+      
+      console.log(`📄 Retrieved HTML page (${html.length} characters)`);
       
       // Parse fixtures from the HTML
       const fixtures = this.parseFixturesFromHtml(html);
       
       if (fixtures.length === 0) {
-        console.log('⚠️  No fixtures found. The website structure may have changed.');
-        console.log('📋 HTML sample (first 500 chars):');
-        console.log(html.substring(0, 500));
+        console.log('⚠️  No fixtures found. Let\'s inspect the page structure...');
+        
+        // Log some useful debugging info
+        console.log('📋 Page title:', html.match(/<title>(.*?)<\/title>/i)?.[1] || 'Not found');
+        console.log('📋 Page contains "fixture":', html.toLowerCase().includes('fixture'));
+        console.log('📋 Page contains "match":', html.toLowerCase().includes('match'));
+        
+        // Look for common class patterns
+        const classMatches = html.match(/class="[^"]*(?:fixture|match|game)[^"]*"/gi);
+        if (classMatches) {
+          console.log('📋 Found relevant CSS classes:', classMatches.slice(0, 5));
+        }
+        
+        // Check if page requires JavaScript
+        if (html.includes('window.onload') || html.includes('document.ready')) {
+          console.log('⚠️  Page appears to load data with JavaScript');
+        }
         
         // Create sample data as fallback
         const sampleFixtures = this.createSampleFixtures();
@@ -271,11 +552,30 @@ class WhoscoredScraper {
       // Save the scraped fixtures
       await this.saveToFile('fixtures_scraped.json', fixtures);
       
-      console.log(`✅ Scraped ${fixtures.length} fixtures from WhoScored`);
+      console.log(`✅ Successfully scraped ${fixtures.length} fixtures from WhoScored`);
+      
+      // Log sample of scraped data
+      if (fixtures.length > 0) {
+        console.log('📋 Sample fixture:', {
+          homeTeam: fixtures[0].homeTeam.name,
+          awayTeam: fixtures[0].awayTeam.name,
+          date: fixtures[0].date,
+          status: fixtures[0].status
+        });
+      }
+      
       return fixtures.length;
 
     } catch (error) {
-      console.error('❌ Failed to scrape fixtures:', error);
+      console.error('❌ Failed to scrape fixtures:', error.message);
+      
+      if (error.message.includes('fetch')) {
+        console.log('🌐 Network error - possible causes:');
+        console.log('  - Site blocking requests (check User-Agent)');
+        console.log('  - Rate limiting');
+        console.log('  - CORS issues');
+        console.log('  - Site requires cookies/session');
+      }
       
       // Create sample data as fallback
       console.log('📋 Creating sample data as fallback...');
@@ -317,31 +617,236 @@ class WhoscoredScraper {
 
   // Method to inspect HTML structure for development
   async inspectPageStructure() {
-    console.log('🔍 Inspecting WhoScored page structure...');
+    console.log('🔍 Inspecting WhoScored fixtures page structure...');
+    console.log(`📍 URL: ${this.fixturesUrl}`);
     
     try {
-      const html = await this.makeRequest(this.premierLeagueUrl);
+      const html = await this.makeRequest(this.fixturesUrl);
+      
+      if (!html || html.length < 100) {
+        console.log('❌ Failed to retrieve HTML or empty response');
+        return;
+      }
+      
+      console.log(`📄 Retrieved ${html.length} characters of HTML`);
       
       console.log('\n📋 Page title:');
       const titleMatch = html.match(/<title>(.*?)<\/title>/i);
       if (titleMatch) {
-        console.log(titleMatch[1]);
+        console.log(`  "${titleMatch[1]}"`);
       }
       
-      console.log('\n📋 Looking for fixture-related elements:');
+      console.log('\n📋 Meta information:');
+      console.log('  Contains "Premier League":', html.includes('Premier League'));
+      console.log('  Contains "fixtures":', html.toLowerCase().includes('fixtures'));
+      console.log('  Contains "2025":', html.includes('2025'));
       
-      // Look for common fixture-related class names
+      console.log('\n📋 JavaScript indicators:');
+      console.log('  Has script tags:', (html.match(/<script/gi) || []).length);
+      console.log('  Uses React/Angular:', html.includes('react') || html.includes('angular') || html.includes('ng-'));
+      console.log('  Has JSON data:', html.includes('JSON') || html.includes('"fixtures"') || html.includes('"matches"'));
+      
+      console.log('\n📋 Looking for fixture-related CSS classes:');
       const classPatterns = [
         /class="[^"]*fixture[^"]*"/gi,
         /class="[^"]*match[^"]*"/gi,
         /class="[^"]*game[^"]*"/gi,
-        /class="[^"]*calendar[^"]*"/gi
+        /id="[^"]*fixture[^"]*"/gi,
+        /id="[^"]*match[^"]*"/gi
       ];
       
       for (const pattern of classPatterns) {
         const matches = html.match(pattern);
-        if (matches) {
-          console.log(`Found ${matches.length} elements with pattern ${pattern.source}:`);
+        if (matches && matches.length > 0) {
+          console.log(`  Found ${matches.length} elements matching ${pattern.source.substring(0, 20)}...`);
+          console.log(`    Examples: ${matches.slice(0, 3).join(', ')}`);
+        }
+      }
+      
+      console.log('\n📋 Looking for data in script tags:');
+      const scriptMatches = html.match(/<script[^>]*>(.*?)<\/script>/gis);
+      if (scriptMatches) {
+        console.log(`  Found ${scriptMatches.length} script tags`);
+        
+        let dataScriptCount = 0;
+        scriptMatches.forEach((script, index) => {
+          const scriptContent = script.replace(/<\/?script[^>]*>/gi, '');
+          if (scriptContent.includes('fixture') || 
+              scriptContent.includes('match') || 
+              scriptContent.includes('game') ||
+              scriptContent.includes('"home"') ||
+              scriptContent.includes('"away"')) {
+            dataScriptCount++;
+            console.log(`  Script ${index}: Contains potential fixture data`);
+            
+            // Look for JSON patterns
+            const jsonPatterns = [
+              /\{[^{}]*"(?:fixture|match|game|home|away|score)[^{}]*\}/gi,
+              /\[[^\[\]]*"(?:fixture|match|game)[^\[\]]*\]/gi
+            ];
+            
+            for (const jsonPattern of jsonPatterns) {
+              const jsonMatches = scriptContent.match(jsonPattern);
+              if (jsonMatches) {
+                console.log(`    Found ${jsonMatches.length} potential JSON objects`);
+                console.log(`    Sample: ${jsonMatches[0].substring(0, 100)}...`);
+              }
+            }
+          }
+        });
+        
+        if (dataScriptCount === 0) {
+          console.log('  No scripts found with fixture-related data');
+        }
+      }
+      
+      console.log('\n📋 HTML structure analysis:');
+      const divCount = (html.match(/<div/gi) || []).length;
+      const tableCount = (html.match(/<table/gi) || []).length;
+      const liCount = (html.match(/<li/gi) || []).length;
+      
+      console.log(`  DIV elements: ${divCount}`);
+      console.log(`  TABLE elements: ${tableCount}`);
+      console.log(`  LI elements: ${liCount}`);
+      
+      // Look for specific WhoScored patterns
+      console.log('\n📋 WhoScored-specific patterns:');
+      const wsPatterns = [
+        'matchCentreData',
+        'fixtureData',
+        'stageData',
+        'tournamentData',
+        'data-'
+      ];
+      
+      for (const pattern of wsPatterns) {
+        if (html.includes(pattern)) {
+          console.log(`  Contains "${pattern}": Yes`);
+          
+          // Find context around the pattern
+          const index = html.indexOf(pattern);
+          if (index > 0) {
+            const context = html.substring(Math.max(0, index - 50), index + 100);
+            console.log(`    Context: ...${context}...`);
+          }
+        } else {
+          console.log(`  Contains "${pattern}": No`);
+        }
+      }
+      
+      // Save a sample of the HTML for manual inspection
+      const sampleHtml = html.substring(0, 5000);
+      const samplePath = path.join(this.dataDir, 'whoscored_sample.html');
+      await fs.writeFile(samplePath, sampleHtml);
+      console.log(`\n💾 Saved HTML sample to: ${samplePath}`);
+      
+      console.log('\n✅ Inspection complete');
+      console.log('💡 Use this information to adjust the parsing logic');
+      
+    } catch (error) {
+      console.error('❌ Failed to inspect page:', error.message);
+      
+      if (error.message.includes('fetch')) {
+        console.log('\n🌐 Fetch error troubleshooting:');
+        console.log('  1. Check if the URL is accessible in a browser');
+        console.log('  2. The site might be blocking automated requests');
+        console.log('  3. Try using a different User-Agent string');
+        console.log('  4. The site might require cookies or session tokens');
+      }
+    }
+  }
+
+  createSampleFixtures() {
+    // Enhanced fallback sample data with realistic Premier League teams and fixtures
+    const teams = [
+      'Arsenal', 'Aston Villa', 'Bournemouth', 'Brentford', 'Brighton', 
+      'Chelsea', 'Crystal Palace', 'Everton', 'Fulham', 'Ipswich Town',
+      'Leicester City', 'Liverpool', 'Manchester City', 'Manchester United', 
+      'Newcastle United', 'Nottingham Forest', 'Southampton', 'Tottenham', 
+      'West Ham', 'Wolverhampton'
+    ];
+    
+    const fixtures = [];
+    const baseDate = new Date();
+    
+    // Create fixtures for the past week and next 2 weeks
+    for (let dayOffset = -7; dayOffset <= 14; dayOffset++) {
+      // Not every day has matches
+      if (Math.random() > 0.6) continue;
+      
+      const matchDate = new Date(baseDate);
+      matchDate.setDate(baseDate.getDate() + dayOffset);
+      
+      // Weekend matches are more common
+      const isWeekend = matchDate.getDay() === 0 || matchDate.getDay() === 6;
+      const matchCount = isWeekend ? Math.floor(Math.random() * 5) + 3 : Math.floor(Math.random() * 3) + 1;
+      
+      for (let i = 0; i < matchCount && fixtures.length < 30; i++) {
+        const homeTeamIndex = Math.floor(Math.random() * teams.length);
+        let awayTeamIndex = Math.floor(Math.random() * teams.length);
+        while (awayTeamIndex === homeTeamIndex) {
+          awayTeamIndex = Math.floor(Math.random() * teams.length);
+        }
+        
+        const matchTime = new Date(matchDate);
+        const hours = isWeekend ? [12, 14, 17] : [19, 20];
+        matchTime.setHours(hours[i % hours.length], 30, 0, 0);
+        
+        const isPastMatch = dayOffset < -1;
+        const isLiveMatch = dayOffset === 0 && Math.random() > 0.7;
+        const isTodayFuture = dayOffset === 0 && !isLiveMatch;
+        
+        let status, homeGoals, awayGoals;
+        if (isPastMatch) {
+          status = { long: "Match Finished", short: "FT", elapsed: 90 };
+          homeGoals = Math.floor(Math.random() * 4);
+          awayGoals = Math.floor(Math.random() * 4);
+        } else if (isLiveMatch) {
+          const elapsed = 45 + Math.floor(Math.random() * 45);
+          status = { 
+            long: elapsed > 90 ? "Second Half" : elapsed > 45 ? "Half Time" : "First Half", 
+            short: elapsed > 90 ? "2H" : elapsed > 45 ? "HT" : "1H", 
+            elapsed 
+          };
+          homeGoals = Math.floor(Math.random() * 3);
+          awayGoals = Math.floor(Math.random() * 3);
+        } else {
+          status = { long: "Not Started", short: "NS", elapsed: null };
+          homeGoals = null;
+          awayGoals = null;
+        }
+        
+        fixtures.push({
+          id: `sample-${fixtures.length + 1}`,
+          date: matchTime.toISOString(),
+          timestamp: Math.floor(matchTime.getTime() / 1000),
+          status,
+          round: `Matchday ${Math.floor(fixtures.length / 10) + 1}`,
+          homeTeam: {
+            id: this.generateTeamId(teams[homeTeamIndex]),
+            name: teams[homeTeamIndex],
+            logo: null
+          },
+          awayTeam: {
+            id: this.generateTeamId(teams[awayTeamIndex]),
+            name: teams[awayTeamIndex],
+            logo: null
+          },
+          goals: {
+            home: homeGoals,
+            away: awayGoals
+          },
+          venue: {
+            name: `${teams[homeTeamIndex]} Stadium`,
+            city: 'London' // Simplified
+          },
+          source: 'sample-fallback'
+        });
+      }
+    }
+    
+    return fixtures.sort((a, b) => new Date(a.date) - new Date(b.date));
+  }length} elements with pattern ${pattern.source}:`);
           matches.slice(0, 5).forEach(match => console.log('  -', match));
         }
       }
