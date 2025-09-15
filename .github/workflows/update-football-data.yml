@@ -1,0 +1,114 @@
+# .github/workflows/update-football-data.yml
+name: Update Football Data
+
+on:
+  schedule:
+    # Full update: Once daily at 6 AM UTC (before most matches)
+    - cron: '0 6 * * *'
+    
+    # Quick fixtures update: Every 2 hours on match days (Sat-Mon)
+    - cron: '0 */2 * * 6,0,1'
+    
+    # Quick fixtures update: Every 4 hours on weekdays  
+    - cron: '0 */4 * * 2-5'
+  
+  # Allow manual triggering
+  workflow_dispatch:
+    inputs:
+      update_type:
+        description: 'Type of update'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+        - all
+        - fixtures
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Determine update type
+      id: update-type
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "type=${{ github.event.inputs.update_type }}" >> $GITHUB_OUTPUT
+        elif [ "${{ github.event.schedule }}" = "0 6 * * *" ]; then
+          echo "type=all" >> $GITHUB_OUTPUT
+        else
+          echo "type=fixtures" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: Run data update
+      env:
+        FOOTBALL_API_KEY: ${{ secrets.FOOTBALL_API_KEY }}
+      run: |
+        node scripts/updateFootballData.js ${{ steps.update-type.outputs.type }}
+        
+    - name: Check for changes
+      id: verify-changes
+      run: |
+        git add .
+        if git diff --staged --quiet; then
+          echo "changes=false" >> $GITHUB_OUTPUT
+          echo "No changes detected"
+        else
+          echo "changes=true" >> $GITHUB_OUTPUT
+          echo "Changes detected"
+        fi
+        
+    - name: Commit and push changes
+      if: steps.verify-changes.outputs.changes == 'true'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        if [ "${{ steps.update-type.outputs.type }}" = "all" ]; then
+          git commit -m "🏈 Update all football data - $(date +'%Y-%m-%d %H:%M UTC')"
+        else
+          git commit -m "⚡ Update fixtures - $(date +'%Y-%m-%d %H:%M UTC')"
+        fi
+        
+        git push
+        
+    - name: Create deployment
+      if: steps.verify-changes.outputs.changes == 'true'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          // Trigger Vercel deployment by creating a deployment
+          const { data } = await github.rest.repos.createDeployment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            ref: 'main', // or your default branch
+            auto_merge: false,
+            required_contexts: [],
+            environment: 'production'
+          });
+          
+          console.log('Deployment created:', data.id);
+          
+    - name: Report API usage
+      if: always()
+      run: |
+        echo "📊 Data update completed"
+        if [ -f "public/data/_metadata.json" ]; then
+          echo "📈 Metadata:"
+          cat public/data/_metadata.json | jq '.'
+        fi
