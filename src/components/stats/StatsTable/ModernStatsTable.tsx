@@ -334,63 +334,62 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
       {/* Content - improved mobile padding */}
       <div className="p-3 sm:p-6">
-        {activeTab === 'form' ? (
-          renderFormContent()
-        ) : (
-          <div className="space-y-6 sm:space-y-8">
-            {/* Team logos and title - responsive */}
-            <div className="flex items-center justify-between mb-6 sm:mb-8">
-              <div className="flex items-center">
-                {homeTeam.logo ? (
-                  <img src={homeTeam.logo} alt={homeTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
-                ) : (
-                  <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                    <span className="text-gray-600 font-semibold text-xs sm:text-sm">{homeTeam.shortName.charAt(0)}</span>
-                  </div>
-                )}
-              </div>
-              
-              <div className="text-center px-2">
-                <h2 className="text-lg sm:text-2xl font-bold text-gray-900">{getStatCategoryTitle(activeTab)}</h2>
-              </div>
-              
-              <div className="flex items-center">
-                {awayTeam.logo ? (
-                  <img src={awayTeam.logo} alt={awayTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
-                ) : (
-                  <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                    <span className="text-gray-600 font-semibold text-xs sm:text-sm">{awayTeam.shortName.charAt(0)}</span>
-                  </div>
-                )}
-              </div>
+        <div className="space-y-6 sm:space-y-8">
+          {/* Team logos and title - responsive */}
+          <div className="flex items-center justify-between mb-6 sm:mb-8">
+            <div className="flex items-center">
+              {homeTeam.logo ? (
+                <img src={homeTeam.logo} alt={homeTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
+              ) : (
+                <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                  <span className="text-gray-600 font-semibold text-xs sm:text-sm">{homeTeam.shortName.charAt(0)}</span>
+                </div>
+              )}
             </div>
-
-            {/* Stats comparison - improved mobile layout with proper formatting */}
-            <div className="space-y-4 sm:space-y-6">
-              {Object.entries(currentStats).map(([statName, statData]) => {
-                const isMatchesPlayed = statName === 'Matches Played';
-                return (
-                  <div key={statName} className="flex justify-between items-center">
-                    <span className="text-lg sm:text-2xl font-medium text-gray-900 min-w-0 flex-shrink-0 w-16 sm:w-auto text-left">
-                      {formatValue(statData.homeValue, statData.unit, isMatchesPlayed)}
-                    </span>
-                    <div className="text-center px-2 sm:px-4 flex-1 min-w-0">
-                      <span className="text-sm sm:text-lg font-medium text-gray-700 block leading-tight">{statName}</span>
-                      {statData.leagueAverage && (
-                        <div className="text-xs sm:text-sm text-gray-500 mt-1">
-                          Avg: {formatValue(statData.leagueAverage, statData.unit, isMatchesPlayed)}
-                        </div>
-                      )}
-                    </div>
-                    <span className="text-lg sm:text-2xl font-medium text-gray-900 min-w-0 flex-shrink-0 w-16 sm:w-auto text-right">
-                      {formatValue(statData.awayValue, statData.unit, isMatchesPlayed)}
-                    </span>
-                  </div>
-                );
-              })}
+            
+            <div className="text-center px-2">
+              <h2 className="text-lg sm:text-2xl font-bold text-gray-900">{getStatCategoryTitle(activeTab)}</h2>
+            </div>
+            
+            <div className="flex items-center">
+              {awayTeam.logo ? (
+                <img src={awayTeam.logo} alt={awayTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
+              ) : (
+                <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                  <span className="text-gray-600 font-semibold text-xs sm:text-sm">{awayTeam.shortName.charAt(0)}</span>
+                </div>
+              )}
             </div>
           </div>
-        )}
+
+          {/* Form results display - only for form tab */}
+          {activeTab === 'form' && renderFormResults()}
+
+          {/* Stats comparison - consistent for all tabs */}
+          <div className="space-y-4 sm:space-y-6">
+            {Object.entries(currentStats).map(([statName, statData]) => {
+              const isMatchesPlayed = statName === 'Matches Played';
+              return (
+                <div key={statName} className="flex justify-between items-center">
+                  <span className="text-lg sm:text-2xl font-medium text-gray-900 min-w-0 flex-shrink-0 w-16 sm:w-auto text-left">
+                    {formatValue(statData.homeValue, statData.unit, isMatchesPlayed)}
+                  </span>
+                  <div className="text-center px-2 sm:px-4 flex-1 min-w-0">
+                    <span className="text-sm sm:text-lg font-medium text-gray-700 block leading-tight">{statName}</span>
+                    {statData.leagueAverage && (
+                      <div className="text-xs sm:text-sm text-gray-500 mt-1">
+                        Avg: {formatValue(statData.leagueAverage, statData.unit, isMatchesPlayed)}
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-lg sm:text-2xl font-medium text-gray-900 min-w-0 flex-shrink-0 w-16 sm:w-auto text-right">
+                    {formatValue(statData.awayValue, statData.unit, isMatchesPlayed)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </div>
   );
