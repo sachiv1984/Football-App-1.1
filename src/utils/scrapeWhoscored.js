@@ -419,89 +419,21 @@ class WhoscoredScraper {
     return { home: null, away: null };
   }
 
-  parseFixtureRow(cells) {
-    try {
-      // This is a template - you'd need to adjust based on actual HTML structure
-      const dateCell = cells[0]?.replace(/<[^>]*>/g, '').trim();
-      const homeTeamCell = cells[1]?.replace(/<[^>]*>/g, '').trim();
-      const scoreCell = cells[2]?.replace(/<[^>]*>/g, '').trim();
-      const awayTeamCell = cells[3]?.replace(/<[^>]*>/g, '').trim();
-
-      if (homeTeamCell && awayTeamCell) {
-        return {
-          id: Date.now() + Math.random(), // Generate unique ID
-          date: dateCell || new Date().toISOString(),
-          homeTeam: {
-            name: homeTeamCell,
-            id: this.generateTeamId(homeTeamCell)
-          },
-          awayTeam: {
-            name: awayTeamCell,
-            id: this.generateTeamId(awayTeamCell)
-          },
-          score: scoreCell,
-          status: this.parseStatus(scoreCell),
-          source: 'whoscored'
-        };
-      }
-    } catch (error) {
-      console.error('Error parsing fixture row:', error);
+  parseStatus(scoreText) {
+    if (!scoreText) return { long: 'Not Started', short: 'NS', elapsed: null };
+    if (scoreText.includes('-') && scoreText.match(/\d/)) {
+      return { long: 'Match Finished', short: 'FT', elapsed: 90 };
     }
-    
-    return null;
-  }
-
-  parseFixtureDiv(divHtml) {
-    try {
-      // Extract text content
-      const text = divHtml.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-      
-      // Look for team name patterns
-      const teamPattern = /([A-Za-z\s]+(?:FC|United|City|Town|Rovers|Wanderers|Athletic|Albion|Palace|Forest|Villa|Hotspur)?)/g;
-      const teams = text.match(teamPattern);
-      
-      // Look for score patterns
-      const scorePattern = /(\d+)\s*[-:]\s*(\d+)/;
-      const scoreMatch = text.match(scorePattern);
-      
-      // Look for date patterns
-      const datePattern = /(\d{1,2}\/\d{1,2}\/\d{2,4}|\d{1,2}\s+\w{3}\s+\d{2,4})/;
-      const dateMatch = text.match(datePattern);
-
-      if (teams && teams.length >= 2) {
-        return {
-          id: Date.now() + Math.random(),
-          date: dateMatch ? dateMatch[0] : new Date().toISOString(),
-          homeTeam: {
-            name: teams[0].trim(),
-            id: this.generateTeamId(teams[0].trim())
-          },
-          awayTeam: {
-            name: teams[1].trim(),
-            id: this.generateTeamId(teams[1].trim())
-          },
-          score: scoreMatch ? `${scoreMatch[1]}-${scoreMatch[2]}` : null,
-          status: scoreMatch ? 'FT' : 'Scheduled',
-          source: 'whoscored'
-        };
-      }
-    } catch (error) {
-      console.error('Error parsing fixture div:', error);
+    if (scoreText.includes('vs') || scoreText.includes('v')) {
+      return { long: 'Not Started', short: 'NS', elapsed: null };
     }
-    
-    return null;
+    return { long: 'Unknown', short: 'UNK', elapsed: null };
   }
 
   generateTeamId(teamName) {
+    if (!teamName) return 'unknown-team';
     // Generate a consistent ID based on team name
     return teamName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-  }
-
-  parseStatus(scoreText) {
-    if (!scoreText) return 'Scheduled';
-    if (scoreText.includes('-') && scoreText.match(/\d/)) return 'FT';
-    if (scoreText.includes('vs') || scoreText.includes('v')) return 'Scheduled';
-    return 'Unknown';
   }
 
   async scrapeFixtures() {
@@ -524,7 +456,7 @@ class WhoscoredScraper {
       const fixtures = this.parseFixturesFromHtml(html);
       
       if (fixtures.length === 0) {
-        console.log('⚠️  No fixtures found. Let\'s inspect the page structure...');
+        console.log('⚠️  No fixtures found. Creating sample data as fallback...');
         
         // Log some useful debugging info
         console.log('📋 Page title:', html.match(/<title>(.*?)<\/title>/i)?.[1] || 'Not found');
@@ -587,32 +519,94 @@ class WhoscoredScraper {
   }
 
   createSampleFixtures() {
-    // Fallback sample data if scraping fails
-    const teams = ['Arsenal', 'Chelsea', 'Liverpool', 'Man City', 'Man United', 'Tottenham'];
-    const fixtures = [];
+    // Enhanced fallback sample data with realistic Premier League teams and fixtures
+    const teams = [
+      'Arsenal', 'Aston Villa', 'Bournemouth', 'Brentford', 'Brighton', 
+      'Chelsea', 'Crystal Palace', 'Everton', 'Fulham', 'Ipswich Town',
+      'Leicester City', 'Liverpool', 'Manchester City', 'Manchester United', 
+      'Newcastle United', 'Nottingham Forest', 'Southampton', 'Tottenham', 
+      'West Ham', 'Wolverhampton'
+    ];
     
-    for (let i = 0; i < 6; i++) {
-      const homeTeam = teams[i % teams.length];
-      const awayTeam = teams[(i + 1) % teams.length];
+    const fixtures = [];
+    const baseDate = new Date();
+    
+    // Create fixtures for the past week and next 2 weeks
+    for (let dayOffset = -7; dayOffset <= 14; dayOffset++) {
+      // Not every day has matches
+      if (Math.random() > 0.6) continue;
       
-      fixtures.push({
-        id: 'sample-' + i,
-        date: new Date(Date.now() + i * 24 * 60 * 60 * 1000).toISOString(),
-        homeTeam: {
-          name: homeTeam,
-          id: this.generateTeamId(homeTeam)
-        },
-        awayTeam: {
-          name: awayTeam,
-          id: this.generateTeamId(awayTeam)
-        },
-        score: i < 3 ? `${Math.floor(Math.random() * 3)}-${Math.floor(Math.random() * 3)}` : null,
-        status: i < 3 ? 'FT' : 'Scheduled',
-        source: 'sample-fallback'
-      });
+      const matchDate = new Date(baseDate);
+      matchDate.setDate(baseDate.getDate() + dayOffset);
+      
+      // Weekend matches are more common
+      const isWeekend = matchDate.getDay() === 0 || matchDate.getDay() === 6;
+      const matchCount = isWeekend ? Math.floor(Math.random() * 5) + 3 : Math.floor(Math.random() * 3) + 1;
+      
+      for (let i = 0; i < matchCount && fixtures.length < 30; i++) {
+        const homeTeamIndex = Math.floor(Math.random() * teams.length);
+        let awayTeamIndex = Math.floor(Math.random() * teams.length);
+        while (awayTeamIndex === homeTeamIndex) {
+          awayTeamIndex = Math.floor(Math.random() * teams.length);
+        }
+        
+        const matchTime = new Date(matchDate);
+        const hours = isWeekend ? [12, 14, 17] : [19, 20];
+        matchTime.setHours(hours[i % hours.length], 30, 0, 0);
+        
+        const isPastMatch = dayOffset < -1;
+        const isLiveMatch = dayOffset === 0 && Math.random() > 0.7;
+        
+        let status, homeGoals, awayGoals;
+        if (isPastMatch) {
+          status = { long: "Match Finished", short: "FT", elapsed: 90 };
+          homeGoals = Math.floor(Math.random() * 4);
+          awayGoals = Math.floor(Math.random() * 4);
+        } else if (isLiveMatch) {
+          const elapsed = 45 + Math.floor(Math.random() * 45);
+          status = { 
+            long: elapsed > 90 ? "Second Half" : elapsed > 45 ? "Half Time" : "First Half", 
+            short: elapsed > 90 ? "2H" : elapsed > 45 ? "HT" : "1H", 
+            elapsed 
+          };
+          homeGoals = Math.floor(Math.random() * 3);
+          awayGoals = Math.floor(Math.random() * 3);
+        } else {
+          status = { long: "Not Started", short: "NS", elapsed: null };
+          homeGoals = null;
+          awayGoals = null;
+        }
+        
+        fixtures.push({
+          id: `sample-${fixtures.length + 1}`,
+          date: matchTime.toISOString(),
+          timestamp: Math.floor(matchTime.getTime() / 1000),
+          status,
+          round: `Matchday ${Math.floor(fixtures.length / 10) + 1}`,
+          homeTeam: {
+            id: this.generateTeamId(teams[homeTeamIndex]),
+            name: teams[homeTeamIndex],
+            logo: null
+          },
+          awayTeam: {
+            id: this.generateTeamId(teams[awayTeamIndex]),
+            name: teams[awayTeamIndex],
+            logo: null
+          },
+          goals: {
+            home: homeGoals,
+            away: awayGoals
+          },
+          venue: {
+            name: `${teams[homeTeamIndex]} Stadium`,
+            city: 'London' // Simplified
+          },
+          source: 'sample-fallback'
+        });
+      }
     }
     
-    return fixtures;
+    return fixtures.sort((a, b) => new Date(a.date) - new Date(b.date));
   }
 
   // Method to inspect HTML structure for development
@@ -658,7 +652,7 @@ class WhoscoredScraper {
       for (const pattern of classPatterns) {
         const matches = html.match(pattern);
         if (matches && matches.length > 0) {
-          console.log(`  Found ${matches.length} elements matching ${pattern.source.substring(0, 20)}...`);
+          console.log(`  Found ${matches.length} elements matching pattern`);
           console.log(`    Examples: ${matches.slice(0, 3).join(', ')}`);
         }
       }
@@ -753,117 +747,6 @@ class WhoscoredScraper {
         console.log('  3. Try using a different User-Agent string');
         console.log('  4. The site might require cookies or session tokens');
       }
-    }
-  }
-
-  createSampleFixtures() {
-    // Enhanced fallback sample data with realistic Premier League teams and fixtures
-    const teams = [
-      'Arsenal', 'Aston Villa', 'Bournemouth', 'Brentford', 'Brighton', 
-      'Chelsea', 'Crystal Palace', 'Everton', 'Fulham', 'Ipswich Town',
-      'Leicester City', 'Liverpool', 'Manchester City', 'Manchester United', 
-      'Newcastle United', 'Nottingham Forest', 'Southampton', 'Tottenham', 
-      'West Ham', 'Wolverhampton'
-    ];
-    
-    const fixtures = [];
-    const baseDate = new Date();
-    
-    // Create fixtures for the past week and next 2 weeks
-    for (let dayOffset = -7; dayOffset <= 14; dayOffset++) {
-      // Not every day has matches
-      if (Math.random() > 0.6) continue;
-      
-      const matchDate = new Date(baseDate);
-      matchDate.setDate(baseDate.getDate() + dayOffset);
-      
-      // Weekend matches are more common
-      const isWeekend = matchDate.getDay() === 0 || matchDate.getDay() === 6;
-      const matchCount = isWeekend ? Math.floor(Math.random() * 5) + 3 : Math.floor(Math.random() * 3) + 1;
-      
-      for (let i = 0; i < matchCount && fixtures.length < 30; i++) {
-        const homeTeamIndex = Math.floor(Math.random() * teams.length);
-        let awayTeamIndex = Math.floor(Math.random() * teams.length);
-        while (awayTeamIndex === homeTeamIndex) {
-          awayTeamIndex = Math.floor(Math.random() * teams.length);
-        }
-        
-        const matchTime = new Date(matchDate);
-        const hours = isWeekend ? [12, 14, 17] : [19, 20];
-        matchTime.setHours(hours[i % hours.length], 30, 0, 0);
-        
-        const isPastMatch = dayOffset < -1;
-        const isLiveMatch = dayOffset === 0 && Math.random() > 0.7;
-        const isTodayFuture = dayOffset === 0 && !isLiveMatch;
-        
-        let status, homeGoals, awayGoals;
-        if (isPastMatch) {
-          status = { long: "Match Finished", short: "FT", elapsed: 90 };
-          homeGoals = Math.floor(Math.random() * 4);
-          awayGoals = Math.floor(Math.random() * 4);
-        } else if (isLiveMatch) {
-          const elapsed = 45 + Math.floor(Math.random() * 45);
-          status = { 
-            long: elapsed > 90 ? "Second Half" : elapsed > 45 ? "Half Time" : "First Half", 
-            short: elapsed > 90 ? "2H" : elapsed > 45 ? "HT" : "1H", 
-            elapsed 
-          };
-          homeGoals = Math.floor(Math.random() * 3);
-          awayGoals = Math.floor(Math.random() * 3);
-        } else {
-          status = { long: "Not Started", short: "NS", elapsed: null };
-          homeGoals = null;
-          awayGoals = null;
-        }
-        
-        fixtures.push({
-          id: `sample-${fixtures.length + 1}`,
-          date: matchTime.toISOString(),
-          timestamp: Math.floor(matchTime.getTime() / 1000),
-          status,
-          round: `Matchday ${Math.floor(fixtures.length / 10) + 1}`,
-          homeTeam: {
-            id: this.generateTeamId(teams[homeTeamIndex]),
-            name: teams[homeTeamIndex],
-            logo: null
-          },
-          awayTeam: {
-            id: this.generateTeamId(teams[awayTeamIndex]),
-            name: teams[awayTeamIndex],
-            logo: null
-          },
-          goals: {
-            home: homeGoals,
-            away: awayGoals
-          },
-          venue: {
-            name: `${teams[homeTeamIndex]} Stadium`,
-            city: 'London' // Simplified
-          },
-          source: 'sample-fallback'
-        });
-      }
-    }
-    
-    return fixtures.sort((a, b) => new Date(a.date) - new Date(b.date));
-  }length} elements with pattern ${pattern.source}:`);
-          matches.slice(0, 5).forEach(match => console.log('  -', match));
-        }
-      }
-      
-      console.log('\n📋 Script tags with potential data:');
-      const scriptMatches = html.match(/<script[^>]*>(.*?)<\/script>/gis);
-      if (scriptMatches) {
-        scriptMatches.forEach((script, index) => {
-          if (script.includes('fixture') || script.includes('match') || script.includes('game')) {
-            console.log(`Script ${index}: Contains fixture-related data`);
-            console.log(script.substring(0, 200) + '...');
-          }
-        });
-      }
-      
-    } catch (error) {
-      console.error('❌ Failed to inspect page:', error);
     }
   }
 }
