@@ -277,27 +277,27 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
         {/* Stats comparison - mobile responsive */}
         <div className="space-y-4 sm:space-y-6">
           <div className="flex justify-between items-center">
-            <span className="text-xl sm:text-2xl font-bold text-gray-900 min-w-0">{homeStats.matchesPlayed}</span>
+            <span className="text-lg sm:text-2xl font-medium text-gray-900 min-w-0">{homeStats.matchesPlayed}</span>
             <span className="text-sm sm:text-lg font-medium text-gray-700 text-center px-2 flex-1">Matches Played</span>
-            <span className="text-xl sm:text-2xl font-bold text-gray-900 min-w-0">{awayStats.matchesPlayed}</span>
+            <span className="text-lg sm:text-2xl font-medium text-gray-900 min-w-0">{awayStats.matchesPlayed}</span>
           </div>
 
           <div className="flex justify-between items-center">
-            <span className="text-xl sm:text-2xl font-bold text-gray-900 min-w-0">{homeStats.won}</span>
+            <span className="text-lg sm:text-2xl font-medium text-gray-900 min-w-0">{homeStats.won}</span>
             <span className="text-sm sm:text-lg font-medium text-gray-700 text-center px-2 flex-1">Won</span>
-            <span className="text-xl sm:text-2xl font-bold text-gray-900 min-w-0">{awayStats.won}</span>
+            <span className="text-lg sm:text-2xl font-medium text-gray-900 min-w-0">{awayStats.won}</span>
           </div>
 
           <div className="flex justify-between items-center">
-            <span className="text-xl sm:text-2xl font-bold text-gray-900 min-w-0">{homeStats.drawn}</span>
+            <span className="text-lg sm:text-2xl font-medium text-gray-900 min-w-0">{homeStats.drawn}</span>
             <span className="text-sm sm:text-lg font-medium text-gray-700 text-center px-2 flex-1">Drawn</span>
-            <span className="text-xl sm:text-2xl font-bold text-gray-900 min-w-0">{awayStats.drawn}</span>
+            <span className="text-lg sm:text-2xl font-medium text-gray-900 min-w-0">{awayStats.drawn}</span>
           </div>
 
           <div className="flex justify-between items-center">
-            <span className="text-xl sm:text-2xl font-bold text-gray-900 min-w-0">{homeStats.lost}</span>
+            <span className="text-lg sm:text-2xl font-medium text-gray-900 min-w-0">{homeStats.lost}</span>
             <span className="text-sm sm:text-lg font-medium text-gray-700 text-center px-2 flex-1">Lost</span>
-            <span className="text-xl sm:text-2xl font-bold text-gray-900 min-w-0">{awayStats.lost}</span>
+            <span className="text-lg sm:text-2xl font-medium text-gray-900 min-w-0">{awayStats.lost}</span>
           </div>
         </div>
       </div>
