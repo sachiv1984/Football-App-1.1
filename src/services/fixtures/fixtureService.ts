@@ -69,11 +69,6 @@ export class FixtureService {
     return this.matchesCache.length > 0 && (Date.now() - this.cacheTime < this.cacheTimeout);
   }
 
-  private clearCache(): void {
-    this.matchesCache = [];
-    this.cacheTime = 0;
-  }
-
   // -------------------------
   // Data fetching (Updated to use new JSON files)
   // -------------------------
@@ -401,7 +396,8 @@ export class FixtureService {
 
   // Clear both caches
   clearCache(): void {
-    this.clearCache();
+    this.matchesCache = [];
+    this.cacheTime = 0;
     this.footballDataService.clearCache();
   }
 }
