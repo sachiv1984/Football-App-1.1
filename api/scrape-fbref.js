@@ -25,47 +25,80 @@ function logRequest(ip) {
 }
 
 export default async function handler(req, res) {
+  // Add CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  // Debug logging
-  console.log('Query params:', req.query);
-  
-  let { url } = req.query;
-  console.log('Raw URL from query:', url);
-  
-  const fbrefUrl = Array.isArray(url) ? url[0] : url;
-  console.log('Processed URL:', fbrefUrl);
-  console.log('URL type:', typeof fbrefUrl);
-  console.log('URL starts with https://fbref.com/:', fbrefUrl?.startsWith("https://fbref.com/"));
-
-  if (!fbrefUrl || typeof fbrefUrl !== 'string') {
-    console.log('URL validation failed: missing or not string');
-    return res.status(400).json({ error: "Missing FBref URL" });
-  }
-
-  if (!fbrefUrl.startsWith("https://fbref.com/")) {
-    console.log('URL validation failed: does not start with https://fbref.com/');
-    return res.status(400).json({ 
-      error: "Invalid FBref URL - must start with https://fbref.com/",
-      received: fbrefUrl 
-    });
-  }
-
-  const clientIP =
-    req.headers["x-forwarded-for"] ||
-    req.socket?.remoteAddress ||
-    "unknown";
-
-  if (isRateLimited(clientIP)) {
-    return res.status(429).json({
-      error: "Rate limit exceeded. Max 10 requests per minute.",
-      retryAfter: 60,
-    });
-  }
-
   try {
+    // Debug logging
+    console.log('Full request URL:', req.url);
+    console.log('Query params:', req.query);
+    
+    let { url } = req.query;
+    console.log('Raw URL from query:', url);
+    
+    // Handle both string and array cases more safely
+    let fbrefUrl;
+    if (Array.isArray(url)) {
+      fbrefUrl = url[0];
+    } else if (typeof url === 'string') {
+      fbrefUrl = url;
+    } else {
+      console.log('URL is neither string nor array:', typeof url, url);
+      return res.status(400).json({ 
+        error: "Invalid URL parameter",
+        received: url,
+        type: typeof url
+      });
+    }
+    
+    console.log('Processed URL:', fbrefUrl);
+    console.log('URL type:', typeof fbrefUrl);
+    
+    // Additional URL cleaning
+    if (fbrefUrl) {
+      fbrefUrl = fbrefUrl.trim();
+      console.log('Trimmed URL:', fbrefUrl);
+    }
+    
+    console.log('URL starts with https://fbref.com/:', fbrefUrl?.startsWith("https://fbref.com/"));
+
+    if (!fbrefUrl || typeof fbrefUrl !== 'string') {
+      console.log('URL validation failed: missing or not string');
+      return res.status(400).json({ 
+        error: "Missing or invalid FBref URL",
+        received: fbrefUrl,
+        type: typeof fbrefUrl
+      });
+    }
+
+    if (!fbrefUrl.startsWith("https://fbref.com/")) {
+      console.log('URL validation failed: does not start with https://fbref.com/');
+      console.log('First 20 chars:', fbrefUrl.substring(0, 20));
+      return res.status(400).json({ 
+        error: "Invalid FBref URL - must start with https://fbref.com/",
+        received: fbrefUrl,
+        firstChars: fbrefUrl.substring(0, 20)
+      });
+    }
+
+    const clientIP =
+      req.headers["x-forwarded-for"] ||
+      req.socket?.remoteAddress ||
+      "unknown";
+
+    if (isRateLimited(clientIP)) {
+      return res.status(429).json({
+        error: "Rate limit exceeded. Max 10 requests per minute.",
+        retryAfter: 60,
+      });
+    }
+
     logRequest(clientIP);
     console.log('Attempting to fetch URL:', fbrefUrl);
 
@@ -160,6 +193,7 @@ export default async function handler(req, res) {
     return res.status(500).json({
       error: "Failed to scrape data",
       message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 }
