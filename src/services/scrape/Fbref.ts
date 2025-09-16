@@ -1,13 +1,26 @@
 import React, { useState } from 'react';
 import { AlertCircle, Download, Loader2, ExternalLink } from 'lucide-react';
 
-const FBrefScraperVercel = () => {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [url, setUrl] = useState('https://fbref.com/en/comps/9/Premier-League-Stats');
+interface Table {
+  caption: string;
+  headers: string[];
+  rows: (string | { text: string; link?: string })[][];
+}
 
-  const scrapeData = async () => {
+interface ScrapedData {
+  pageTitle: string;
+  total_tables: number;
+  scraped_at: string;
+  tables: Table[];
+}
+
+const FBrefScraperVercel: React.FC = () => {
+  const [data, setData] = useState<ScrapedData | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [url, setUrl] = useState<string>('https://fbref.com/en/comps/9/Premier-League-Stats');
+
+  const scrapeData = async (): Promise<void> => {
     setLoading(true);
     setError(null);
     setData(null);
@@ -15,14 +28,13 @@ const FBrefScraperVercel = () => {
     try {
       const response = await fetch(`/api/scrape-fbref?url=${encodeURIComponent(url)}`);
       const result = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(result.error || 'Failed to scrape data');
       }
-      
+
       setData(result);
-      
-    } catch (err) {
+    } catch (err: any) {
       console.error('Scraping error:', err);
       setError(err.message);
     } finally {
@@ -30,9 +42,9 @@ const FBrefScraperVercel = () => {
     }
   };
 
-  const downloadAsJson = () => {
+  const downloadAsJson = (): void => {
     if (!data) return;
-    
+
     const jsonStr = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -45,21 +57,20 @@ const FBrefScraperVercel = () => {
     URL.revokeObjectURL(url);
   };
 
-  const downloadAsCsv = (tableIndex) => {
+  const downloadAsCsv = (tableIndex: number): void => {
     if (!data || !data.tables[tableIndex]) return;
-    
+
     const table = data.tables[tableIndex];
     const csvContent = [
       table.headers.join(','),
-      ...table.rows.map(row => 
+      ...table.rows.map(row =>
         row.map(cell => {
-          // Handle cell objects with links
           const cellText = typeof cell === 'object' ? cell.text : cell;
           return `"${cellText.replace(/"/g, '""')}"`;
         }).join(',')
       )
     ].join('\n');
-    
+
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -76,7 +87,7 @@ const FBrefScraperVercel = () => {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">FBref Data Scraper</h1>
         <p className="text-gray-600">Server-side scraping via Vercel API routes</p>
-        
+
         <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
           <div className="flex items-start">
             <AlertCircle className="h-5 w-5 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
@@ -101,7 +112,7 @@ const FBrefScraperVercel = () => {
           <input
             type="url"
             value={url}
-            onChange={(e) => setUrl(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUrl(e.target.value)}
             placeholder="https://fbref.com/en/comps/9/Premier-League-Stats"
             className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             disabled={loading}
@@ -178,7 +189,7 @@ const FBrefScraperVercel = () => {
                   </button>
                 </div>
               </div>
-              
+
               <div className="overflow-x-auto">
                 <table className="min-w-full">
                   <thead className="bg-gray-50">
