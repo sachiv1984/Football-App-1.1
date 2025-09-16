@@ -215,6 +215,16 @@ const FBrefScraperVercel: React.FC = () => {
             )}
           </button>
         </div>
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Scraping...
+              </>
+            ) : (
+              'Scrape Data'
+            )}
+          </button>
+        </div>
       </div>
 
       {error && (
