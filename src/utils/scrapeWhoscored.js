@@ -12,7 +12,7 @@ class WhoscoredScraper {
     
     this.dataDir = path.join(process.cwd(), 'public', 'data');
     
-    // Headers to mimic a real browser
+    // Basic headers (will be enhanced with bypass methods)
     this.headers = {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -24,28 +24,222 @@ class WhoscoredScraper {
     };
   }
 
+  // ========== BYPASS METHODS START ==========
+
+  // Method 1: Rotate User Agents
+  getUserAgent() {
+    const userAgents = [
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0',
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15',
+      'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edge/120.0.0.0'
+    ];
+    return userAgents[Math.floor(Math.random() * userAgents.length)];
+  }
+
+  // Method 2: Enhanced headers
+  getEnhancedHeaders() {
+    return {
+      'User-Agent': this.getUserAgent(),
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+      'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'DNT': '1',
+      'Connection': 'keep-alive',
+      'Upgrade-Insecure-Requests': '1',
+      'Sec-Fetch-Dest': 'document',
+      'Sec-Fetch-Mode': 'navigate',
+      'Sec-Fetch-Site': 'none',
+      'Sec-Fetch-User': '?1',
+      'Cache-Control': 'max-age=0',
+      // Pretend to be coming from Google
+      'Referer': 'https://www.google.com/',
+      // Add some browser-specific headers
+      'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+      'sec-ch-ua-mobile': '?0',
+      'sec-ch-ua-platform': '"Windows"'
+    };
+  }
+
+  // Method 3: Try different WhoScored endpoints
+  async tryAlternativeWhoScoredUrls() {
+    const alternativeUrls = [
+      'https://www.whoscored.com/Regions/252/Tournaments/2/England-Premier-League',
+      'https://www.whoscored.com/tournaments/2/england-premier-league',
+      'https://www.whoscored.com/matches',
+      // Try mobile version
+      'https://m.whoscored.com/Regions/252/Tournaments/2/England-Premier-League',
+      // Try different season URLs
+      'https://www.whoscored.com/Regions/252/Tournaments/2/Seasons/10742/Stages/24532/Fixtures/England-Premier-League-2024-2025',
+      // Try general fixtures
+      'https://www.whoscored.com/LiveScores'
+    ];
+
+    for (const url of alternativeUrls) {
+      try {
+        console.log(`🔄 Trying alternative URL: ${url}`);
+        
+        const response = await fetch(url, {
+          headers: this.getEnhancedHeaders(),
+          timeout: 12000
+        });
+
+        console.log(`📡 Status: ${response.status} ${response.statusText}`);
+        
+        if (response.ok) {
+          const html = await response.text();
+          console.log(`✅ Success with alternative URL: ${url}`);
+          console.log(`📄 Retrieved ${html.length} characters`);
+          return html;
+        } else if (response.status === 403) {
+          console.log(`🚫 403 Forbidden for ${url}`);
+        } else if (response.status === 429) {
+          console.log(`⏰ Rate limited for ${url}`);
+        }
+        
+      } catch (error) {
+        console.log(`❌ Failed: ${error.message}`);
+      }
+      
+      // Wait between attempts to be respectful
+      await this.delay(3000);
+    }
+    
+    return null;
+  }
+
+  // Method 4: Use proxy services (for development only)
+  async makeRequestWithProxy(url) {
+    // Using free proxy services - be careful with these in production
+    const proxyServices = [
+      'https://api.allorigins.win/raw?url=',
+      'https://cors-anywhere.herokuapp.com/',
+      'https://thingproxy.freeboard.io/fetch/'
+    ];
+    
+    for (const proxy of proxyServices) {
+      try {
+        console.log(`🔄 Trying proxy: ${proxy.split('/')[2]}`);
+        
+        const proxiedUrl = proxy + encodeURIComponent(url);
+        const response = await fetch(proxiedUrl, {
+          headers: {
+            'User-Agent': this.getUserAgent(),
+            'Origin': 'http://localhost:3000',
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          timeout: 20000
+        });
+        
+        if (response.ok) {
+          const html = await response.text();
+          console.log(`✅ Proxy success with ${proxy.split('/')[2]}`);
+          console.log(`📄 Retrieved ${html.length} characters via proxy`);
+          return html;
+        }
+        
+      } catch (error) {
+        console.log(`❌ Proxy failed: ${error.message}`);
+      }
+      
+      await this.delay(5000);
+    }
+    
+    return null;
+  }
+
+  // Method 5: Enhanced makeRequest with all bypass techniques
+  async makeRequestWithBypass(url) {
+    console.log(`🔄 Fetching with bypass techniques: ${url}`);
+    
+    // Method 1: Try with enhanced headers
+    try {
+      console.log('🛡️  Attempt 1: Enhanced headers...');
+      const response = await fetch(url, {
+        headers: this.getEnhancedHeaders(),
+        timeout: 12000
+      });
+
+      if (response.ok) {
+        const html = await response.text();
+        console.log(`✅ Enhanced headers worked: ${html.length} characters`);
+        return html;
+      } else if (response.status === 403) {
+        console.log('🚫 Still getting 403 with enhanced headers');
+      } else if (response.status === 429) {
+        console.log('⏰ Rate limited with enhanced headers');
+      }
+      
+    } catch (error) {
+      console.log('❌ Enhanced headers failed:', error.message);
+    }
+    
+    // Method 2: Try alternative URLs
+    console.log('🛡️  Attempt 2: Alternative WhoScored URLs...');
+    const altHtml = await this.tryAlternativeWhoScoredUrls();
+    if (altHtml) return altHtml;
+    
+    // Method 3: Try with proxy (use with caution)
+    console.log('🛡️  Attempt 3: Proxy services...');
+    const proxyHtml = await this.makeRequestWithProxy(url);
+    if (proxyHtml) return proxyHtml;
+    
+    // Method 4: Wait and retry with different user agent
+    console.log('🛡️  Attempt 4: Wait and retry with fresh user agent...');
+    console.log('⏰ Waiting 15 seconds then retrying...');
+    await this.delay(15000);
+    
+    try {
+      const retryResponse = await fetch(url, {
+        headers: {
+          ...this.getEnhancedHeaders(),
+          'User-Agent': this.getUserAgent(), // Get fresh random UA
+          // Try additional bypass headers
+          'X-Forwarded-For': this.getRandomIP(),
+          'X-Real-IP': this.getRandomIP()
+        },
+        timeout: 15000
+      });
+      
+      if (retryResponse.ok) {
+        const html = await retryResponse.text();
+        console.log(`✅ Final retry successful: ${html.length} characters`);
+        return html;
+      } else {
+        console.log(`❌ Final retry failed with status: ${retryResponse.status}`);
+      }
+      
+    } catch (retryError) {
+      console.log('❌ Final retry failed:', retryError.message);
+    }
+    
+    // All methods failed
+    throw new Error('All bypass methods failed - WhoScored is blocking all requests');
+  }
+
+  // Helper method to generate random IP for headers
+  getRandomIP() {
+    return `${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`;
+  }
+
+  // ========== BYPASS METHODS END ==========
+
+  // Updated makeRequest method to use bypass techniques
   async makeRequest(url) {
     console.log(`🔄 Fetching: ${url}`);
     
     try {
-      const response = await fetch(url, {
-        headers: this.headers,
-        timeout: 10000
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const html = await response.text();
-      console.log(`✅ Successfully fetched ${html.length} characters`);
+      // First try the bypass method
+      const html = await this.makeRequestWithBypass(url);
       
       // Add delay to be respectful
-      await this.delay(1000);
+      await this.delay(2000);
       
       return html;
     } catch (error) {
-      console.error(`❌ Failed to fetch ${url}:`, error.message);
+      console.error(`❌ All methods failed for ${url}:`, error.message);
       throw error;
     }
   }
@@ -437,13 +631,14 @@ class WhoscoredScraper {
   }
 
   async scrapeFixtures() {
-    console.log('🕷️  Starting WhoScored fixture scraping...');
+    console.log('🕷️  Starting WhoScored fixture scraping with bypass techniques...');
     console.log('📍 Targeting specific fixtures URL for 2025-26 season');
+    console.log('🛡️  Multiple bypass methods will be attempted if blocked');
 
     await this.ensureDataDir();
 
     try {
-      // Get the specific fixtures page
+      // Get the specific fixtures page using bypass techniques
       const html = await this.makeRequest(this.fixturesUrl);
       
       if (!html || html.length < 1000) {
@@ -501,7 +696,15 @@ class WhoscoredScraper {
     } catch (error) {
       console.error('❌ Failed to scrape fixtures:', error.message);
       
-      if (error.message.includes('fetch')) {
+      if (error.message.includes('403')) {
+        console.log('🚫 WhoScored is blocking all requests with 403 Forbidden');
+        console.log('🌐 This could be due to:');
+        console.log('  - Advanced bot detection');
+        console.log('  - IP-based blocking');
+        console.log('  - Cloudflare protection');
+        console.log('  - CAPTCHA requirements');
+        console.log('💡 Consider using the alternative data source scraper instead');
+      } else if (error.message.includes('fetch')) {
         console.log('🌐 Network error - possible causes:');
         console.log('  - Site blocking requests (check User-Agent)');
         console.log('  - Rate limiting');
@@ -613,6 +816,7 @@ class WhoscoredScraper {
   async inspectPageStructure() {
     console.log('🔍 Inspecting WhoScored fixtures page structure...');
     console.log(`📍 URL: ${this.fixturesUrl}`);
+    console.log('🛡️  Using bypass techniques for inspection...');
     
     try {
       const html = await this.makeRequest(this.fixturesUrl);
@@ -740,14 +944,82 @@ class WhoscoredScraper {
     } catch (error) {
       console.error('❌ Failed to inspect page:', error.message);
       
-      if (error.message.includes('fetch')) {
-        console.log('\n🌐 Fetch error troubleshooting:');
-        console.log('  1. Check if the URL is accessible in a browser');
-        console.log('  2. The site might be blocking automated requests');
-        console.log('  3. Try using a different User-Agent string');
-        console.log('  4. The site might require cookies or session tokens');
+      if (error.message.includes('fetch') || error.message.includes('403')) {
+        console.log('\n🌐 Fetch/403 error troubleshooting:');
+        console.log('  1. WhoScored has sophisticated bot detection');
+        console.log('  2. All bypass methods were attempted');
+        console.log('  3. Consider using alternative data sources');
+        console.log('  4. The site might require browser-based access only');
+        console.log('💡 Try the FootballDataScraper for better results');
       }
     }
+  }
+
+  // Method to test all bypass techniques individually
+  async testBypassMethods() {
+    console.log('🧪 Testing all bypass methods individually...');
+    
+    const methods = [
+      {
+        name: 'Basic Headers',
+        test: async () => {
+          const response = await fetch(this.fixturesUrl, {
+            headers: this.headers,
+            timeout: 10000
+          });
+          return { status: response.status, ok: response.ok };
+        }
+      },
+      {
+        name: 'Enhanced Headers',
+        test: async () => {
+          const response = await fetch(this.fixturesUrl, {
+            headers: this.getEnhancedHeaders(),
+            timeout: 10000
+          });
+          return { status: response.status, ok: response.ok };
+        }
+      },
+      {
+        name: 'Alternative URLs',
+        test: async () => {
+          const html = await this.tryAlternativeWhoScoredUrls();
+          return { ok: !!html, message: html ? 'Got HTML' : 'Failed' };
+        }
+      },
+      {
+        name: 'Proxy Services',
+        test: async () => {
+          const html = await this.makeRequestWithProxy(this.fixturesUrl);
+          return { ok: !!html, message: html ? 'Got HTML via proxy' : 'All proxies failed' };
+        }
+      }
+    ];
+    
+    for (const method of methods) {
+      try {
+        console.log(`\n🔍 Testing: ${method.name}`);
+        const result = await method.test();
+        
+        if (result.ok) {
+          console.log(`✅ ${method.name}: SUCCESS`);
+          if (result.status) console.log(`   Status: ${result.status}`);
+          if (result.message) console.log(`   Result: ${result.message}`);
+        } else {
+          console.log(`❌ ${method.name}: FAILED`);
+          if (result.status) console.log(`   Status: ${result.status}`);
+          if (result.message) console.log(`   Result: ${result.message}`);
+        }
+        
+      } catch (error) {
+        console.log(`❌ ${method.name}: ERROR - ${error.message}`);
+      }
+      
+      // Wait between tests
+      await this.delay(3000);
+    }
+    
+    console.log('\n🧪 Bypass method testing complete');
   }
 }
 
@@ -761,6 +1033,9 @@ if (require.main === module) {
       switch (command) {
         case 'inspect':
           await scraper.inspectPageStructure();
+          break;
+        case 'test':
+          await scraper.testBypassMethods();
           break;
         case 'fixtures':
         default:
