@@ -50,11 +50,25 @@ const FBrefScraperVercel: React.FC = () => {
     // Test the API endpoint directly
     try {
       const testResponse = await fetch(`/api/scrape-fbref?url=${encodeURIComponent(url)}`);
-      const testResult = await testResponse.json();
       console.log('Test Response Status:', testResponse.status);
-      console.log('Test Response:', testResult);
+      console.log('Test Response Headers:', testResponse.headers);
+      console.log('Test Response OK:', testResponse.ok);
+      
+      // Get the raw text first to see what we're getting
+      const rawText = await testResponse.text();
+      console.log('Raw Response Text:', rawText);
+      
+      // Try to parse as JSON
+      try {
+        const testResult = JSON.parse(rawText);
+        console.log('Parsed JSON Response:', testResult);
+      } catch (parseError) {
+        console.error('JSON Parse Error:', parseError);
+        console.log('Response was not valid JSON. Raw response:', rawText.substring(0, 500));
+      }
+      
     } catch (err) {
-      console.error('Test Error:', err);
+      console.error('Fetch Error:', err);
     }
   };
 
