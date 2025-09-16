@@ -1,19 +1,32 @@
-import { load } from "cheerio";
+// api/scrape-fbref.js
 
-// In-memory rate limiting (per server instance)
+// Try different import approaches for Vercel compatibility
+let cheerio;
+try {
+  cheerio = require('cheerio');
+} catch (e) {
+  try {
+    const cheerioModule = await import('cheerio');
+    cheerio = cheerioModule;
+  } catch (e2) {
+    console.error('Failed to import cheerio:', e, e2);
+  }
+}
+
+// In-memory rate limiting
 const requestLog = new Map();
 
 function isRateLimited(ip) {
   const now = Date.now();
-  const windowStart = now - 60000; // 1 min window
-
+  const windowStart = now - 60000;
+  
   if (!requestLog.has(ip)) {
     requestLog.set(ip, []);
   }
-
-  const requests = requestLog.get(ip).filter((t) => t > windowStart);
+  
+  const requests = requestLog.get(ip).filter(t => t > windowStart);
   requestLog.set(ip, requests);
-
+  
   return requests.length >= 10;
 }
 
@@ -28,69 +41,45 @@ export default async function handler(req, res) {
   // Add CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
+  
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
-    // Debug logging
-    console.log('Full request URL:', req.url);
+    // Check if cheerio loaded
+    if (!cheerio || !cheerio.load) {
+      console.error('Cheerio not available');
+      return res.status(500).json({ 
+        error: "Server configuration error - missing dependencies" 
+      });
+    }
+
+    console.log('=== API ROUTE DEBUG ===');
     console.log('Query params:', req.query);
     
     let { url } = req.query;
-    console.log('Raw URL from query:', url);
+    console.log('Raw URL:', url, typeof url);
     
-    // Handle both string and array cases more safely
-    let fbrefUrl;
-    if (Array.isArray(url)) {
-      fbrefUrl = url[0];
-    } else if (typeof url === 'string') {
-      fbrefUrl = url;
-    } else {
-      console.log('URL is neither string nor array:', typeof url, url);
-      return res.status(400).json({ 
-        error: "Invalid URL parameter",
-        received: url,
-        type: typeof url
-      });
-    }
-    
+    const fbrefUrl = Array.isArray(url) ? url[0] : url;
     console.log('Processed URL:', fbrefUrl);
-    console.log('URL type:', typeof fbrefUrl);
-    
-    // Additional URL cleaning
-    if (fbrefUrl) {
-      fbrefUrl = fbrefUrl.trim();
-      console.log('Trimmed URL:', fbrefUrl);
-    }
-    
-    console.log('URL starts with https://fbref.com/:', fbrefUrl?.startsWith("https://fbref.com/"));
 
     if (!fbrefUrl || typeof fbrefUrl !== 'string') {
-      console.log('URL validation failed: missing or not string');
       return res.status(400).json({ 
-        error: "Missing or invalid FBref URL",
+        error: "Missing or invalid URL parameter",
         received: fbrefUrl,
         type: typeof fbrefUrl
       });
     }
 
     if (!fbrefUrl.startsWith("https://fbref.com/")) {
-      console.log('URL validation failed: does not start with https://fbref.com/');
-      console.log('First 20 chars:', fbrefUrl.substring(0, 20));
       return res.status(400).json({ 
         error: "Invalid FBref URL - must start with https://fbref.com/",
-        received: fbrefUrl,
-        firstChars: fbrefUrl.substring(0, 20)
+        received: fbrefUrl.substring(0, 50)
       });
     }
 
-    const clientIP =
-      req.headers["x-forwarded-for"] ||
-      req.socket?.remoteAddress ||
-      "unknown";
+    const clientIP = req.headers["x-forwarded-for"] || req.connection?.remoteAddress || "unknown";
 
     if (isRateLimited(clientIP)) {
       return res.status(429).json({
@@ -100,29 +89,26 @@ export default async function handler(req, res) {
     }
 
     logRequest(clientIP);
-    console.log('Attempting to fetch URL:', fbrefUrl);
+    console.log('Fetching URL:', fbrefUrl);
 
     const response = await fetch(fbrefUrl, {
       headers: {
-        "User-Agent":
-          "Mozilla/5.0 (compatible; DataScraper/1.0; Educational purpose)",
-        Accept: "text/html,application/xhtml+xml",
+        "User-Agent": "Mozilla/5.0 (compatible; DataScraper/1.0)",
+        "Accept": "text/html,application/xhtml+xml",
         "Accept-Language": "en-US,en;q=0.9",
       },
     });
 
-    console.log('Fetch response status:', response.status);
-    console.log('Fetch response ok:', response.ok);
+    console.log('Fetch status:', response.status);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const html = await response.text();
-    console.log('HTML length:', html.length);
+    console.log('HTML received, length:', html.length);
     
-    const $ = load(html);
-
+    const $ = cheerio.load(html);
     const pageTitle = $("title").text().trim();
     console.log('Page title:', pageTitle);
     
@@ -130,7 +116,7 @@ export default async function handler(req, res) {
 
     $("table.stats_table").each((index, element) => {
       const $table = $(element);
-
+      
       const tableData = {
         id: $table.attr("id") || `table-${index}`,
         caption: $table.find("caption").text().trim() || `Table ${index + 1}`,
@@ -138,11 +124,13 @@ export default async function handler(req, res) {
         rows: [],
       };
 
+      // Get headers
       const $headerRow = $table.find("thead tr").last();
       $headerRow.find("th").each((_, th) => {
         tableData.headers.push($(th).text().trim());
       });
 
+      // Get rows
       $table.find("tbody tr").each((_, tr) => {
         const $row = $(tr);
         const rowData = [];
@@ -172,12 +160,13 @@ export default async function handler(req, res) {
       }
     });
 
-    console.log('Tables found:', extractedData.length);
+    console.log('Tables extracted:', extractedData.length);
 
     if (extractedData.length === 0) {
-      return res
-        .status(404)
-        .json({ error: "No data tables found on the page" });
+      return res.status(404).json({ 
+        error: "No data tables found on the page",
+        pageTitle 
+      });
     }
 
     return res.status(200).json({
@@ -188,12 +177,13 @@ export default async function handler(req, res) {
       tables: extractedData,
       total_tables: extractedData.length,
     });
+
   } catch (error) {
     console.error("Scraping error:", error);
     return res.status(500).json({
       error: "Failed to scrape data",
       message: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
     });
   }
 }
