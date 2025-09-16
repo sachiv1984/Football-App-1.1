@@ -39,7 +39,22 @@ const FBrefScraperVercel: React.FC = () => {
     }
   };
 
-  const testUrl = async (): Promise<void> => {
+  const testApiBasic = async (): Promise<void> => {
+    try {
+      console.log('Testing basic API connection...');
+      const response = await fetch('/api/test');
+      const rawText = await response.text();
+      console.log('Basic API Response Status:', response.status);
+      console.log('Basic API Raw Response:', rawText);
+      
+      if (response.ok) {
+        const json = JSON.parse(rawText);
+        console.log('Basic API Success:', json);
+      }
+    } catch (err) {
+      console.error('Basic API Error:', err);
+    }
+  };
     console.log('=== URL TEST ===');
     console.log('Original URL:', url);
     console.log('URL length:', url.length);
@@ -218,11 +233,18 @@ const FBrefScraperVercel: React.FC = () => {
             disabled={loading}
           />
           <button
+            onClick={testApiBasic}
+            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center gap-2"
+            disabled={loading}
+          >
+            Test API
+          </button>
+          <button
             onClick={testUrl}
             className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 flex items-center gap-2"
             disabled={loading}
           >
-            Test
+            Test Scrape
           </button>
           <button
             onClick={scrapeData}
