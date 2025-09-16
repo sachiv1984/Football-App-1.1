@@ -40,7 +40,7 @@
   },
   "scripts": {
     "start": "craco start",
-    "build": "npm run update-data:all && craco build",
+    "build": "craco build",
     "test": "craco test",
     "eject": "react-scripts eject",
     "lint": "eslint src --ext .ts,.tsx",
@@ -49,9 +49,6 @@
     "deploy": "gh-pages -d build",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,md}\"",
     "type-check": "tsc --noEmit",
-    "update-data": "node src/utils/updateFootballData.js",
-    "update-data:fixtures": "node src/utils/updateFootballData.js fixtures",
-    "update-data:all": "node src/utils/updateFootballData.js all",
     "test-data": "node test-update.js"
   },
   "jest": {
