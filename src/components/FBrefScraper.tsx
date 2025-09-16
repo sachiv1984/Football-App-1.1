@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { AlertCircle, Download, Loader2, ExternalLink } from 'lucide-react';
 
-// Type definitions
 interface CellData {
   text: string;
   link?: string;
@@ -30,6 +29,15 @@ const FBrefScraperVercel: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [url, setUrl] = useState<string>('https://fbref.com/en/comps/9/Premier-League-Stats');
   const [showJson, setShowJson] = useState<boolean>(false);
+
+  const validateUrl = (urlToValidate: string): boolean => {
+    try {
+      const urlObj = new URL(urlToValidate);
+      return urlObj.hostname === 'fbref.com' && urlObj.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  };
 
   const testUrl = async (): Promise<void> => {
     console.log('=== URL TEST ===');
@@ -177,6 +185,8 @@ const FBrefScraperVercel: React.FC = () => {
           </button>
         </div>
       </div>
+
+      <div className="mb-6">
         <label className="block text-sm font-medium text-gray-700 mb-2">
           FBref URL to scrape:
         </label>
@@ -205,16 +215,6 @@ const FBrefScraperVercel: React.FC = () => {
             disabled={loading || !url || !validateUrl(url)}
             className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            {loading ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Scraping...
-              </>
-            ) : (
-              'Scrape Data'
-            )}
-          </button>
-        </div>
             {loading ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
