@@ -245,4 +245,3 @@ const FBrefScraperVercel: React.FC = () => {
 };
 
 export default FBrefScraperVercel;
-
