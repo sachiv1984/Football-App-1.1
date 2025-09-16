@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AlertCircle, Download, Loader2, ExternalLink } from 'lucide-react';
 
+// Define interfaces for the data structure
 interface Table {
   caption: string;
   headers: string[];
@@ -20,6 +21,7 @@ const FBrefScraperVercel: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [url, setUrl] = useState<string>('https://fbref.com/en/comps/9/Premier-League-Stats');
 
+  // Function to scrape data
   const scrapeData = async (): Promise<void> => {
     setLoading(true);
     setError(null);
@@ -34,14 +36,21 @@ const FBrefScraperVercel: React.FC = () => {
       }
 
       setData(result);
-    } catch (err: any) {
-      console.error('Scraping error:', err);
-      setError(err.message);
+    } catch (err: unknown) {
+      // Handle errors with explicit type
+      if (err instanceof Error) {
+        console.error('Scraping error:', err);
+        setError(err.message);
+      } else {
+        console.error('Unknown error:', err);
+        setError('An unknown error occurred.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
+  // Function to download data as JSON
   const downloadAsJson = (): void => {
     if (!data) return;
 
@@ -57,6 +66,7 @@ const FBrefScraperVercel: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  // Function to download data as CSV
   const downloadAsCsv = (tableIndex: number): void => {
     if (!data || !data.tables[tableIndex]) return;
 
@@ -235,3 +245,4 @@ const FBrefScraperVercel: React.FC = () => {
 };
 
 export default FBrefScraperVercel;
+
