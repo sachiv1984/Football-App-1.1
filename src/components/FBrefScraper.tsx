@@ -31,26 +31,27 @@ const FBrefScraperVercel: React.FC = () => {
   const [url, setUrl] = useState<string>('https://fbref.com/en/comps/9/Premier-League-Stats');
   const [showJson, setShowJson] = useState<boolean>(false);
 
+  const validateUrl = (urlToValidate: string): boolean => {
+    try {
+      const urlObj = new URL(urlToValidate);
+      return urlObj.hostname === 'fbref.com' && urlObj.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  };
+
   const scrapeData = async (): Promise<void> => {
     setLoading(true);
     setError(null);
     setData(null);
 
     try {
-      // Clean and validate the URL
-      const cleanUrl = url.trim();
+      // Debug: Log the URL being sent
+      console.log('Original URL:', url);
+      console.log('Encoded URL:', encodeURIComponent(url));
       
-      if (!cleanUrl.startsWith('https://fbref.com/')) {
-        throw new Error('URL must start with https://fbref.com/');
-      }
-
-      console.log('Attempting to scrape URL:', cleanUrl);
-      
-      // Use URLSearchParams for proper encoding
-      const params = new URLSearchParams({ url: cleanUrl });
-      const apiUrl = `/api/scrape-fbref?${params.toString()}`;
-      
-      console.log('API URL:', apiUrl);
+      const apiUrl = `/api/scrape-fbref?url=${encodeURIComponent(url)}`;
+      console.log('Full API URL:', apiUrl);
       
       const response = await fetch(apiUrl);
       const result: ScrapedData | { error: string } = await response.json();
@@ -59,18 +60,14 @@ const FBrefScraperVercel: React.FC = () => {
       console.log('Response data:', result);
       
       if (!response.ok) {
-        throw new Error((result as { error: string }).error || `HTTP ${response.status}: Failed to scrape data`);
+        throw new Error((result as { error: string }).error || 'Failed to scrape data');
       }
       
       setData(result as ScrapedData);
       
     } catch (err: unknown) {
       console.error('Scraping error:', err);
-      if (err instanceof Error) {
-        setError(`${err.message}${err.cause ? ` (${err.cause})` : ''}`);
-      } else {
-        setError('Unknown error occurred');
-      }
+      setError(err instanceof Error ? err.message : 'Unknown error occurred');
     } finally {
       setLoading(false);
     }
@@ -163,12 +160,16 @@ const FBrefScraperVercel: React.FC = () => {
             value={url}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUrl(e.target.value)}
             placeholder="https://fbref.com/en/comps/9/Premier-League-Stats"
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={`flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              url && !validateUrl(url) 
+                ? 'border-red-300 bg-red-50' 
+                : 'border-gray-300'
+            }`}
             disabled={loading}
           />
           <button
             onClick={scrapeData}
-            disabled={loading || !url}
+            disabled={loading || !url || !validateUrl(url)}
             className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {loading ? (
@@ -181,16 +182,6 @@ const FBrefScraperVercel: React.FC = () => {
             )}
           </button>
         </div>
-        {url && !url.startsWith('https://fbref.com/') && (
-          <p className="mt-2 text-sm text-red-600">
-            ⚠️ URL must start with https://fbref.com/
-          </p>
-        )}
-        {url && (
-          <p className="mt-2 text-xs text-gray-500">
-            Current URL: {url}
-          </p>
-        )}
       </div>
 
       {error && (
