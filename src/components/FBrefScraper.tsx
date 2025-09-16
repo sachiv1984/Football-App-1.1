@@ -1,19 +1,21 @@
-// src/services/scrape/Fbref.ts
+// src/components/FBrefScraper.tsx
+import React, { useState } from 'react';
+import { AlertCircle, Download, Loader2, ExternalLink } from 'lucide-react';
 
 // Type definitions
-export interface CellData {
+interface CellData {
   text: string;
   link?: string;
 }
 
-export interface TableData {
+interface TableData {
   id: string;
   caption: string;
   headers: string[];
   rows: (string | CellData)[][];
 }
 
-export interface ScrapedData {
+interface ScrapedData {
   success: boolean;
   url: string;
   pageTitle: string;
@@ -22,200 +24,226 @@ export interface ScrapedData {
   total_tables: number;
 }
 
-export interface ScrapeError {
-  error: string;
-  message?: string;
-  retryAfter?: number;
-}
+const FBrefScraperVercel: React.FC = () => {
+  const [data, setData] = useState<ScrapedData | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [url, setUrl] = useState<string>('https://fbref.com/en/comps/9/Premier-League-Stats');
 
-export class FBrefScraper {
-  private baseApiUrl: string;
-
-  constructor(baseApiUrl: string = '/api') {
-    this.baseApiUrl = baseApiUrl;
-  }
-
-  /**
-   * Scrape data from an FBref URL
-   */
-  async scrapeUrl(url: string): Promise<ScrapedData> {
-    if (!url || !url.startsWith('https://fbref.com/')) {
-      throw new Error('Invalid FBref URL provided');
-    }
+  const scrapeData = async (): Promise<void> => {
+    setLoading(true);
+    setError(null);
+    setData(null);
 
     try {
-      const response = await fetch(
-        `${this.baseApiUrl}/scrape-fbref?url=${encodeURIComponent(url)}`
-      );
-
-      const result = await response.json();
-
+      const response = await fetch(`/api/scrape-fbref?url=${encodeURIComponent(url)}`);
+      const result: ScrapedData | { error: string } = await response.json();
+      
       if (!response.ok) {
-        const error = result as ScrapeError;
-        throw new Error(error.error || 'Failed to scrape data');
+        throw new Error((result as { error: string }).error || 'Failed to scrape data');
       }
-
-      return result as ScrapedData;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw error;
-      }
-      throw new Error('Unknown error occurred during scraping');
+      
+      setData(result as ScrapedData);
+      
+    } catch (err: unknown) {
+      console.error('Scraping error:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error occurred');
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
-  /**
-   * Get a specific table from scraped data
-   */
-  getTable(data: ScrapedData, tableId: string): TableData | undefined {
-    return data.tables.find(table => table.id === tableId);
-  }
+  const downloadAsJson = (): void => {
+    if (!data) return;
+    
+    const jsonStr = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const downloadUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = `fbref-data-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(downloadUrl);
+  };
 
-  /**
-   * Get table by caption (partial match)
-   */
-  getTableByCaption(data: ScrapedData, caption: string): TableData | undefined {
-    return data.tables.find(table => 
-      table.caption.toLowerCase().includes(caption.toLowerCase())
-    );
-  }
-
-  /**
-   * Convert table data to CSV format
-   */
-  tableToCSV(table: TableData): string {
+  const downloadAsCsv = (tableIndex: number): void => {
+    if (!data || !data.tables[tableIndex]) return;
+    
+    const table = data.tables[tableIndex];
     const csvContent = [
       table.headers.join(','),
       ...table.rows.map((row: (string | CellData)[]) => 
         row.map((cell: string | CellData) => {
+          // Handle cell objects with links
           const cellText = typeof cell === 'object' ? cell.text : cell;
           return `"${cellText.replace(/"/g, '""')}"`;
         }).join(',')
       )
     ].join('\n');
-
-    return csvContent;
-  }
-
-  /**
-   * Download table as CSV file
-   */
-  downloadTableAsCSV(table: TableData, filename?: string): void {
-    const csvContent = this.tableToCSV(table);
+    
     const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    
+    const downloadUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
-    a.download = filename || `fbref-${table.caption.replace(/[^a-zA-Z0-9]/g, '-')}.csv`;
+    a.href = downloadUrl;
+    a.download = `fbref-${table.caption.replace(/[^a-zA-Z0-9]/g, '-')}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }
+    URL.revokeObjectURL(downloadUrl);
+  };
 
-  /**
-   * Download all data as JSON file
-   */
-  downloadAsJSON(data: ScrapedData, filename?: string): void {
-    const jsonStr = JSON.stringify(data, null, 2);
-    const blob = new Blob([jsonStr], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename || `fbref-data-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }
+  return (
+    <div className="max-w-6xl mx-auto p-6 bg-white">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">FBref Data Scraper</h1>
+        <p className="text-gray-600">Server-side scraping via Vercel API routes</p>
+        
+        <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+          <div className="flex items-start">
+            <AlertCircle className="h-5 w-5 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
+            <div className="text-sm text-green-800">
+              <p className="font-medium mb-1">✅ Server-Side Implementation:</p>
+              <ul className="list-disc list-inside space-y-1">
+                <li>No CORS issues - scraping happens on your server</li>
+                <li>Rate limiting built-in (10 requests per minute per IP)</li>
+                <li>Proper headers and error handling</li>
+                <li>Extracts links and additional metadata</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
 
-  /**
-   * Extract player links from a table
-   */
-  extractPlayerLinks(table: TableData): Array<{ name: string; link: string }> {
-    const playerLinks: Array<{ name: string; link: string }> = [];
-    
-    table.rows.forEach(row => {
-      row.forEach(cell => {
-        if (typeof cell === 'object' && cell.link && cell.link.includes('/players/')) {
-          playerLinks.push({
-            name: cell.text,
-            link: cell.link
-          });
-        }
-      });
-    });
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          FBref URL to scrape:
+        </label>
+        <div className="flex gap-3">
+          <input
+            type="url"
+            value={url}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUrl(e.target.value)}
+            placeholder="https://fbref.com/en/comps/9/Premier-League-Stats"
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={loading}
+          />
+          <button
+            onClick={scrapeData}
+            disabled={loading || !url}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Scraping...
+              </>
+            ) : (
+              'Scrape Data'
+            )}
+          </button>
+        </div>
+      </div>
 
-    return playerLinks;
-  }
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="flex items-center">
+            <AlertCircle className="h-5 w-5 text-red-600 mr-2" />
+            <p className="text-red-800">Error: {error}</p>
+          </div>
+        </div>
+      )}
 
-  /**
-   * Extract team links from a table
-   */
-  extractTeamLinks(table: TableData): Array<{ name: string; link: string }> {
-    const teamLinks: Array<{ name: string; link: string }> = [];
-    
-    table.rows.forEach(row => {
-      row.forEach(cell => {
-        if (typeof cell === 'object' && cell.link && cell.link.includes('/squads/')) {
-          teamLinks.push({
-            name: cell.text,
-            link: cell.link
-          });
-        }
-      });
-    });
+      {data && (
+        <div className="space-y-6">
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h3 className="font-medium text-gray-900 mb-2">Scraped Successfully</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
+              <div>
+                <span className="font-medium">Page:</span> {data.pageTitle}
+              </div>
+              <div>
+                <span className="font-medium">Tables:</span> {data.total_tables}
+              </div>
+              <div>
+                <span className="font-medium">Scraped:</span> {new Date(data.scraped_at).toLocaleString()}
+              </div>
+            </div>
+          </div>
 
-    return teamLinks;
-  }
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold text-gray-900">
+              Data Tables ({data.tables.length})
+            </h2>
+            <button
+              onClick={downloadAsJson}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Download All as JSON
+            </button>
+          </div>
 
-  /**
-   * Get basic statistics about the scraped data
-   */
-  getDataStats(data: ScrapedData): {
-    totalTables: number;
-    totalRows: number;
-    totalCells: number;
-    tablesInfo: Array<{
-      caption: string;
-      rows: number;
-      columns: number;
-    }>;
-  } {
-    let totalRows = 0;
-    let totalCells = 0;
+          {data.tables.map((table: TableData, index: number) => (
+            <div key={index} className="border border-gray-200 rounded-lg overflow-hidden">
+              <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
+                <h3 className="font-medium text-gray-900">{table.caption}</h3>
+                <div className="flex gap-2">
+                  <span className="text-sm text-gray-600">
+                    {table.rows.length} rows × {table.headers.length} cols
+                  </span>
+                  <button
+                    onClick={() => downloadAsCsv(index)}
+                    className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                  >
+                    CSV
+                  </button>
+                </div>
+              </div>
+              
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      {table.headers.map((header: string, headerIndex: number) => (
+                        <th key={headerIndex} className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                          {header}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {table.rows.slice(0, 10).map((row: (string | CellData)[], rowIndex: number) => (
+                      <tr key={rowIndex} className="hover:bg-gray-50">
+                        {row.map((cell: string | CellData, cellIndex: number) => (
+                          <td key={cellIndex} className="px-3 py-2 text-sm text-gray-900 border-r border-gray-200">
+                            {typeof cell === 'object' && cell.link ? (
+                              <a href={cell.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-1">
+                                {cell.text}
+                                <ExternalLink className="h-3 w-3" />
+                              </a>
+                            ) : (
+                              cell || '-'
+                            )}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {table.rows.length > 10 && (
+                  <div className="px-4 py-2 bg-gray-50 text-sm text-gray-600 text-center border-t border-gray-200">
+                    Showing first 10 rows of {table.rows.length} total rows
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
-    const tablesInfo = data.tables.map(table => {
-      totalRows += table.rows.length;
-      totalCells += table.rows.length * table.headers.length;
-      
-      return {
-        caption: table.caption,
-        rows: table.rows.length,
-        columns: table.headers.length
-      };
-    });
-
-    return {
-      totalTables: data.tables.length,
-      totalRows,
-      totalCells,
-      tablesInfo
-    };
-  }
-}
-
-// Export a default instance
-export const fbrefScraper = new FBrefScraper();
-
-// Export utility functions for direct use
-export const scrapeUrl = (url: string): Promise<ScrapedData> => 
-  fbrefScraper.scrapeUrl(url);
-
-export const downloadTableAsCSV = (table: TableData, filename?: string): void =>
-  fbrefScraper.downloadTableAsCSV(table, filename);
-
-export const downloadAsJSON = (data: ScrapedData, filename?: string): void =>
-  fbrefScraper.downloadAsJSON(data, filename);
+export default FBrefScraperVercel;
