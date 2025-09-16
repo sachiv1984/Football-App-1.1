@@ -64,49 +64,14 @@ const FBrefScraperVercel: React.FC = () => {
     console.log('Trimmed URL:', url.trim());
     console.log('Encoded URL:', encodeURIComponent(url));
     
-    // Test the API endpoint directly
     try {
       const testResponse = await fetch(`/api/scrape-fbref?url=${encodeURIComponent(url)}`);
       console.log('Test Response Status:', testResponse.status);
-      console.log('Test Response Headers:', testResponse.headers);
       console.log('Test Response OK:', testResponse.ok);
       
-      // Get the raw text first to see what we're getting
       const rawText = await testResponse.text();
       console.log('Raw Response Text:', rawText);
       
-      // Try to parse as JSON
-      try {
-        const testResult = JSON.parse(rawText);
-        console.log('Parsed JSON Response:', testResult);
-      } catch (parseError) {
-        console.error('JSON Parse Error:', parseError);
-        console.log('Response was not valid JSON. Raw response:', rawText.substring(0, 500));
-      }
-      
-    } catch (err) {
-      console.error('Fetch Error:', err);
-    }
-  };
-    console.log('=== URL TEST ===');
-    console.log('Original URL:', url);
-    console.log('URL length:', url.length);
-    console.log('URL type:', typeof url);
-    console.log('Trimmed URL:', url.trim());
-    console.log('Encoded URL:', encodeURIComponent(url));
-    
-    // Test the API endpoint directly
-    try {
-      const testResponse = await fetch(`/api/scrape-fbref?url=${encodeURIComponent(url)}`);
-      console.log('Test Response Status:', testResponse.status);
-      console.log('Test Response Headers:', testResponse.headers);
-      console.log('Test Response OK:', testResponse.ok);
-      
-      // Get the raw text first to see what we're getting
-      const rawText = await testResponse.text();
-      console.log('Raw Response Text:', rawText);
-      
-      // Try to parse as JSON
       try {
         const testResult = JSON.parse(rawText);
         console.log('Parsed JSON Response:', testResult);
@@ -126,7 +91,6 @@ const FBrefScraperVercel: React.FC = () => {
     setData(null);
 
     try {
-      // Debug: Log the URL being sent
       console.log('Original URL:', url);
       console.log('Encoded URL:', encodeURIComponent(url));
       
@@ -173,7 +137,6 @@ const FBrefScraperVercel: React.FC = () => {
     
     console.log('FBref Data JSON:', data);
     
-    // Optional: Open in new window
     const jsonStr = JSON.stringify(data, null, 2);
     const newWindow = window.open();
     if (newWindow) {
@@ -190,7 +153,6 @@ const FBrefScraperVercel: React.FC = () => {
       table.headers.join(','),
       ...table.rows.map((row: (string | CellData)[]) => 
         row.map((cell: string | CellData) => {
-          // Handle cell objects with links
           const cellText = typeof cell === 'object' ? cell.text : cell;
           return `"${cellText.replace(/"/g, '""')}"`;
         }).join(',')
