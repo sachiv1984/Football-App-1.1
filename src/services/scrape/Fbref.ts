@@ -1,18 +1,26 @@
 import React, { useState } from 'react';
 import { AlertCircle, Download, Loader2, ExternalLink } from 'lucide-react';
 
-// Define interfaces for the data structure
-interface Table {
+// Type definitions
+interface CellData {
+  text: string;
+  link?: string;
+}
+
+interface TableData {
+  id: string;
   caption: string;
   headers: string[];
-  rows: (string | { text: string; link?: string })[][];
+  rows: (string | CellData)[][];
 }
 
 interface ScrapedData {
+  success: boolean;
+  url: string;
   pageTitle: string;
-  total_tables: number;
   scraped_at: string;
-  tables: Table[];
+  tables: TableData[];
+  total_tables: number;
 }
 
 const FBrefScraperVercel: React.FC = () => {
@@ -21,7 +29,6 @@ const FBrefScraperVercel: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [url, setUrl] = useState<string>('https://fbref.com/en/comps/9/Premier-League-Stats');
 
-  // Function to scrape data
   const scrapeData = async (): Promise<void> => {
     setLoading(true);
     setError(null);
@@ -29,67 +36,61 @@ const FBrefScraperVercel: React.FC = () => {
 
     try {
       const response = await fetch(`/api/scrape-fbref?url=${encodeURIComponent(url)}`);
-      const result = await response.json();
-
+      const result: ScrapedData = await response.json();
+      
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to scrape data');
+        throw new Error((result as any).error || 'Failed to scrape data');
       }
-
+      
       setData(result);
-    } catch (err: unknown) {
-      // Handle errors with explicit type
-      if (err instanceof Error) {
-        console.error('Scraping error:', err);
-        setError(err.message);
-      } else {
-        console.error('Unknown error:', err);
-        setError('An unknown error occurred.');
-      }
+      
+    } catch (err) {
+      console.error('Scraping error:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error occurred');
     } finally {
       setLoading(false);
     }
   };
 
-  // Function to download data as JSON
   const downloadAsJson = (): void => {
     if (!data) return;
-
+    
     const jsonStr = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonStr], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
+    const downloadUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
+    a.href = downloadUrl;
     a.download = `fbref-data-${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    URL.revokeObjectURL(downloadUrl);
   };
 
-  // Function to download data as CSV
   const downloadAsCsv = (tableIndex: number): void => {
     if (!data || !data.tables[tableIndex]) return;
-
+    
     const table = data.tables[tableIndex];
     const csvContent = [
       table.headers.join(','),
-      ...table.rows.map(row =>
-        row.map(cell => {
+      ...table.rows.map((row: (string | CellData)[]) => 
+        row.map((cell: string | CellData) => {
+          // Handle cell objects with links
           const cellText = typeof cell === 'object' ? cell.text : cell;
           return `"${cellText.replace(/"/g, '""')}"`;
         }).join(',')
       )
     ].join('\n');
-
+    
     const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
+    const downloadUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
+    a.href = downloadUrl;
     a.download = `fbref-${table.caption.replace(/[^a-zA-Z0-9]/g, '-')}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    URL.revokeObjectURL(downloadUrl);
   };
 
   return (
@@ -97,7 +98,7 @@ const FBrefScraperVercel: React.FC = () => {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">FBref Data Scraper</h1>
         <p className="text-gray-600">Server-side scraping via Vercel API routes</p>
-
+        
         <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
           <div className="flex items-start">
             <AlertCircle className="h-5 w-5 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
@@ -183,7 +184,7 @@ const FBrefScraperVercel: React.FC = () => {
             </button>
           </div>
 
-          {data.tables.map((table, index) => (
+          {data.tables.map((table: TableData, index: number) => (
             <div key={index} className="border border-gray-200 rounded-lg overflow-hidden">
               <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
                 <h3 className="font-medium text-gray-900">{table.caption}</h3>
@@ -199,12 +200,12 @@ const FBrefScraperVercel: React.FC = () => {
                   </button>
                 </div>
               </div>
-
+              
               <div className="overflow-x-auto">
                 <table className="min-w-full">
                   <thead className="bg-gray-50">
                     <tr>
-                      {table.headers.map((header, headerIndex) => (
+                      {table.headers.map((header: string, headerIndex: number) => (
                         <th key={headerIndex} className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
                           {header}
                         </th>
@@ -212,9 +213,9 @@ const FBrefScraperVercel: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {table.rows.slice(0, 10).map((row, rowIndex) => (
+                    {table.rows.slice(0, 10).map((row: (string | CellData)[], rowIndex: number) => (
                       <tr key={rowIndex} className="hover:bg-gray-50">
-                        {row.map((cell, cellIndex) => (
+                        {row.map((cell: string | CellData, cellIndex: number) => (
                           <td key={cellIndex} className="px-3 py-2 text-sm text-gray-900 border-r border-gray-200">
                             {typeof cell === 'object' && cell.link ? (
                               <a href={cell.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-1">
