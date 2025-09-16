@@ -31,12 +31,22 @@ const FBrefScraperVercel: React.FC = () => {
   const [url, setUrl] = useState<string>('https://fbref.com/en/comps/9/Premier-League-Stats');
   const [showJson, setShowJson] = useState<boolean>(false);
 
-  const validateUrl = (urlToValidate: string): boolean => {
+  const testUrl = async (): Promise<void> => {
+    console.log('=== URL TEST ===');
+    console.log('Original URL:', url);
+    console.log('URL length:', url.length);
+    console.log('URL type:', typeof url);
+    console.log('Trimmed URL:', url.trim());
+    console.log('Encoded URL:', encodeURIComponent(url));
+    
+    // Test the API endpoint directly
     try {
-      const urlObj = new URL(urlToValidate);
-      return urlObj.hostname === 'fbref.com' && urlObj.protocol === 'https:';
-    } catch {
-      return false;
+      const testResponse = await fetch(`/api/scrape-fbref?url=${encodeURIComponent(url)}`);
+      const testResult = await testResponse.json();
+      console.log('Test Response Status:', testResponse.status);
+      console.log('Test Response:', testResult);
+    } catch (err) {
+      console.error('Test Error:', err);
     }
   };
 
@@ -150,7 +160,23 @@ const FBrefScraperVercel: React.FC = () => {
         </div>
       </div>
 
-      <div className="mb-6">
+      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <p className="text-sm text-blue-800 font-medium mb-2">Quick Test URLs:</p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setUrl('https://fbref.com/en/comps/9/Premier-League-Stats')}
+            className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded hover:bg-blue-200"
+          >
+            Premier League Stats
+          </button>
+          <button
+            onClick={() => setUrl('https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures')}
+            className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded hover:bg-blue-200"
+          >
+            Premier League Fixtures
+          </button>
+        </div>
+      </div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           FBref URL to scrape:
         </label>
@@ -167,6 +193,13 @@ const FBrefScraperVercel: React.FC = () => {
             }`}
             disabled={loading}
           />
+          <button
+            onClick={testUrl}
+            className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 flex items-center gap-2"
+            disabled={loading}
+          >
+            Test
+          </button>
           <button
             onClick={scrapeData}
             disabled={loading || !url || !validateUrl(url)}
