@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { AlertCircle, Download, Loader2, ExternalLink } from 'lucide-react';
 
-// Type definitions
 interface CellData {
   text: string;
   link?: string;
@@ -24,90 +23,90 @@ interface ScrapedData {
   total_tables: number;
 }
 
-const FBrefScraperVercel: React.FC = () => {
+const FBrefScraper: React.FC = () => {
   const [data, setData] = useState<ScrapedData | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [url, setUrl] = useState<string>('https://fbref.com/en/comps/9/Premier-League-Stats');
+  const [url, setUrl] = useState(
+    'https://fbref.com/en/comps/9/Premier-League-Stats'
+  );
 
-  const scrapeData = async (): Promise<void> => {
+  const scrapeData = async () => {
     setLoading(true);
     setError(null);
     setData(null);
 
     try {
-      const response = await fetch(`/api/scrape-fbref?url=${encodeURIComponent(url)}`);
-      const result: ScrapedData | { error: string } = await response.json();
-      
-      if (!response.ok) {
-        throw new Error((result as { error: string }).error || 'Failed to scrape data');
-      }
-      
-      setData(result as ScrapedData);
-      
+      const response = await fetch(
+        `/api/scrape-fbref?url=${encodeURIComponent(url)}`
+      );
+      const result = await response.json();
+
+      if (!response.ok) throw new Error(result.error || 'Scraping failed');
+
+      setData(result);
     } catch (err: unknown) {
-      console.error('Scraping error:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error occurred');
+      setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
     }
   };
 
-  const downloadAsJson = (): void => {
+  const downloadAsJson = () => {
     if (!data) return;
-    
     const jsonStr = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonStr], { type: 'application/json' });
-    const downloadUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = downloadUrl;
+    a.href = URL.createObjectURL(blob);
     a.download = `fbref-data-${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(downloadUrl);
   };
 
-  const downloadAsCsv = (tableIndex: number): void => {
+  const downloadAsCsv = (tableIndex: number) => {
     if (!data || !data.tables[tableIndex]) return;
-    
+
     const table = data.tables[tableIndex];
     const csvContent = [
       table.headers.join(','),
-      ...table.rows.map((row: (string | CellData)[]) => 
-        row.map((cell: string | CellData) => {
-          // Handle cell objects with links
-          const cellText = typeof cell === 'object' ? cell.text : cell;
-          return `"${cellText.replace(/"/g, '""')}"`;
-        }).join(',')
-      )
+      ...table.rows.map((row) =>
+        row
+          .map((cell) => {
+            const cellText = typeof cell === 'object' ? cell.text : cell;
+            return `"${cellText.replace(/"/g, '""')}"`;
+          })
+          .join(',')
+      ),
     ].join('\n');
-    
+
     const blob = new Blob([csvContent], { type: 'text/csv' });
-    const downloadUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = downloadUrl;
+    a.href = URL.createObjectURL(blob);
     a.download = `fbref-${table.caption.replace(/[^a-zA-Z0-9]/g, '-')}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(downloadUrl);
   };
 
   return (
     <div className="max-w-6xl mx-auto p-6 bg-white">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">FBref Data Scraper</h1>
-        <p className="text-gray-600">Server-side scraping via Vercel API routes</p>
-        
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          FBref Data Scraper
+        </h1>
+        <p className="text-gray-600">
+          Server-side scraping via Vercel API route
+        </p>
+
         <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
           <div className="flex items-start">
             <AlertCircle className="h-5 w-5 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
             <div className="text-sm text-green-800">
               <p className="font-medium mb-1">✅ Server-Side Implementation:</p>
               <ul className="list-disc list-inside space-y-1">
-                <li>No CORS issues - scraping happens on your server</li>
-                <li>Rate limiting built-in (10 requests per minute per IP)</li>
+                <li>No CORS issues — scraping happens on your server</li>
+                <li>Rate limiting built-in (10 requests/minute per IP)</li>
                 <li>Proper headers and error handling</li>
                 <li>Extracts links and additional metadata</li>
               </ul>
@@ -124,7 +123,7 @@ const FBrefScraperVercel: React.FC = () => {
           <input
             type="url"
             value={url}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUrl(e.target.value)}
+            onChange={(e) => setUrl(e.target.value)}
             placeholder="https://fbref.com/en/comps/9/Premier-League-Stats"
             className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             disabled={loading}
@@ -158,7 +157,9 @@ const FBrefScraperVercel: React.FC = () => {
       {data && (
         <div className="space-y-6">
           <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="font-medium text-gray-900 mb-2">Scraped Successfully</h3>
+            <h3 className="font-medium text-gray-900 mb-2">
+              Scraped Successfully
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
               <div>
                 <span className="font-medium">Page:</span> {data.pageTitle}
@@ -167,7 +168,8 @@ const FBrefScraperVercel: React.FC = () => {
                 <span className="font-medium">Tables:</span> {data.total_tables}
               </div>
               <div>
-                <span className="font-medium">Scraped:</span> {new Date(data.scraped_at).toLocaleString()}
+                <span className="font-medium">Scraped:</span>{' '}
+                {new Date(data.scraped_at).toLocaleString()}
               </div>
             </div>
           </div>
@@ -185,11 +187,14 @@ const FBrefScraperVercel: React.FC = () => {
             </button>
           </div>
 
-          {data.tables.map((table: TableData, index: number) => (
-            <div key={index} className="border border-gray-200 rounded-lg overflow-hidden">
+          {data.tables.map((table, index) => (
+            <div
+              key={index}
+              className="border border-gray-200 rounded-lg overflow-hidden"
+            >
               <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
                 <h3 className="font-medium text-gray-900">{table.caption}</h3>
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
                   <span className="text-sm text-gray-600">
                     {table.rows.length} rows × {table.headers.length} cols
                   </span>
@@ -201,44 +206,45 @@ const FBrefScraperVercel: React.FC = () => {
                   </button>
                 </div>
               </div>
-              
+
               <div className="overflow-x-auto">
                 <table className="min-w-full">
                   <thead className="bg-gray-50">
                     <tr>
-                      {table.headers.map((header: string, headerIndex: number) => (
-                        <th key={headerIndex} className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                      {table.headers.map((header, i) => (
+                        <th
+                          key={i}
+                          className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200"
+                        >
                           {header}
                         </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {table.rows.slice(0, 10).map((row: (string | CellData)[], rowIndex: number) => (
+                    {table.rows.slice(0, 10).map((row, rowIndex) => (
                       <tr key={rowIndex} className="hover:bg-gray-50">
-                        {row.map((cell: string | CellData, cellIndex: number) => {
-                          const renderCell = () => {
-                            if (typeof cell === 'object' && cell !== null && cell.link) {
-                              return (
-                                <a 
-                                  href={cell.link} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer" 
-                                  className="text-blue-600 hover:underline flex items-center gap-1"
-                                >
-                                  {cell.text}
-                                  <ExternalLink className="h-3 w-3" />
-                                </a>
-                              );
-                            }
-                            
-                            const cellText = typeof cell === 'object' && cell !== null ? cell.text : cell;
-                            return cellText || '-';
-                          };
+                        {row.map((cell, cellIndex) => {
+                          const content =
+                            typeof cell === 'object' && cell.link ? (
+                              <a
+                                href={cell.link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:underline flex items-center gap-1"
+                              >
+                                {cell.text} <ExternalLink className="h-3 w-3" />
+                              </a>
+                            ) : (
+                              typeof cell === 'object' ? cell.text : cell || '-'
+                            );
 
                           return (
-                            <td key={cellIndex} className="px-3 py-2 text-sm text-gray-900 border-r border-gray-200">
-                              {renderCell()}
+                            <td
+                              key={cellIndex}
+                              className="px-3 py-2 text-sm text-gray-900 border-r border-gray-200"
+                            >
+                              {content}
                             </td>
                           );
                         })}
@@ -260,4 +266,4 @@ const FBrefScraperVercel: React.FC = () => {
   );
 };
 
-export default FBrefScraperVercel;
+export default FBrefScraper;
