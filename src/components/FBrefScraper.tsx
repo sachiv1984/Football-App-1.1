@@ -216,18 +216,32 @@ const FBrefScraperVercel: React.FC = () => {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {table.rows.slice(0, 10).map((row: (string | CellData)[], rowIndex: number) => (
                       <tr key={rowIndex} className="hover:bg-gray-50">
-                        {row.map((cell: string | CellData, cellIndex: number) => (
-                          <td key={cellIndex} className="px-3 py-2 text-sm text-gray-900 border-r border-gray-200">
-                            {typeof cell === 'object' && cell.link ? (
-                              <a href={cell.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-1">
-                                {cell.text}
-                                <ExternalLink className="h-3 w-3" />
-                              </a>
-                            ) : (
-                              cell || '-'
-                            )}
-                          </td>
-                        ))}
+                        {row.map((cell: string | CellData, cellIndex: number) => {
+                          const renderCell = () => {
+                            if (typeof cell === 'object' && cell !== null && cell.link) {
+                              return (
+                                <a 
+                                  href={cell.link} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer" 
+                                  className="text-blue-600 hover:underline flex items-center gap-1"
+                                >
+                                  {cell.text}
+                                  <ExternalLink className="h-3 w-3" />
+                                </a>
+                              );
+                            }
+                            
+                            const cellText = typeof cell === 'object' && cell !== null ? cell.text : cell;
+                            return cellText || '-';
+                          };
+
+                          return (
+                            <td key={cellIndex} className="px-3 py-2 text-sm text-gray-900 border-r border-gray-200">
+                              {renderCell()}
+                            </td>
+                          );
+                        })}
                       </tr>
                     ))}
                   </tbody>
