@@ -55,6 +55,39 @@ const FBrefScraperVercel: React.FC = () => {
       console.error('Basic API Error:', err);
     }
   };
+
+  const testUrl = async (): Promise<void> => {
+    console.log('=== URL TEST ===');
+    console.log('Original URL:', url);
+    console.log('URL length:', url.length);
+    console.log('URL type:', typeof url);
+    console.log('Trimmed URL:', url.trim());
+    console.log('Encoded URL:', encodeURIComponent(url));
+    
+    // Test the API endpoint directly
+    try {
+      const testResponse = await fetch(`/api/scrape-fbref?url=${encodeURIComponent(url)}`);
+      console.log('Test Response Status:', testResponse.status);
+      console.log('Test Response Headers:', testResponse.headers);
+      console.log('Test Response OK:', testResponse.ok);
+      
+      // Get the raw text first to see what we're getting
+      const rawText = await testResponse.text();
+      console.log('Raw Response Text:', rawText);
+      
+      // Try to parse as JSON
+      try {
+        const testResult = JSON.parse(rawText);
+        console.log('Parsed JSON Response:', testResult);
+      } catch (parseError) {
+        console.error('JSON Parse Error:', parseError);
+        console.log('Response was not valid JSON. Raw response:', rawText.substring(0, 500));
+      }
+      
+    } catch (err) {
+      console.error('Fetch Error:', err);
+    }
+  };
     console.log('=== URL TEST ===');
     console.log('Original URL:', url);
     console.log('URL length:', url.length);
