@@ -29,11 +29,28 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  // Debug logging
+  console.log('Query params:', req.query);
+  
   let { url } = req.query;
+  console.log('Raw URL from query:', url);
+  
   const fbrefUrl = Array.isArray(url) ? url[0] : url;
+  console.log('Processed URL:', fbrefUrl);
+  console.log('URL type:', typeof fbrefUrl);
+  console.log('URL starts with https://fbref.com/:', fbrefUrl?.startsWith("https://fbref.com/"));
 
-  if (!fbrefUrl || !fbrefUrl.startsWith("https://fbref.com/")) {
-    return res.status(400).json({ error: "Invalid or missing FBref URL" });
+  if (!fbrefUrl || typeof fbrefUrl !== 'string') {
+    console.log('URL validation failed: missing or not string');
+    return res.status(400).json({ error: "Missing FBref URL" });
+  }
+
+  if (!fbrefUrl.startsWith("https://fbref.com/")) {
+    console.log('URL validation failed: does not start with https://fbref.com/');
+    return res.status(400).json({ 
+      error: "Invalid FBref URL - must start with https://fbref.com/",
+      received: fbrefUrl 
+    });
   }
 
   const clientIP =
@@ -50,24 +67,32 @@ export default async function handler(req, res) {
 
   try {
     logRequest(clientIP);
+    console.log('Attempting to fetch URL:', fbrefUrl);
 
     const response = await fetch(fbrefUrl, {
       headers: {
         "User-Agent":
-          "Mozilla/5.0 (compatible; DataScraper/1.0; +https://yourdomain.com)",
+          "Mozilla/5.0 (compatible; DataScraper/1.0; Educational purpose)",
         Accept: "text/html,application/xhtml+xml",
         "Accept-Language": "en-US,en;q=0.9",
       },
     });
+
+    console.log('Fetch response status:', response.status);
+    console.log('Fetch response ok:', response.ok);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const html = await response.text();
+    console.log('HTML length:', html.length);
+    
     const $ = load(html);
 
     const pageTitle = $("title").text().trim();
+    console.log('Page title:', pageTitle);
+    
     const extractedData = [];
 
     $("table.stats_table").each((index, element) => {
@@ -113,6 +138,8 @@ export default async function handler(req, res) {
         extractedData.push(tableData);
       }
     });
+
+    console.log('Tables found:', extractedData.length);
 
     if (extractedData.length === 0) {
       return res
