@@ -10,6 +10,7 @@ import { useFixtures } from '../hooks/useFixtures';
 import { useGameWeekFixtures } from '../hooks/useGameWeekFixtures';
 import { FeaturedFixtureWithImportance, Game } from '../types';
 import DataDebug from '../components/debug/DataDebug';
+import FBrefScraperVercel from '../components/FBrefScraper';
 
 // -------------------------
 // HomePage Component
@@ -58,7 +59,7 @@ const HomePage: React.FC = () => {
 
  {/* Debug Data Table */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 my-8">
-        <DataDebug />
+        <FBrefScraperVercel />
       </div>
 
         {/* Featured Fixtures Section */}
