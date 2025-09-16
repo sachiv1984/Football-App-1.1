@@ -9,7 +9,6 @@ import { ErrorBoundary, CarouselErrorBoundary } from '../components/ErrorBoundar
 import { useFixtures } from '../hooks/useFixtures';
 import { useGameWeekFixtures } from '../hooks/useGameWeekFixtures';
 import { FeaturedFixtureWithImportance, Game } from '../types';
-import DataDebug from '../components/debug/DataDebug';
 import FBrefScraperVercel from '../components/FBrefScraper';
 
 // -------------------------
