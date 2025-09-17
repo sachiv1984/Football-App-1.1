@@ -205,6 +205,18 @@ export const getTeamLogoPath = (
 
 export const getTeamLogo = (team: { name: string; shortName?: string; badge?: string }): TeamLogoResult => {
   const canonicalName = normalizeTeamName(team.name);
+
+  // 🔹 Debug: log any team that doesn't resolve to a known logo
+  const slug = TEAM_LOGO_MAP[canonicalName];
+  if (!slug) {
+    console.warn('⚠️ Unmapped team detected:', {
+      originalName: team.name,
+      shortName: team.shortName,
+      canonicalName,
+      badgeUrl: team.badge,
+    });
+  }
+
   const logoPath = getTeamLogoPath(canonicalName, team.shortName, team.badge);
   const displayName = getDisplayTeamName(canonicalName, team.shortName);
 
@@ -222,6 +234,7 @@ export const getTeamLogo = (team: { name: string; shortName?: string; badge?: st
     displayName,
   };
 };
+
 
 // Competition logo
 export const getCompetitionLogo = (competitionName: string, apiLogoUrl?: string): string | undefined => {
