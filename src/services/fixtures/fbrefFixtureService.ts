@@ -126,12 +126,12 @@ export class FBrefFixtureService {
   }
 
   // Get current league info
-  getCurrentLeague(): { name: string; urls: typeof this.FBREF_URLS[keyof typeof this.FBREF_URLS] } {
-    return {
-      name: this.currentLeague,
-      urls: this.FBREF_URLS[this.currentLeague]
-    };
-  }
+  getCurrentLeague(): { name: string; urls: { fixtures: string; standings?: string; stats?: string } } {
+  return {
+    name: this.currentLeague,
+    urls: this.FBREF_URLS[this.currentLeague]
+  };
+}
 
   // Parse team name and handle variations
   private normalizeTeamName(teamName: string): string {
