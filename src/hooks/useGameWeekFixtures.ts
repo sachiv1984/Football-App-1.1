@@ -1,9 +1,7 @@
 // src/hooks/useGameWeekFixtures.ts
 import { useState, useEffect } from 'react';
 import { FeaturedFixtureWithImportance } from '../types';
-import { FixtureService } from '../services/fixtures/fixtureService';
-
-const fixtureService = new FixtureService();
+import { fbrefFixtureService } from '../services/fixtures/fbrefFixtureService';
 
 export const useGameWeekFixtures = () => {
   const [fixtures, setFixtures] = useState<FeaturedFixtureWithImportance[]>([]);
@@ -22,9 +20,10 @@ export const useGameWeekFixtures = () => {
       setIsLoading(true);
       setError(null);
 
+      // Use the service methods (same as original)
       const [weekFixtures, weekInfo] = await Promise.all([
-        fixtureService.getCurrentGameWeekFixtures(),
-        fixtureService.getGameWeekInfo()
+        fbrefFixtureService.getCurrentGameWeekFixtures(),
+        fbrefFixtureService.getGameWeekInfo()
       ]);
 
       setFixtures(weekFixtures);
@@ -44,8 +43,27 @@ export const useGameWeekFixtures = () => {
   }, []);
 
   const refetch = async () => {
-    fixtureService.clearCache(); // Clear cache before refetching
+    fbrefFixtureService.clearCache(); // Clear cache before refetching
     await loadGameWeekFixtures();
+  };
+
+  // Additional methods for the new service
+  const switchLeague = async (league: 'premierLeague' | 'laLiga' | 'bundesliga' | 'serieA' | 'ligue1') => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      fbrefFixtureService.setLeague(league);
+      await loadGameWeekFixtures();
+    } catch (err) {
+      console.error('Error switching league for game week:', err);
+      setError(err instanceof Error ? err.message : 'Failed to switch league');
+      setIsLoading(false);
+    }
+  };
+
+  const getCurrentLeague = () => {
+    return fbrefFixtureService.getCurrentLeague();
   };
 
   return {
@@ -53,6 +71,8 @@ export const useGameWeekFixtures = () => {
     isLoading,
     error,
     gameWeekInfo,
-    refetch
+    refetch,
+    switchLeague,
+    getCurrentLeague
   };
 };
