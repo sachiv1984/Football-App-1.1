@@ -94,6 +94,12 @@ export class FBrefFixtureService {
     return this.fixturesCache.length > 0 && (Date.now() - this.cacheTime < this.cacheTimeout);
   }
 
+  private clearCache(): void {
+  this.fixturesCache = [];
+  this.cacheTime = 0;
+  console.log('Cache cleared');
+}
+
   // Scrape fixture data from FBref
   private async scrapeFixtures(customUrl?: string): Promise<ScrapedData> {
     const fixturesUrl = customUrl || this.FBREF_URLS[this.currentLeague].fixtures;
