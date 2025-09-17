@@ -94,7 +94,7 @@ export class FBrefFixtureService {
     return this.fixturesCache.length > 0 && (Date.now() - this.cacheTime < this.cacheTimeout);
   }
 
-  private clearCache(): void {
+  public clearCache(): void {
   this.fixturesCache = [];
   this.cacheTime = 0;
   console.log('Cache cleared');
