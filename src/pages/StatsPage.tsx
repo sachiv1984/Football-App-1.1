@@ -54,62 +54,6 @@ const StatsPage: React.FC = () => {
     setCurrentFixture(foundFixture || null);
   }, [matchId, featuredFixtures, gameWeekFixtures]);
 
-  const getModernStatsData = () => {
-    if (!currentFixture) return null;
-
-    return {
-      // Form data (separate structure)
-      recentForm: {
-        homeResults: ['W', 'W', 'L', 'D', 'W'] as ('W' | 'D' | 'L')[],
-        awayResults: ['L', 'D', 'W', 'L', 'W'] as ('W' | 'D' | 'L')[],
-        homeStats: { matchesPlayed: 28, won: 18, drawn: 6, lost: 4 },
-        awayStats: { matchesPlayed: 28, won: 12, drawn: 8, lost: 8 }
-      },
-
-      // Corners data
-      cornersMatchesPlayed: { homeValue: 28, awayValue: 28 },
-      cornersTaken: { homeValue: 156.00, awayValue: 134.00 },
-      cornersAgainst: { homeValue: 98.00, awayValue: 142.00 },
-      totalCorners: { homeValue: 254.00, awayValue: 276.00 },
-      over75MatchCorners: { homeValue: 89, awayValue: 82 },
-      over85MatchCorners: { homeValue: 82, awayValue: 75 },
-      over95MatchCorners: { homeValue: 75, awayValue: 68 },
-      over105MatchCorners: { homeValue: 64, awayValue: 57 },
-      over115MatchCorners: { homeValue: 50, awayValue: 43 },
-
-      // Cards data
-      cardsMatchesPlayed: { homeValue: 28, awayValue: 28 },
-      cardsShown: { homeValue: 67.00, awayValue: 54.00 },
-      cardsAgainst: { homeValue: 42.00, awayValue: 58.00 },
-      totalCards: { homeValue: 109.00, awayValue: 112.00 },
-      over05TeamCards: { homeValue: 100, awayValue: 96 },
-      over15TeamCards: { homeValue: 93, awayValue: 89 },
-      over25TeamCards: { homeValue: 79, awayValue: 71 },
-      over35TeamCards: { homeValue: 57, awayValue: 46 },
-
-      // Shooting data
-      shootingMatchesPlayed: { homeValue: 28, awayValue: 28 },
-      shots: { homeValue: 378.00, awayValue: 321.00 },
-      shotsAgainst: { homeValue: 287.00, awayValue: 356.00 },
-      shotsOnTarget: { homeValue: 142.00, awayValue: 118.00 },
-      shotsOnTargetAgainst: { homeValue: 98.00, awayValue: 134.00 },
-      over25TeamShotsOnTarget: { homeValue: 96, awayValue: 89 },
-      over35TeamShotsOnTarget: { homeValue: 89, awayValue: 82 },
-      over45TeamShotsOnTarget: { homeValue: 82, awayValue: 71 },
-      over55TeamShotsOnTarget: { homeValue: 68, awayValue: 57 },
-
-      // Fouls data
-      foulsMatchesPlayed: { homeValue: 28, awayValue: 28 },
-      foulsCommitted: { homeValue: 324.00, awayValue: 298.00 },
-      foulsWon: { homeValue: 276.00, awayValue: 312.00 },
-      totalFouls: { homeValue: 600.00, awayValue: 610.00 },
-      over85TeamFoulsCommitted: { homeValue: 93, awayValue: 86 },
-      over95TeamFoulsCommitted: { homeValue: 86, awayValue: 79 },
-      over105TeamFoulsCommitted: { homeValue: 79, awayValue: 71 },
-      over115TeamFoulsCommitted: { homeValue: 71, awayValue: 64 }
-    };
-  };
-
   // Loading state while we find the fixture
   if (!currentFixture) {
     return (
@@ -155,8 +99,6 @@ const StatsPage: React.FC = () => {
     );
   }
 
-  const modernStatsData = getModernStatsData();
-
   return (
     <div
       style={{
@@ -195,16 +137,15 @@ const StatsPage: React.FC = () => {
 
         {/* Content Sections */}
         <div className="space-y-8">
-          {/* Modern Stats Table with Tabs */}
-          {modernStatsData && (
-            <ModernStatsTable
-              homeTeam={currentFixture.homeTeam}
-              awayTeam={currentFixture.awayTeam}
-              stats={modernStatsData}
-              league="Premier League"
-              season="25/26"
-            />
-          )}
+          {/* Modern Stats Table with Live Data */}
+          <ModernStatsTable
+            homeTeam={currentFixture.homeTeam}
+            awayTeam={currentFixture.awayTeam}
+            league="Premier League"
+            season="25/26"
+            autoLoad={true}
+            showLoadingState={true}
+          />
 
           {/* Betting Insights Card */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
