@@ -208,31 +208,87 @@ export class FBrefFixtureService {
   }
 
   // ---------------- Dynamic week assignment ----------------
-  private assignDynamicMatchWeeks(fixtures: ParsedFixture[]): ParsedFixture[] {
-    const sorted = fixtures.sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime());
+// Updated assignDynamicMatchWeeks method for fbrefFixtureService.ts
 
-    let currentWeek = 1;
-    let lastWeekStart: Date | null = null;
+private assignDynamicMatchWeeks(fixtures: ParsedFixture[]): ParsedFixture[] {
+  const sorted = fixtures.sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime());
 
-    return sorted.map(fixture => {
-      const fixtureDate = new Date(fixture.dateTime);
+  if (sorted.length === 0) return sorted;
 
-      if (!lastWeekStart) {
-        lastWeekStart = fixtureDate;
-        fixture.matchWeek = currentWeek;
-        return fixture;
-      }
+  let currentWeek = 1;
+  let currentWeekFixtures: ParsedFixture[] = [];
+  
+  // Start with the first fixture
+  const firstFixture = sorted[0];
+  firstFixture.matchWeek = currentWeek;
+  currentWeekFixtures.push(firstFixture);
 
-      const diffDays = (fixtureDate.getTime() - lastWeekStart.getTime()) / (1000 * 60 * 60 * 24);
-      if (diffDays >= 7) {
-        currentWeek++;
-        lastWeekStart = fixtureDate;
-      }
-
-      fixture.matchWeek = currentWeek;
-      return fixture;
-    });
+  for (let i = 1; i < sorted.length; i++) {
+    const currentFixture = sorted[i];
+    const previousFixture = sorted[i - 1];
+    
+    const currentDate = new Date(currentFixture.dateTime);
+    const previousDate = new Date(previousFixture.dateTime);
+    
+    // Calculate days between fixtures
+    const daysDifference = Math.floor((currentDate.getTime() - previousDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    // Check if we should start a new week
+    const shouldStartNewWeek = this.shouldStartNewMatchWeek(
+      currentDate,
+      currentWeekFixtures.map(f => new Date(f.dateTime)),
+      daysDifference
+    );
+    
+    if (shouldStartNewWeek) {
+      currentWeek++;
+      currentWeekFixtures = [];
+    }
+    
+    currentFixture.matchWeek = currentWeek;
+    currentWeekFixtures.push(currentFixture);
   }
+
+  return sorted;
+}
+
+private shouldStartNewMatchWeek(
+  currentFixtureDate: Date,
+  currentWeekDates: Date[],
+  daysSincePrevious: number
+): boolean {
+  // If there are no fixtures in current week yet, don't start new week
+  if (currentWeekDates.length === 0) return false;
+  
+  // Get the earliest and latest dates in the current week
+  const weekStart = new Date(Math.min(...currentWeekDates.map(d => d.getTime())));
+  const weekEnd = new Date(Math.max(...currentWeekDates.map(d => d.getTime())));
+  
+  // Calculate span of current week
+  const currentWeekSpan = Math.floor((weekEnd.getTime() - weekStart.getTime()) / (1000 * 60 * 60 * 24));
+  
+  // Rule 1: If gap is more than 4 days from the last fixture, start new week
+  if (daysSincePrevious > 4) return true;
+  
+  // Rule 2: If current week already spans 4+ days and this fixture is 2+ days later, start new week
+  if (currentWeekSpan >= 4 && daysSincePrevious >= 2) return true;
+  
+  // Rule 3: If we'd span more than 6 days total, start new week
+  const potentialSpan = Math.floor((currentFixtureDate.getTime() - weekStart.getTime()) / (1000 * 60 * 60 * 24));
+  if (potentialSpan > 6) return true;
+  
+  // Rule 4: Monday fixtures usually start a new week if previous week had weekend games
+  const currentDay = currentFixtureDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+  if (currentDay === 1) { // Monday
+    const hasWeekendGames = currentWeekDates.some(d => {
+      const day = d.getDay();
+      return day === 0 || day === 6; // Sunday or Saturday
+    });
+    if (hasWeekendGames && daysSincePrevious >= 1) return true;
+  }
+  
+  return false;
+}
 
   private transformFixture(parsed: ParsedFixture): FeaturedFixtureWithImportance {
     const homeTeamLogo = getTeamLogo({ name: parsed.homeTeam });
@@ -393,31 +449,83 @@ export class FBrefFixtureService {
   }
 
   async getCurrentGameWeekFixtures(): Promise<FeaturedFixtureWithImportance[]> {
-    if (!this.isCacheValid()) await this.refreshCache();
+  if (!this.isCacheValid()) await this.refreshCache();
 
-    const weekGroups = this.fixturesCache.reduce((acc, fixture) => {
-      const week = fixture.matchWeek ?? 1;
-      if (!acc[week]) acc[week] = [];
-      acc[week].push(fixture);
-      return acc;
-    }, {} as Record<number, FeaturedFixtureWithImportance[]>);
+  const now = Date.now();
+  
+  // Group fixtures by week
+  const weekGroups = this.fixturesCache.reduce((acc, fixture) => {
+    const week = fixture.matchWeek ?? 1;
+    if (!acc[week]) acc[week] = [];
+    acc[week].push(fixture);
+    return acc;
+  }, {} as Record<number, FeaturedFixtureWithImportance[]>);
 
-    const sortedWeeks = Object.keys(weekGroups).map(Number).sort((a, b) => a - b);
+  const sortedWeeks = Object.keys(weekGroups).map(Number).sort((a, b) => a - b);
 
-    for (const week of sortedWeeks) {
-      const weekFixtures = weekGroups[week];
-      const hasUnfinishedGames = weekFixtures.some(
-        f => f.status === 'scheduled' || f.status === 'upcoming' || f.status === 'live'
-      );
-      if (hasUnfinishedGames) {
+  // Find the current active week
+  for (const week of sortedWeeks) {
+    const weekFixtures = weekGroups[week];
+    
+    // Calculate week status
+    const finishedGames = weekFixtures.filter(f => 
+      f.status === 'finished' || f.status === 'postponed'
+    ).length;
+    
+    const liveGames = weekFixtures.filter(f => f.status === 'live').length;
+    
+    const upcomingGames = weekFixtures.filter(f => 
+      f.status === 'scheduled' || f.status === 'upcoming'
+    ).length;
+    
+    const futureGames = weekFixtures.filter(f => 
+      new Date(f.dateTime).getTime() > now
+    ).length;
+    
+    // Week is "current" if:
+    // 1. Has live games, OR
+    // 2. Has unfinished games and at least one game has started or is today, OR  
+    // 3. Has upcoming games within the next 7 days, OR
+    // 4. Week is not completely finished and no future weeks have started
+    
+    const hasActiveContent = liveGames > 0 || 
+                           (upcomingGames > 0 && finishedGames > 0) ||
+                           futureGames > 0;
+    
+    const weekComplete = finishedGames === weekFixtures.length && liveGames === 0;
+    
+    if (hasActiveContent || !weekComplete) {
+      // Additional check: ensure upcoming games are within reasonable timeframe (next 7 days)
+      const upcomingInWindow = weekFixtures.filter(f => {
+        const fixtureTime = new Date(f.dateTime).getTime();
+        const sevenDaysFromNow = now + (7 * 24 * 60 * 60 * 1000);
+        return fixtureTime >= now && fixtureTime <= sevenDaysFromNow;
+      });
+      
+      if (liveGames > 0 || finishedGames > 0 || upcomingInWindow.length > 0) {
         return weekFixtures.sort(
           (a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime()
         );
       }
     }
-
-    return [];
   }
+
+  // Fallback: return the next upcoming week if no "current" week found
+  for (const week of sortedWeeks) {
+    const weekFixtures = weekGroups[week];
+    const hasUpcomingGames = weekFixtures.some(f => 
+      new Date(f.dateTime).getTime() > now
+    );
+    
+    if (hasUpcomingGames) {
+      return weekFixtures.sort(
+        (a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime()
+      );
+    }
+  }
+
+  return [];
+}
 
   async getUpcomingImportantMatches(limit?: number): Promise<FeaturedFixtureWithImportance[]> {
     if (!this.isCacheValid()) await this.refreshCache();
@@ -432,26 +540,42 @@ export class FBrefFixtureService {
   }
 
   async getGameWeekInfo() {
-    if (!this.isCacheValid()) await this.refreshCache();
+  if (!this.isCacheValid()) await this.refreshCache();
 
-    const fixtures = await this.getCurrentGameWeekFixtures();
+  const fixtures = await this.getCurrentGameWeekFixtures();
 
-    if (fixtures.length === 0) {
-      return { currentWeek: 1, isComplete: true, totalGames: 0, finishedGames: 0, upcomingGames: 0 };
-    }
-
-    const currentWeek = fixtures[0].matchWeek ?? 1;
-    const finishedGames = fixtures.filter(f => f.status === 'finished' || f.status === 'postponed').length;
-    const upcomingGames = fixtures.filter(f => f.status !== 'finished' && f.status !== 'postponed').length;
-
-    return {
-      currentWeek,
-      isComplete: upcomingGames === 0,
-      totalGames: fixtures.length,
-      finishedGames,
-      upcomingGames,
+  if (fixtures.length === 0) {
+    return { 
+      currentWeek: 1, 
+      isComplete: true, 
+      totalGames: 0, 
+      finishedGames: 0, 
+      upcomingGames: 0 
     };
   }
+
+  const currentWeek = fixtures[0].matchWeek ?? 1;
+  const finishedGames = fixtures.filter(f => 
+    f.status === 'finished' || f.status === 'postponed'
+  ).length;
+  
+  const liveGames = fixtures.filter(f => f.status === 'live').length;
+  
+  const upcomingGames = fixtures.filter(f => 
+    f.status === 'scheduled' || f.status === 'upcoming'
+  ).length;
+
+  // Week is complete only if all games are finished/postponed AND no live games
+  const isComplete = (finishedGames === fixtures.length) && (liveGames === 0);
+
+  return {
+    currentWeek,
+    isComplete,
+    totalGames: fixtures.length,
+    finishedGames,
+    upcomingGames: upcomingGames + liveGames, // Include live games as "upcoming"
+  };
+}
 }
 
 export const fbrefFixtureService = new FBrefFixtureService();
