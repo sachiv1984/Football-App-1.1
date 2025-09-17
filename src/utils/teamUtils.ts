@@ -55,7 +55,7 @@ const TEAM_NORMALIZATION_MAP: Record<string, string> = {
   'Forest': 'Nottingham Forest',
   "Nott'm Forest": 'Nottingham Forest',
   'Nottingham Forest FC': 'Nottingham Forest',
-  'Nott'ham Forest: 'Nottingham Forest',
+  "Nott'ham Forest": 'Nottingham Forest',
 
   // Villa
   'Villa': 'Aston Villa',
