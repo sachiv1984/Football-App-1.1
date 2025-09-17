@@ -478,9 +478,44 @@ export class FBrefFixtureService {
     return allMatches.filter(m => m.importance >= minImportance);
   }
 
-  clearCache(): void {
-    this.fixturesCache = [];
-    this.cacheTime = 0;
+  async getGameWeekInfo(): Promise<{
+    currentWeek: number;
+    isComplete: boolean;
+    totalGames: number;
+    finishedGames: number;
+    upcomingGames: number;
+  }> {
+    if (!this.isCacheValid()) await this.refreshCache();
+    
+    const allFixtures = this.fixturesCache;
+    const currentWeekFixtures = await this.getCurrentGameWeekFixtures();
+    
+    if (currentWeekFixtures.length === 0) {
+      return {
+        currentWeek: 1,
+        isComplete: true,
+        totalGames: 0,
+        finishedGames: 0,
+        upcomingGames: 0
+      };
+    }
+    
+    const currentWeek = currentWeekFixtures[0].matchWeek;
+    const finishedGames = currentWeekFixtures.filter(f => 
+      f.status === 'finished' || f.status === 'postponed'
+    ).length;
+    
+    const upcomingGames = currentWeekFixtures.filter(f => 
+      f.status === 'scheduled' || f.status === 'upcoming' || f.status === 'live'
+    ).length;
+    
+    return {
+      currentWeek,
+      isComplete: upcomingGames === 0,
+      totalGames: currentWeekFixtures.length,
+      finishedGames,
+      upcomingGames
+    };
   }
 }
 
