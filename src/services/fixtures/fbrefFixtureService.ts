@@ -308,30 +308,48 @@ private transformFixture(parsed: ParsedFixture): FeaturedFixtureWithImportance {
   }
 
   private async refreshCache(customUrl?: string): Promise<void> {
+  try {
+    console.log('Refreshing FBref fixtures cache...');
     const scrapedData = await this.scrapeFixtures(customUrl);
 
-    const fixturesTable = scrapedData.tables.find(
-      table =>
-        table.caption.toLowerCase().includes('fixtures') ||
-        table.caption.toLowerCase().includes('schedule') ||
-        table.caption.toLowerCase().includes('scores')
+    // Get all tables that look like fixtures
+    const fixturesTables = scrapedData.tables.filter(table =>
+      table.caption.toLowerCase().includes('fixtures') ||
+      table.caption.toLowerCase().includes('schedule') ||
+      table.caption.toLowerCase().includes('scores') ||
+      table.id.toLowerCase().includes('schedule') ||
+      table.id.toLowerCase().includes('fixture')
     );
 
-    if (!fixturesTable) {
+    if (!fixturesTables.length) {
+      console.log('Available tables:', scrapedData.tables.map(t => ({ id: t.id, caption: t.caption })));
       throw new Error('No fixtures table found in scraped data');
     }
 
-    const parsedFixtures = this.parseFixturesFromTable(fixturesTable);
+    console.log(`Found ${fixturesTables.length} fixtures tables`);
 
+    // Parse all tables and flatten into a single array
+    const parsedFixtures = fixturesTables.flatMap(table => this.parseFixturesFromTable(table));
+
+    console.log(`Parsed ${parsedFixtures.length} fixtures from all tables`);
+
+    // Transform fixtures to FeaturedFixtureWithImportance and sort
     this.fixturesCache = parsedFixtures
       .map(f => this.transformFixture(f))
       .sort((a, b) => {
+        // Sort by importance first, then by date
         if (b.importance !== a.importance) return b.importance - a.importance;
         return new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime();
       });
 
     this.cacheTime = Date.now();
+    console.log(`Cache refreshed with ${this.fixturesCache.length} fixtures`);
+  } catch (error) {
+    console.error('Error refreshing FBref fixtures cache:', error);
+    throw error;
   }
+}
+
 
   async getFeaturedFixtures(limit: number = 8): Promise<FeaturedFixtureWithImportance[]> {
     if (!this.isCacheValid()) await this.refreshCache();
