@@ -1,5 +1,5 @@
 // src/utils/teamUtils.ts
-// Unified Team Utilities
+// Unified Team Utilities (Updated)
 
 // ---------------------------
 // Normalization Map
@@ -36,6 +36,10 @@ const TEAM_NORMALIZATION_MAP: Record<string, string> = {
   // Newcastle
   'Newcastle': 'Newcastle United',
   'Newcastle United FC': 'Newcastle United',
+
+  // Sunderland
+  'Sunderland': 'Sunderland AFC',
+  'Sunderland AFC': 'Sunderland AFC',
 
   // West Ham
   'West Ham': 'West Ham United',
@@ -100,6 +104,7 @@ const TEAM_ABBREVIATIONS: Record<string, string> = {
   'Sheffield United': 'Sheff Utd',
   'West Ham United': 'West Ham',
   'Newcastle United': 'Newcastle',
+  'Sunderland AFC': 'Sunderland',
   'Wolverhampton Wanderers': 'Wolves',
   'Leicester City': 'Leicester',
   'Crystal Palace': 'Crystal Palace',
@@ -135,6 +140,7 @@ const TEAM_LOGO_MAP: Record<string, string> = {
   'Manchester City': 'manchester-city',
   'Manchester United': 'manchester-united',
   'Newcastle United': 'newcastle-united',
+  'Sunderland AFC': 'sunderland-afc',
   'Nottingham Forest': 'nottingham-forest',
   'Tottenham Hotspur': 'tottenham-hotspur',
   'West Ham United': 'west-ham-united',
@@ -177,7 +183,7 @@ export const getDisplayTeamName = (
 // Logo utilities
 // ---------------------------
 export interface TeamLogoResult {
-  logoPath: string | null;
+  logoPath?: string;
   fallbackInitial: string;
   fallbackName: string;
   displayName: string;
@@ -187,17 +193,13 @@ export const getTeamLogoPath = (
   teamName: string,
   shortName?: string,
   apiBadgeUrl?: string
-): string | null => {
+): string | undefined => {
   const canonicalName = normalizeTeamName(teamName);
-  const slug = TEAM_LOGO_MAP[canonicalName] || null;
+  const slug = TEAM_LOGO_MAP[canonicalName];
 
-  if (slug) {
-    return `/Images/Club%20Logos/${slug}.png`;
-  }
-  if (!apiBadgeUrl) {
-    console.warn(`Logo not found for team: "${teamName}" (shortName: "${shortName}")`);
-  }
-  return apiBadgeUrl || null;
+  if (slug) return `/Images/Club%20Logos/${slug}.png`;
+  if (!apiBadgeUrl) console.warn(`Logo not found for team: "${teamName}" (shortName: "${shortName}")`);
+  return apiBadgeUrl;
 };
 
 export const getTeamLogo = (team: { name: string; shortName?: string; badge?: string }): TeamLogoResult => {
@@ -221,12 +223,10 @@ export const getTeamLogo = (team: { name: string; shortName?: string; badge?: st
 };
 
 // Competition logo
-export const getCompetitionLogo = (competitionName: string, apiLogoUrl?: string): string | null => {
+export const getCompetitionLogo = (competitionName: string, apiLogoUrl?: string): string | undefined => {
   const slug = COMPETITION_LOGOS[competitionName];
-  if (slug) {
-    return `/Images/competition/${slug}.png`;
-  }
-  return apiLogoUrl || null;
+  if (slug) return `/Images/competition/${slug}.png`;
+  return apiLogoUrl;
 };
 
 // ---------------------------
