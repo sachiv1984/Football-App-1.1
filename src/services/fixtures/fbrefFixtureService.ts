@@ -209,48 +209,50 @@ private readonly TEAM_COLORS: Record<string, { primary?: string; secondary?: str
     return fixtures;
   }
 
-  private transformFixture(parsed: ParsedFixture): FeaturedFixtureWithImportance {
-    const importance = this.calculateImportance(parsed);
-    const tags = this.generateTags(parsed, importance);
+private transformFixture(parsed: ParsedFixture): FeaturedFixtureWithImportance {
+  // Get logos safely
+  const homeTeamLogo = getTeamLogo({ name: parsed.homeTeam });
+  const awayTeamLogo = getTeamLogo({ name: parsed.awayTeam });
 
-    const homeTeamLogo = getTeamLogo({ name: parsed.homeTeam });
-    const awayTeamLogo = getTeamLogo({ name: parsed.awayTeam });
+  const importance = this.calculateImportance(parsed);
+  const tags = this.generateTags(parsed, importance);
 
-    return {
-      id: parsed.id,
-      dateTime: parsed.dateTime,
-   homeTeam: {
-  id: parsed.homeTeam.replace(/\s+/g, '-').toLowerCase(),
-  name: parsed.homeTeam,
-  shortName: getDisplayTeamName (parsed.homeTeam),
-  colors: this.TEAM_COLORS[parsed.homeTeam] || {},
-  form: [],
-  logo: homeTeamLogo.logoPath ?? undefined, // <-- fix here
-},
-awayTeam: {
-  id: parsed.awayTeam.replace(/\s+/g, '-').toLowerCase(),
-  name: parsed.awayTeam,
-  shortName: getDisplayTeamName (parsed.awayTeam),
-  colors: this.TEAM_COLORS[parsed.awayTeam] || {},
-  form: [],
-  logo: awayTeamLogo.logoPath ?? undefined, // <-- fix here
-},
-      venue: parsed.venue || 'TBD',
-      competition: {
-        id: this.currentLeague,
-        name: 'Premier League',
-        logo: getCompetitionLogo('Premier League'),
-      },
-      matchWeek: parsed.matchWeek || 1,
-      importance,
-      importanceScore: importance,
-      tags,
-      isBigMatch: importance >= 8,
-      status: parsed.status,
-      homeScore: parsed.homeScore || 0,
-      awayScore: parsed.awayScore || 0,
-    };
-  }
+  return {
+    id: parsed.id,
+    dateTime: parsed.dateTime,
+    homeTeam: {
+      id: parsed.homeTeam.replace(/\s+/g, '-').toLowerCase(),
+      name: parsed.homeTeam,
+      shortName: getDisplayTeamName(parsed.homeTeam),
+      colors: (this as any).TEAM_COLORS?.[parsed.homeTeam] ?? {},
+      form: [],
+      logo: homeTeamLogo.logoPath ?? undefined,
+    },
+    awayTeam: {
+      id: parsed.awayTeam.replace(/\s+/g, '-').toLowerCase(),
+      name: parsed.awayTeam,
+      shortName: getDisplayTeamName(parsed.awayTeam),
+      colors: (this as any).TEAM_COLORS?.[parsed.awayTeam] ?? {},
+      form: [],
+      logo: awayTeamLogo.logoPath ?? undefined,
+    },
+    venue: parsed.venue || 'TBD',
+    competition: {
+      id: this.currentLeague,
+      name: 'Premier League',
+      logo: getCompetitionLogo('Premier League') ?? undefined,
+    },
+    matchWeek: parsed.matchWeek || 1,
+    importance,
+    importanceScore: importance,
+    tags,
+    isBigMatch: importance >= 8,
+    status: parsed.status,
+    homeScore: parsed.homeScore || 0,
+    awayScore: parsed.awayScore || 0,
+  };
+}
+
 
   private calculateImportance(fixture: ParsedFixture): number {
     if (fixture.status === 'finished') return 0;
