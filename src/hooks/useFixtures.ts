@@ -10,20 +10,24 @@ export const useFixtures = () => {
 
   useEffect(() => {
     const loadFixtures = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const fixtures = await fbrefFixtureService.getFeaturedFixtures(8);
-        setFeaturedFixtures(fixtures);
-      } catch (err) {
-        console.error('Error loading featured fixtures:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load fixtures');
-        setFeaturedFixtures([]); // Set empty array on error
-      } finally {
-        setLoading(false);
-      }
-    };
+  try {
+    setLoading(true);
+    setError(null);
+
+    console.log('Fetching featured fixtures...');
+    const fixtures = await fbrefFixtureService.getFeaturedFixtures(8);
+    console.log('Fetched Fixtures:', fixtures);
+
+    setFeaturedFixtures(fixtures);
+  } catch (err) {
+    console.error('Error loading featured fixtures:', err);
+    setError(err instanceof Error ? err.message : 'Failed to load fixtures');
+    setFeaturedFixtures([]); // Set empty array on error
+  } finally {
+    setLoading(false);
+  }
+};
+
 
     loadFixtures();
   }, []);
