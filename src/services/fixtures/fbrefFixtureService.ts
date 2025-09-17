@@ -9,10 +9,11 @@ interface ParsedFixture {
   awayTeam: string;
   homeScore?: number;
   awayScore?: number;
-  status: string;
+  status: 'scheduled' | 'live' | 'finished' | 'postponed' | 'upcoming'; // Updated type
   venue?: string;
   matchWeek?: number;
 }
+
 
 export class FBrefFixtureService {
   private fixturesCache: FeaturedFixtureWithImportance[] = [];
@@ -185,14 +186,11 @@ export class FBrefFixtureService {
   // Parse status from FBref format
   private parseStatus(statusStr: string): 'scheduled' | 'live' | 'finished' | 'postponed' | 'upcoming' {
   if (!statusStr) return 'upcoming';
-  
   const status = statusStr.toLowerCase().trim();
-  
   if (status.includes('postponed') || status.includes('cancelled')) return 'postponed';
   if (status.includes('ft') || status.includes('full-time') || /^\d+-\d+$/.test(status)) return 'finished';
   if (status.includes("'") || status.includes('ht') || status.includes('live')) return 'live';
   if (status.includes('tbd') || status.includes('to be determined')) return 'upcoming';
-  
   return 'scheduled';
 }
 
@@ -266,7 +264,7 @@ export class FBrefFixtureService {
           awayTeam,
           homeScore,
           awayScore,
-          status: this.parseStatus(scoreStr || status),
+          status: this.parseStatus(scoreStr || status);,
           venue: venueStr || 'TBD',
           matchWeek: weekStr ? parseInt(weekStr) || 1 : 1,
         };
