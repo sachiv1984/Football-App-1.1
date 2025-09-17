@@ -207,7 +207,7 @@ export class FBrefFixtureService {
    homeTeam: {
   id: parsed.homeTeam.replace(/\s+/g, '-').toLowerCase(),
   name: parsed.homeTeam,
-  shortName: this.SHORT_NAME_OVERRIDES[parsed.homeTeam] || parsed.homeTeam,
+  shortName: getDisplayTeamName (parsed.homeTeam),
   colors: this.TEAM_COLORS[parsed.homeTeam] || {},
   form: [],
   logo: homeTeamLogo.logoPath ?? undefined, // <-- fix here
@@ -215,7 +215,7 @@ export class FBrefFixtureService {
 awayTeam: {
   id: parsed.awayTeam.replace(/\s+/g, '-').toLowerCase(),
   name: parsed.awayTeam,
-  shortName: this.SHORT_NAME_OVERRIDES[parsed.awayTeam] || parsed.awayTeam,
+  shortName: getDisplayTeamName (parsed.awayTeam),
   colors: this.TEAM_COLORS[parsed.awayTeam] || {},
   form: [],
   logo: awayTeamLogo.logoPath ?? undefined, // <-- fix here
