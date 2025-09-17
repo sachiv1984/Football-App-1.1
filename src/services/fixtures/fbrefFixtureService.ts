@@ -486,7 +486,7 @@ export class FBrefFixtureService {
   }> {
     if (!this.isCacheValid()) await this.refreshCache();
     
-    const allFixtures = this.fixturesCache;
+    // const allFixtures = this.fixturesCache;
     const currentWeekFixtures = await this.getCurrentGameWeekFixtures();
     
     if (currentWeekFixtures.length === 0) {
