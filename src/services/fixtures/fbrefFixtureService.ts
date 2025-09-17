@@ -204,20 +204,22 @@ export class FBrefFixtureService {
     return {
       id: parsed.id,
       dateTime: parsed.dateTime,
-      homeTeam: {
-        id: parsed.homeTeam.replace(/\s+/g, '-').toLowerCase(),
-        name: parsed.homeTeam,
-        shortName: getDisplayTeamName(parsed.homeTeam),
-        logo: homeTeamLogo.logoPath,
-        form: [],
-      },
-      awayTeam: {
-        id: parsed.awayTeam.replace(/\s+/g, '-').toLowerCase(),
-        name: parsed.awayTeam,
-        shortName: getDisplayTeamName(parsed.awayTeam),
-        logo: awayTeamLogo.logoPath,
-        form: [],
-      },
+   homeTeam: {
+  id: parsed.homeTeam.replace(/\s+/g, '-').toLowerCase(),
+  name: parsed.homeTeam,
+  shortName: this.SHORT_NAME_OVERRIDES[parsed.homeTeam] || parsed.homeTeam,
+  colors: this.TEAM_COLORS[parsed.homeTeam] || {},
+  form: [],
+  logo: homeTeamLogo.logoPath ?? undefined, // <-- fix here
+},
+awayTeam: {
+  id: parsed.awayTeam.replace(/\s+/g, '-').toLowerCase(),
+  name: parsed.awayTeam,
+  shortName: this.SHORT_NAME_OVERRIDES[parsed.awayTeam] || parsed.awayTeam,
+  colors: this.TEAM_COLORS[parsed.awayTeam] || {},
+  form: [],
+  logo: awayTeamLogo.logoPath ?? undefined, // <-- fix here
+},
       venue: parsed.venue || 'TBD',
       competition: {
         id: this.currentLeague,
