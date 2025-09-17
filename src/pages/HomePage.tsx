@@ -72,30 +72,34 @@ const HomePage: React.FC = () => {
 
           {/* Carousel */}
           <CarouselErrorBoundary>
-            {loading ? (
-              <div className="text-center py-12">
-                <div className="inline-flex items-center space-x-2">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-                  <span className="text-gray-600">Loading fixtures...</span>
-                </div>
-              </div>
-            ) : error ? (
-              <div className="text-center py-12">
-                <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md mx-auto">
-                  <div className="text-red-600 font-medium mb-2">⚠️ Error Loading Fixtures</div>
-                  <p className="text-red-700 text-sm">{error}</p>
-                </div>
-              </div>
-            ) : (
-              <OptimizedFeaturedGamesCarousel
-                fixtures={featuredFixtures}
-                onGameSelect={handleGameSelect}
-                isLoading={loading}
-                className="mb-8 lg:mb-12"
-                // If this carousel uses FixtureCard internally, you may need to pass enableNavigation prop
-              />
-            )}
-          </CarouselErrorBoundary>
+  {loading ? (
+    <div className="text-center py-12">
+      <div className="inline-flex items-center space-x-2">
+        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+        <span className="text-gray-600">Loading fixtures...</span>
+      </div>
+    </div>
+  ) : error ? (
+    <div className="text-center py-12">
+      <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md mx-auto">
+        <div className="text-red-600 font-medium mb-2">⚠️ Error Loading Fixtures</div>
+        <p className="text-red-700 text-sm">{error}</p>
+      </div>
+    </div>
+  ) : (
+    <>
+      {/* Debugging: Log featuredFixtures */}
+      {console.log('Featured Fixtures:', featuredFixtures)}
+
+      <OptimizedFeaturedGamesCarousel
+        fixtures={featuredFixtures}
+        onGameSelect={handleGameSelect}
+        isLoading={loading}
+        className="mb-8 lg:mb-12"
+      />
+    </>
+  )}
+</CarouselErrorBoundary>
         </div>
 
         {/* Matchday Section */}
