@@ -72,6 +72,21 @@ export class FBrefFixtureService {
     ['Arsenal', 'Chelsea'],
   ];
 
+private readonly TEAM_COLORS: Record<string, { primary?: string; secondary?: string }> = {
+  Arsenal: { primary: '#EF0107', secondary: '#023474' },
+  Chelsea: { primary: '#034694', secondary: '#FFFFFF' },
+  Liverpool: { primary: '#C8102E', secondary: '#F6EB61' },
+  'Manchester City': { primary: '#6CABDD', secondary: '#1C2C5B' },
+  'Manchester United': { primary: '#DA020E', secondary: '#FBE122' },
+  'Tottenham Hotspur': { primary: '#132257', secondary: '#FFFFFF' },
+  'Newcastle United': { primary: '#241F20', secondary: '#FFFFFF' },
+  'West Ham United': { primary: '#7A263A', secondary: '#1BB1E7' },
+  'Brighton & Hove Albion': { primary: '#0057B8', secondary: '#FFCD00' },
+  Fulham: { primary: '#CC0000', secondary: '#FFFFFF' },
+};
+
+
+
   // Cache helpers
   private isCacheValid(): boolean {
     return this.fixturesCache.length > 0 && Date.now() - this.cacheTime < this.cacheTimeout;
