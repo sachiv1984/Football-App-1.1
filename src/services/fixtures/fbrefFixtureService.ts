@@ -72,22 +72,20 @@ export class FBrefFixtureService {
     ['Arsenal', 'Chelsea'],
   ];
 
-private readonly TEAM_COLORS: Record<string, { primary?: string; secondary?: string }> = {
-  Arsenal: { primary: '#EF0107', secondary: '#023474' },
-  Chelsea: { primary: '#034694', secondary: '#FFFFFF' },
-  Liverpool: { primary: '#C8102E', secondary: '#F6EB61' },
-  'Manchester City': { primary: '#6CABDD', secondary: '#1C2C5B' },
-  'Manchester United': { primary: '#DA020E', secondary: '#FBE122' },
-  'Tottenham Hotspur': { primary: '#132257', secondary: '#FFFFFF' },
-  'Newcastle United': { primary: '#241F20', secondary: '#FFFFFF' },
-  'West Ham United': { primary: '#7A263A', secondary: '#1BB1E7' },
-  'Brighton & Hove Albion': { primary: '#0057B8', secondary: '#FFCD00' },
-  Fulham: { primary: '#CC0000', secondary: '#FFFFFF' },
-};
+  private readonly TEAM_COLORS: Record<string, { primary?: string; secondary?: string }> = {
+    Arsenal: { primary: '#EF0107', secondary: '#023474' },
+    Chelsea: { primary: '#034694', secondary: '#FFFFFF' },
+    Liverpool: { primary: '#C8102E', secondary: '#F6EB61' },
+    'Manchester City': { primary: '#6CABDD', secondary: '#1C2C5B' },
+    'Manchester United': { primary: '#DA020E', secondary: '#FBE122' },
+    'Tottenham Hotspur': { primary: '#132257', secondary: '#FFFFFF' },
+    'Newcastle United': { primary: '#241F20', secondary: '#FFFFFF' },
+    'West Ham United': { primary: '#7A263A', secondary: '#1BB1E7' },
+    'Brighton & Hove Albion': { primary: '#0057B8', secondary: '#FFCD00' },
+    Fulham: { primary: '#CC0000', secondary: '#FFFFFF' },
+  };
 
-
-
-  // Cache helpers
+  // ---------------- Cache helpers ----------------
   private isCacheValid(): boolean {
     return this.fixturesCache.length > 0 && Date.now() - this.cacheTime < this.cacheTimeout;
   }
@@ -202,63 +200,88 @@ private readonly TEAM_COLORS: Record<string, { primary?: string; secondary?: str
         awayScore,
         status: this.parseStatus(scoreStr),
         venue: venueStr || 'TBD',
-        matchWeek: weekStr ? parseInt(weekStr) || 1 : 1,
+        matchWeek: weekStr ? parseInt(weekStr) || undefined : undefined, // will recalc dynamically later
       });
     });
 
     return fixtures;
   }
 
-private transformFixture(parsed: ParsedFixture): FeaturedFixtureWithImportance {
-  // Get logos safely
-  const homeTeamLogo = getTeamLogo({ name: parsed.homeTeam });
-  const awayTeamLogo = getTeamLogo({ name: parsed.awayTeam });
+  // ---------------- Dynamic week assignment ----------------
+  private assignDynamicMatchWeeks(fixtures: ParsedFixture[]): ParsedFixture[] {
+    const sorted = fixtures.sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime());
 
-  const importance = this.calculateImportance(parsed);
-  const tags = this.generateTags(parsed, importance);
+    let currentWeek = 1;
+    let lastWeekStart: Date | null = null;
 
-  return {
-    id: parsed.id,
-    dateTime: parsed.dateTime,
-    homeTeam: {
-      id: parsed.homeTeam.replace(/\s+/g, '-').toLowerCase(),
-      name: parsed.homeTeam,
-      shortName: getDisplayTeamName(parsed.homeTeam),
-      colors: (this as any).TEAM_COLORS?.[parsed.homeTeam] ?? {},
-      form: [],
-      logo: homeTeamLogo.logoPath ?? undefined,
-    },
-    awayTeam: {
-      id: parsed.awayTeam.replace(/\s+/g, '-').toLowerCase(),
-      name: parsed.awayTeam,
-      shortName: getDisplayTeamName(parsed.awayTeam),
-      colors: (this as any).TEAM_COLORS?.[parsed.awayTeam] ?? {},
-      form: [],
-      logo: awayTeamLogo.logoPath ?? undefined,
-    },
-    venue: parsed.venue || 'TBD',
-    competition: {
-      id: this.currentLeague,
-      name: 'Premier League',
-      logo: getCompetitionLogo('Premier League') ?? undefined,
-    },
-    matchWeek: parsed.matchWeek || 1,
-    importance,
-    importanceScore: importance,
-    tags,
-    isBigMatch: importance >= 8,
-    status: parsed.status,
-    homeScore: parsed.homeScore || 0,
-    awayScore: parsed.awayScore || 0,
-  };
-}
+    return sorted.map(fixture => {
+      const fixtureDate = new Date(fixture.dateTime);
 
+      if (!lastWeekStart) {
+        lastWeekStart = fixtureDate;
+        fixture.matchWeek = currentWeek;
+        return fixture;
+      }
+
+      const diffDays = (fixtureDate.getTime() - lastWeekStart.getTime()) / (1000 * 60 * 60 * 24);
+      if (diffDays >= 7) {
+        currentWeek++;
+        lastWeekStart = fixtureDate;
+      }
+
+      fixture.matchWeek = currentWeek;
+      return fixture;
+    });
+  }
+
+  private transformFixture(parsed: ParsedFixture): FeaturedFixtureWithImportance {
+    const homeTeamLogo = getTeamLogo({ name: parsed.homeTeam });
+    const awayTeamLogo = getTeamLogo({ name: parsed.awayTeam });
+
+    const importance = this.calculateImportance(parsed);
+    const tags = this.generateTags(parsed, importance);
+
+    return {
+      id: parsed.id,
+      dateTime: parsed.dateTime,
+      homeTeam: {
+        id: parsed.homeTeam.replace(/\s+/g, '-').toLowerCase(),
+        name: parsed.homeTeam,
+        shortName: getDisplayTeamName(parsed.homeTeam),
+        colors: this.TEAM_COLORS?.[parsed.homeTeam] ?? {},
+        form: [],
+        logo: homeTeamLogo.logoPath ?? undefined,
+      },
+      awayTeam: {
+        id: parsed.awayTeam.replace(/\s+/g, '-').toLowerCase(),
+        name: parsed.awayTeam,
+        shortName: getDisplayTeamName(parsed.awayTeam),
+        colors: this.TEAM_COLORS?.[parsed.awayTeam] ?? {},
+        form: [],
+        logo: awayTeamLogo.logoPath ?? undefined,
+      },
+      venue: parsed.venue || 'TBD',
+      competition: {
+        id: this.currentLeague,
+        name: 'Premier League',
+        logo: getCompetitionLogo('Premier League') ?? undefined,
+      },
+      matchWeek: parsed.matchWeek ?? 1,
+      importance,
+      importanceScore: importance,
+      tags,
+      isBigMatch: importance >= 8,
+      status: parsed.status,
+      homeScore: parsed.homeScore ?? 0,
+      awayScore: parsed.awayScore ?? 0,
+    };
+  }
 
   private calculateImportance(fixture: ParsedFixture): number {
     if (fixture.status === 'finished') return 0;
 
     let importance = 3;
-    const matchday = fixture.matchWeek || 1;
+    const matchday = fixture.matchWeek ?? 1;
 
     if (matchday >= 35) importance += 3;
     else if (matchday >= 25) importance += 2;
@@ -289,7 +312,7 @@ private transformFixture(parsed: ParsedFixture): FeaturedFixtureWithImportance {
 
   private generateTags(fixture: ParsedFixture, importance: number): string[] {
     const tags: string[] = [];
-    const matchday = fixture.matchWeek || 1;
+    const matchday = fixture.matchWeek ?? 1;
 
     if (matchday <= 5) tags.push('early-season');
     else if (matchday >= 35) tags.push('title-race', 'relegation-battle');
@@ -308,50 +331,49 @@ private transformFixture(parsed: ParsedFixture): FeaturedFixtureWithImportance {
   }
 
   private async refreshCache(customUrl?: string): Promise<void> {
-  try {
-    console.log('Refreshing FBref fixtures cache...');
-    const scrapedData = await this.scrapeFixtures(customUrl);
+    try {
+      console.log('Refreshing FBref fixtures cache...');
+      const scrapedData = await this.scrapeFixtures(customUrl);
 
-    // Get all tables that look like fixtures
-    const fixturesTables = scrapedData.tables.filter(table =>
-      table.caption.toLowerCase().includes('fixtures') ||
-      table.caption.toLowerCase().includes('schedule') ||
-      table.caption.toLowerCase().includes('scores') ||
-      table.id.toLowerCase().includes('schedule') ||
-      table.id.toLowerCase().includes('fixture')
-    );
+      const fixturesTables = scrapedData.tables.filter(table =>
+        table.caption.toLowerCase().includes('fixtures') ||
+        table.caption.toLowerCase().includes('schedule') ||
+        table.caption.toLowerCase().includes('scores') ||
+        table.id.toLowerCase().includes('schedule') ||
+        table.id.toLowerCase().includes('fixture')
+      );
 
-    if (!fixturesTables.length) {
-      console.log('Available tables:', scrapedData.tables.map(t => ({ id: t.id, caption: t.caption })));
-      throw new Error('No fixtures table found in scraped data');
+      if (!fixturesTables.length) {
+        console.log('Available tables:', scrapedData.tables.map(t => ({ id: t.id, caption: t.caption })));
+        throw new Error('No fixtures table found in scraped data');
+      }
+
+      console.log(`Found ${fixturesTables.length} fixtures tables`);
+
+      const parsedFixtures = fixturesTables.flatMap(table => this.parseFixturesFromTable(table));
+      console.log(`Parsed ${parsedFixtures.length} fixtures from all tables`);
+
+      // Assign dynamic weeks
+      const fixturesWithWeeks = this.assignDynamicMatchWeeks(parsedFixtures);
+
+      // Transform and sort
+      this.fixturesCache = fixturesWithWeeks
+        .map(f => this.transformFixture(f))
+        .sort((a, b) => {
+          if (b.importance !== a.importance) return b.importance - a.importance;
+          return new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime();
+        });
+
+      this.cacheTime = Date.now();
+      console.log(`Cache refreshed with ${this.fixturesCache.length} fixtures`);
+    } catch (error) {
+      console.error('Error refreshing FBref fixtures cache:', error);
+      throw error;
     }
-
-    console.log(`Found ${fixturesTables.length} fixtures tables`);
-
-    // Parse all tables and flatten into a single array
-    const parsedFixtures = fixturesTables.flatMap(table => this.parseFixturesFromTable(table));
-
-    console.log(`Parsed ${parsedFixtures.length} fixtures from all tables`);
-
-    // Transform fixtures to FeaturedFixtureWithImportance and sort
-    this.fixturesCache = parsedFixtures
-      .map(f => this.transformFixture(f))
-      .sort((a, b) => {
-        // Sort by importance first, then by date
-        if (b.importance !== a.importance) return b.importance - a.importance;
-        return new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime();
-      });
-
-    this.cacheTime = Date.now();
-    console.log(`Cache refreshed with ${this.fixturesCache.length} fixtures`);
-  } catch (error) {
-    console.error('Error refreshing FBref fixtures cache:', error);
-    throw error;
   }
-}
 
-
-  async getFeaturedFixtures(limit: number = 8): Promise<FeaturedFixtureWithImportance[]> {
+  // ---------------- Getters ----------------
+  async getFeaturedFixtures(limit = 8): Promise<FeaturedFixtureWithImportance[]> {
     if (!this.isCacheValid()) await this.refreshCache();
 
     const now = Date.now();
@@ -374,7 +396,7 @@ private transformFixture(parsed: ParsedFixture): FeaturedFixtureWithImportance {
     if (!this.isCacheValid()) await this.refreshCache();
 
     const weekGroups = this.fixturesCache.reduce((acc, fixture) => {
-      const week = fixture.matchWeek;
+      const week = fixture.matchWeek ?? 1;
       if (!acc[week]) acc[week] = [];
       acc[week].push(fixture);
       return acc;
@@ -400,38 +422,8 @@ private transformFixture(parsed: ParsedFixture): FeaturedFixtureWithImportance {
   async getUpcomingImportantMatches(limit?: number): Promise<FeaturedFixtureWithImportance[]> {
     if (!this.isCacheValid()) await this.refreshCache();
     const now = Date.now();
-    const upcoming = this.fixturesCache.filter(
-      f => f.importance > 0 && new Date(f.dateTime).getTime() >= now
-    );
+    const upcoming = this.fixturesCache.filter(f => f.importance > 0 && new Date(f.dateTime).getTime() >= now);
     return limit ? upcoming.slice(0, limit) : upcoming;
   }
 
-  async getMatchesByImportance(minImportance: number): Promise<FeaturedFixtureWithImportance[]> {
-    if (!this.isCacheValid()) await this.refreshCache();
-    return this.fixturesCache.filter(f => f.importance >= minImportance);
-  }
-
-  async getGameWeekInfo() {
-    if (!this.isCacheValid()) await this.refreshCache();
-
-    const fixtures = await this.getCurrentGameWeekFixtures();
-
-    if (fixtures.length === 0) {
-      return { currentWeek: 1, isComplete: true, totalGames: 0, finishedGames: 0, upcomingGames: 0 };
-    }
-
-    const currentWeek = fixtures[0].matchWeek;
-    const finishedGames = fixtures.filter(f => f.status === 'finished' || f.status === 'postponed').length;
-    const upcomingGames = fixtures.filter(f => f.status !== 'finished' && f.status !== 'postponed').length;
-
-    return {
-      currentWeek,
-      isComplete: upcomingGames === 0,
-      totalGames: fixtures.length,
-      finishedGames,
-      upcomingGames,
-    };
-  }
-}
-
-export const fbrefFixtureService = new FBrefFixtureService();
+  async getMatchesByImportance(minImportance:
