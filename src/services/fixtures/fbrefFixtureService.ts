@@ -264,7 +264,7 @@ export class FBrefFixtureService {
           awayTeam,
           homeScore,
           awayScore,
-          status: this.parseStatus(scoreStr || status);,
+          status: this.parseStatus(scoreStr || status),
           venue: venueStr || 'TBD',
           matchWeek: weekStr ? parseInt(weekStr) || 1 : 1,
         };
