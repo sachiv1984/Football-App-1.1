@@ -426,4 +426,32 @@ export class FBrefFixtureService {
     return limit ? upcoming.slice(0, limit) : upcoming;
   }
 
-  async getMatchesByImportance(minImportance:
+  async getMatchesByImportance(minImportance: number): Promise<FeaturedFixtureWithImportance[]> {
+    if (!this.isCacheValid()) await this.refreshCache();
+    return this.fixturesCache.filter(f => f.importance >= minImportance);
+  }
+
+  async getGameWeekInfo() {
+    if (!this.isCacheValid()) await this.refreshCache();
+
+    const fixtures = await this.getCurrentGameWeekFixtures();
+
+    if (fixtures.length === 0) {
+      return { currentWeek: 1, isComplete: true, totalGames: 0, finishedGames: 0, upcomingGames: 0 };
+    }
+
+    const currentWeek = fixtures[0].matchWeek ?? 1;
+    const finishedGames = fixtures.filter(f => f.status === 'finished' || f.status === 'postponed').length;
+    const upcomingGames = fixtures.filter(f => f.status !== 'finished' && f.status !== 'postponed').length;
+
+    return {
+      currentWeek,
+      isComplete: upcomingGames === 0,
+      totalGames: fixtures.length,
+      finishedGames,
+      upcomingGames,
+    };
+  }
+}
+
+export const fbrefFixtureService = new FBrefFixtureService();
