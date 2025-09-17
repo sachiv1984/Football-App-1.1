@@ -9,7 +9,7 @@ import { ErrorBoundary, CarouselErrorBoundary } from '../components/ErrorBoundar
 import { useFixtures } from '../hooks/useFixtures';
 import { useGameWeekFixtures } from '../hooks/useGameWeekFixtures';
 import { FeaturedFixtureWithImportance, Game } from '../types';
-import FBrefScraperVercel from '../components/FBrefScraper';
+
 
 
 // -------------------------
@@ -56,11 +56,6 @@ const HomePage: React.FC = () => {
 
         {/* Header to Carousel Spacing - spacing.md mobile, spacing.lg desktop */}
         <div className="mt-4 lg:mt-6" />
-
-        {/* Debug Data Table */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 my-8">
-        <FBrefScraperVercel />
-      </div>
 
         {/* Featured Fixtures Section */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
