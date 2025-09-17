@@ -37,6 +37,7 @@ const TEAM_NORMALIZATION_MAP: Record<string, string> = {
   'Newcastle': 'Newcastle United',
   'Newcastle United FC': 'Newcastle United',
   'Newcastle United': 'Newcastle United',
+  'Newcastle Utd': 'Newcastle United',
 
   // Sunderland
   'Sunderland': 'Sunderland AFC',
