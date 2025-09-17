@@ -5,6 +5,7 @@ import Header from '../components/common/Header/Header';
 import Footer from '../components/common/Footer/Footer';
 import MatchHeader from '../components/stats/match/MatchHeader';
 import ModernStatsTable from '../components/stats/StatsTable/ModernStatsTable';
+import FBrefScraperVercel from '../components/FBrefScraper';
 import { useFixtureNavigation } from '../hooks/useNavigation';
 import { useFixtures } from '../hooks/useFixtures';
 import { useGameWeekFixtures } from '../hooks/useGameWeekFixtures';
@@ -16,6 +17,7 @@ const StatsPage: React.FC = () => {
   const { goBack, goHome } = useFixtureNavigation();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [currentFixture, setCurrentFixture] = useState<Fixture | null>(null);
+  const [showDebugger, setShowDebugger] = useState(false);
 
   // Get fixtures from both sources to find the matching one
   const { featuredFixtures } = useFixtures();
@@ -121,6 +123,16 @@ const StatsPage: React.FC = () => {
           </h1>
           <div className="flex gap-2">
             <button 
+              onClick={() => setShowDebugger(!showDebugger)}
+              className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${
+                showDebugger 
+                  ? 'bg-purple-600 text-white hover:bg-purple-700' 
+                  : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+              }`}
+            >
+              {showDebugger ? 'Hide Debugger' : 'Show Debugger'}
+            </button>
+            <button 
               onClick={goBack}
               className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium"
             >
@@ -137,6 +149,23 @@ const StatsPage: React.FC = () => {
 
         {/* Content Sections */}
         <div className="space-y-8">
+          {/* Debug Panel */}
+          {showDebugger && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+              <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  🔧 FBref Data Debugger
+                  <span className="text-sm font-normal text-gray-600">
+                    Test and debug data scraping
+                  </span>
+                </h2>
+              </div>
+              <div className="p-6">
+                <FBrefScraperVercel />
+              </div>
+            </div>
+          )}
+
           {/* Modern Stats Table with Live Data */}
           <ModernStatsTable
             homeTeam={currentFixture.homeTeam}
