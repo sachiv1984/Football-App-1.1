@@ -92,30 +92,31 @@ export default async function handler(req, res) {
         tableData.headers.push($(th).text().trim());
       });
 
-      // Get rows (limit to first 5 for testing)
-      $table.find("tbody tr").slice(0, 5).each((_, tr) => {
-        const $row = $(tr);
-        const rowData = [];
+     // Get rows (all rows)
+$table.find("tbody tr").each((_, tr) => {
+  const $row = $(tr);
+  const rowData = [];
 
-        $row.find("td, th").each((_, cell) => {
-          const $cell = $(cell);
-          let cellText = $cell.text().trim();
+  $row.find("td, th").each((_, cell) => {
+    const $cell = $(cell);
+    let cellText = $cell.text().trim();
 
-          const link = $cell.find("a").first().attr("href");
-          if (link && link.startsWith("/")) {
-            cellText = {
-              text: cellText,
-              link: `https://fbref.com${link}`,
-            };
-          }
+    const link = $cell.find("a").first().attr("href");
+    if (link && link.startsWith("/")) {
+      cellText = {
+        text: cellText,
+        link: `https://fbref.com${link}`,
+      };
+    }
 
-          rowData.push(cellText);
-        });
+    rowData.push(cellText);
+  });
 
-        if (rowData.length > 0) {
-          tableData.rows.push(rowData);
-        }
-      });
+  if (rowData.length > 0) {
+    tableData.rows.push(rowData);
+  }
+});
+
 
       if (tableData.headers.length > 0 && tableData.rows.length > 0) {
         extractedData.push(tableData);
