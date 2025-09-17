@@ -436,8 +436,7 @@ export class FBrefFixtureService {
     if (!this.isCacheValid()) await this.refreshCache();
     
     // Find current game week (first week with unfinished games)
-    const allFixtures = this.fixturesCache;
-    const weekGroups = allFixtures.reduce((acc, fixture) => {
+    const weekGroups = this.fixturesCache.reduce((acc, fixture) => {
       const week = fixture.matchWeek;
       if (!acc[week]) acc[week] = [];
       acc[week].push(fixture);
@@ -465,17 +464,17 @@ export class FBrefFixtureService {
   }
 
   async getUpcomingImportantMatches(limit?: number): Promise<FeaturedFixtureWithImportance[]> {
-    const allMatches = await this.getAllFixtures();
+    if (!this.isCacheValid()) await this.refreshCache();
     const now = Date.now();
-    const upcomingImportant = allMatches.filter(m => 
+    const upcomingImportant = this.fixturesCache.filter(m => 
       m.importance > 0 && new Date(m.dateTime).getTime() >= now
     );
     return limit ? upcomingImportant.slice(0, limit) : upcomingImportant;
   }
 
   async getMatchesByImportance(minImportance: number): Promise<FeaturedFixtureWithImportance[]> {
-    const allMatches = await this.getAllFixtures();
-    return allMatches.filter(m => m.importance >= minImportance);
+    if (!this.isCacheValid()) await this.refreshCache();
+    return this.fixturesCache.filter(m => m.importance >= minImportance);
   }
 
   async getGameWeekInfo(): Promise<{
