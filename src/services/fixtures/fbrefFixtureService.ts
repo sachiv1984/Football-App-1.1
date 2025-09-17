@@ -19,6 +19,33 @@ export class FBrefFixtureService {
   private cacheTime = 0;
   private readonly cacheTimeout = 15 * 60 * 1000; // 15 minutes
 
+  // Configurable URLs
+  private readonly FBREF_URLS = {
+    premierLeague: {
+      fixtures: 'https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures',
+      standings: 'https://fbref.com/en/comps/9/Premier-League-Stats',
+      stats: 'https://fbref.com/en/comps/9/stats/Premier-League-Stats'
+    },
+    laLiga: {
+      fixtures: 'https://fbref.com/en/comps/12/schedule/La-Liga-Scores-and-Fixtures',
+      standings: 'https://fbref.com/en/comps/12/La-Liga-Stats'
+    },
+    bundesliga: {
+      fixtures: 'https://fbref.com/en/comps/20/schedule/Bundesliga-Scores-and-Fixtures',
+      standings: 'https://fbref.com/en/comps/20/Bundesliga-Stats'
+    },
+    serieA: {
+      fixtures: 'https://fbref.com/en/comps/11/schedule/Serie-A-Scores-and-Fixtures',
+      standings: 'https://fbref.com/en/comps/11/Serie-A-Stats'
+    },
+    ligue1: {
+      fixtures: 'https://fbref.com/en/comps/13/schedule/Ligue-1-Scores-and-Fixtures',
+      standings: 'https://fbref.com/en/comps/13/Ligue-1-Stats'
+    }
+  };
+
+  private currentLeague: keyof typeof this.FBREF_URLS = 'premierLeague';
+
   // Same configuration as your original service
   private readonly SHORT_NAME_OVERRIDES: Record<string, string> = {
     "Manchester United": "Man Utd",
@@ -68,9 +95,36 @@ export class FBrefFixtureService {
   }
 
   // Scrape fixture data from FBref
-  private async scrapeFixtures(): Promise<ScrapedData> {
-    const fixturesUrl = 'https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures';
+  private async scrapeFixtures(customUrl?: string): Promise<ScrapedData> {
+    const fixturesUrl = customUrl || this.FBREF_URLS[this.currentLeague].fixtures;
+    console.log(`Scraping fixtures from: ${fixturesUrl}`);
     return await fbrefScraper.scrapeUrl(fixturesUrl);
+  }
+
+  // Method to change league/competition
+  setLeague(league: keyof typeof this.FBREF_URLS): void {
+    if (this.currentLeague !== league) {
+      this.currentLeague = league;
+      this.clearCache(); // Clear cache when switching leagues
+      console.log(`Switched to ${league} league`);
+    }
+  }
+
+  // Method to scrape custom URL
+  async scrapeCustomUrl(url: string): Promise<ScrapedData> {
+    if (!url.startsWith('https://fbref.com/')) {
+      throw new Error('URL must be from fbref.com');
+    }
+    console.log(`Scraping custom URL: ${url}`);
+    return await fbrefScraper.scrapeUrl(url);
+  }
+
+  // Get current league info
+  getCurrentLeague(): { name: string; urls: typeof this.FBREF_URLS[keyof typeof this.FBREF_URLS] } {
+    return {
+      name: this.currentLeague,
+      urls: this.FBREF_URLS[this.currentLeague]
+    };
   }
 
   // Parse team name and handle variations
@@ -319,19 +373,22 @@ export class FBrefFixtureService {
   }
 
   // Refresh cache by scraping FBref
-  private async refreshCache(): Promise<void> {
+  private async refreshCache(customUrl?: string): Promise<void> {
     try {
       console.log('Refreshing FBref fixtures cache...');
-      const scrapedData = await this.scrapeFixtures();
+      const scrapedData = await this.scrapeFixtures(customUrl);
       
       // Find the fixtures table (adjust selector based on actual FBref structure)
       const fixturesTable = scrapedData.tables.find(table => 
         table.caption.toLowerCase().includes('fixtures') ||
         table.caption.toLowerCase().includes('schedule') ||
-        table.id.includes('schedule')
+        table.caption.toLowerCase().includes('scores') ||
+        table.id.includes('schedule') ||
+        table.id.includes('fixture')
       );
 
       if (!fixturesTable) {
+        console.log('Available tables:', scrapedData.tables.map(t => ({ id: t.id, caption: t.caption })));
         throw new Error('No fixtures table found in scraped data');
       }
 
