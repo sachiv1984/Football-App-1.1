@@ -29,6 +29,7 @@ const FBrefScraperVercel: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [url, setUrl] = useState<string>('https://fbref.com/en/comps/9/Premier-League-Stats');
   const [showJson, setShowJson] = useState<boolean>(false);
+  const [rowsToShow, setRowsToShow] = useState<Record<number, number>>({}); // store rows per table
 
   const validateUrl = (urlToValidate: string): boolean => {
     try {
@@ -108,7 +109,14 @@ const FBrefScraperVercel: React.FC = () => {
       }
       
       setData(result as ScrapedData);
-      
+
+      // Initialize rowsToShow for each table (default 10)
+      const initialRows: Record<number, number> = {};
+      (result as ScrapedData).tables.forEach((_, index) => {
+        initialRows[index] = 10;
+      });
+      setRowsToShow(initialRows);
+
     } catch (err: unknown) {
       console.error('Scraping error:', err);
       setError(err instanceof Error ? err.message : 'Unknown error occurred');
@@ -172,10 +180,10 @@ const FBrefScraperVercel: React.FC = () => {
 
   return (
     <div className="max-w-6xl mx-auto p-6 bg-white">
+      {/* Header & Info */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">FBref Data Scraper</h1>
         <p className="text-gray-600">Server-side scraping via Vercel API routes</p>
-        
         <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
           <div className="flex items-start">
             <AlertCircle className="h-5 w-5 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
@@ -192,6 +200,7 @@ const FBrefScraperVercel: React.FC = () => {
         </div>
       </div>
 
+      {/* Quick URL buttons */}
       <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
         <p className="text-sm text-blue-800 font-medium mb-2">Quick Test URLs:</p>
         <div className="flex flex-wrap gap-2">
@@ -210,6 +219,7 @@ const FBrefScraperVercel: React.FC = () => {
         </div>
       </div>
 
+      {/* URL input & actions */}
       <div className="mb-6">
         <label className="block text-sm font-medium text-gray-700 mb-2">
           FBref URL to scrape:
@@ -258,6 +268,7 @@ const FBrefScraperVercel: React.FC = () => {
         </div>
       </div>
 
+      {/* Error */}
       {error && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
           <div className="flex items-center">
@@ -267,6 +278,7 @@ const FBrefScraperVercel: React.FC = () => {
         </div>
       )}
 
+      {/* Data display */}
       {data && (
         <div className="space-y-6">
           <div className="bg-gray-50 p-4 rounded-lg">
@@ -318,75 +330,89 @@ const FBrefScraperVercel: React.FC = () => {
             </div>
           )}
 
-          {data.tables.map((table: TableData, index: number) => (
-            <div key={index} className="border border-gray-200 rounded-lg overflow-hidden">
-              <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
-                <h3 className="font-medium text-gray-900">{table.caption}</h3>
-                <div className="flex gap-2">
-                  <span className="text-sm text-gray-600">
-                    {table.rows.length} rows × {table.headers.length} cols
-                  </span>
-                  <button
-                    onClick={() => downloadAsCsv(index)}
-                    className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-                  >
-                    CSV
-                  </button>
+          {data.tables.map((table: TableData, index: number) => {
+            const currentRowsToShow = rowsToShow[index] || 10;
+            const isExpanded = currentRowsToShow >= table.rows.length;
+
+            return (
+              <div key={index} className="border border-gray-200 rounded-lg overflow-hidden">
+                <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
+                  <h3 className="font-medium text-gray-900">{table.caption}</h3>
+                  <div className="flex gap-2">
+                    <span className="text-sm text-gray-600">
+                      {currentRowsToShow} rows × {table.headers.length} cols
+                    </span>
+                    <button
+                      onClick={() => downloadAsCsv(index)}
+                      className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                    >
+                      CSV
+                    </button>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="min-w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        {table.headers.map((header: string, headerIndex: number) => (
+                          <th key={headerIndex} className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                            {header}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {table.rows.slice(0, currentRowsToShow).map((row: (string | CellData)[], rowIndex: number) => (
+                        <tr key={rowIndex} className="hover:bg-gray-50">
+                          {row.map((cell: string | CellData, cellIndex: number) => {
+                            const renderCell = () => {
+                              if (typeof cell === 'object' && cell !== null && cell.link) {
+                                return (
+                                  <a 
+                                    href={cell.link} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    className="text-blue-600 hover:underline flex items-center gap-1"
+                                  >
+                                    {cell.text}
+                                    <ExternalLink className="h-3 w-3" />
+                                  </a>
+                                );
+                              }
+                              
+                              const cellText = typeof cell === 'object' && cell !== null ? cell.text : cell;
+                              return cellText || '-';
+                            };
+
+                            return (
+                              <td key={cellIndex} className="px-3 py-2 text-sm text-gray-900 border-r border-gray-200">
+                                {renderCell()}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+
+                  {table.rows.length > 10 && (
+                    <div className="px-4 py-2 bg-gray-50 text-sm text-gray-600 text-center border-t border-gray-200">
+                      <button
+                        onClick={() => setRowsToShow(prev => ({
+                          ...prev,
+                          [index]: isExpanded ? 10 : table.rows.length
+                        }))}
+                        className="text-blue-600 hover:underline"
+                      >
+                        {isExpanded ? 'Show Less' : `Show All ${table.rows.length} rows`}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
-              
-              <div className="overflow-x-auto">
-                <table className="min-w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      {table.headers.map((header: string, headerIndex: number) => (
-                        <th key={headerIndex} className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
-                          {header}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {table.rows.slice(0, 10).map((row: (string | CellData)[], rowIndex: number) => (
-                      <tr key={rowIndex} className="hover:bg-gray-50">
-                        {row.map((cell: string | CellData, cellIndex: number) => {
-                          const renderCell = () => {
-                            if (typeof cell === 'object' && cell !== null && cell.link) {
-                              return (
-                                <a 
-                                  href={cell.link} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer" 
-                                  className="text-blue-600 hover:underline flex items-center gap-1"
-                                >
-                                  {cell.text}
-                                  <ExternalLink className="h-3 w-3" />
-                                </a>
-                              );
-                            }
-                            
-                            const cellText = typeof cell === 'object' && cell !== null ? cell.text : cell;
-                            return cellText || '-';
-                          };
-
-                          return (
-                            <td key={cellIndex} className="px-3 py-2 text-sm text-gray-900 border-r border-gray-200">
-                              {renderCell()}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {table.rows.length > 10 && (
-                  <div className="px-4 py-2 bg-gray-50 text-sm text-gray-600 text-center border-t border-gray-200">
-                    Showing first 10 rows of {table.rows.length} total rows
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
