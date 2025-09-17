@@ -184,17 +184,17 @@ export class FBrefFixtureService {
 
   // Parse status from FBref format
   private parseStatus(statusStr: string): 'scheduled' | 'live' | 'finished' | 'postponed' | 'upcoming' {
-    if (!statusStr) return 'upcoming';
-    
-    const status = statusStr.toLowerCase().trim();
-    
-    if (status.includes('postponed') || status.includes('cancelled')) return 'postponed';
-    if (status.includes('ft') || status.includes('full-time') || /^\d+-\d+$/.test(status)) return 'finished';
-    if (status.includes("'") || status.includes('ht') || status.includes('live')) return 'live';
-    if (status.includes('tbd') || status.includes('to be determined')) return 'upcoming';
-    
-    return 'scheduled';
-  }
+  if (!statusStr) return 'upcoming';
+  
+  const status = statusStr.toLowerCase().trim();
+  
+  if (status.includes('postponed') || status.includes('cancelled')) return 'postponed';
+  if (status.includes('ft') || status.includes('full-time') || /^\d+-\d+$/.test(status)) return 'finished';
+  if (status.includes("'") || status.includes('ht') || status.includes('live')) return 'live';
+  if (status.includes('tbd') || status.includes('to be determined')) return 'upcoming';
+  
+  return 'scheduled';
+}
 
   // Extract fixtures from scraped table
   private parseFixturesFromTable(table: TableData): ParsedFixture[] {
