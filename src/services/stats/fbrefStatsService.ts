@@ -214,15 +214,19 @@ export class FBrefStatsService {
 
     // Fetch corners for all fixtures
     const fixtureUrls = fixturesData.tables.flatMap(t =>
-      t.rows.map(r => {
-        const rawLink = (linkCell as any).link;
-return linkCell
-  ? rawLink.startsWith('http')
-    ? rawLink
-    : `https://fbref.com${rawLink}`
-  : null;
+  t.rows
+    .map(r => {
+      const linkCell = r.find(c => typeof c === 'object' && (c as any).link);
+      if (!linkCell) return null;
 
-    const cornersData = await fbrefMatchLogService.scrapeMultiple(fixtureUrls);
+      const rawLink = (linkCell as any).link;
+      return rawLink.startsWith('http') ? rawLink : `https://fbref.com${rawLink}`;
+    })
+    .filter(Boolean) as string[]
+);
+
+const cornersData = await fbrefMatchLogService.scrapeMultiple(fixtureUrls);
+
 
     // Aggregate corners per team
     const cornersMap = new Map<string, { corners: number; cornersAgainst: number; matches: number }>();
