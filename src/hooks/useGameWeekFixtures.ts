@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { fbrefFixtureService } from '../services/fixtures/fbrefFixtureService';
-import type { FeaturedFixtureWithImportance, Game } from '../types';
+import type { FeaturedFixtureWithImportance } from '../types';
 import { toFeaturedFixtureWithImportance } from '../utils/fixtureUtils';
 
 export const useGameWeekFixtures = () => {
