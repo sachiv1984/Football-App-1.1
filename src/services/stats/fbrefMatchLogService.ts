@@ -81,7 +81,7 @@ export class FBrefMatchLogService {
 
   private extractCornersFromTable(table: any, matchUrl: string): MatchLogCorners | null {
     const headers = table.headers.map((h: string) => h.trim().toLowerCase());
-    let teamColIdx = headers.findIndex(h => ["team", "squad", "club"].some(t => h.includes(t)));
+    let teamColIdx = headers.findIndex((h: string) => ["team", "squad", "club"].some(t => h.includes(t)));
     if (teamColIdx === -1) teamColIdx = 0;
 
     const cornersIdx = this.findCornersColumnIndex(headers);
