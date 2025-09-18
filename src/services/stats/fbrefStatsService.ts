@@ -18,7 +18,7 @@ interface ParsedFixture {
   status: 'scheduled' | 'live' | 'finished' | 'postponed' | 'upcoming';
   venue?: string;
   matchWeek?: number;
-  matchUrl?: string; // ✅ add this line
+  matchUrl?: string;
 }
 
 export class FBrefFixtureService {
@@ -86,7 +86,6 @@ export class FBrefFixtureService {
     Fulham: { primary: '#CC0000', secondary: '#FFFFFF' },
   };
 
-  // ---------------- Cache helpers ----------------
   private isCacheValid(): boolean {
     return this.fixturesCache.length > 0 && Date.now() - this.cacheTime < this.cacheTimeout;
   }
@@ -127,7 +126,7 @@ export class FBrefFixtureService {
       if (dateStr.includes('-')) {
         date = new Date(dateStr);
       } else {
-        date = new Date(dateStr + ', 2024'); // assume season year
+        date = new Date(dateStr + ', 2024');
       }
 
       if (timeStr && timeStr.includes(':')) {
@@ -153,151 +152,136 @@ export class FBrefFixtureService {
     return 'scheduled';
   }
 
- private parseFixturesFromTable(table: TableData): ParsedFixture[] {
-  const fixtures: ParsedFixture[] = [];
+  private parseFixturesFromTable(table: TableData): ParsedFixture[] {
+    const fixtures: ParsedFixture[] = [];
 
-  const headers = table.headers.map(h => h.toLowerCase());
-  const dateIndex = headers.findIndex(h => h.includes('date'));
-  const timeIndex = headers.findIndex(h => h.includes('time'));
-  const homeIndex = headers.findIndex(h => h.includes('home'));
-  const awayIndex = headers.findIndex(h => h.includes('away'));
-  const scoreIndex = headers.findIndex(h => h.includes('score') || h.includes('result'));
-  const venueIndex = headers.findIndex(h => h.includes('venue') || h.includes('stadium'));
-  const weekIndex = headers.findIndex(h => h.includes('wk') || h.includes('week'));
-  const linkIndex = headers.findIndex(h => h.includes('match') || h.includes('url') || h.includes('boxscore'));
+    const headers = table.headers.map(h => h.toLowerCase());
+    const dateIndex = headers.findIndex(h => h.includes('date'));
+    const timeIndex = headers.findIndex(h => h.includes('time'));
+    const homeIndex = headers.findIndex(h => h.includes('home'));
+    const awayIndex = headers.findIndex(h => h.includes('away'));
+    const scoreIndex = headers.findIndex(h => h.includes('score') || h.includes('result'));
+    const venueIndex = headers.findIndex(h => h.includes('venue') || h.includes('stadium'));
+    const weekIndex = headers.findIndex(h => h.includes('wk') || h.includes('week'));
+    const linkIndex = headers.findIndex(h => h.includes('match') || h.includes('url') || h.includes('boxscore'));
 
-  table.rows.forEach((row, index) => {
-    if (row.length < 4) return;
+    table.rows.forEach((row, index) => {
+      if (row.length < 4) return;
 
-    const rawHome = typeof row[homeIndex] === 'object' ? row[homeIndex].text : row[homeIndex];
-    const rawAway = typeof row[awayIndex] === 'object' ? row[awayIndex].text : row[awayIndex];
-    if (!rawHome || !rawAway) return;
+      const rawHome = typeof row[homeIndex] === 'object' ? row[homeIndex].text : row[homeIndex];
+      const rawAway = typeof row[awayIndex] === 'object' ? row[awayIndex].text : row[awayIndex];
+      if (!rawHome || !rawAway) return;
 
-    const homeTeam = normalizeTeamName(rawHome);
-    const awayTeam = normalizeTeamName(rawAway);
+      const homeTeam = normalizeTeamName(rawHome);
+      const awayTeam = normalizeTeamName(rawAway);
 
-    const dateStr = dateIndex >= 0 ? (typeof row[dateIndex] === 'object' ? row[dateIndex].text : row[dateIndex]) : '';
-    const timeStr = timeIndex >= 0 ? (typeof row[timeIndex] === 'object' ? row[timeIndex].text : row[timeIndex]) : '';
-    const scoreStr = scoreIndex >= 0 ? (typeof row[scoreIndex] === 'object' ? row[scoreIndex].text : row[scoreIndex]) : '';
-    const venueStr = venueIndex >= 0 ? (typeof row[venueIndex] === 'object' ? row[venueIndex].text : row[venueIndex]) : '';
-    const weekStr = weekIndex >= 0 ? (typeof row[weekIndex] === 'object' ? row[weekIndex].text : row[weekIndex]) : '';
+      const dateStr = dateIndex >= 0 ? (typeof row[dateIndex] === 'object' ? row[dateIndex].text : row[dateIndex]) : '';
+      const timeStr = timeIndex >= 0 ? (typeof row[timeIndex] === 'object' ? row[timeIndex].text : row[timeIndex]) : '';
+      const scoreStr = scoreIndex >= 0 ? (typeof row[scoreIndex] === 'object' ? row[scoreIndex].text : row[scoreIndex]) : '';
+      const venueStr = venueIndex >= 0 ? (typeof row[venueIndex] === 'object' ? row[venueIndex].text : row[venueIndex]) : '';
+      const weekStr = weekIndex >= 0 ? (typeof row[weekIndex] === 'object' ? row[weekIndex].text : row[weekIndex]) : '';
 
-    let homeScore: number | undefined;
-    let awayScore: number | undefined;
+      let homeScore: number | undefined;
+      let awayScore: number | undefined;
 
-    if (scoreStr && scoreStr.includes('–')) {
-      const [h, a] = scoreStr.split('–').map(s => parseInt(s.trim(), 10));
-      if (!isNaN(h) && !isNaN(a)) {
-        homeScore = h;
-        awayScore = a;
+      if (scoreStr && scoreStr.includes('–')) {
+        const [h, a] = scoreStr.split('–').map(s => parseInt(s.trim(), 10));
+        if (!isNaN(h) && !isNaN(a)) {
+          homeScore = h;
+          awayScore = a;
+        }
       }
-    }
 
-    // Extract match URL if available
-    let matchUrl: string | undefined;
-    if (linkIndex >= 0 && typeof row[linkIndex] === 'object' && row[linkIndex].link) {
-      matchUrl = row[linkIndex].link.startsWith('https://fbref.com') ? row[linkIndex].link : `https://fbref.com${row[linkIndex].link}`;
-    }
+      let matchUrl: string | undefined;
+      if (linkIndex >= 0 && typeof row[linkIndex] === 'object' && row[linkIndex].link) {
+        matchUrl = row[linkIndex].link.startsWith('https://fbref.com') ? row[linkIndex].link : `https://fbref.com${row[linkIndex].link}`;
+      }
 
-    fixtures.push({
-      id: `fbref-${index}-${homeTeam}-${awayTeam}`.replace(/\s+/g, '-'),
-      dateTime: this.parseDate(dateStr, timeStr),
-      homeTeam,
-      awayTeam,
-      homeScore,
-      awayScore,
-      status: this.parseStatus(scoreStr),
-      venue: venueStr || 'TBD',
-      matchWeek: weekStr ? parseInt(weekStr) || undefined : undefined,
-      matchUrl, // ✅ added
+      fixtures.push({
+        id: `fbref-${index}-${homeTeam}-${awayTeam}`.replace(/\s+/g, '-'),
+        dateTime: this.parseDate(dateStr, timeStr),
+        homeTeam,
+        awayTeam,
+        homeScore,
+        awayScore,
+        status: this.parseStatus(scoreStr),
+        venue: venueStr || 'TBD',
+        matchWeek: weekStr ? parseInt(weekStr) || undefined : undefined,
+        matchUrl,
+      });
     });
-  });
 
-  return fixtures;
-}
-
-  // ---------------- Dynamic week assignment ----------------
-// Updated assignDynamicMatchWeeks method for fbrefFixtureService.ts
-
-private assignDynamicMatchWeeks(fixtures: ParsedFixture[]): ParsedFixture[] {
-  const sorted = fixtures.sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime());
-
-  if (sorted.length === 0) return sorted;
-
-  let currentWeek = 1;
-  let currentWeekFixtures: ParsedFixture[] = [];
-  
-  // Start with the first fixture
-  const firstFixture = sorted[0];
-  firstFixture.matchWeek = currentWeek;
-  currentWeekFixtures.push(firstFixture);
-
-  for (let i = 1; i < sorted.length; i++) {
-    const currentFixture = sorted[i];
-    const previousFixture = sorted[i - 1];
-    
-    const currentDate = new Date(currentFixture.dateTime);
-    const previousDate = new Date(previousFixture.dateTime);
-    
-    // Calculate days between fixtures
-    const daysDifference = Math.floor((currentDate.getTime() - previousDate.getTime()) / (1000 * 60 * 60 * 24));
-    
-    // Check if we should start a new week
-    const shouldStartNewWeek = this.shouldStartNewMatchWeek(
-      currentDate,
-      currentWeekFixtures.map(f => new Date(f.dateTime)),
-      daysDifference
-    );
-    
-    if (shouldStartNewWeek) {
-      currentWeek++;
-      currentWeekFixtures = [];
-    }
-    
-    currentFixture.matchWeek = currentWeek;
-    currentWeekFixtures.push(currentFixture);
+    return fixtures;
   }
 
-  return sorted;
-}
+  private assignDynamicMatchWeeks(fixtures: ParsedFixture[]): ParsedFixture[] {
+    const sorted = fixtures.sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime());
 
-private shouldStartNewMatchWeek(
-  currentFixtureDate: Date,
-  currentWeekDates: Date[],
-  daysSincePrevious: number
-): boolean {
-  // If there are no fixtures in current week yet, don't start new week
-  if (currentWeekDates.length === 0) return false;
-  
-  // Get the earliest and latest dates in the current week
-  const weekStart = new Date(Math.min(...currentWeekDates.map(d => d.getTime())));
-  const weekEnd = new Date(Math.max(...currentWeekDates.map(d => d.getTime())));
-  
-  // Calculate span of current week
-  const currentWeekSpan = Math.floor((weekEnd.getTime() - weekStart.getTime()) / (1000 * 60 * 60 * 24));
-  
-  // Rule 1: If gap is more than 4 days from the last fixture, start new week
-  if (daysSincePrevious > 4) return true;
-  
-  // Rule 2: If current week already spans 4+ days and this fixture is 2+ days later, start new week
-  if (currentWeekSpan >= 4 && daysSincePrevious >= 2) return true;
-  
-  // Rule 3: If we'd span more than 6 days total, start new week
-  const potentialSpan = Math.floor((currentFixtureDate.getTime() - weekStart.getTime()) / (1000 * 60 * 60 * 24));
-  if (potentialSpan > 6) return true;
-  
-  // Rule 4: Monday fixtures usually start a new week if previous week had weekend games
-  const currentDay = currentFixtureDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
-  if (currentDay === 1) { // Monday
-    const hasWeekendGames = currentWeekDates.some(d => {
-      const day = d.getDay();
-      return day === 0 || day === 6; // Sunday or Saturday
-    });
-    if (hasWeekendGames && daysSincePrevious >= 1) return true;
+    if (sorted.length === 0) return sorted;
+
+    let currentWeek = 1;
+    let currentWeekFixtures: ParsedFixture[] = [];
+    
+    const firstFixture = sorted[0];
+    firstFixture.matchWeek = currentWeek;
+    currentWeekFixtures.push(firstFixture);
+
+    for (let i = 1; i < sorted.length; i++) {
+      const currentFixture = sorted[i];
+      const previousFixture = sorted[i - 1];
+      
+      const currentDate = new Date(currentFixture.dateTime);
+      const previousDate = new Date(previousFixture.dateTime);
+      
+      const daysDifference = Math.floor((currentDate.getTime() - previousDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      const shouldStartNewWeek = this.shouldStartNewMatchWeek(
+        currentDate,
+        currentWeekFixtures.map(f => new Date(f.dateTime)),
+        daysDifference
+      );
+      
+      if (shouldStartNewWeek) {
+        currentWeek++;
+        currentWeekFixtures = [];
+      }
+      
+      currentFixture.matchWeek = currentWeek;
+      currentWeekFixtures.push(currentFixture);
+    }
+
+    return sorted;
   }
-  
-  return false;
-}
+
+  private shouldStartNewMatchWeek(
+    currentFixtureDate: Date,
+    currentWeekDates: Date[],
+    daysSincePrevious: number
+  ): boolean {
+    if (currentWeekDates.length === 0) return false;
+    
+    const weekStart = new Date(Math.min(...currentWeekDates.map(d => d.getTime())));
+    const weekEnd = new Date(Math.max(...currentWeekDates.map(d => d.getTime())));
+    
+    const currentWeekSpan = Math.floor((weekEnd.getTime() - weekStart.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (daysSincePrevious > 4) return true;
+    if (currentWeekSpan >= 4 && daysSincePrevious >= 2) return true;
+    
+    const potentialSpan = Math.floor((currentFixtureDate.getTime() - weekStart.getTime()) / (1000 * 60 * 60 * 24));
+    if (potentialSpan > 6) return true;
+    
+    const currentDay = currentFixtureDate.getDay();
+    if (currentDay === 1) {
+      const hasWeekendGames = currentWeekDates.some(d => {
+        const day = d.getDay();
+        return day === 0 || day === 6;
+      });
+      if (hasWeekendGames && daysSincePrevious >= 1) return true;
+    }
+    
+    return false;
+  }
 
   private transformFixture(parsed: ParsedFixture): FeaturedFixtureWithImportance {
     const homeTeamLogo = getTeamLogo({ name: parsed.homeTeam });
@@ -418,10 +402,8 @@ private shouldStartNewMatchWeek(
       const parsedFixtures = fixturesTables.flatMap(table => this.parseFixturesFromTable(table));
       console.log(`Parsed ${parsedFixtures.length} fixtures from all tables`);
 
-      // Assign dynamic weeks
       const fixturesWithWeeks = this.assignDynamicMatchWeeks(parsedFixtures);
 
-      // Transform and sort
       this.fixturesCache = fixturesWithWeeks
         .map(f => this.transformFixture(f))
         .sort((a, b) => {
@@ -437,20 +419,11 @@ private shouldStartNewMatchWeek(
     }
   }
 
-  /**
-   * Get match URLs for completed matches that should have corner data
-   */
   async getCompletedMatchUrls(): Promise<string[]> {
     if (!this.isCacheValid()) await this.refreshCache();
-    
-    // Since we can't directly access matchUrl from the transformed fixtures,
-    // let's get them from the raw parsed data
     return await this.getMatchUrlsFromRawData();
   }
 
-  /**
-   * Get match URLs by re-parsing the fixtures data
-   */
   private async getMatchUrlsFromRawData(): Promise<string[]> {
     try {
       console.log('[FixtureService] Getting match URLs from raw fixtures data...');
@@ -470,7 +443,6 @@ private shouldStartNewMatchWeek(
         const headers = table.headers.map(h => h.toLowerCase());
         const scoreIndex = headers.findIndex(h => h.includes('score') || h.includes('result'));
         
-        // Look for a column that might contain match links
         const linkIndex = headers.findIndex(h => 
           h.includes('match') || 
           h.includes('url') || 
@@ -481,13 +453,10 @@ private shouldStartNewMatchWeek(
         table.rows.forEach(row => {
           if (row.length < 4) return;
 
-          // Check if the match is completed (has a score)
           const scoreStr = scoreIndex >= 0 ? 
             (typeof row[scoreIndex] === 'object' ? row[scoreIndex].text : row[scoreIndex]) : '';
           
-          // Only get URLs for completed matches (those with actual scores)
           if (scoreStr && scoreStr.includes('–')) {
-            // Try to find match URL in the dedicated link column
             if (linkIndex >= 0 && typeof row[linkIndex] === 'object' && row[linkIndex].link) {
               let url = row[linkIndex].link;
               if (!url.startsWith('https://fbref.com')) {
@@ -497,7 +466,6 @@ private shouldStartNewMatchWeek(
                 matchUrls.push(url);
               }
             } else {
-              // Fallback: look for any cell in the row that contains a match link
               row.forEach(cell => {
                 if (typeof cell === 'object' && cell.link) {
                   let url = cell.link;
@@ -514,11 +482,9 @@ private shouldStartNewMatchWeek(
         });
       });
 
-      // Remove duplicates
       const uniqueUrls = [...new Set(matchUrls)];
       console.log(`[FixtureService] Found ${uniqueUrls.length} unique match URLs`);
       
-      // Log some examples for debugging
       if (uniqueUrls.length > 0) {
         console.log('[FixtureService] Example match URLs:', uniqueUrls.slice(0, 3));
       }
@@ -530,7 +496,6 @@ private shouldStartNewMatchWeek(
     }
   }
 
-  // ---------------- Getters ----------------
   async getFeaturedFixtures(limit = 8): Promise<FeaturedFixtureWithImportance[]> {
     if (!this.isCacheValid()) await this.refreshCache();
 
@@ -551,83 +516,72 @@ private shouldStartNewMatchWeek(
   }
 
   async getCurrentGameWeekFixtures(): Promise<FeaturedFixtureWithImportance[]> {
-  if (!this.isCacheValid()) await this.refreshCache();
+    if (!this.isCacheValid()) await this.refreshCache();
 
-  const now = Date.now();
-  
-  // Group fixtures by week
-  const weekGroups = this.fixturesCache.reduce((acc, fixture) => {
-    const week = fixture.matchWeek ?? 1;
-    if (!acc[week]) acc[week] = [];
-    acc[week].push(fixture);
-    return acc;
-  }, {} as Record<number, FeaturedFixtureWithImportance[]>);
+    const now = Date.now();
+    
+    const weekGroups = this.fixturesCache.reduce((acc, fixture) => {
+      const week = fixture.matchWeek ?? 1;
+      if (!acc[week]) acc[week] = [];
+      acc[week].push(fixture);
+      return acc;
+    }, {} as Record<number, FeaturedFixtureWithImportance[]>);
 
-  const sortedWeeks = Object.keys(weekGroups).map(Number).sort((a, b) => a - b);
+    const sortedWeeks = Object.keys(weekGroups).map(Number).sort((a, b) => a - b);
 
-  // Find the current active week
-  for (const week of sortedWeeks) {
-    const weekFixtures = weekGroups[week];
-    
-    // Calculate week status
-    const finishedGames = weekFixtures.filter(f => 
-      f.status === 'finished' || f.status === 'postponed'
-    ).length;
-    
-    const liveGames = weekFixtures.filter(f => f.status === 'live').length;
-    
-    const upcomingGames = weekFixtures.filter(f => 
-      f.status === 'scheduled' || f.status === 'upcoming'
-    ).length;
-    
-    const futureGames = weekFixtures.filter(f => 
-      new Date(f.dateTime).getTime() > now
-    ).length;
-    
-    // Week is "current" if:
-    // 1. Has live games, OR
-    // 2. Has unfinished games and at least one game has started or is today, OR  
-    // 3. Has upcoming games within the next 7 days, OR
-    // 4. Week is not completely finished and no future weeks have started
-    
-    const hasActiveContent = liveGames > 0 || 
-                           (upcomingGames > 0 && finishedGames > 0) ||
-                           futureGames > 0;
-    
-    const weekComplete = finishedGames === weekFixtures.length && liveGames === 0;
-    
-    if (hasActiveContent || !weekComplete) {
-      // Additional check: ensure upcoming games are within reasonable timeframe (next 7 days)
-      const upcomingInWindow = weekFixtures.filter(f => {
-        const fixtureTime = new Date(f.dateTime).getTime();
-        const sevenDaysFromNow = now + (7 * 24 * 60 * 60 * 1000);
-        return fixtureTime >= now && fixtureTime <= sevenDaysFromNow;
-      });
+    for (const week of sortedWeeks) {
+      const weekFixtures = weekGroups[week];
       
-      if (liveGames > 0 || finishedGames > 0 || upcomingInWindow.length > 0) {
+      const finishedGames = weekFixtures.filter(f => 
+        f.status === 'finished' || f.status === 'postponed'
+      ).length;
+      
+      const liveGames = weekFixtures.filter(f => f.status === 'live').length;
+      
+      const upcomingGames = weekFixtures.filter(f => 
+        f.status === 'scheduled' || f.status === 'upcoming'
+      ).length;
+      
+      const futureGames = weekFixtures.filter(f => 
+        new Date(f.dateTime).getTime() > now
+      ).length;
+      
+      const hasActiveContent = liveGames > 0 || 
+                             (upcomingGames > 0 && finishedGames > 0) ||
+                             futureGames > 0;
+      
+      const weekComplete = finishedGames === weekFixtures.length && liveGames === 0;
+      
+      if (hasActiveContent || !weekComplete) {
+        const upcomingInWindow = weekFixtures.filter(f => {
+          const fixtureTime = new Date(f.dateTime).getTime();
+          const sevenDaysFromNow = now + (7 * 24 * 60 * 60 * 1000);
+          return fixtureTime >= now && fixtureTime <= sevenDaysFromNow;
+        });
+        
+        if (liveGames > 0 || finishedGames > 0 || upcomingInWindow.length > 0) {
+          return weekFixtures.sort(
+            (a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime()
+          );
+        }
+      }
+    }
+
+    for (const week of sortedWeeks) {
+      const weekFixtures = weekGroups[week];
+      const hasUpcomingGames = weekFixtures.some(f => 
+        new Date(f.dateTime).getTime() > now
+      );
+      
+      if (hasUpcomingGames) {
         return weekFixtures.sort(
           (a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime()
         );
       }
     }
-  }
 
-  // Fallback: return the next upcoming week if no "current" week found
-  for (const week of sortedWeeks) {
-    const weekFixtures = weekGroups[week];
-    const hasUpcomingGames = weekFixtures.some(f => 
-      new Date(f.dateTime).getTime() > now
-    );
-    
-    if (hasUpcomingGames) {
-      return weekFixtures.sort(
-        (a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime()
-      );
-    }
+    return [];
   }
-
-  return [];
-}
 
   async getUpcomingImportantMatches(limit?: number): Promise<FeaturedFixtureWithImportance[]> {
     if (!this.isCacheValid()) await this.refreshCache();
@@ -642,42 +596,41 @@ private shouldStartNewMatchWeek(
   }
 
   async getGameWeekInfo() {
-  if (!this.isCacheValid()) await this.refreshCache();
+    if (!this.isCacheValid()) await this.refreshCache();
 
-  const fixtures = await this.getCurrentGameWeekFixtures();
+    const fixtures = await this.getCurrentGameWeekFixtures();
 
-  if (fixtures.length === 0) {
-    return { 
-      currentWeek: 1, 
-      isComplete: true, 
-      totalGames: 0, 
-      finishedGames: 0, 
-      upcomingGames: 0 
+    if (fixtures.length === 0) {
+      return { 
+        currentWeek: 1, 
+        isComplete: true, 
+        totalGames: 0, 
+        finishedGames: 0, 
+        upcomingGames: 0 
+      };
+    }
+
+    const currentWeek = fixtures[0].matchWeek ?? 1;
+    const finishedGames = fixtures.filter(f => 
+      f.status === 'finished' || f.status === 'postponed'
+    ).length;
+    
+    const liveGames = fixtures.filter(f => f.status === 'live').length;
+    
+    const upcomingGames = fixtures.filter(f => 
+      f.status === 'scheduled' || f.status === 'upcoming'
+    ).length;
+
+    const isComplete = (finishedGames === fixtures.length) && (liveGames === 0);
+
+    return {
+      currentWeek,
+      isComplete,
+      totalGames: fixtures.length,
+      finishedGames,
+      upcomingGames: upcomingGames + liveGames,
     };
   }
-
-  const currentWeek = fixtures[0].matchWeek ?? 1;
-  const finishedGames = fixtures.filter(f => 
-    f.status === 'finished' || f.status === 'postponed'
-  ).length;
-  
-  const liveGames = fixtures.filter(f => f.status === 'live').length;
-  
-  const upcomingGames = fixtures.filter(f => 
-    f.status === 'scheduled' || f.status === 'upcoming'
-  ).length;
-
-  // Week is complete only if all games are finished/postponed AND no live games
-  const isComplete = (finishedGames === fixtures.length) && (liveGames === 0);
-
-  return {
-    currentWeek,
-    isComplete,
-    totalGames: fixtures.length,
-    finishedGames,
-    upcomingGames: upcomingGames + liveGames, // Include live games as "upcoming"
-  };
-}
 }
 
 export const fbrefFixtureService = new FBrefFixtureService();
