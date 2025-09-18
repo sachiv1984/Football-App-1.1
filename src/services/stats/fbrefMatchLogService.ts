@@ -42,6 +42,10 @@ export class FBrefMatchLogService {
       });
     });
 
+  /**
+   * Use all strategies to find corners data
+   */
+  private scrapeWithStrategies(scraped: ScrapedData, matchUrl: string): MatchLogCorners | null {
     // Try multiple strategies to find corners data
     let cornersData = this.tryMatchSummaryStrategy(scraped, matchUrl);
     if (cornersData) return cornersData;
@@ -54,6 +58,7 @@ export class FBrefMatchLogService {
 
     console.warn(`[MatchLog] No corners data found at ${matchUrl}`);
     return null;
+  }
   }
 
   /**
