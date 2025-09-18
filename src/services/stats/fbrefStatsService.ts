@@ -86,23 +86,43 @@ export class FBrefStatsService {
 
   private readonly FBREF_URLS = {
     premierLeague: {
-      stats: 'https://fbref.com/en/comps/9/stats/Premier-League-Stats',
+      stats: [
+        'https://fbref.com/en/comps/9/2025-2026/2025-2026-Premier-League-Stats', // Season-specific stats page
+        'https://fbref.com/en/comps/9/Premier-League-Stats', // Current season stats
+        'https://fbref.com/en/comps/9/stats/Premier-League-Stats', // Legacy stats URL
+      ],
       fixtures: 'https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures',
     },
     laLiga: {
-      stats: 'https://fbref.com/en/comps/12/stats/La-Liga-Stats',
+      stats: [
+        'https://fbref.com/en/comps/12/2025-2026/2025-2026-La-Liga-Stats',
+        'https://fbref.com/en/comps/12/La-Liga-Stats',
+        'https://fbref.com/en/comps/12/stats/La-Liga-Stats',
+      ],
       fixtures: 'https://fbref.com/en/comps/12/schedule/La-Liga-Scores-and-Fixtures',
     },
     bundesliga: {
-      stats: 'https://fbref.com/en/comps/20/stats/Bundesliga-Stats',
+      stats: [
+        'https://fbref.com/en/comps/20/2025-2026/2025-2026-Bundesliga-Stats',
+        'https://fbref.com/en/comps/20/Bundesliga-Stats',
+        'https://fbref.com/en/comps/20/stats/Bundesliga-Stats',
+      ],
       fixtures: 'https://fbref.com/en/comps/20/schedule/Bundesliga-Scores-and-Fixtures',
     },
     serieA: {
-      stats: 'https://fbref.com/en/comps/11/stats/Serie-A-Stats',
+      stats: [
+        'https://fbref.com/en/comps/11/2025-2026/2025-2026-Serie-A-Stats',
+        'https://fbref.com/en/comps/11/Serie-A-Stats',
+        'https://fbref.com/en/comps/11/stats/Serie-A-Stats',
+      ],
       fixtures: 'https://fbref.com/en/comps/11/schedule/Serie-A-Scores-and-Fixtures',
     },
     ligue1: {
-      stats: 'https://fbref.com/en/comps/13/stats/Ligue-1-Stats',
+      stats: [
+        'https://fbref.com/en/comps/13/2025-2026/2025-2026-Ligue-1-Stats',
+        'https://fbref.com/en/comps/13/Ligue-1-Stats',
+        'https://fbref.com/en/comps/13/stats/Ligue-1-Stats',
+      ],
       fixtures: 'https://fbref.com/en/comps/13/schedule/Ligue-1-Scores-and-Fixtures',
     },
   };
@@ -127,8 +147,38 @@ export class FBrefStatsService {
   }
 
   private async scrapeStatsData(): Promise<ScrapedData> {
-    const statsUrl = this.FBREF_URLS[this.currentLeague].stats;
-    return await fbrefScraper.scrapeUrl(statsUrl);
+    const statsUrls = this.FBREF_URLS[this.currentLeague].stats;
+    
+    console.log(`Trying ${statsUrls.length} URLs to find league table...`);
+    
+    for (let i = 0; i < statsUrls.length; i++) {
+      const url = statsUrls[i];
+      console.log(`Attempt ${i + 1}: ${url}`);
+      
+      try {
+        const data = await fbrefScraper.scrapeUrl(url);
+        
+        // Check if this data contains a league table
+        const hasLeagueTable = data.tables.some(table => 
+          (table.headers.includes('W') && table.headers.includes('D') && table.headers.includes('L')) ||
+          table.id === 'results2025-202691_overall' ||
+          (table.caption.toLowerCase().includes('table') && !table.caption.toLowerCase().includes('stats'))
+        );
+        
+        if (hasLeagueTable) {
+          console.log(`✅ Found league table at URL ${i + 1}: ${url}`);
+          return data;
+        } else {
+          console.log(`❌ No league table found at URL ${i + 1}, trying next...`);
+        }
+      } catch (error) {
+        console.log(`❌ Error with URL ${i + 1}: ${error}, trying next...`);
+      }
+    }
+    
+    // If no URL worked, return the last attempt's data or throw error
+    console.log('⚠️  No URL contained league table, using last attempted URL...');
+    return await fbrefScraper.scrapeUrl(statsUrls[statsUrls.length - 1]);
   }
 
   private async scrapeFixturesData(): Promise<ScrapedData> {
