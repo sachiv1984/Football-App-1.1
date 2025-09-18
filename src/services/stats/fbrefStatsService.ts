@@ -1,7 +1,7 @@
 // src/services/stats/fbrefStatsService.ts
 import { fbrefScraper, type ScrapedData, type TableData } from '../scrape/Fbref';
 import { normalizeTeamName } from '../../utils/teamUtils';
-import { fbrefMatchLogService, type MatchLogCorners } from './fbrefMatchLogService';
+import { fbrefMatchLogService,  } from './fbrefMatchLogService';
 
 interface TeamFormData {
   homeResults: ('W' | 'D' | 'L')[];
@@ -154,7 +154,6 @@ export class FBrefStatsService {
     const awayIndex = headers.findIndex(h => h.includes('away'));
     const scoreIndex = headers.findIndex(h => h.includes('score') || h.includes('result'));
     const dateIndex = headers.findIndex(h => h.includes('date'));
-    const reportIndex = headers.findIndex(h => h.includes('report'));
 
     fixturesTable.rows.forEach(row => {
       if (row.length < 4) return;
@@ -162,7 +161,6 @@ export class FBrefStatsService {
       const homeTeam = normalizeTeamName(typeof row[homeIndex] === 'object' ? row[homeIndex].text : row[homeIndex]);
       const awayTeam = normalizeTeamName(typeof row[awayIndex] === 'object' ? row[awayIndex].text : row[awayIndex]);
       const scoreStr = typeof row[scoreIndex] === 'object' ? row[scoreIndex].text : row[scoreIndex];
-      const dateStr = typeof row[dateIndex] === 'object' ? row[dateIndex].text : row[dateIndex];
       if (!scoreStr || !scoreStr.includes('–')) return;
 
       const [homeScoreStr, awayScoreStr] = scoreStr.split('–');
