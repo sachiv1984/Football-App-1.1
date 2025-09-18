@@ -542,7 +542,7 @@ export class FBrefStatsService {
     try {
       console.log(`Refreshing FBref stats cache for ${this.currentLeague}...`);
       
-      const [statsData, fixturesData, advancedData] = await Promise.all([
+      const [statsData, fixturesData] = await Promise.all([
         this.scrapeStatsData(),
         this.scrapeFixturesData(),
         this.scrapeAdvancedStatsData().catch(() => null) // Don't fail if advanced data unavailable
