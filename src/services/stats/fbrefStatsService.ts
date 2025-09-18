@@ -538,136 +538,69 @@ export class FBrefStatsService {
     return result;
 }
 
-  private async refreshCache(): Promise<void> {
-    try {
-      console.log(`Refreshing FBref stats cache for ${this.currentLeague}...`);
-      
-      const [statsData, fixturesData] = await Promise.all([
-        this.scrapeStatsData(),
-        this.scrapeFixturesData(),
-        this.scrapeAdvancedStatsData().catch(() => null) // Don't fail if advanced data unavailable
-      ]);
+private async refreshCache(): Promise<void> {
+  try {
+    console.log(`Refreshing FBref stats cache for ${this.currentLeague}...`);
+    
+    const [statsData, fixturesData] = await Promise.all([
+      this.scrapeStatsData(),
+      this.scrapeFixturesData()
+    ]);
 
-      console.log('=== AVAILABLE TABLES ===');
-      statsData.tables.forEach((table, index) => {
-        console.log(`Table ${index}:`);
-        console.log(`  ID: "${table.id}"`);
-        console.log(`  Caption: "${table.caption}"`);
-        console.log(`  Rows: ${table.rows.length}`);
-        console.log(`  Headers: [${table.headers.slice(0, 8).join(', ')}...]`);
-        console.log(`  Has W/D/L columns: ${table.headers.includes('W') && table.headers.includes('D') && table.headers.includes('L')}`);
-      });
+    console.log('=== AVAILABLE TABLES ===');
+    statsData.tables.forEach((table, index) => {
+      console.log(`Table ${index}:`);
+      console.log(`  ID: "${table.id}"`);
+      console.log(`  Caption: "${table.caption}"`);
+      console.log(`  Rows: ${table.rows.length}`);
+      console.log(`  Headers: [${table.headers.slice(0, 8).join(', ')}...]`);
+      console.log(`  Has W/D/L columns: ${table.headers.includes('W') && table.headers.includes('D') && table.headers.includes('L')}`);
+    });
 
-      // Find the correct Premier League TABLE (not player stats)
-      // Priority 1: Table with the exact ID we found from scraping
-      let leagueTable = statsData.tables.find(table => 
-        table.id === 'results2025-202691_overall'
+    // Find the correct Premier League TABLE (not player stats)
+    let leagueTable = statsData.tables.find(table => 
+      table.id === 'results2025-202691_overall'
+    );
+
+    if (!leagueTable) {
+      leagueTable = statsData.tables.find(table => 
+        table.headers.includes('W') && 
+        table.headers.includes('D') && 
+        table.headers.includes('L') &&
+        table.headers.includes('Squad') &&
+        !table.caption.toLowerCase().includes('stats')
       );
-
-      // Priority 2: Table that has W, D, L columns (league table, not player stats)
-      if (!leagueTable) {
-        leagueTable = statsData.tables.find(table => 
-          table.headers.includes('W') && 
-          table.headers.includes('D') && 
-          table.headers.includes('L') &&
-          table.headers.includes('Squad') &&
-          !table.caption.toLowerCase().includes('stats') // Avoid "Standard Stats" tables
-        );
-      }
-
-      // Priority 3: Table with "Table" in caption that has league-style headers
-      if (!leagueTable) {
-        leagueTable = statsData.tables.find(table => 
-          table.caption.toLowerCase().includes('table') &&
-          !table.caption.toLowerCase().includes('stats') &&
-          table.headers.includes('Pts') &&
-          table.headers.includes('Squad')
-        );
-      }
-
-      // Priority 4: Any table with W/D/L columns
-      if (!leagueTable) {
-        leagueTable = statsData.tables.find(table => 
-          table.headers.includes('W') && 
-          table.headers.includes('D') && 
-          table.headers.includes('L')
-        );
-      }
-
-      if (!leagueTable || leagueTable.rows.length === 0) {
-        console.error('❌ NO VALID LEAGUE TABLE FOUND!');
-        console.error('Available tables:', statsData.tables.map(t => ({ 
-          id: t.id, 
-          caption: t.caption, 
-          headers: t.headers.slice(0, 5),
-          hasWDL: t.headers.includes('W') && t.headers.includes('D') && t.headers.includes('L')
-        })));
-        throw new Error('No valid league table found in scraped data');
-      }
-
-      // Validate that we have the correct table structure
-      const requiredColumns = ['Squad', 'W', 'D', 'L', 'MP'];
-      const missingColumns = requiredColumns.filter(col => !leagueTable.headers.includes(col));
-      
-      if (missingColumns.length > 0) {
-        console.error('❌ SELECTED TABLE MISSING REQUIRED COLUMNS!');
-        console.error('Missing columns:', missingColumns);
-        console.error('Available columns:', leagueTable.headers);
-        throw new Error(`Selected table missing required columns: ${missingColumns.join(', ')}`);
-      }
-
-      console.log(`\n✅ SELECTED CORRECT TABLE ===`);
-      console.log(`ID: "${leagueTable.id}"`);
-      console.log(`Caption: "${leagueTable.caption}"`);
-      console.log(`Rows: ${leagueTable.rows.length}`);
-      console.log(`Headers: [${leagueTable.headers.join(', ')}]`);
-      console.log(`Has all required columns: ✅`);
-
-
-      const basicStats = this.parseStatsTable(leagueTable);
-      const teamForms = this.parseFixturesForForm(fixturesData);
-
-      // Combine data and create full team stats
-      this.statsCache.clear();
-      
-      basicStats.forEach((stats, teamName) => {
-        const form = teamForms.get(teamName) || [];
-        const enhancedStats = this.estimateAdvancedStats(stats);
-        
-        const finalStats = {
-          ...enhancedStats,
-          recentForm: form,
-        } as TeamSeasonStats;
-        
-        console.log(`\nFinal stats for ${teamName}:`, {
-          mp: finalStats.matchesPlayed,
-          w: finalStats.won,
-          d: finalStats.drawn,
-          l: finalStats.lost,
-          corners: finalStats.corners,
-          cornersAgainst: finalStats.cornersAgainst,
-          form: finalStats.recentForm
-        });
-        
-        this.statsCache.set(teamName, finalStats);
-      });
-
-      this.cacheTime = Date.now();
-      console.log(`\n=== CACHE REFRESH COMPLETE ===`);
-      console.log(`Stats cache refreshed with ${this.statsCache.size} teams`);
-      console.log('Available teams in cache:', Array.from(this.statsCache.keys()));
-      
-      // Log a sample team's complete data
-      const sampleTeam = Array.from(this.statsCache.values())[0];
-      if (sampleTeam) {
-        console.log('\n=== SAMPLE TEAM DATA ===');
-        console.log('Sample team complete data:', sampleTeam);
-      }
-    } catch (error) {
-      console.error('Error refreshing FBref stats cache:', error);
-      throw error;
     }
+
+    if (!leagueTable || leagueTable.rows.length === 0) {
+      console.error('❌ NO VALID LEAGUE TABLE FOUND!');
+      throw new Error('No valid league table found in scraped data');
+    }
+
+    const basicStats = this.parseStatsTable(leagueTable);
+    const teamForms = this.parseFixturesForForm(fixturesData);
+
+    this.statsCache.clear();
+    
+    basicStats.forEach((stats, teamName) => {
+      const form = teamForms.get(teamName) || [];
+      const enhancedStats = this.estimateAdvancedStats(stats);
+      
+      const finalStats = {
+        ...enhancedStats,
+        recentForm: form,
+      } as TeamSeasonStats;
+      
+      this.statsCache.set(teamName, finalStats);
+    });
+
+    this.cacheTime = Date.now();
+    console.log(`Stats cache refreshed with ${this.statsCache.size} teams`);
+  } catch (error) {
+    console.error('Error refreshing FBref stats cache:', error);
+    throw error;
   }
+}
 
   async getTeamStats(teamName: string): Promise<TeamSeasonStats | null> {
     if (!this.isCacheValid()) {
