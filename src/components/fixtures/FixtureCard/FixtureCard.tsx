@@ -71,13 +71,24 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
     }
   }, [fetchGameWeekData, refreshInterval, useGameWeekMode]);
 
-  const fixturesToRender = useGameWeekMode
-  ? gameWeekFixtures.filter(
-      f => f.status && ['live', 'finished', 'upcoming'].includes(f.status)
-    )
-  : singleFixture
-  ? [singleFixture]
-  : [];
+  // Fix: ensure fixtures are fully typed as FeaturedFixtureWithImportance
+  const fixturesToRender: FeaturedFixtureWithImportance[] = useGameWeekMode
+    ? gameWeekFixtures
+        .filter(f => f.status && ['live', 'finished', 'upcoming'].includes(f.status))
+        .map(f => ({
+          ...f,
+          importanceScore: f.importanceScore ?? 0,
+          tags: f.tags ?? [],
+          isBigMatch: f.isBigMatch ?? false,
+        }))
+    : singleFixture
+    ? [{
+        ...singleFixture,
+        importanceScore: singleFixture.importanceScore ?? 0,
+        tags: singleFixture.tags ?? [],
+        isBigMatch: singleFixture.isBigMatch ?? false,
+      }]
+    : [];
 
   if (useGameWeekMode && isLoading) {
     return (
