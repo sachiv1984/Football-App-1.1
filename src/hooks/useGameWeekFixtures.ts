@@ -1,7 +1,7 @@
-// src/hooks/useGameWeekFixtures.ts
 import { useState, useEffect } from 'react';
-import { FeaturedFixtureWithImportance } from '../types';
 import { fbrefFixtureService } from '../services/fixtures/fbrefFixtureService';
+import type { FeaturedFixtureWithImportance, Game } from '../types';
+import { toFeaturedFixtureWithImportance } from '../utils/fixtureUtils';
 
 export const useGameWeekFixtures = () => {
   const [fixtures, setFixtures] = useState<FeaturedFixtureWithImportance[]>([]);
@@ -20,13 +20,17 @@ export const useGameWeekFixtures = () => {
       setIsLoading(true);
       setError(null);
 
-      // Use the service methods (same as original)
-      const [weekFixtures, weekInfo] = await Promise.all([
+      const [rawFixtures, weekInfo] = await Promise.all([
         fbrefFixtureService.getCurrentGameWeekFixtures(),
-        fbrefFixtureService.getGameWeekInfo()
+        fbrefFixtureService.getGameWeekInfo(),
       ]);
 
-      setFixtures(weekFixtures);
+      // Ensure all fixtures are fully typed
+      const typedFixtures: FeaturedFixtureWithImportance[] = rawFixtures.map(f =>
+        toFeaturedFixtureWithImportance(f)
+      );
+
+      setFixtures(typedFixtures);
       setGameWeekInfo(weekInfo);
     } catch (err) {
       console.error('Error loading game week fixtures:', err);
@@ -47,12 +51,13 @@ export const useGameWeekFixtures = () => {
     await loadGameWeekFixtures();
   };
 
-  // Additional methods for the new service
-  const switchLeague = async (league: 'premierLeague' | 'laLiga' | 'bundesliga' | 'serieA' | 'ligue1') => {
+  const switchLeague = async (
+    league: 'premierLeague' | 'laLiga' | 'bundesliga' | 'serieA' | 'ligue1'
+  ) => {
     try {
       setIsLoading(true);
       setError(null);
-      
+
       fbrefFixtureService.setLeague(league);
       await loadGameWeekFixtures();
     } catch (err) {
@@ -62,9 +67,7 @@ export const useGameWeekFixtures = () => {
     }
   };
 
-  const getCurrentLeague = () => {
-    return fbrefFixtureService.getCurrentLeague();
-  };
+  const getCurrentLeague = () => fbrefFixtureService.getCurrentLeague();
 
   return {
     fixtures,
@@ -73,6 +76,6 @@ export const useGameWeekFixtures = () => {
     gameWeekInfo,
     refetch,
     switchLeague,
-    getCurrentLeague
+    getCurrentLeague,
   };
 };
