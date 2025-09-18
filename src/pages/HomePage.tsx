@@ -153,16 +153,22 @@ const HomePage: React.FC = () => {
 
                     {/* Fixtures grid for this date */}
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                      {fixtures.map((fixture) => (
-                        <FixtureCard
-                          key={fixture.id}
-                          fixture={fixture}
-                          size="lg"
-                          showVenue={true}
-                          enableNavigation={true}  // This enables navigation to stats page
-                          className="hover:scale-[1.02] transition-transform duration-200"
-                        />
-                      ))}
+                     {fixtures.map((fixture) => (
+  <FixtureCard
+    key={fixture.id}
+    fixture={{
+      ...fixture,
+      importanceScore: 0,  // default value
+      tags: [],             // default value
+      isBigMatch: false,    // default value
+    }}
+    size="lg"
+    showVenue={true}
+    enableNavigation={true}
+    className="hover:scale-[1.02] transition-transform duration-200"
+  />
+))}
+
                     </div>
                   </div>
                 ))}
