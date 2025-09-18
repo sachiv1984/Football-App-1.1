@@ -153,59 +153,70 @@ export class FBrefFixtureService {
   }
 
   private parseFixturesFromTable(table: TableData): ParsedFixture[] {
-    const fixtures: ParsedFixture[] = [];
+  const fixtures: ParsedFixture[] = [];
 
-    const headers = table.headers.map(h => h.toLowerCase());
-    const dateIndex = headers.findIndex(h => h.includes('date'));
-    const timeIndex = headers.findIndex(h => h.includes('time'));
-    const homeIndex = headers.findIndex(h => h.includes('home'));
-    const awayIndex = headers.findIndex(h => h.includes('away'));
-    const scoreIndex = headers.findIndex(h => h.includes('score') || h.includes('result'));
-    const venueIndex = headers.findIndex(h => h.includes('venue') || h.includes('stadium'));
-    const weekIndex = headers.findIndex(h => h.includes('wk') || h.includes('week'));
+  const headers = table.headers.map(h => h.toLowerCase());
+  const dateIndex = headers.findIndex(h => h.includes('date'));
+  const timeIndex = headers.findIndex(h => h.includes('time'));
+  const homeIndex = headers.findIndex(h => h.includes('home'));
+  const awayIndex = headers.findIndex(h => h.includes('away'));
+  const scoreIndex = headers.findIndex(h => h.includes('score') || h.includes('result'));
+  const venueIndex = headers.findIndex(h => h.includes('venue') || h.includes('stadium'));
+  const weekIndex = headers.findIndex(h => h.includes('wk') || h.includes('week'));
 
-    table.rows.forEach((row, index) => {
-      if (row.length < 4) return;
+  table.rows.forEach((row, index) => {
+    if (row.length < 4) return;
 
-      const rawHome = typeof row[homeIndex] === 'object' ? row[homeIndex].text : row[homeIndex];
-      const rawAway = typeof row[awayIndex] === 'object' ? row[awayIndex].text : row[awayIndex];
-      if (!rawHome || !rawAway) return;
+    const rawHome = typeof row[homeIndex] === 'object' ? row[homeIndex].text : row[homeIndex];
+    const rawAway = typeof row[awayIndex] === 'object' ? row[awayIndex].text : row[awayIndex];
+    if (!rawHome || !rawAway) return;
 
-      const homeTeam = normalizeTeamName(rawHome);
-      const awayTeam = normalizeTeamName(rawAway);
+    const homeTeam = normalizeTeamName(rawHome);
+    const awayTeam = normalizeTeamName(rawAway);
 
-      const dateStr = dateIndex >= 0 ? (typeof row[dateIndex] === 'object' ? row[dateIndex].text : row[dateIndex]) : '';
-      const timeStr = timeIndex >= 0 ? (typeof row[timeIndex] === 'object' ? row[timeIndex].text : row[timeIndex]) : '';
-      const scoreStr = scoreIndex >= 0 ? (typeof row[scoreIndex] === 'object' ? row[scoreIndex].text : row[scoreIndex]) : '';
-      const venueStr = venueIndex >= 0 ? (typeof row[venueIndex] === 'object' ? row[venueIndex].text : row[venueIndex]) : '';
-      const weekStr = weekIndex >= 0 ? (typeof row[weekIndex] === 'object' ? row[weekIndex].text : row[weekIndex]) : '';
+    const dateStr = dateIndex >= 0 ? (typeof row[dateIndex] === 'object' ? row[dateIndex].text : row[dateIndex]) : '';
+    const timeStr = timeIndex >= 0 ? (typeof row[timeIndex] === 'object' ? row[timeIndex].text : row[timeIndex]) : '';
+    const scoreCell = scoreIndex >= 0 ? row[scoreIndex] : '';
+    const venueStr = venueIndex >= 0 ? (typeof row[venueIndex] === 'object' ? row[venueIndex].text : row[venueIndex]) : '';
+    const weekStr = weekIndex >= 0 ? (typeof row[weekIndex] === 'object' ? row[weekIndex].text : row[weekIndex]) : '';
 
-      let homeScore: number | undefined;
-      let awayScore: number | undefined;
+    let homeScore: number | undefined;
+    let awayScore: number | undefined;
+    let url: string | undefined;
 
-      if (scoreStr && scoreStr.includes('–')) {
-        const [h, a] = scoreStr.split('–').map(s => parseInt(s.trim(), 10));
-        if (!isNaN(h) && !isNaN(a)) {
-          homeScore = h;
-          awayScore = a;
-        }
+    let scoreStr = '';
+    if (typeof scoreCell === 'object') {
+      scoreStr = scoreCell.text || '';
+      url = scoreCell.link; // <-- match log URL
+    } else {
+      scoreStr = scoreCell || '';
+    }
+
+    if (scoreStr && scoreStr.includes('–')) {
+      const [h, a] = scoreStr.split('–').map(s => parseInt(s.trim(), 10));
+      if (!isNaN(h) && !isNaN(a)) {
+        homeScore = h;
+        awayScore = a;
       }
+    }
 
-      fixtures.push({
-        id: `fbref-${index}-${homeTeam}-${awayTeam}`.replace(/\s+/g, '-'),
-        dateTime: this.parseDate(dateStr, timeStr),
-        homeTeam,
-        awayTeam,
-        homeScore,
-        awayScore,
-        status: this.parseStatus(scoreStr),
-        venue: venueStr || 'TBD',
-        matchWeek: weekStr ? parseInt(weekStr) || undefined : undefined, // will recalc dynamically later
-      });
-    });
+    fixtures.push({
+      id: `fbref-${index}-${homeTeam}-${awayTeam}`.replace(/\s+/g, '-'),
+      dateTime: this.parseDate(dateStr, timeStr),
+      homeTeam,
+      awayTeam,
+      homeScore,
+      awayScore,
+      status: this.parseStatus(scoreStr),
+      venue: venueStr || 'TBD',
+      matchWeek: weekStr ? parseInt(weekStr) || undefined : undefined,
+      url, // <-- include the match log URL in the parsed fixture
+    } as ParsedFixture & { url?: string });
+  });
 
-    return fixtures;
-  }
+  return fixtures;
+}
+
 
   // ---------------- Dynamic week assignment ----------------
 // Updated assignDynamicMatchWeeks method for fbrefFixtureService.ts
