@@ -139,71 +139,90 @@ export class FBrefStatsService {
   private parseStatsTable(table: TableData): Map<string, Partial<TeamSeasonStats>> {
     const teamStats = new Map<string, Partial<TeamSeasonStats>>();
     
-    console.log('Parsing stats table with headers:', table.headers);
+    console.log('=== PARSING PREMIER LEAGUE TABLE ===');
+    console.log('Table ID:', table.id);
+    console.log('Table Caption:', table.caption);
+    console.log('Original headers:', table.headers);
     
-    const headers = table.headers.map(h => h.toLowerCase());
+    const headers = table.headers.map(h => h.toLowerCase().trim());
+    console.log('Lowercase headers:', headers);
     
-    // More flexible header matching
-    const teamIndex = headers.findIndex(h => 
-      h.includes('squad') || h.includes('team') || h === 'club' || h.includes('club')
-    );
-    const mpIndex = headers.findIndex(h => 
-      h === 'mp' || h.includes('played') || h.includes('matches')
-    );
-    const wIndex = headers.findIndex(h => h === 'w' || h === 'won');
-    const dIndex = headers.findIndex(h => h === 'd' || h === 'drawn' || h === 'draw');
-    const lIndex = headers.findIndex(h => h === 'l' || h === 'lost');
-    const gfIndex = headers.findIndex(h => 
-      h === 'gf' || h.includes('goals for') || h === 'gls'
-    );
-    const gaIndex = headers.findIndex(h => 
-      h === 'ga' || h.includes('goals against') || h.includes('conceded')
-    );
-    const ptsIndex = headers.findIndex(h => h === 'pts' || h === 'points');
+    // Exact matching for Premier League table based on your scraped data
+    const teamIndex = headers.findIndex(h => h === 'squad');
+    const mpIndex = headers.findIndex(h => h === 'mp');
+    const wIndex = headers.findIndex(h => h === 'w');
+    const dIndex = headers.findIndex(h => h === 'd');
+    const lIndex = headers.findIndex(h => h === 'l');
+    const gfIndex = headers.findIndex(h => h === 'gf');
+    const gaIndex = headers.findIndex(h => h === 'ga');
+    const ptsIndex = headers.findIndex(h => h === 'pts');
 
-    console.log('Header indices:', {
-      team: teamIndex,
-      mp: mpIndex, 
-      w: wIndex, 
-      d: dIndex, 
-      l: lIndex,
-      gf: gfIndex,
-      ga: gaIndex,
-      pts: ptsIndex
-    });
+    console.log('=== HEADER MAPPING ===');
+    console.log('Squad Index:', teamIndex, '-> Header:', table.headers[teamIndex]);
+    console.log('MP Index:', mpIndex, '-> Header:', table.headers[mpIndex]);
+    console.log('W Index:', wIndex, '-> Header:', table.headers[wIndex]);
+    console.log('D Index:', dIndex, '-> Header:', table.headers[dIndex]);
+    console.log('L Index:', lIndex, '-> Header:', table.headers[lIndex]);
+    console.log('GF Index:', gfIndex, '-> Header:', table.headers[gfIndex]);
+    console.log('GA Index:', gaIndex, '-> Header:', table.headers[gaIndex]);
+    console.log('Pts Index:', ptsIndex, '-> Header:', table.headers[ptsIndex]);
 
-    table.rows.forEach((row, index) => {
-      if (row.length < 4) return;
+    console.log(`\n=== PROCESSING ${table.rows.length} ROWS ===`);
 
-      const teamName = typeof row[teamIndex] === 'object' ? row[teamIndex].text : row[teamIndex];
-      if (!teamName || teamName.trim() === '') return;
+    table.rows.forEach((row, rowIndex) => {
+      if (row.length < 4) {
+        console.log(`Row ${rowIndex}: Skipped (too short: ${row.length} cells)`);
+        return;
+      }
+
+      // Extract team name
+      const teamCell = row[teamIndex];
+      const teamName = typeof teamCell === 'object' ? teamCell.text : teamCell;
+      
+      if (!teamName || teamName.trim() === '' || teamName.toLowerCase().includes('total')) {
+        console.log(`Row ${rowIndex}: Skipped (invalid team name: "${teamName}")`);
+        return;
+      }
 
       const normalizedTeam = normalizeTeamName(teamName);
       
-      const getValue = (index: number): number => {
-        if (index === -1) return 0;
+      // Enhanced getValue function with better debugging
+      const getValue = (index: number, fieldName: string): number => {
+        if (index === -1) {
+          console.log(`  ${fieldName}: No column found`);
+          return 0;
+        }
+        
         const cell = row[index];
-        const value = typeof cell === 'object' ? cell.text : cell;
-        const numValue = parseInt(String(value).replace(/[^\d]/g, '')) || 0;
+        const rawValue = typeof cell === 'object' ? cell.text : cell;
+        const cleanValue = String(rawValue || '').trim();
+        const numValue = parseInt(cleanValue.replace(/[^\d-]/g, '')) || 0;
+        
+        console.log(`  ${fieldName}: Raw="${rawValue}" -> Clean="${cleanValue}" -> Number=${numValue}`);
         return numValue;
       };
 
+      console.log(`\nRow ${rowIndex}: Processing "${teamName}" -> "${normalizedTeam}"`);
+      
       const stats = {
         team: normalizedTeam,
-        matchesPlayed: getValue(mpIndex),
-        won: getValue(wIndex),
-        drawn: getValue(dIndex),
-        lost: getValue(lIndex),
-        goalsFor: getValue(gfIndex),
-        goalsAgainst: getValue(gaIndex),
-        points: getValue(ptsIndex),
+        matchesPlayed: getValue(mpIndex, 'MP'),
+        won: getValue(wIndex, 'W'),
+        drawn: getValue(dIndex, 'D'),
+        lost: getValue(lIndex, 'L'),
+        goalsFor: getValue(gfIndex, 'GF'),
+        goalsAgainst: getValue(gaIndex, 'GA'),
+        points: getValue(ptsIndex, 'Pts'),
       };
 
-      console.log(`Team ${normalizedTeam} stats:`, stats);
+      console.log(`Final stats for ${normalizedTeam}:`, stats);
       teamStats.set(normalizedTeam, stats);
     });
 
-    console.log(`Parsed ${teamStats.size} teams from stats table`);
+    console.log(`\n=== PARSING COMPLETE ===`);
+    console.log(`Successfully parsed ${teamStats.size} teams from stats table`);
+    console.log('Team names in cache:', Array.from(teamStats.keys()));
+    
     return teamStats;
   }
 
@@ -363,27 +382,81 @@ export class FBrefStatsService {
         this.scrapeFixturesData()
       ]);
 
-      console.log('Stats data tables:', statsData.tables.map(t => ({ caption: t.caption, id: t.id })));
+      console.log('=== AVAILABLE TABLES ===');
+      statsData.tables.forEach((table, index) => {
+        console.log(`Table ${index}:`);
+        console.log(`  ID: "${table.id}"`);
+        console.log(`  Caption: "${table.caption}"`);
+        console.log(`  Rows: ${table.rows.length}`);
+        console.log(`  Headers: [${table.headers.slice(0, 8).join(', ')}...]`);
+        console.log(`  Has W/D/L columns: ${table.headers.includes('W') && table.headers.includes('D') && table.headers.includes('L')}`);
+      });
 
-      // Find the main league table - try multiple approaches
+      // Find the correct Premier League TABLE (not player stats)
+      // Priority 1: Table with the exact ID we found from scraping
       let leagueTable = statsData.tables.find(table => 
-        table.caption.toLowerCase().includes('table') || 
-        table.id.toLowerCase().includes('results') ||
-        table.id.toLowerCase().includes('stats_standard')
+        table.id === 'results2025-202691_overall'
       );
 
-      // If not found, take the largest table (likely the main one)
+      // Priority 2: Table that has W, D, L columns (league table, not player stats)
       if (!leagueTable) {
-        leagueTable = statsData.tables.reduce((largest, current) => 
-          current.rows.length > largest.rows.length ? current : largest
+        leagueTable = statsData.tables.find(table => 
+          table.headers.includes('W') && 
+          table.headers.includes('D') && 
+          table.headers.includes('L') &&
+          table.headers.includes('Squad') &&
+          !table.caption.toLowerCase().includes('stats') // Avoid "Standard Stats" tables
+        );
+      }
+
+      // Priority 3: Table with "Table" in caption that has league-style headers
+      if (!leagueTable) {
+        leagueTable = statsData.tables.find(table => 
+          table.caption.toLowerCase().includes('table') &&
+          !table.caption.toLowerCase().includes('stats') &&
+          table.headers.includes('Pts') &&
+          table.headers.includes('Squad')
+        );
+      }
+
+      // Priority 4: Any table with W/D/L columns
+      if (!leagueTable) {
+        leagueTable = statsData.tables.find(table => 
+          table.headers.includes('W') && 
+          table.headers.includes('D') && 
+          table.headers.includes('L')
         );
       }
 
       if (!leagueTable || leagueTable.rows.length === 0) {
+        console.error('❌ NO VALID LEAGUE TABLE FOUND!');
+        console.error('Available tables:', statsData.tables.map(t => ({ 
+          id: t.id, 
+          caption: t.caption, 
+          headers: t.headers.slice(0, 5),
+          hasWDL: t.headers.includes('W') && t.headers.includes('D') && t.headers.includes('L')
+        })));
         throw new Error('No valid league table found in scraped data');
       }
 
-      console.log(`Using table: "${leagueTable.caption}" with ${leagueTable.rows.length} rows`);
+      // Validate that we have the correct table structure
+      const requiredColumns = ['Squad', 'W', 'D', 'L', 'MP'];
+      const missingColumns = requiredColumns.filter(col => !leagueTable.headers.includes(col));
+      
+      if (missingColumns.length > 0) {
+        console.error('❌ SELECTED TABLE MISSING REQUIRED COLUMNS!');
+        console.error('Missing columns:', missingColumns);
+        console.error('Available columns:', leagueTable.headers);
+        throw new Error(`Selected table missing required columns: ${missingColumns.join(', ')}`);
+      }
+
+      console.log(`\n✅ SELECTED CORRECT TABLE ===`);
+      console.log(`ID: "${leagueTable.id}"`);
+      console.log(`Caption: "${leagueTable.caption}"`);
+      console.log(`Rows: ${leagueTable.rows.length}`);
+      console.log(`Headers: [${leagueTable.headers.join(', ')}]`);
+      console.log(`Has all required columns: ✅`);
+
 
       const basicStats = this.parseStatsTable(leagueTable);
       const teamForms = this.parseFixturesForForm(fixturesData);
@@ -395,19 +468,32 @@ export class FBrefStatsService {
         const form = teamForms.get(teamName) || [];
         const enhancedStats = this.estimateAdvancedStats(stats);
         
-        this.statsCache.set(teamName, {
+        const finalStats = {
           ...enhancedStats,
           recentForm: form,
-        } as TeamSeasonStats);
+        } as TeamSeasonStats;
+        
+        console.log(`\nFinal stats for ${teamName}:`, {
+          mp: finalStats.matchesPlayed,
+          w: finalStats.won,
+          d: finalStats.drawn,
+          l: finalStats.lost,
+          form: finalStats.recentForm
+        });
+        
+        this.statsCache.set(teamName, finalStats);
       });
 
       this.cacheTime = Date.now();
+      console.log(`\n=== CACHE REFRESH COMPLETE ===`);
       console.log(`Stats cache refreshed with ${this.statsCache.size} teams`);
+      console.log('Available teams in cache:', Array.from(this.statsCache.keys()));
       
-      // Log sample data for debugging
+      // Log a sample team's complete data
       const sampleTeam = Array.from(this.statsCache.values())[0];
       if (sampleTeam) {
-        console.log('Sample team data:', sampleTeam);
+        console.log('\n=== SAMPLE TEAM DATA ===');
+        console.log('Sample team complete data:', sampleTeam);
       }
     } catch (error) {
       console.error('Error refreshing FBref stats cache:', error);
