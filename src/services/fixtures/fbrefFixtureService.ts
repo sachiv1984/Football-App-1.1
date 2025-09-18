@@ -152,7 +152,7 @@ export class FBrefFixtureService {
     return 'scheduled';
   }
 
-  private parseFixturesFromTable(table: TableData): ParsedFixture[] {
+ private parseFixturesFromTable(table: TableData): ParsedFixture[] {
   const fixtures: ParsedFixture[] = [];
 
   const headers = table.headers.map(h => h.toLowerCase());
@@ -163,6 +163,7 @@ export class FBrefFixtureService {
   const scoreIndex = headers.findIndex(h => h.includes('score') || h.includes('result'));
   const venueIndex = headers.findIndex(h => h.includes('venue') || h.includes('stadium'));
   const weekIndex = headers.findIndex(h => h.includes('wk') || h.includes('week'));
+  const linkIndex = headers.findIndex(h => h.includes('match') || h.includes('url') || h.includes('boxscore'));
 
   table.rows.forEach((row, index) => {
     if (row.length < 4) return;
@@ -176,21 +177,12 @@ export class FBrefFixtureService {
 
     const dateStr = dateIndex >= 0 ? (typeof row[dateIndex] === 'object' ? row[dateIndex].text : row[dateIndex]) : '';
     const timeStr = timeIndex >= 0 ? (typeof row[timeIndex] === 'object' ? row[timeIndex].text : row[timeIndex]) : '';
-    const scoreCell = scoreIndex >= 0 ? row[scoreIndex] : '';
+    const scoreStr = scoreIndex >= 0 ? (typeof row[scoreIndex] === 'object' ? row[scoreIndex].text : row[scoreIndex]) : '';
     const venueStr = venueIndex >= 0 ? (typeof row[venueIndex] === 'object' ? row[venueIndex].text : row[venueIndex]) : '';
     const weekStr = weekIndex >= 0 ? (typeof row[weekIndex] === 'object' ? row[weekIndex].text : row[weekIndex]) : '';
 
     let homeScore: number | undefined;
     let awayScore: number | undefined;
-    let url: string | undefined;
-
-    let scoreStr = '';
-    if (typeof scoreCell === 'object') {
-      scoreStr = scoreCell.text || '';
-      url = scoreCell.link; // <-- match log URL
-    } else {
-      scoreStr = scoreCell || '';
-    }
 
     if (scoreStr && scoreStr.includes('–')) {
       const [h, a] = scoreStr.split('–').map(s => parseInt(s.trim(), 10));
@@ -198,6 +190,12 @@ export class FBrefFixtureService {
         homeScore = h;
         awayScore = a;
       }
+    }
+
+    // Extract match URL if available
+    let matchUrl: string | undefined;
+    if (linkIndex >= 0 && typeof row[linkIndex] === 'object' && row[linkIndex].link) {
+      matchUrl = row[linkIndex].link.startsWith('https://fbref.com') ? row[linkIndex].link : `https://fbref.com${row[linkIndex].link}`;
     }
 
     fixtures.push({
@@ -210,12 +208,13 @@ export class FBrefFixtureService {
       status: this.parseStatus(scoreStr),
       venue: venueStr || 'TBD',
       matchWeek: weekStr ? parseInt(weekStr) || undefined : undefined,
-      url, // <-- include the match log URL in the parsed fixture
-    } as ParsedFixture & { url?: string });
+      matchUrl, // ✅ added
+    });
   });
 
   return fixtures;
 }
+
 
 
   // ---------------- Dynamic week assignment ----------------
