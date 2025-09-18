@@ -1,7 +1,24 @@
 import { useState, useEffect } from 'react';
 import { fbrefFixtureService } from '../services/fixtures/fbrefFixtureService';
-import type { FeaturedFixtureWithImportance } from '../types';
-import { toFeaturedFixtureWithImportance } from '../utils/fixtureUtils';
+import type { FeaturedFixtureWithImportance, Game } from '../types';
+
+// Utility to convert Game → FeaturedFixtureWithImportance
+const toFeaturedFixtureWithImportance = (
+  fixture: Game | FeaturedFixtureWithImportance
+): FeaturedFixtureWithImportance => {
+  if ('importanceScore' in fixture && 'tags' in fixture && 'isBigMatch' in fixture) {
+    return fixture;
+  }
+
+  return {
+    ...fixture,
+    importanceScore: fixture.importance ?? 0,
+    tags: [],
+    isBigMatch: false,
+    matchWeek: fixture.matchWeek ?? 1,
+    importance: fixture.importance ?? 0,
+  };
+};
 
 export const useGameWeekFixtures = () => {
   const [fixtures, setFixtures] = useState<FeaturedFixtureWithImportance[]>([]);
@@ -25,7 +42,7 @@ export const useGameWeekFixtures = () => {
         fbrefFixtureService.getGameWeekInfo(),
       ]);
 
-      // Ensure all fixtures are fully typed
+      // Convert all fixtures to FeaturedFixtureWithImportance
       const typedFixtures: FeaturedFixtureWithImportance[] = rawFixtures.map(f =>
         toFeaturedFixtureWithImportance(f)
       );
