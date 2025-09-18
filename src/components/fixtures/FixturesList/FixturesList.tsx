@@ -6,7 +6,7 @@ import {
   FixtureGroup,
   FixtureGroupProps 
 } from './FixturesList.types';
-import { Fixture, FeaturedFixtureWithImportance } from '../FixtureCard/FixtureCard.types';
+import { FeaturedFixtureWithImportance } from '@/types'; 
 import { toFeaturedFixtureWithImportance } from '@/utils/fixtureUtils';
 
 // -------------------------
