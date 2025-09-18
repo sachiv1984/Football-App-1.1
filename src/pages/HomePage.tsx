@@ -10,13 +10,17 @@ import { useFixtures } from '../hooks/useFixtures';
 import { useGameWeekFixtures } from '../hooks/useGameWeekFixtures';
 import { FeaturedFixtureWithImportance, Game, FeaturedFixture } from '../types';
 
-// Utility: ensure fixture has all properties of FeaturedFixtureWithImportance
-const mapToFeaturedFixtureWithImportance = (fixture: Game | FeaturedFixture): FeaturedFixtureWithImportance => ({
+const mapToFeaturedFixtureWithImportance = (
+  fixture: Game | FeaturedFixture
+): FeaturedFixtureWithImportance => ({
   ...fixture,
+  importance: fixture.importance ?? 0,        // ✅ default if undefined
+  matchWeek: fixture.matchWeek ?? 1,          // ✅ default if undefined
   importanceScore: 'importanceScore' in fixture ? fixture.importanceScore : 0,
   tags: 'tags' in fixture ? fixture.tags : [],
   isBigMatch: 'isBigMatch' in fixture ? fixture.isBigMatch : false,
 });
+
 
 // -------------------------
 // HomePage Component
