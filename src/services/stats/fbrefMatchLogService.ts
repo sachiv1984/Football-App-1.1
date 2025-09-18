@@ -52,7 +52,6 @@ export class FBrefMatchLogService {
   private tryTeamStatsStrategy(scraped: ScrapedData, matchUrl: string): MatchLogCorners | null {
     const table = scraped.tables.find(t => {
       const cap = (t.caption || "").toLowerCase();
-      const id = (t.id || "").toLowerCase();
       return cap.includes("team stats") || cap.includes("match stats") || t.headers.some(h => h.toLowerCase().includes("corner"));
     });
     return table ? this.extractCornersFromTable(table, matchUrl, "team-stats") : null;
