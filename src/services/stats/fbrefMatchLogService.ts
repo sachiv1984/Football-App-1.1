@@ -19,8 +19,17 @@ export class FBrefMatchLogService {
    * Returns null if corners data is not found.
    */
   async scrapeCorners(matchUrl: string): Promise<MatchLogCorners | null> {
+    // Validate URL format
     if (!matchUrl.startsWith("https://fbref.com/")) {
       throw new Error("URL must be from fbref.com");
+    }
+
+    // Check if URL looks like a proper match URL (should contain "/matches/" and a match ID)
+    if (!matchUrl.includes("/matches/") || matchUrl.endsWith("/matches/")) {
+      console.error(`[MatchLog] Invalid match URL format: ${matchUrl}`);
+      console.error(`[MatchLog] Expected format: https://fbref.com/en/matches/[match-id]/[team-names-and-date]`);
+      console.error(`[MatchLog] Example: https://fbref.com/en/matches/a071faa8/Liverpool-Bournemouth-August-15-2025-Premier-League`);
+      return null;
     }
 
     let scraped: ScrapedData;
@@ -42,6 +51,10 @@ export class FBrefMatchLogService {
       });
     });
 
+    // Use the improved multi-strategy approach
+    return this.scrapeWithStrategies(scraped, matchUrl);
+  }
+
   /**
    * Use all strategies to find corners data
    */
@@ -58,7 +71,6 @@ export class FBrefMatchLogService {
 
     console.warn(`[MatchLog] No corners data found at ${matchUrl}`);
     return null;
-  }
   }
 
   /**
