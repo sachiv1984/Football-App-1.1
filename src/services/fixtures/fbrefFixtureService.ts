@@ -153,7 +153,7 @@ export class FBrefFixtureService {
     return 'scheduled';
   }
 
- private parseFixturesFromTable(table: TableData): ParsedFixture[] {
+private parseFixturesFromTable(table: TableData): ParsedFixture[] {
   const fixtures: ParsedFixture[] = [];
 
   const headers = table.headers.map(h => h.toLowerCase());
@@ -193,11 +193,23 @@ export class FBrefFixtureService {
       }
     }
 
-    // Extract match URL if available
+    // --- Extract match URL ---
     let matchUrl: string | undefined;
     if (linkIndex >= 0 && typeof row[linkIndex] === 'object' && row[linkIndex].link) {
-      matchUrl = row[linkIndex].link.startsWith('https://fbref.com') ? row[linkIndex].link : `https://fbref.com${row[linkIndex].link}`;
+      matchUrl = row[linkIndex].link.startsWith('https://fbref.com')
+        ? row[linkIndex].link
+        : `https://fbref.com${row[linkIndex].link}`;
     }
+
+    // Fallback: extract URL from row text if missing
+    if (!matchUrl) {
+      const rowText = row.map(cell => (typeof cell === 'object' ? cell.text : cell)).join(' ');
+      const urlMatch = rowText.match(/\/en\/matches\/\d+\/[a-zA-Z0-9\-]+/);
+      if (urlMatch) matchUrl = `https://fbref.com${urlMatch[0]}`;
+    }
+
+    // Log for debugging
+    console.log(`Parsed fixture URL: ${matchUrl}, Home: ${homeTeam}, Away: ${awayTeam}`);
 
     fixtures.push({
       id: `fbref-${index}-${homeTeam}-${awayTeam}`.replace(/\s+/g, '-'),
@@ -209,13 +221,12 @@ export class FBrefFixtureService {
       status: this.parseStatus(scoreStr),
       venue: venueStr || 'TBD',
       matchWeek: weekStr ? parseInt(weekStr) || undefined : undefined,
-      matchUrl, // ✅ added
+      matchUrl, // ✅ include URL
     });
   });
 
   return fixtures;
 }
-
 
 
   // ---------------- Dynamic week assignment ----------------
