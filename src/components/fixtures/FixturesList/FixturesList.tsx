@@ -6,8 +6,8 @@ import {
   FixtureGroup,
   FixtureGroupProps 
 } from './FixturesList.types';
-import { FeaturedFixtureWithImportance } from '@/types'; 
 import { toFeaturedFixtureWithImportance } from '@/utils/fixtureUtils';
+import type { FeaturedFixtureWithImportance } from '@/types';
 
 // -------------------------
 // Header Component
@@ -99,10 +99,13 @@ const LoadingSkeleton: React.FC<{ cardSize: 'sm' | 'md' | 'lg' }> = ({ cardSize 
 // -------------------------
 // Group Fixtures Utility
 // -------------------------
-const groupFixtures = (fixtures: Fixture[], groupBy: 'date' | 'competition' | 'none'): FixtureGroup[] => {
+const groupFixtures = (
+  fixtures: (FeaturedFixtureWithImportance)[], 
+  groupBy: 'date' | 'competition' | 'none'
+): FixtureGroup[] => {
   if (groupBy === 'none') return [{ key: 'all', label: 'All Fixtures', fixtures }];
 
-  const groups = new Map<string, Fixture[]>();
+  const groups = new Map<string, FeaturedFixtureWithImportance[]>();
 
   fixtures.forEach(fixture => {
     const key = groupBy === 'date' 
@@ -148,7 +151,9 @@ const FixturesList: React.FC<FixturesListProps> = ({
   emptyMessage = 'No fixtures available',
   loading = false
 }) => {
-  const displayFixtures = maxItems ? fixtures.slice(0, maxItems) : fixtures;
+  // Map all fixtures to FeaturedFixtureWithImportance upfront
+  const allFixtures: FeaturedFixtureWithImportance[] = fixtures.map(toFeaturedFixtureWithImportance);
+  const displayFixtures = maxItems ? allFixtures.slice(0, maxItems) : allFixtures;
 
   if (loading) {
     return (
