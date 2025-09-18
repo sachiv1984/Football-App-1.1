@@ -1,6 +1,7 @@
 // src/services/fixtures/fbrefFixtureService.ts
 import type { FeaturedFixtureWithImportance } from '../../types';
-import { fbrefScraper, type ScrapedData, type TableData } from '../scrape/Fbref';
+import { fbrefScraper } from '../scrape/Fbref';
+import type { ScrapedData, TableData } from '../scrape/Fbref';
 import {
   normalizeTeamName,
   getDisplayTeamName,
