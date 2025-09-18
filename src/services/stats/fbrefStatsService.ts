@@ -153,7 +153,6 @@ export class FBrefStatsService {
     const homeIndex = headers.findIndex(h => h.includes('home'));
     const awayIndex = headers.findIndex(h => h.includes('away'));
     const scoreIndex = headers.findIndex(h => h.includes('score') || h.includes('result'));
-    const dateIndex = headers.findIndex(h => h.includes('date'));
 
     fixturesTable.rows.forEach(row => {
       if (row.length < 4) return;
