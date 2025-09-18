@@ -486,103 +486,57 @@ export class FBrefStatsService {
     const ga = basicStats.goalsAgainst || 0;
     const pts = basicStats.points || 0;
     const teamName = basicStats.team || 'Unknown';
-    
+
     console.log(`\n=== ESTIMATING ADVANCED STATS for ${teamName} ===`);
     console.log(`Basic stats: MP=${mp}, GF=${gf}, GA=${ga}, Pts=${pts}`);
-    
+
     // Get realistic corner estimates
     const cornerStats = this.getRealWorldCornerEstimates(teamName, basicStats);
-    
+
     // Estimate other stats
     const avgGoalsFor = mp > 0 ? gf / mp : 0;
     const avgGoalsAgainst = mp > 0 ? ga / mp : 0;
     const pointsPerGame = mp > 0 ? pts / mp : 0;
-    
+
     console.log(`Averages: Goals/game=${avgGoalsFor.toFixed(2)}, GA/game=${avgGoalsAgainst.toFixed(2)}, Pts/game=${pointsPerGame.toFixed(2)}`);
-    
+
     // Shot estimates based on goals and team quality
     const estimatedShots = Math.round(avgGoalsFor * 15 * mp); // ~15 shots per goal
     const estimatedShotsOnTarget = Math.round(estimatedShots * 0.35); // ~35% on target
     const estimatedShotsAgainst = Math.round(avgGoalsAgainst * 15 * mp);
     const estimatedShotsOnTargetAgainst = Math.round(estimatedShotsAgainst * 0.35);
-    
+
     // Foul estimates
     const estimatedFouls = Math.round(mp * (10 + (3 - pointsPerGame))); // 10-13 fouls per game
     const estimatedFouled = Math.round(mp * (10 + pointsPerGame));
-    
+
     // Card estimates
     const estimatedYellowCards = Math.round(mp * 2.2); // ~2.2 yellow cards per game
     const estimatedRedCards = Math.round(mp * 0.1); // ~0.1 red cards per game
 
     const result = {
-      ...basicStats,
-      shots: estimatedShots,
-      shotsOnTarget: estimatedShotsOnTarget,
-      shotsAgainst: estimatedShotsAgainst,
-      shotsOnTargetAgainst: estimatedShotsOnTargetAgainst,
-      corners: cornerStats.corners,
-      cornersAgainst: cornerStats.cornersAgainst,
-      fouls: estimatedFouls,
-      fouled: estimatedFouled,
-      yellowCards: estimatedYellowCards,
-      redCards: estimatedRedCards,
+        ...basicStats,
+        shots: estimatedShots,
+        shotsOnTarget: estimatedShotsOnTarget,
+        shotsAgainst: estimatedShotsAgainst,
+        shotsOnTargetAgainst: estimatedShotsOnTargetAgainst,
+        corners: cornerStats.corners,
+        cornersAgainst: cornerStats.cornersAgainst,
+        fouls: estimatedFouls,
+        fouled: estimatedFouled,
+        yellowCards: estimatedYellowCards,
+        redCards: estimatedRedCards,
     };
 
     console.log(`Final estimated stats for ${teamName}:`, {
-      corners: result.corners,
-      cornersAgainst: result.cornersAgainst,
-      shots: result.shots,
-      fouls: result.fouls
+        corners: result.corners,
+        cornersAgainst: result.cornersAgainst,
+        shots: result.shots,
+        fouls: result.fouls
     });
 
     return result;
-  } * 15 * mp); // ~15 shots per goal
-    const estimatedShotsOnTarget = Math.round(estimatedShots * 0.35); // ~35% on target
-    const estimatedShotsAgainst = Math.round(avgGoalsAgainst * 15 * mp);
-    const estimatedShotsOnTargetAgainst = Math.round(estimatedShotsAgainst * 0.35);
-    
-    // Corner estimation - more realistic calculation
-    // Top teams average 5-7 corners per game, weaker teams 3-5
-    const baseCorners = 4; // Base corners per game
-    const performanceModifier = (pointsPerGame - 1) * 0.5; // Adjust based on points per game
-    const avgCornersFor = Math.max(2, Math.min(8, baseCorners + performanceModifier));
-    const avgCornersAgainst = Math.max(2, Math.min(8, baseCorners - performanceModifier));
-    
-    const estimatedCorners = Math.round(avgCornersFor * mp);
-    const estimatedCornersAgainst = Math.round(avgCornersAgainst * mp);
-    
-    console.log(`Corner estimation: ${avgCornersFor.toFixed(1)}/game * ${mp} games = ${estimatedCorners} total`);
-    console.log(`Corners against: ${avgCornersAgainst.toFixed(1)}/game * ${mp} games = ${estimatedCornersAgainst} total`);
-    
-    const estimatedFouls = Math.round(mp * (10 + (3 - pointsPerGame))); // 10-13 fouls per game
-    const estimatedFouled = Math.round(mp * (10 + pointsPerGame));
-    
-    const estimatedYellowCards = Math.round(mp * 2.2); // ~2.2 yellow cards per game
-    const estimatedRedCards = Math.round(mp * 0.1); // ~0.1 red cards per game
-
-    const result = {
-      ...basicStats,
-      shots: estimatedShots,
-      shotsOnTarget: estimatedShotsOnTarget,
-      shotsAgainst: estimatedShotsAgainst,
-      shotsOnTargetAgainst: estimatedShotsOnTargetAgainst,
-      corners: estimatedCorners,
-      cornersAgainst: estimatedCornersAgainst,
-      fouls: estimatedFouls,
-      fouled: estimatedFouled,
-      yellowCards: estimatedYellowCards,
-      redCards: estimatedRedCards,
-    };
-
-    console.log(`Final estimated stats:`, {
-      corners: result.corners,
-      cornersAgainst: result.cornersAgainst,
-      shots: result.shots,
-      fouls: result.fouls
-    });
-
-    return result;
-  }
+}
 
   private async refreshCache(): Promise<void> {
     try {
