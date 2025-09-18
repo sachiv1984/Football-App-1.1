@@ -18,8 +18,12 @@ export class FBrefMatchLogService {
    * Returns null if corners data is not found.
    */
   async scrapeCorners(matchUrl: string): Promise<MatchLogCorners | null> {
-    if (!matchUrl.startsWith("https://fbref.com/") || !matchUrl.includes("/matches/")) {
-      console.warn(`[MatchLog] Invalid match URL: ${matchUrl}`);
+    if (!matchUrl.startsWith("https://fbref.com/")) {
+      throw new Error("URL must be from fbref.com");
+    }
+
+    if (!matchUrl.includes("/matches/") || matchUrl.endsWith("/matches/")) {
+      console.error(`[MatchLog] Invalid match URL format: ${matchUrl}`);
       return null;
     }
 
@@ -31,69 +35,58 @@ export class FBrefMatchLogService {
       return null;
     }
 
-    // Attempt all strategies
+    // Debug: log table info
+    scraped.tables.forEach((table, idx) => {
+      console.log(`[MatchLog] Table ${idx}:`, { caption: table.caption, headers: table.headers, rowCount: table.rows.length });
+    });
+
     return this.scrapeWithStrategies(scraped, matchUrl);
   }
 
-  /**
-   * Attempt multiple strategies to find corners data
-   */
   private scrapeWithStrategies(scraped: ScrapedData, matchUrl: string): MatchLogCorners | null {
     return (
-      this.tryTeamStatsStrategy(scraped, matchUrl) ||
       this.tryMatchSummaryStrategy(scraped, matchUrl) ||
+      this.tryTeamStatsStrategy(scraped, matchUrl) ||
       this.tryGeneralTableStrategy(scraped, matchUrl)
     );
   }
 
-  /**
-   * Strategy 1: Look for Team Stats tables (preferred)
-   */
-  private tryTeamStatsStrategy(scraped: ScrapedData, matchUrl: string): MatchLogCorners | null {
-    const table = scraped.tables.find(t => {
-      const cap = (t.caption || "").toLowerCase();
-      return cap.includes("team stats") || cap.includes("match stats") || t.headers.some(h => h.toLowerCase().includes("corner"));
-    });
-    return table ? this.extractCornersFromTable(table, matchUrl, "team-stats") : null;
-  }
-
-  /**
-   * Strategy 2: Fallback to match summary tables
-   */
   private tryMatchSummaryStrategy(scraped: ScrapedData, matchUrl: string): MatchLogCorners | null {
     const table = scraped.tables.find(t => {
       const cap = (t.caption || "").toLowerCase();
       const id = (t.id || "").toLowerCase();
-      return cap.includes("summary") || id.includes("match_stats") || cap.includes(" vs ");
+      return cap.includes("team stats") || cap.includes("match stats") || cap.includes("summary") || id.includes("team_stats");
     });
-    return table ? this.extractCornersFromTable(table, matchUrl, "summary") : null;
+    return table ? this.extractCornersFromTable(table, matchUrl) : null;
   }
 
-  /**
-   * Strategy 3: Check all tables for corners data
-   */
+  private tryTeamStatsStrategy(scraped: ScrapedData, matchUrl: string): MatchLogCorners | null {
+    const table = scraped.tables.find(t => {
+      const cap = (t.caption || "").toLowerCase();
+      const id = (t.id || "").toLowerCase();
+      return cap.includes("corners") || id.includes("corners") || t.headers.some(h => h.toLowerCase().includes("corner"));
+    });
+    return table ? this.extractCornersFromTable(table, matchUrl) : null;
+  }
+
   private tryGeneralTableStrategy(scraped: ScrapedData, matchUrl: string): MatchLogCorners | null {
     for (const table of scraped.tables) {
       if (table.rows.length >= 2) {
-        const result = this.extractCornersFromTable(table, matchUrl, "general");
+        const result = this.extractCornersFromTable(table, matchUrl);
         if (result) return result;
       }
     }
     return null;
   }
 
-  /**
-   * Extract corners from a given table
-   */
-  private extractCornersFromTable(table: any, matchUrl: string, strategy: string): MatchLogCorners | null {
+  private extractCornersFromTable(table: any, matchUrl: string): MatchLogCorners | null {
     const headers = table.headers.map((h: string) => h.trim().toLowerCase());
-
-    // Identify columns
-    let teamColIdx = this.findTeamColumnIndex(headers);
-    if (teamColIdx === -1 && headers.length > 1) teamColIdx = 0;
+    let teamColIdx = headers.findIndex(h => ["team", "squad", "club"].some(t => h.includes(t)));
+    if (teamColIdx === -1) teamColIdx = 0;
 
     const cornersIdx = this.findCornersColumnIndex(headers);
-    if (cornersIdx === -1 || table.rows.length < 2) return null;
+    if (cornersIdx === -1) return null;
+    if (table.rows.length < 2) return null;
 
     try {
       const homeRow = table.rows[0];
@@ -111,22 +104,17 @@ export class FBrefMatchLogService {
     }
   }
 
-  private findTeamColumnIndex(headers: string[]): number {
-    const teamHeaders = ['team', 'squad', 'club'];
-    return headers.findIndex(h => teamHeaders.some(th => h.includes(th)));
-  }
-
   private findCornersColumnIndex(headers: string[]): number {
-    const cornerHeaders = ['crn', 'corners', 'corner', 'corners taken', 'ck', 'corner kicks'];
+    const cornerHeaders = ["crn", "corners", "corner", "corners taken", "corner kicks", "ck"];
     for (const ch of cornerHeaders) {
-      const idx = headers.findIndex(h => h.includes(ch));
+      const idx = headers.findIndex(h => h.replace(/[_\s]/g, "") === ch.replace(/[_\s]/g, ""));
       if (idx !== -1) return idx;
     }
-    return headers.findIndex(h => h.includes('corn') || h.includes('crn'));
+    return headers.findIndex(h => h.includes("corn") || h.includes("crn"));
   }
 
   private extractCellText(cell: any): string {
-    if (typeof cell === "object" && cell !== null) return cell.text || cell.value || String(cell);
+    if (typeof cell === "object" && cell !== null) return cell.text || String(cell);
     return String(cell || "");
   }
 
@@ -135,15 +123,12 @@ export class FBrefMatchLogService {
     return isNaN(n) ? 0 : Math.max(0, n);
   }
 
-  /**
-   * Scrape multiple match log URLs
-   */
   async scrapeMultiple(urls: string[]): Promise<MatchLogCorners[]> {
     const results: MatchLogCorners[] = [];
     for (let i = 0; i < urls.length; i++) {
       const corners = await this.scrapeCorners(urls[i]);
       if (corners) results.push(corners);
-      await new Promise(res => setTimeout(res, 500));
+      await new Promise(r => setTimeout(r, 500)); // polite delay
     }
     return results;
   }
