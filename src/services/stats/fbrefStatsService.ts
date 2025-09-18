@@ -536,7 +536,7 @@ export class FBrefStatsService {
     });
 
     return result;
-   * 15 * mp); // ~15 shots per goal
+  } * 15 * mp); // ~15 shots per goal
     const estimatedShotsOnTarget = Math.round(estimatedShots * 0.35); // ~35% on target
     const estimatedShotsAgainst = Math.round(avgGoalsAgainst * 15 * mp);
     const estimatedShotsOnTargetAgainst = Math.round(estimatedShotsAgainst * 0.35);
