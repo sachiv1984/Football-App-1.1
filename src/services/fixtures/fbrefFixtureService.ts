@@ -18,6 +18,7 @@ interface ParsedFixture {
   status: 'scheduled' | 'live' | 'finished' | 'postponed' | 'upcoming';
   venue?: string;
   matchWeek?: number;
+  matchUrl?: string; // ✅ add this line
 }
 
 export class FBrefFixtureService {
