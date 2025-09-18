@@ -49,16 +49,40 @@ export class FBrefStatsService {
   private readonly cacheTimeout = 30 * 60 * 1000; // 30 minutes
 
   private readonly FBREF_URLS = {
-    premierLeague: {
-      stats: [
-        'https://fbref.com/en/comps/9/2025-2026/2025-2026-Premier-League-Stats',
-        'https://fbref.com/en/comps/9/Premier-League-Stats',
-        'https://fbref.com/en/comps/9/stats/Premier-League-Stats',
-      ],
-      fixtures: 'https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures',
-    },
-    // other leagues...
-  };
+  premierLeague: {
+    stats: [
+      'https://fbref.com/en/comps/9/2025-2026/2025-2026-Premier-League-Stats',
+      'https://fbref.com/en/comps/9/Premier-League-Stats',
+      'https://fbref.com/en/comps/9/stats/Premier-League-Stats',
+    ],
+    fixtures: 'https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures',
+  },
+  laLiga: {
+    stats: [
+      'https://fbref.com/en/comps/12/2025-2026/2025-2026-La-Liga-Stats',
+    ],
+    fixtures: 'https://fbref.com/en/comps/12/schedule/La-Liga-Scores-and-Fixtures',
+  },
+  bundesliga: {
+    stats: [
+      'https://fbref.com/en/comps/20/2025-2026/2025-2026-Bundesliga-Stats',
+    ],
+    fixtures: 'https://fbref.com/en/comps/20/schedule/Bundesliga-Scores-and-Fixtures',
+  },
+  serieA: {
+    stats: [
+      'https://fbref.com/en/comps/11/2025-2026/2025-2026-Serie-A-Stats',
+    ],
+    fixtures: 'https://fbref.com/en/comps/11/schedule/Serie-A-Scores-and-Fixtures',
+  },
+  ligue1: {
+    stats: [
+      'https://fbref.com/en/comps/13/2025-2026/2025-2026-Ligue-1-Stats',
+    ],
+    fixtures: 'https://fbref.com/en/comps/13/schedule/Ligue-1-Scores-and-Fixtures',
+  },
+};
+
 
   private currentLeague: keyof typeof this.FBREF_URLS = 'premierLeague';
 
