@@ -43,7 +43,6 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
 
   const fetchGameWeekData = useCallback(async () => {
     if (!useGameWeekMode) return;
-
     try {
       setError(null);
       setIsLoading(true);
@@ -71,7 +70,7 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
     }
   }, [fetchGameWeekData, refreshInterval, useGameWeekMode]);
 
-  // Fix: ensure fixtures are fully typed as FeaturedFixtureWithImportance
+  // FIX: Ensure all fixtures have FeaturedFixtureWithImportance properties
   const fixturesToRender: FeaturedFixtureWithImportance[] = useGameWeekMode
     ? gameWeekFixtures
         .filter(f => f.status && ['live', 'finished', 'upcoming'].includes(f.status))
