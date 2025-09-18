@@ -8,7 +8,15 @@ import OptimizedFeaturedGamesCarousel from '../components/fixtures/FeaturedGames
 import { ErrorBoundary, CarouselErrorBoundary } from '../components/ErrorBoundary';
 import { useFixtures } from '../hooks/useFixtures';
 import { useGameWeekFixtures } from '../hooks/useGameWeekFixtures';
-import { FeaturedFixtureWithImportance, Game } from '../types';
+import { FeaturedFixtureWithImportance, Game, FeaturedFixture } from '../types';
+
+// Utility: ensure fixture has all properties of FeaturedFixtureWithImportance
+const mapToFeaturedFixtureWithImportance = (fixture: Game | FeaturedFixture): FeaturedFixtureWithImportance => ({
+  ...fixture,
+  importanceScore: 'importanceScore' in fixture ? fixture.importanceScore : 0,
+  tags: 'tags' in fixture ? fixture.tags : [],
+  isBigMatch: 'isBigMatch' in fixture ? fixture.isBigMatch : false,
+});
 
 // -------------------------
 // HomePage Component
@@ -29,21 +37,13 @@ const HomePage: React.FC = () => {
 
   const handleToggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
+  // Optional: Keep for logging/analytics
   const handleGameSelect = (fixture: FeaturedFixtureWithImportance | Game) => {
     console.log('Selected fixture:', fixture.id);
-
     if ('importanceScore' in fixture) {
       console.log('Importance Score:', fixture.importanceScore);
     }
   };
-
-  // Helper: map Game -> FeaturedFixtureWithImportance
-  const mapToFeaturedFixture = (fixture: Game): FeaturedFixtureWithImportance => ({
-    ...fixture,
-    importanceScore: 0,
-    tags: [],
-    isBigMatch: false,
-  });
 
   return (
     <ErrorBoundary>
@@ -83,8 +83,10 @@ const HomePage: React.FC = () => {
               </div>
             ) : (
               <>
+                {console.log('Featured Fixtures:', featuredFixtures)}
+
                 <OptimizedFeaturedGamesCarousel
-                  fixtures={featuredFixtures.map(mapToFeaturedFixture)}
+                  fixtures={featuredFixtures}
                   onGameSelect={handleGameSelect}
                   isLoading={loading}
                   className="mb-8 lg:mb-12"
@@ -138,15 +140,16 @@ const HomePage: React.FC = () => {
                     }
                     groups[date].push(fixture);
                     return groups;
-                  }, {} as Record<string, Game[]>)
+                  }, {} as Record<string, typeof gameWeekFixtures>)
                 ).map(([date, fixtures]) => (
                   <div key={date} className="space-y-4">
                     <h3 className="text-lg font-medium text-gray-800 text-left">{date}</h3>
+
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                       {fixtures.map((fixture) => (
                         <FixtureCard
                           key={fixture.id}
-                          fixture={mapToFeaturedFixture(fixture)}
+                          fixture={mapToFeaturedFixtureWithImportance(fixture)}
                           size="lg"
                           showVenue={true}
                           enableNavigation={true}
