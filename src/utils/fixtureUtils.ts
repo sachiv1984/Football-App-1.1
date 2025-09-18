@@ -1,23 +1,29 @@
-import type { Game, FeaturedFixtureWithImportance, FeaturedFixture } from '../types';
+import type { FeaturedFixtureWithImportance, Game, FeaturedFixture } from '../../types';
 
-/**
- * Converts a Game or partial FeaturedFixture into a full FeaturedFixtureWithImportance.
- * Fills missing properties with defaults to satisfy TypeScript.
- */
-export function toFeaturedFixtureWithImportance(
-  fixture: Game | FeaturedFixture | FeaturedFixtureWithImportance
-): FeaturedFixtureWithImportance {
-  // Already fully typed
-  if ('importanceScore' in fixture && 'tags' in fixture && 'isBigMatch' in fixture) {
-    return fixture;
-  }
+const mapToFeaturedFixtureWithImportance = (
+  fixture: Game | FeaturedFixture
+): FeaturedFixtureWithImportance => {
+  // Type narrowing for importanceScore
+  const importanceScore =
+    'importanceScore' in fixture && typeof fixture.importanceScore === 'number'
+      ? fixture.importanceScore
+      : 0;
+
+  const tags = 'tags' in fixture && Array.isArray(fixture.tags) ? fixture.tags : [];
+  const isBigMatch =
+    'isBigMatch' in fixture && typeof fixture.isBigMatch === 'boolean'
+      ? fixture.isBigMatch
+      : false;
+
+  const matchWeek = 'matchWeek' in fixture && typeof fixture.matchWeek === 'number' ? fixture.matchWeek : 1;
 
   return {
     ...fixture,
-    importanceScore: 'importanceScore' in fixture ? fixture.importanceScore : 0,
-    tags: 'tags' in fixture ? fixture.tags : [],
-    isBigMatch: 'isBigMatch' in fixture ? fixture.isBigMatch : false,
-    matchWeek: fixture.matchWeek ?? 1,
-    importance: fixture.importance ?? 0,
-  };
-}
+    importanceScore,
+    tags,
+    isBigMatch,
+    matchWeek,
+    // Ensure importance is defined as number
+    importance: 'importance' in fixture && typeof fixture.importance === 'number' ? fixture.importance : 0,
+  } as FeaturedFixtureWithImportance;
+};
