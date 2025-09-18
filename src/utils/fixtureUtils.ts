@@ -1,9 +1,8 @@
-import type { FeaturedFixtureWithImportance, Game, FeaturedFixture } from '../../types';
+import type { FeaturedFixtureWithImportance, Game, FeaturedFixture } from '@/types';
 
-const mapToFeaturedFixtureWithImportance = (
+export const toFeaturedFixtureWithImportance = (
   fixture: Game | FeaturedFixture
 ): FeaturedFixtureWithImportance => {
-  // Type narrowing for importanceScore
   const importanceScore =
     'importanceScore' in fixture && typeof fixture.importanceScore === 'number'
       ? fixture.importanceScore
@@ -15,7 +14,8 @@ const mapToFeaturedFixtureWithImportance = (
       ? fixture.isBigMatch
       : false;
 
-  const matchWeek = 'matchWeek' in fixture && typeof fixture.matchWeek === 'number' ? fixture.matchWeek : 1;
+  const matchWeek =
+    'matchWeek' in fixture && typeof fixture.matchWeek === 'number' ? fixture.matchWeek : 1;
 
   return {
     ...fixture,
@@ -23,7 +23,7 @@ const mapToFeaturedFixtureWithImportance = (
     tags,
     isBigMatch,
     matchWeek,
-    // Ensure importance is defined as number
-    importance: 'importance' in fixture && typeof fixture.importance === 'number' ? fixture.importance : 0,
+    importance:
+      'importance' in fixture && typeof fixture.importance === 'number' ? fixture.importance : 0,
   } as FeaturedFixtureWithImportance;
 };
