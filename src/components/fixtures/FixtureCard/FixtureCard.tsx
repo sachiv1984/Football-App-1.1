@@ -72,10 +72,12 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
   }, [fetchGameWeekData, refreshInterval, useGameWeekMode]);
 
   const fixturesToRender = useGameWeekMode
-    ? gameWeekFixtures.filter(f => ['live', 'finished', 'upcoming'].includes(f.status))
-    : singleFixture
-    ? [singleFixture]
-    : [];
+  ? gameWeekFixtures.filter(
+      f => f.status && ['live', 'finished', 'upcoming'].includes(f.status)
+    )
+  : singleFixture
+  ? [singleFixture]
+  : [];
 
   if (useGameWeekMode && isLoading) {
     return (
