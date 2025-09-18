@@ -582,17 +582,17 @@ private async refreshCache(): Promise<void> {
 
     this.statsCache.clear();
     
-    basicStats.forEach((stats, teamName) => {
-      const form = teamForms.get(teamName) || [];
-      const enhancedStats = this.estimateAdvancedStats(stats);
-      
-      const finalStats = {
-        ...enhancedStats,
-        recentForm: form,
-      } as TeamSeasonStats;
-      
-      this.statsCache.set(teamName, finalStats);
-    });
+basicStats.forEach((stats, teamName) => {
+  const form = teamForms.teamForms.get(teamName) || []; // Access the `teamForms` property
+  const enhancedStats = this.estimateAdvancedStats(stats);
+  
+  const finalStats = {
+    ...enhancedStats,
+    recentForm: form,
+  } as TeamSeasonStats;
+  
+  this.statsCache.set(teamName, finalStats);
+});
 
     this.cacheTime = Date.now();
     console.log(`Stats cache refreshed with ${this.statsCache.size} teams`);
