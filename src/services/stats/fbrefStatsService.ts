@@ -186,6 +186,52 @@ export class FBrefStatsService {
     return await fbrefScraper.scrapeUrl(fixturesUrl);
   }
 
+  private async scrapeAdvancedStatsData(): Promise<ScrapedData | null> {
+    const advancedStatsUrls = [
+      `https://fbref.com/en/comps/9/misc/Premier-League-Stats`, // Miscellaneous stats (often has corners)
+      `https://fbref.com/en/comps/9/2025-2026/misc/2025-2026-Premier-League-Stats`,
+      `https://fbref.com/en/comps/9/playingtime/Premier-League-Stats`, // Playing time stats
+    ];
+    
+    console.log(`Attempting to scrape advanced stats (corners, cards, etc.)...`);
+    
+    for (let i = 0; i < advancedStatsUrls.length; i++) {
+      const url = advancedStatsUrls[i];
+      console.log(`Trying advanced stats URL ${i + 1}: ${url}`);
+      
+      try {
+        const data = await fbrefScraper.scrapeUrl(url);
+        
+        // Check if this data contains corner or card data
+        const hasAdvancedStats = data.tables.some(table => {
+          const headers = table.headers.map(h => h.toLowerCase());
+          return headers.some(h => 
+            h.includes('corner') || 
+            h.includes('crd') || 
+            h.includes('card') ||
+            h.includes('foul') ||
+            h.includes('off')
+          );
+        });
+        
+        if (hasAdvancedStats) {
+          console.log(`✅ Found advanced stats at URL ${i + 1}`);
+          console.log('Available tables:', data.tables.map(t => ({
+            caption: t.caption,
+            headers: t.headers.filter(h => h.toLowerCase().includes('corner') || h.toLowerCase().includes('crd'))
+          })));
+          return data;
+        } else {
+          console.log(`❌ No advanced stats found at URL ${i + 1}`);
+        }
+      } catch (error) {
+        console.log(`❌ Error with advanced stats URL ${i + 1}: ${error}`);
+      }
+    }
+    
+    return null;
+  }
+
   private parseStatsTable(table: TableData): Map<string, Partial<TeamSeasonStats>> {
     const teamStats = new Map<string, Partial<TeamSeasonStats>>();
     
@@ -393,14 +439,28 @@ export class FBrefStatsService {
     const avgGoalsAgainst = mp > 0 ? ga / mp : 0;
     const pointsPerGame = mp > 0 ? pts / mp : 0;
     
+    console.log(`\n=== ESTIMATING ADVANCED STATS for ${basicStats.team} ===`);
+    console.log(`Basic stats: MP=${mp}, GF=${gf}, GA=${ga}, Pts=${pts}`);
+    console.log(`Averages: Goals/game=${avgGoalsFor.toFixed(2)}, GA/game=${avgGoalsAgainst.toFixed(2)}, Pts/game=${pointsPerGame.toFixed(2)}`);
+    
     // Rough estimates based on league averages and performance
     const estimatedShots = Math.round(avgGoalsFor * 15 * mp); // ~15 shots per goal
     const estimatedShotsOnTarget = Math.round(estimatedShots * 0.35); // ~35% on target
     const estimatedShotsAgainst = Math.round(avgGoalsAgainst * 15 * mp);
     const estimatedShotsOnTargetAgainst = Math.round(estimatedShotsAgainst * 0.35);
     
-    const estimatedCorners = Math.round(mp * (4 + pointsPerGame)); // 4-7 corners per game based on performance
-    const estimatedCornersAgainst = Math.round(mp * (7 - pointsPerGame));
+    // Corner estimation - more realistic calculation
+    // Top teams average 5-7 corners per game, weaker teams 3-5
+    const baseCorners = 4; // Base corners per game
+    const performanceModifier = (pointsPerGame - 1) * 0.5; // Adjust based on points per game
+    const avgCornersFor = Math.max(2, Math.min(8, baseCorners + performanceModifier));
+    const avgCornersAgainst = Math.max(2, Math.min(8, baseCorners - performanceModifier));
+    
+    const estimatedCorners = Math.round(avgCornersFor * mp);
+    const estimatedCornersAgainst = Math.round(avgCornersAgainst * mp);
+    
+    console.log(`Corner estimation: ${avgCornersFor.toFixed(1)}/game * ${mp} games = ${estimatedCorners} total`);
+    console.log(`Corners against: ${avgCornersAgainst.toFixed(1)}/game * ${mp} games = ${estimatedCornersAgainst} total`);
     
     const estimatedFouls = Math.round(mp * (10 + (3 - pointsPerGame))); // 10-13 fouls per game
     const estimatedFouled = Math.round(mp * (10 + pointsPerGame));
@@ -408,7 +468,7 @@ export class FBrefStatsService {
     const estimatedYellowCards = Math.round(mp * 2.2); // ~2.2 yellow cards per game
     const estimatedRedCards = Math.round(mp * 0.1); // ~0.1 red cards per game
 
-    return {
+    const result = {
       ...basicStats,
       shots: estimatedShots,
       shotsOnTarget: estimatedShotsOnTarget,
@@ -421,15 +481,25 @@ export class FBrefStatsService {
       yellowCards: estimatedYellowCards,
       redCards: estimatedRedCards,
     };
+
+    console.log(`Final estimated stats:`, {
+      corners: result.corners,
+      cornersAgainst: result.cornersAgainst,
+      shots: result.shots,
+      fouls: result.fouls
+    });
+
+    return result;
   }
 
   private async refreshCache(): Promise<void> {
     try {
       console.log(`Refreshing FBref stats cache for ${this.currentLeague}...`);
       
-      const [statsData, fixturesData] = await Promise.all([
+      const [statsData, fixturesData, advancedData] = await Promise.all([
         this.scrapeStatsData(),
-        this.scrapeFixturesData()
+        this.scrapeFixturesData(),
+        this.scrapeAdvancedStatsData().catch(() => null) // Don't fail if advanced data unavailable
       ]);
 
       console.log('=== AVAILABLE TABLES ===');
