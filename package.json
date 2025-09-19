@@ -1,6 +1,7 @@
 {
   "name": "my-app",
   "version": "1.0.0",
+  "type": "module", 
   "private": true,
   "homepage": ".",
   "dependencies": {
@@ -51,6 +52,7 @@
     "deploy": "gh-pages -d build",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,md}\"",
     "type-check": "tsc --noEmit",
+    "scrape:fixtures": "ts-node scripts/scrapeFixtures.ts",
     "test-data": "node test-update.js"
   },
   "jest": {
