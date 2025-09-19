@@ -150,7 +150,7 @@ export class FBrefTeamMatchLogsService {
     const table = scraped.tables.find(t => {
       const id = (t.id || "").toLowerCase();
       const cap = (t.caption || "").toLowerCase();
-      const headers = t.headers || [];
+      // const headers = t.headers || [];
 
       if (isOpposition) {
         return id.includes("matchlogs_against") || cap.includes("against");
