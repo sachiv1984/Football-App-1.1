@@ -33,7 +33,7 @@ interface DetailedCornerStats {
   matchDetails: Array<{
     opponent: string;
     totalCorners: number; // corners + cornersAgainst for this specific match
-    corners: number;
+    cornersFor: number;
     cornersAgainst: number;
   }>;
 }
@@ -190,7 +190,7 @@ export class FBrefStatsService {
         const matchDetails = teamData.matches.map(match => ({
           opponent: match.opponent,
           totalCorners: match.corners + (match.cornersAgainst || 0),
-          corners: match.corners,
+          cornersFor: match.corners,
           cornersAgainst: match.cornersAgainst || 0,
         }));
 
