@@ -29,7 +29,7 @@ export interface ScrapeOptions {
 
 export class FBrefTeamMatchLogsService {
   private readonly defaultOptions: Required<ScrapeOptions> = {
-    concurrency: 2,
+    concurrency: 20,
     delayBetweenRequests: 2000,
     retries: 1,
     enableLogging: true,
