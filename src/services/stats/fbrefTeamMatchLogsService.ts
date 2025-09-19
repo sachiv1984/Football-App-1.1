@@ -89,6 +89,7 @@ export class FBrefTeamMatchLogsService {
     for (let attempt = 1; attempt <= options.retries + 1; attempt++) {
       try {
         const scraped = await fbrefScraper.scrapeUrl(url);
+        console.log(scraped.tables[0].rows[0]); // If this logs an array of strings/objects, it's JSON
         const table = this.findMatchLogsTable(scraped, url, isOpposition);
         if (!table) {
           if (options.enableLogging) console.warn(`[TeamMatchLogs] No suitable table found in ${url} (attempt ${attempt})`);
