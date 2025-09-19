@@ -1,5 +1,7 @@
 // src/services/scrape/Fbref.ts
 
+import axios from "axios";
+
 // Type definitions
 export interface CellData {
   text: string;
@@ -36,7 +38,7 @@ export class FBrefScraper {
   }
 
   /**
-   * Scrape data from an FBref URL
+   * Scrape data from an FBref URL (existing method)
    */
   async scrapeUrl(url: string): Promise<ScrapedData> {
     if (!url || !url.startsWith('https://fbref.com/')) {
@@ -61,6 +63,53 @@ export class FBrefScraper {
         throw error;
       }
       throw new Error('Unknown error occurred during scraping');
+    }
+  }
+
+  /**
+   * JSON-in-comments scraping (new method)
+   */
+  async scrapeJsonTables(url: string): Promise<Array<{ headers: string[]; rows: any[][] }> | null> {
+    try {
+      const { data: html } = await axios.get(url, {
+        headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" }
+      });
+
+      const comments = html.match(/<!--[\s\S]*?-->/g) || [];
+      const tables: any[] = [];
+
+      for (const comment of comments) {
+        const cleaned = comment.replace(/<!--|-->/g, "").trim();
+        if (!cleaned) continue;
+
+        // Try direct JSON parse
+        try {
+          const parsed = JSON.parse(cleaned);
+          if (parsed?.headers && parsed?.rows) {
+            tables.push(parsed);
+            continue;
+          }
+        } catch {
+          // ignore
+        }
+
+        // Sometimes JSON is inside extra text
+        const jsonMatch = cleaned.match(/({[\s\S]*}|\[[\s\S]*\])/);
+        if (jsonMatch) {
+          try {
+            const parsed = JSON.parse(jsonMatch[0]);
+            if (parsed?.headers && parsed?.rows) {
+              tables.push(parsed);
+            }
+          } catch {
+            // ignore invalid JSON
+          }
+        }
+      }
+
+      return tables.length ? tables : null;
+    } catch (err) {
+      return null; // network or 5xx
     }
   }
 
