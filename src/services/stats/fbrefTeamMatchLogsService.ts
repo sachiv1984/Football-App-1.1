@@ -326,7 +326,12 @@ export const PREMIER_LEAGUE_TEAMS = {
   'Everton': 'd3fd31cc',
   'Sunderland': '8ef52968',
   'Crystal Palace': ' 47c64c55',
-  // Add more as needed
+  'Fulham': 'fd962109',
+  'Brentford': 'cd051869',
+  'Nottingham Forest': 'e4a775cb',
+  'Leeds United': '5bfb9659',
+  'Burnley': '943e8050',
+  'Wolverhampton Wanderers': '8cec06e1',
 } as const;
 
 export const fbrefTeamMatchLogsService = new FBrefTeamMatchLogsService();
