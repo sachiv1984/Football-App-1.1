@@ -325,7 +325,7 @@ export const PREMIER_LEAGUE_TEAMS = {
   'Bournemouth': '4ba7cbea',
   'Everton': 'd3fd31cc',
   'Sunderland': '8ef52968',
-  'Crystal Palace': ' 47c64c55',
+  'Crystal Palace': '47c64c55',
   'Fulham': 'fd962109',
   'Brentford': 'cd051869',
   'Nottingham Forest': 'e4a775cb',
