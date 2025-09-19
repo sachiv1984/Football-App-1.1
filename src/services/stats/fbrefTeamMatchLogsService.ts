@@ -323,6 +323,9 @@ export const PREMIER_LEAGUE_TEAMS = {
   'Aston Villa': '8602292d',
   'West Ham United': '7c21e445',
   'Bournemouth': '4ba7cbea',
+  'Everton': 'd3fd31cc',
+  'Sunderland': '8ef52968',
+  'Crystal Palace': ' 47c64c55',
   // Add more as needed
 } as const;
 
