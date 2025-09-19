@@ -1,7 +1,7 @@
 // src/services/stats/fbrefStatsService.ts
-import { fbrefScraper, type ScrapedData, type TableData } from '../scrape/Fbref';
-import { normalizeTeamName } from '../../utils/teamUtils';
 import { fbrefTeamMatchLogsService, PREMIER_LEAGUE_TEAMS } from './fbrefTeamMatchLogsService';
+import { fbrefFixtureService, type TeamSeasonStats } from '../fixtures/fbrefFixtureService';
+import { normalizeTeamName } from '../../utils/teamUtils';
 
 interface TeamFormData {
   homeResults: ('W' | 'D' | 'L')[];
@@ -25,24 +25,6 @@ interface TeamStatsData {
   over115MatchCorners: { homeValue: number; awayValue: number };
 }
 
-interface TeamSeasonStats {
-  team: string;
-  matchesPlayed: number;
-  won: number;
-  drawn: number;
-  lost: number;
-  goalsFor: number;
-  goalsAgainst: number;
-  points: number;
-
-  // Corners
-  corners: number;
-  cornersAgainst: number;
-
-  // Form (last 5 games)
-  recentForm: ('W' | 'D' | 'L')[];
-}
-
 // Competition ID mappings
 const COMPETITION_IDS = {
   premierLeague: 'c9',
@@ -52,44 +34,8 @@ const COMPETITION_IDS = {
   ligue1: 'c13',
 } as const;
 
-// Declare FBREF_URLS globally
-const FBREF_URLS = {
-  premierLeague: {
-    stats: [
-      'https://fbref.com/en/comps/9/2025-2026/2025-2026-Premier-League-Stats',
-      'https://fbref.com/en/comps/9/Premier-League-Stats',
-      'https://fbref.com/en/comps/9/stats/Premier-League-Stats',
-    ],
-    fixtures: 'https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures',
-  },
-  laLiga: {
-    stats: [
-      'https://fbref.com/en/comps/12/2025-2026/2025-2026-La-Liga-Stats',
-    ],
-    fixtures: 'https://fbref.com/en/comps/12/schedule/La-Liga-Scores-and-Fixtures',
-  },
-  bundesliga: {
-    stats: [
-      'https://fbref.com/en/comps/20/2025-2026/2025-2026-Bundesliga-Stats',
-    ],
-    fixtures: 'https://fbref.com/en/comps/20/schedule/Bundesliga-Scores-and-Fixtures',
-  },
-  serieA: {
-    stats: [
-      'https://fbref.com/en/comps/11/2025-2026/2025-2026-Serie-A-Stats',
-    ],
-    fixtures: 'https://fbref.com/en/comps/11/schedule/Serie-A-Scores-and-Fixtures',
-  },
-  ligue1: {
-    stats: [
-      'https://fbref.com/en/comps/13/2025-2026/2025-2026-Ligue-1-Stats',
-    ],
-    fixtures: 'https://fbref.com/en/comps/13/schedule/Ligue-1-Scores-and-Fixtures',
-  },
-};
-
 // Team ID mappings for different leagues
-const LEAGUE_TEAMS: Record<keyof typeof FBREF_URLS, Record<string, string>> = {
+const LEAGUE_TEAMS: Record<string, Record<string, string>> = {
   premierLeague: PREMIER_LEAGUE_TEAMS,
   laLiga: {
     'Real Madrid': 'real-madrid-id',
@@ -114,27 +60,29 @@ const LEAGUE_TEAMS: Record<keyof typeof FBREF_URLS, Record<string, string>> = {
 };
 
 export class FBrefStatsService {
-  private statsCache: Map<string, TeamSeasonStats> = new Map();
-  private cacheTime = 0;
-  private readonly cacheTimeout = 30 * 60 * 1000; // 30 minutes
+  private cornersCache: Map<string, { corners: number; cornersAgainst: number; matches: number }> = new Map();
+  private cornersCacheTime = 0;
+  private readonly cornersCacheTimeout = 60 * 60 * 1000; // 1 hour (corners change less frequently)
 
-  private currentLeague: keyof typeof FBREF_URLS = 'premierLeague';
+  private currentLeague: string = 'premierLeague';
   private currentSeason = '2025-2026';
 
-  private isCacheValid(): boolean {
-    return this.statsCache.size > 0 && Date.now() - this.cacheTime < this.cacheTimeout;
+  private isCornersCacheValid(): boolean {
+    return this.cornersCache.size > 0 && Date.now() - this.cornersCacheTime < this.cornersCacheTimeout;
   }
 
   public clearCache(): void {
-    this.statsCache.clear();
-    this.cacheTime = 0;
-    console.log('Stats cache cleared');
+    this.cornersCache.clear();
+    this.cornersCacheTime = 0;
+    console.log('[FBrefStats] Corner stats cache cleared');
   }
 
-  setLeague(league: keyof typeof FBREF_URLS): void {
+  setLeague(league: string): void {
     if (this.currentLeague !== league) {
       this.currentLeague = league;
       this.clearCache();
+      // Also set league in fixture service
+      fbrefFixtureService.setLeague(league as any);
     }
   }
 
@@ -145,115 +93,49 @@ export class FBrefStatsService {
     }
   }
 
-  private async scrapeStatsData(): Promise<ScrapedData> {
-    const statsUrls = FBREF_URLS[this.currentLeague].stats; // Access FBREF_URLS directly
-    for (const url of statsUrls) {
-      try {
-        const data = await fbrefScraper.scrapeUrl(url);
-        const hasLeagueTable = data.tables.some(
-          table => table.headers.includes('W') && table.headers.includes('D') && table.headers.includes('L')
-        );
-        if (hasLeagueTable) return data;
-      } catch {}
-    }
-    return await fbrefScraper.scrapeUrl(statsUrls[statsUrls.length - 1]);
-  }
-
-  private async scrapeFixturesData(): Promise<ScrapedData> {
-    const fixturesUrl = FBREF_URLS[this.currentLeague].fixtures; // Access FBREF_URLS directly
-    return await fbrefScraper.scrapeUrl(fixturesUrl);
-  }
-
-  private parseStatsTable(table: TableData): Map<string, Partial<TeamSeasonStats>> {
-    const teamStats = new Map<string, Partial<TeamSeasonStats>>();
-    const headers = table.headers.map(h => h.toLowerCase().trim());
-
-    const teamIndex = headers.findIndex(h => h === 'squad');
-    const mpIndex = headers.findIndex(h => h === 'mp');
-    const wIndex = headers.findIndex(h => h === 'w');
-    const dIndex = headers.findIndex(h => h === 'd');
-    const lIndex = headers.findIndex(h => h === 'l');
-    const gfIndex = headers.findIndex(h => h === 'gf');
-    const gaIndex = headers.findIndex(h => h === 'ga');
-    const ptsIndex = headers.findIndex(h => h === 'pts');
-
-    table.rows.forEach(row => {
-      const teamCell = row[teamIndex];
-      const teamName = typeof teamCell === 'object' ? teamCell.text : teamCell;
-      if (!teamName || teamName.toLowerCase().includes('total')) return;
-
-      const normalizedTeam = normalizeTeamName(teamName);
-      const getValue = (index: number) => {
-        const cell = row[index];
-        const val = typeof cell === 'object' ? cell.text : cell;
-        return parseInt(String(val || '').replace(/[^\d-]/g, '')) || 0;
-      };
-
-      teamStats.set(normalizedTeam, {
-        team: normalizedTeam,
-        matchesPlayed: getValue(mpIndex),
-        won: getValue(wIndex),
-        drawn: getValue(dIndex),
-        lost: getValue(lIndex),
-        goalsFor: getValue(gfIndex),
-        goalsAgainst: getValue(gaIndex),
-        points: getValue(ptsIndex),
-      });
-    });
-
-    return teamStats;
-  }
-
-  private parseFixturesForForm(fixturesData: ScrapedData): Map<string, ('W' | 'D' | 'L')[]> {
-    const teamForms = new Map<string, ('W' | 'D' | 'L')[]>();
-    const fixturesTable = fixturesData.tables.find(
-      table =>
-        table.caption.toLowerCase().includes('fixtures') ||
-        table.caption.toLowerCase().includes('schedule') ||
-        table.id.toLowerCase().includes('schedule') ||
-        table.id.toLowerCase().includes('fixtures')
-    );
-    if (!fixturesTable) return teamForms;
-
-    const headers = fixturesTable.headers.map(h => h.toLowerCase());
-    const homeIndex = headers.findIndex(h => h.includes('home'));
-    const awayIndex = headers.findIndex(h => h.includes('away'));
-    const scoreIndex = headers.findIndex(h => h.includes('score') || h.includes('result'));
-
-    fixturesTable.rows.forEach(row => {
-      if (row.length < 4) return;
-
-      const homeTeam = normalizeTeamName(typeof row[homeIndex] === 'object' ? row[homeIndex].text : row[homeIndex]);
-      const awayTeam = normalizeTeamName(typeof row[awayIndex] === 'object' ? row[awayIndex].text : row[awayIndex]);
-      const scoreStr = typeof row[scoreIndex] === 'object' ? row[scoreIndex].text : row[scoreIndex];
-      if (!scoreStr || !scoreStr.includes('–')) return;
-
-      const [homeScoreStr, awayScoreStr] = scoreStr.split('–');
-      const homeScore = parseInt(homeScoreStr.trim());
-      const awayScore = parseInt(awayScoreStr.trim());
-      if (isNaN(homeScore) || isNaN(awayScore)) return;
-
-      // Update form arrays
-      if (!teamForms.has(homeTeam)) teamForms.set(homeTeam, []);
-      if (!teamForms.has(awayTeam)) teamForms.set(awayTeam, []);
-
-      const homeForm = teamForms.get(homeTeam)!;
-      const awayForm = teamForms.get(awayTeam)!;
-      if (homeForm.length < 5) homeForm.push(homeScore > awayScore ? 'W' : homeScore < awayScore ? 'L' : 'D');
-      if (awayForm.length < 5) awayForm.push(awayScore > homeScore ? 'W' : awayScore < homeScore ? 'L' : 'D');
-    });
-
-    return teamForms;
+  /**
+   * Get team stats from the fixture service (no additional scraping needed)
+   */
+  async getTeamStats(teamName: string): Promise<TeamSeasonStats | null> {
+    console.log(`[FBrefStats] Getting team stats for ${teamName} from fixture service...`);
+    return await fbrefFixtureService.getTeamStats(teamName);
   }
 
   /**
-   * Get corner statistics using the new team-based approach
+   * Enhanced team stats with corner data
    */
-  private async getCornerStatistics(teamStats: Map<string, Partial<TeamSeasonStats>>): Promise<Map<string, { corners: number; cornersAgainst: number; matches: number }>> {
+  async getEnhancedTeamStats(teamName: string): Promise<TeamSeasonStats | null> {
+    const basicStats = await this.getTeamStats(teamName);
+    if (!basicStats) return null;
+
+    // Add corner data if not present and available in cache
+    if (!basicStats.corners && this.cornersCache.has(normalizeTeamName(teamName))) {
+      const cornerData = this.cornersCache.get(normalizeTeamName(teamName))!;
+      return {
+        ...basicStats,
+        corners: cornerData.corners,
+        cornersAgainst: cornerData.cornersAgainst,
+      };
+    }
+
+    return basicStats;
+  }
+
+  /**
+   * Get corner statistics using the team-based approach
+   * Only scrapes if corner data is not cached or outdated
+   */
+  private async getCornerStatistics(teamStats: Map<string, TeamSeasonStats>): Promise<Map<string, { corners: number; cornersAgainst: number; matches: number }>> {
+    // Use cached data if valid
+    if (this.isCornersCacheValid() && this.cornersCache.size > 0) {
+      console.log('[FBrefStats] Using cached corner statistics');
+      return this.cornersCache;
+    }
+
     console.log('[FBrefStats] Fetching corner statistics using team match logs...');
     
-    const cornersMap = new Map<string, { corners: number; cornersAgainst: number; matches: number }>();
-    const competitionId = COMPETITION_IDS[this.currentLeague];
+    this.cornersCache.clear();
+    const competitionId = COMPETITION_IDS[this.currentLeague as keyof typeof COMPETITION_IDS];
     const leagueTeams = LEAGUE_TEAMS[this.currentLeague] || {};
     
     // Prepare teams for scraping
@@ -265,7 +147,6 @@ export class FBrefStatsService {
     }> = [];
 
     for (const [teamName] of teamStats) {
-      // Try to find team ID in our predefined list
       const teamId = this.findTeamId(teamName, leagueTeams);
       if (teamId) {
         teamsToScrape.push({
@@ -281,7 +162,7 @@ export class FBrefStatsService {
 
     if (teamsToScrape.length === 0) {
       console.warn('[FBrefStats] No teams found for corner statistics scraping');
-      return cornersMap;
+      return this.cornersCache;
     }
 
     try {
@@ -293,7 +174,7 @@ export class FBrefStatsService {
         const totalCorners = teamData.matches.reduce((sum, match) => sum + match.corners, 0);
         const totalCornersAgainst = teamData.matches.reduce((sum, match) => sum + (match.cornersAgainst || 0), 0);
         
-        cornersMap.set(teamData.teamName, {
+        this.cornersCache.set(teamData.teamName, {
           corners: totalCorners,
           cornersAgainst: totalCornersAgainst,
           matches: teamData.matches.length
@@ -302,11 +183,14 @@ export class FBrefStatsService {
         console.log(`[FBrefStats] ${teamData.teamName}: ${totalCorners} corners, ${totalCornersAgainst} conceded (${teamData.matches.length} matches)`);
       });
 
+      this.cornersCacheTime = Date.now();
+      console.log(`[FBrefStats] Corner statistics cached for ${this.cornersCache.size} teams`);
+
     } catch (error) {
       console.error('[FBrefStats] Error fetching corner statistics:', error);
     }
 
-    return cornersMap;
+    return this.cornersCache;
   }
 
   /**
@@ -331,64 +215,42 @@ export class FBrefStatsService {
     return null;
   }
 
-  private async refreshCache(): Promise<void> {
-    console.log('[FBrefStats] Refreshing cache...');
-    
-    const [statsData, fixturesData] = await Promise.all([
-      this.scrapeStatsData(), 
-      this.scrapeFixturesData()
-    ]);
-    
-    let leagueTable = statsData.tables.find(table => 
-      table.headers.includes('W') && table.headers.includes('D') && table.headers.includes('L')
-    );
-    
-    if (!leagueTable) throw new Error('No valid league table found');
-
-    const basicStats = this.parseStatsTable(leagueTable);
-    const teamForms = this.parseFixturesForForm(fixturesData);
-
-    // NEW: Use team-based corner statistics instead of individual match scraping
-    const cornersMap = await this.getCornerStatistics(basicStats);
-
-    this.statsCache.clear();
-
-    basicStats.forEach((stats, teamName) => {
-      const form = teamForms.get(teamName) || [];
-      const cornerStats = cornersMap.get(teamName) || { 
-        corners: 0, 
-        cornersAgainst: 0, 
-        matches: stats.matchesPlayed || 0 
-      };
-
-      this.statsCache.set(teamName, {
-        ...stats,
-        corners: cornerStats.corners,
-        cornersAgainst: cornerStats.cornersAgainst,
-        recentForm: form,
-        matchesPlayed: stats.matchesPlayed || 0,
-        won: stats.won || 0,
-        drawn: stats.drawn || 0,
-        lost: stats.lost || 0,
-        goalsFor: stats.goalsFor || 0,
-        goalsAgainst: stats.goalsAgainst || 0,
-        points: stats.points || 0,
-      } as TeamSeasonStats);
-    });
-
-    this.cacheTime = Date.now();
-    console.log(`[FBrefStats] Cache refreshed with ${this.statsCache.size} teams`);
-  }
-
-  async getTeamStats(teamName: string): Promise<TeamSeasonStats | null> {
-    if (!this.isCacheValid()) await this.refreshCache();
-    return this.statsCache.get(normalizeTeamName(teamName)) || null;
-  }
-
+  /**
+   * Main method to get comprehensive match stats
+   * Uses fixture service for basic stats and only scrapes corners when needed
+   */
   async getMatchStats(homeTeam: string, awayTeam: string): Promise<TeamStatsData> {
-    const homeStats = await this.getTeamStats(homeTeam);
-    const awayStats = await this.getTeamStats(awayTeam);
-    if (!homeStats || !awayStats) throw new Error(`Stats not found for teams: ${homeTeam} vs ${awayTeam}`);
+    console.log(`[FBrefStats] Getting match stats for ${homeTeam} vs ${awayTeam}`);
+
+    // Get all team stats from fixture service (includes basic stats + form)
+    const allTeamStats = await fbrefFixtureService.getAllTeamStats();
+    
+    const homeStats = allTeamStats.get(normalizeTeamName(homeTeam));
+    const awayStats = allTeamStats.get(normalizeTeamName(awayTeam));
+    
+    if (!homeStats || !awayStats) {
+      throw new Error(`Stats not found for teams: ${homeTeam} vs ${awayTeam}`);
+    }
+
+    // Get corner statistics (uses cache or scrapes if needed)
+    const cornersMap = await this.getCornerStatistics(allTeamStats);
+    
+    // Merge corner data with basic stats
+    const homeCornerData = cornersMap.get(homeStats.team) || { corners: 0, cornersAgainst: 0, matches: homeStats.matchesPlayed };
+    const awayCornerData = cornersMap.get(awayStats.team) || { corners: 0, cornersAgainst: 0, matches: awayStats.matchesPlayed };
+
+    // Update team stats with corner data
+    const enhancedHomeStats = {
+      ...homeStats,
+      corners: homeCornerData.corners,
+      cornersAgainst: homeCornerData.cornersAgainst,
+    };
+
+    const enhancedAwayStats = {
+      ...awayStats,
+      corners: awayCornerData.corners,
+      cornersAgainst: awayCornerData.cornersAgainst,
+    };
 
     const calculateOverPercentage = (total: number, matches: number, threshold: number): number => {
       if (matches === 0) return 0;
@@ -398,20 +260,87 @@ export class FBrefStatsService {
 
     return {
       recentForm: {
-        homeResults: homeStats.recentForm || [],
-        awayResults: awayStats.recentForm || [],
-        homeStats: { matchesPlayed: homeStats.matchesPlayed, won: homeStats.won, drawn: homeStats.drawn, lost: homeStats.lost },
-        awayStats: { matchesPlayed: awayStats.matchesPlayed, won: awayStats.won, drawn: awayStats.drawn, lost: awayStats.lost },
+        homeResults: enhancedHomeStats.recentForm || [],
+        awayResults: enhancedAwayStats.recentForm || [],
+        homeStats: { 
+          matchesPlayed: enhancedHomeStats.matchesPlayed, 
+          won: enhancedHomeStats.won, 
+          drawn: enhancedHomeStats.drawn, 
+          lost: enhancedHomeStats.lost 
+        },
+        awayStats: { 
+          matchesPlayed: enhancedAwayStats.matchesPlayed, 
+          won: enhancedAwayStats.won, 
+          drawn: enhancedAwayStats.drawn, 
+          lost: enhancedAwayStats.lost 
+        },
       },
-      cornersMatchesPlayed: { homeValue: homeStats.matchesPlayed, awayValue: awayStats.matchesPlayed },
-      cornersTaken: { homeValue: homeStats.corners, awayValue: awayStats.corners },
-      cornersAgainst: { homeValue: homeStats.cornersAgainst, awayValue: awayStats.cornersAgainst },
-      totalCorners: { homeValue: homeStats.corners + homeStats.cornersAgainst, awayValue: awayStats.corners + awayStats.cornersAgainst },
-      over75MatchCorners: { homeValue: calculateOverPercentage(homeStats.corners + homeStats.cornersAgainst, homeStats.matchesPlayed, 7.5), awayValue: calculateOverPercentage(awayStats.corners + awayStats.cornersAgainst, awayStats.matchesPlayed, 7.5) },
-      over85MatchCorners: { homeValue: calculateOverPercentage(homeStats.corners + homeStats.cornersAgainst, homeStats.matchesPlayed, 8.5), awayValue: calculateOverPercentage(awayStats.corners + awayStats.cornersAgainst, awayStats.matchesPlayed, 8.5) },
-      over95MatchCorners: { homeValue: calculateOverPercentage(homeStats.corners + homeStats.cornersAgainst, homeStats.matchesPlayed, 9.5), awayValue: calculateOverPercentage(awayStats.corners + awayStats.cornersAgainst, awayStats.matchesPlayed, 9.5) },
-      over105MatchCorners: { homeValue: calculateOverPercentage(homeStats.corners + homeStats.cornersAgainst, homeStats.matchesPlayed, 10.5), awayValue: calculateOverPercentage(awayStats.corners + awayStats.cornersAgainst, awayStats.matchesPlayed, 10.5) },
-      over115MatchCorners: { homeValue: calculateOverPercentage(homeStats.corners + homeStats.cornersAgainst, homeStats.matchesPlayed, 11.5), awayValue: calculateOverPercentage(awayStats.corners + awayStats.cornersAgainst, awayStats.matchesPlayed, 11.5) },
+      cornersMatchesPlayed: { 
+        homeValue: enhancedHomeStats.matchesPlayed, 
+        awayValue: enhancedAwayStats.matchesPlayed 
+      },
+      cornersTaken: { 
+        homeValue: enhancedHomeStats.corners || 0, 
+        awayValue: enhancedAwayStats.corners || 0 
+      },
+      cornersAgainst: { 
+        homeValue: enhancedHomeStats.cornersAgainst || 0, 
+        awayValue: enhancedAwayStats.cornersAgainst || 0 
+      },
+      totalCorners: { 
+        homeValue: (enhancedHomeStats.corners || 0) + (enhancedHomeStats.cornersAgainst || 0), 
+        awayValue: (enhancedAwayStats.corners || 0) + (enhancedAwayStats.cornersAgainst || 0) 
+      },
+      over75MatchCorners: { 
+        homeValue: calculateOverPercentage((enhancedHomeStats.corners || 0) + (enhancedHomeStats.cornersAgainst || 0), enhancedHomeStats.matchesPlayed, 7.5), 
+        awayValue: calculateOverPercentage((enhancedAwayStats.corners || 0) + (enhancedAwayStats.cornersAgainst || 0), enhancedAwayStats.matchesPlayed, 7.5) 
+      },
+      over85MatchCorners: { 
+        homeValue: calculateOverPercentage((enhancedHomeStats.corners || 0) + (enhancedHomeStats.cornersAgainst || 0), enhancedHomeStats.matchesPlayed, 8.5), 
+        awayValue: calculateOverPercentage((enhancedAwayStats.corners || 0) + (enhancedAwayStats.cornersAgainst || 0), enhancedAwayStats.matchesPlayed, 8.5) 
+      },
+      over95MatchCorners: { 
+        homeValue: calculateOverPercentage((enhancedHomeStats.corners || 0) + (enhancedHomeStats.cornersAgainst || 0), enhancedHomeStats.matchesPlayed, 9.5), 
+        awayValue: calculateOverPercentage((enhancedAwayStats.corners || 0) + (enhancedAwayStats.cornersAgainst || 0), enhancedAwayStats.matchesPlayed, 9.5) 
+      },
+      over105MatchCorners: { 
+        homeValue: calculateOverPercentage((enhancedHomeStats.corners || 0) + (enhancedHomeStats.cornersAgainst || 0), enhancedHomeStats.matchesPlayed, 10.5), 
+        awayValue: calculateOverPercentage((enhancedAwayStats.corners || 0) + (enhancedAwayStats.cornersAgainst || 0), enhancedAwayStats.matchesPlayed, 10.5) 
+      },
+      over115MatchCorners: { 
+        homeValue: calculateOverPercentage((enhancedHomeStats.corners || 0) + (enhancedHomeStats.cornersAgainst || 0), enhancedHomeStats.matchesPlayed, 11.5), 
+        awayValue: calculateOverPercentage((enhancedAwayStats.corners || 0) + (enhancedAwayStats.cornersAgainst || 0), enhancedAwayStats.matchesPlayed, 11.5) 
+      },
+    };
+  }
+
+  /**
+   * Utility method to refresh corner data manually
+   */
+  async refreshCornerData(): Promise<void> {
+    console.log('[FBrefStats] Manually refreshing corner data...');
+    this.clearCache();
+    
+    // Get team stats to trigger corner data refresh
+    const allTeamStats = await fbrefFixtureService.getAllTeamStats();
+    await this.getCornerStatistics(allTeamStats);
+    
+    console.log('[FBrefStats] Corner data refresh completed');
+  }
+
+  /**
+   * Get cache status for debugging
+   */
+  getCacheStatus() {
+    return {
+      cornersCache: {
+        size: this.cornersCache.size,
+        isValid: this.isCornersCacheValid(),
+        cacheTime: this.cornersCacheTime,
+        teams: Array.from(this.cornersCache.keys())
+      },
+      currentLeague: this.currentLeague,
+      currentSeason: this.currentSeason
     };
   }
 }
