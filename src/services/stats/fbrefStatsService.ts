@@ -57,7 +57,8 @@ export class FBrefStatsService {
   private cacheTime = 0;
   private readonly cacheTimeout = 30 * 60 * 1000; // 30 minutes
 
-  const FBREF_URLS = {
+  // Declare FBREF_URLS as a readonly property
+  private readonly FBREF_URLS = {
     premierLeague: {
       stats: [
         'https://fbref.com/en/comps/9/2025-2026/2025-2026-Premier-League-Stats',
@@ -91,6 +92,8 @@ export class FBrefStatsService {
       fixtures: 'https://fbref.com/en/comps/13/schedule/Ligue-1-Scores-and-Fixtures',
     },
   };
+}
+
 
   // Team ID mappings for different leagues
 const LEAGUE_TEAMS: Record<keyof typeof FBREF_URLS, Record<string, string>> = {
