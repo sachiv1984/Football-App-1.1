@@ -74,40 +74,57 @@ export class FBrefTeamMatchLogsService {
     }
   }
 
-  private async scrapePassingTypes(
-    teamId: string, 
-    season: string, 
-    competitionId: string, 
-    isOpposition: boolean,
-    options: Required<ScrapeOptions>
-  ): Promise<TeamMatchLogCorners[] | null> {
-    const url = FBrefUrlBuilder.buildPassingTypesUrl(teamId, season, competitionId, isOpposition);
-    if (options.enableLogging) {
-      console.log(`[TeamMatchLogs] Scraping ${isOpposition ? 'defensive' : 'offensive'} corners: ${url}`);
-    }
+private async scrapePassingTypes(
+  teamId: string, 
+  season: string, 
+  competitionId: string, 
+  isOpposition: boolean,
+  options: Required<ScrapeOptions>
+): Promise<TeamMatchLogCorners[] | null> {
+  const url = FBrefUrlBuilder.buildPassingTypesUrl(teamId, season, competitionId, isOpposition);
 
-    for (let attempt = 1; attempt <= options.retries + 1; attempt++) {
-      try {
-        const scraped = await fbrefScraper.scrapeUrl(url);
-        console.log(scraped.tables[0].rows[0]); // If this logs an array of strings/objects, it's JSON
-        const table = this.findMatchLogsTable(scraped, url, isOpposition);
-        if (!table) {
-          if (options.enableLogging) console.warn(`[TeamMatchLogs] No suitable table found in ${url} (attempt ${attempt})`);
-          if (attempt <= options.retries) {
-            await this.delay(options.delayBetweenRequests);
-            continue;
-          }
-          return null;
-        }
-        return this.extractCornersFromMatchLogsTable(table, isOpposition, options);
-      } catch (err) {
-        if (options.enableLogging) console.warn(`[TeamMatchLogs] Attempt ${attempt} failed for ${url}:`, err);
-        if (attempt <= options.retries) await this.delay(options.delayBetweenRequests * attempt);
-        else throw err;
-      }
-    }
-    return null;
+  if (options.enableLogging) {
+    console.log(`[TeamMatchLogs] Scraping ${isOpposition ? 'defensive' : 'offensive'} corners: ${url}`);
   }
+
+  for (let attempt = 1; attempt <= options.retries + 1; attempt++) {
+    try {
+      // First try normal HTML scraping
+      const scraped = await fbrefScraper.scrapeUrl(url);
+      let table = this.findMatchLogsTable(scraped, url, isOpposition);
+
+      // Fallback: try hidden JSON tables
+      if (!table) {
+        const jsonTables = await fbrefScraper.scrapeJsonTables(url);
+        if (jsonTables?.length) {
+          // Pick the first table with expected columns
+          table = jsonTables.find(t =>
+            t.headers.some(h => h.toLowerCase().includes('date')) &&
+            t.headers.some(h => h.toLowerCase().includes('opponent'))
+          );
+        }
+      }
+
+      if (!table) {
+        if (options.enableLogging) console.warn(`[TeamMatchLogs] No suitable table found in ${url} (attempt ${attempt})`);
+        if (attempt <= options.retries) {
+          await this.delay(options.delayBetweenRequests);
+          continue;
+        }
+        return null;
+      }
+
+      return this.extractCornersFromMatchLogsTable(table, isOpposition, options);
+    } catch (err) {
+      if (options.enableLogging) console.warn(`[TeamMatchLogs] Attempt ${attempt} failed for ${url}:`, err);
+      if (attempt <= options.retries) await this.delay(options.delayBetweenRequests * attempt);
+      else throw err;
+    }
+  }
+
+  return null;
+}
+
 
   private findMatchLogsTable(scraped: ScrapedData, url?: string, isOpposition = false): any | null {
   const cacheKey = `${url}_${isOpposition ? "opp" : "for"}`;
