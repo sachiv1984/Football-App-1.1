@@ -1,5 +1,5 @@
 import axios from 'axios';
-import cheerio from 'cheerio';
+import { load } from 'cheerio';
 import fs from 'fs';
 import path from 'path';
 
@@ -26,7 +26,7 @@ interface RawFixture {
 
 async function scrapeTeamFixtures(team: { name: string; url: string }): Promise<RawFixture[]> {
   const res = await axios.get(team.url);
-  const $ = cheerio.load(res.data);
+  const $ = load(res.data);
 
   const fixtures: RawFixture[] = [];
 
