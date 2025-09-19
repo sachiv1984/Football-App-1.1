@@ -1,7 +1,7 @@
 // src/services/stats/fbrefStatsService.ts
 import { fbrefScraper, type ScrapedData, type TableData } from '../scrape/Fbref';
 import { normalizeTeamName } from '../../utils/teamUtils';
-import { fbrefMatchLogService,  } from './fbrefMatchLogService';
+import { fbrefTeamMatchLogsService, PREMIER_LEAGUE_TEAMS, type TeamSeasonCorners } from './fbrefTeamMatchLogsService';
 
 interface TeamFormData {
   homeResults: ('W' | 'D' | 'L')[];
@@ -43,48 +43,69 @@ interface TeamSeasonStats {
   recentForm: ('W' | 'D' | 'L')[];
 }
 
+// Team ID mappings for different leagues
+const LEAGUE_TEAMS = {
+  premierLeague: PREMIER_LEAGUE_TEAMS,
+  // Add other leagues as needed
+  laLiga: {
+    'Real Madrid': 'real-madrid-id',
+    'Barcelona': 'barcelona-id',
+    // Add more La Liga teams
+  },
+  // Add more leagues...
+} as const;
+
+// Competition ID mappings
+const COMPETITION_IDS = {
+  premierLeague: 'c9',
+  laLiga: 'c12',
+  bundesliga: 'c20',
+  serieA: 'c11',
+  ligue1: 'c13',
+} as const;
+
 export class FBrefStatsService {
   private statsCache: Map<string, TeamSeasonStats> = new Map();
   private cacheTime = 0;
   private readonly cacheTimeout = 30 * 60 * 1000; // 30 minutes
 
   private readonly FBREF_URLS = {
-  premierLeague: {
-    stats: [
-      'https://fbref.com/en/comps/9/2025-2026/2025-2026-Premier-League-Stats',
-      'https://fbref.com/en/comps/9/Premier-League-Stats',
-      'https://fbref.com/en/comps/9/stats/Premier-League-Stats',
-    ],
-    fixtures: 'https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures',
-  },
-  laLiga: {
-    stats: [
-      'https://fbref.com/en/comps/12/2025-2026/2025-2026-La-Liga-Stats',
-    ],
-    fixtures: 'https://fbref.com/en/comps/12/schedule/La-Liga-Scores-and-Fixtures',
-  },
-  bundesliga: {
-    stats: [
-      'https://fbref.com/en/comps/20/2025-2026/2025-2026-Bundesliga-Stats',
-    ],
-    fixtures: 'https://fbref.com/en/comps/20/schedule/Bundesliga-Scores-and-Fixtures',
-  },
-  serieA: {
-    stats: [
-      'https://fbref.com/en/comps/11/2025-2026/2025-2026-Serie-A-Stats',
-    ],
-    fixtures: 'https://fbref.com/en/comps/11/schedule/Serie-A-Scores-and-Fixtures',
-  },
-  ligue1: {
-    stats: [
-      'https://fbref.com/en/comps/13/2025-2026/2025-2026-Ligue-1-Stats',
-    ],
-    fixtures: 'https://fbref.com/en/comps/13/schedule/Ligue-1-Scores-and-Fixtures',
-  },
-};
-
+    premierLeague: {
+      stats: [
+        'https://fbref.com/en/comps/9/2025-2026/2025-2026-Premier-League-Stats',
+        'https://fbref.com/en/comps/9/Premier-League-Stats',
+        'https://fbref.com/en/comps/9/stats/Premier-League-Stats',
+      ],
+      fixtures: 'https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures',
+    },
+    laLiga: {
+      stats: [
+        'https://fbref.com/en/comps/12/2025-2026/2025-2026-La-Liga-Stats',
+      ],
+      fixtures: 'https://fbref.com/en/comps/12/schedule/La-Liga-Scores-and-Fixtures',
+    },
+    bundesliga: {
+      stats: [
+        'https://fbref.com/en/comps/20/2025-2026/2025-2026-Bundesliga-Stats',
+      ],
+      fixtures: 'https://fbref.com/en/comps/20/schedule/Bundesliga-Scores-and-Fixtures',
+    },
+    serieA: {
+      stats: [
+        'https://fbref.com/en/comps/11/2025-2026/2025-2026-Serie-A-Stats',
+      ],
+      fixtures: 'https://fbref.com/en/comps/11/schedule/Serie-A-Scores-and-Fixtures',
+    },
+    ligue1: {
+      stats: [
+        'https://fbref.com/en/comps/13/2025-2026/2025-2026-Ligue-1-Stats',
+      ],
+      fixtures: 'https://fbref.com/en/comps/13/schedule/Ligue-1-Scores-and-Fixtures',
+    },
+  };
 
   private currentLeague: keyof typeof this.FBREF_URLS = 'premierLeague';
+  private currentSeason = '2025-2026';
 
   private isCacheValid(): boolean {
     return this.statsCache.size > 0 && Date.now() - this.cacheTime < this.cacheTimeout;
@@ -99,6 +120,13 @@ export class FBrefStatsService {
   setLeague(league: keyof typeof this.FBREF_URLS): void {
     if (this.currentLeague !== league) {
       this.currentLeague = league;
+      this.clearCache();
+    }
+  }
+
+  setSeason(season: string): void {
+    if (this.currentSeason !== season) {
+      this.currentSeason = season;
       this.clearCache();
     }
   }
@@ -204,51 +232,120 @@ export class FBrefStatsService {
     return teamForms;
   }
 
+  /**
+   * Get corner statistics using the new team-based approach
+   */
+  private async getCornerStatistics(teamStats: Map<string, Partial<TeamSeasonStats>>): Promise<Map<string, { corners: number; cornersAgainst: number; matches: number }>> {
+    console.log('[FBrefStats] Fetching corner statistics using team match logs...');
+    
+    const cornersMap = new Map<string, { corners: number; cornersAgainst: number; matches: number }>();
+    const competitionId = COMPETITION_IDS[this.currentLeague];
+    const leagueTeams = LEAGUE_TEAMS[this.currentLeague] || {};
+    
+    // Prepare teams for scraping
+    const teamsToScrape: Array<{
+      teamId: string;
+      teamName: string;
+      season: string;
+      competitionId: string;
+    }> = [];
+
+    for (const [teamName] of teamStats) {
+      // Try to find team ID in our predefined list
+      const teamId = this.findTeamId(teamName, leagueTeams);
+      if (teamId) {
+        teamsToScrape.push({
+          teamId,
+          teamName,
+          season: this.currentSeason,
+          competitionId
+        });
+      } else {
+        console.warn(`[FBrefStats] Team ID not found for: ${teamName}`);
+      }
+    }
+
+    if (teamsToScrape.length === 0) {
+      console.warn('[FBrefStats] No teams found for corner statistics scraping');
+      return cornersMap;
+    }
+
+    try {
+      // Scrape corner data for all teams
+      const allTeamsCornerData = await fbrefTeamMatchLogsService.scrapeMultipleTeams(teamsToScrape);
+      
+      // Process the corner data
+      allTeamsCornerData.forEach(teamData => {
+        const totalCorners = teamData.matches.reduce((sum, match) => sum + match.corners, 0);
+        const totalCornersAgainst = teamData.matches.reduce((sum, match) => sum + (match.cornersAgainst || 0), 0);
+        
+        cornersMap.set(teamData.teamName, {
+          corners: totalCorners,
+          cornersAgainst: totalCornersAgainst,
+          matches: teamData.matches.length
+        });
+
+        console.log(`[FBrefStats] ${teamData.teamName}: ${totalCorners} corners, ${totalCornersAgainst} conceded (${teamData.matches.length} matches)`);
+      });
+
+    } catch (error) {
+      console.error('[FBrefStats] Error fetching corner statistics:', error);
+    }
+
+    return cornersMap;
+  }
+
+  /**
+   * Find team ID from predefined mappings
+   */
+  private findTeamId(teamName: string, leagueTeams: Record<string, string>): string | null {
+    const normalizedName = normalizeTeamName(teamName);
+    
+    // Direct match
+    if (leagueTeams[normalizedName]) {
+      return leagueTeams[normalizedName];
+    }
+    
+    // Try to find partial match
+    for (const [key, id] of Object.entries(leagueTeams)) {
+      const normalizedKey = normalizeTeamName(key);
+      if (normalizedKey.includes(normalizedName) || normalizedName.includes(normalizedKey)) {
+        return id;
+      }
+    }
+    
+    return null;
+  }
+
   private async refreshCache(): Promise<void> {
-    const [statsData, fixturesData] = await Promise.all([this.scrapeStatsData(), this.scrapeFixturesData()]);
-    let leagueTable = statsData.tables.find(table => table.headers.includes('W') && table.headers.includes('D') && table.headers.includes('L'));
+    console.log('[FBrefStats] Refreshing cache...');
+    
+    const [statsData, fixturesData] = await Promise.all([
+      this.scrapeStatsData(), 
+      this.scrapeFixturesData()
+    ]);
+    
+    let leagueTable = statsData.tables.find(table => 
+      table.headers.includes('W') && table.headers.includes('D') && table.headers.includes('L')
+    );
+    
     if (!leagueTable) throw new Error('No valid league table found');
 
     const basicStats = this.parseStatsTable(leagueTable);
     const teamForms = this.parseFixturesForForm(fixturesData);
 
-    // Fetch corners for all fixtures
-    const fixtureUrls = fixturesData.tables.flatMap(t =>
-  t.rows
-    .map(r => {
-      const linkCell = r.find(c => typeof c === 'object' && (c as any).link);
-      if (!linkCell) return null;
-
-      const rawLink = (linkCell as any).link;
-      return rawLink.startsWith('http') ? rawLink : `https://fbref.com${rawLink}`;
-    })
-    .filter(Boolean) as string[]
-);
-
-const cornersData = await fbrefMatchLogService.scrapeMultiple(fixtureUrls);
-
-
-    // Aggregate corners per team
-    const cornersMap = new Map<string, { corners: number; cornersAgainst: number; matches: number }>();
-    cornersData.forEach(cd => {
-      const home = cornersMap.get(cd.homeTeam) || { corners: 0, cornersAgainst: 0, matches: 0 };
-      home.corners += cd.homeCorners;
-      home.cornersAgainst += cd.awayCorners;
-      home.matches += 1;
-      cornersMap.set(cd.homeTeam, home);
-
-      const away = cornersMap.get(cd.awayTeam) || { corners: 0, cornersAgainst: 0, matches: 0 };
-      away.corners += cd.awayCorners;
-      away.cornersAgainst += cd.homeCorners;
-      away.matches += 1;
-      cornersMap.set(cd.awayTeam, away);
-    });
+    // NEW: Use team-based corner statistics instead of individual match scraping
+    const cornersMap = await this.getCornerStatistics(basicStats);
 
     this.statsCache.clear();
 
     basicStats.forEach((stats, teamName) => {
       const form = teamForms.get(teamName) || [];
-      const cornerStats = cornersMap.get(teamName) || { corners: 0, cornersAgainst: 0, matches: stats.matchesPlayed || 0 };
+      const cornerStats = cornersMap.get(teamName) || { 
+        corners: 0, 
+        cornersAgainst: 0, 
+        matches: stats.matchesPlayed || 0 
+      };
 
       this.statsCache.set(teamName, {
         ...stats,
@@ -266,6 +363,7 @@ const cornersData = await fbrefMatchLogService.scrapeMultiple(fixtureUrls);
     });
 
     this.cacheTime = Date.now();
+    console.log(`[FBrefStats] Cache refreshed with ${this.statsCache.size} teams`);
   }
 
   async getTeamStats(teamName: string): Promise<TeamSeasonStats | null> {
@@ -301,6 +399,14 @@ const cornersData = await fbrefMatchLogService.scrapeMultiple(fixtureUrls);
       over105MatchCorners: { homeValue: calculateOverPercentage(homeStats.corners + homeStats.cornersAgainst, homeStats.matchesPlayed, 10.5), awayValue: calculateOverPercentage(awayStats.corners + awayStats.cornersAgainst, awayStats.matchesPlayed, 10.5) },
       over115MatchCorners: { homeValue: calculateOverPercentage(homeStats.corners + homeStats.cornersAgainst, homeStats.matchesPlayed, 11.5), awayValue: calculateOverPercentage(awayStats.corners + awayStats.cornersAgainst, awayStats.matchesPlayed, 11.5) },
     };
+  }
+
+  /**
+   * Add a team ID mapping (useful for teams not in predefined list)
+   */
+  addTeamMapping(league: keyof typeof LEAGUE_TEAMS, teamName: string, teamId: string): void {
+    // This would need to be implemented to dynamically add team mappings
+    console.log(`[FBrefStats] Adding team mapping: ${teamName} -> ${teamId} for ${league}`);
   }
 }
 
