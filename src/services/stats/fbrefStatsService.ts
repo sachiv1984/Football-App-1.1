@@ -13,16 +13,29 @@ interface TeamFormData {
 interface TeamStatsData {
   recentForm: TeamFormData;
 
-  // Corners stats
+  // Corners stats (now as averages per game and actual percentages)
   cornersMatchesPlayed: { homeValue: number; awayValue: number };
-  cornersTaken: { homeValue: number; awayValue: number };
-  cornersAgainst: { homeValue: number; awayValue: number };
-  totalCorners: { homeValue: number; awayValue: number };
-  over75MatchCorners: { homeValue: number; awayValue: number };
-  over85MatchCorners: { homeValue: number; awayValue: number };
-  over95MatchCorners: { homeValue: number; awayValue: number };
-  over105MatchCorners: { homeValue: number; awayValue: number };
-  over115MatchCorners: { homeValue: number; awayValue: number };
+  cornersTaken: { homeValue: number; awayValue: number }; // Average corners for per game
+  cornersAgainst: { homeValue: number; awayValue: number }; // Average corners against per game
+  totalCorners: { homeValue: number; awayValue: number }; // Average total corners per game
+  over75MatchCorners: { homeValue: number; awayValue: number }; // % of games with 7.5+ total corners
+  over85MatchCorners: { homeValue: number; awayValue: number }; // % of games with 8.5+ total corners
+  over95MatchCorners: { homeValue: number; awayValue: number }; // % of games with 9.5+ total corners
+  over105MatchCorners: { homeValue: number; awayValue: number }; // % of games with 10.5+ total corners
+  over115MatchCorners: { homeValue: number; awayValue: number }; // % of games with 11.5+ total corners
+}
+
+// Enhanced interface for detailed corner statistics
+interface DetailedCornerStats {
+  corners: number;
+  cornersAgainst: number;
+  matches: number;
+  matchDetails: Array<{
+    opponent: string;
+    totalCorners: number; // corners + cornersAgainst for this specific match
+    corners: number;
+    cornersAgainst: number;
+  }>;
 }
 
 // Competition ID mappings
@@ -60,7 +73,7 @@ const LEAGUE_TEAMS: Record<string, Record<string, string>> = {
 };
 
 export class FBrefStatsService {
-  private cornersCache: Map<string, { corners: number; cornersAgainst: number; matches: number }> = new Map();
+  private cornersCache: Map<string, DetailedCornerStats> = new Map();
   private cornersCacheTime = 0;
   private readonly cornersCacheTimeout = 60 * 60 * 1000; // 1 hour (corners change less frequently)
 
@@ -122,10 +135,9 @@ export class FBrefStatsService {
   }
 
   /**
-   * Get corner statistics using the team-based approach
-   * Only scrapes if corner data is not cached or outdated
+   * Enhanced corner statistics calculation with detailed match data
    */
-  private async getCornerStatistics(teamStats: Map<string, TeamSeasonStats>): Promise<Map<string, { corners: number; cornersAgainst: number; matches: number }>> {
+  private async getCornerStatistics(teamStats: Map<string, TeamSeasonStats>): Promise<Map<string, DetailedCornerStats>> {
     // Use cached data if valid
     if (this.isCornersCacheValid() && this.cornersCache.size > 0) {
       console.log('[FBrefStats] Using cached corner statistics');
@@ -169,15 +181,24 @@ export class FBrefStatsService {
       // Scrape corner data for all teams
       const allTeamsCornerData = await fbrefTeamMatchLogsService.scrapeMultipleTeams(teamsToScrape);
       
-      // Process the corner data
+      // Process the corner data with detailed match information
       allTeamsCornerData.forEach(teamData => {
         const totalCorners = teamData.matches.reduce((sum, match) => sum + match.corners, 0);
         const totalCornersAgainst = teamData.matches.reduce((sum, match) => sum + (match.cornersAgainst || 0), 0);
         
+        // Create detailed match data for over/under calculations
+        const matchDetails = teamData.matches.map(match => ({
+          opponent: match.opponent,
+          totalCorners: match.corners + (match.cornersAgainst || 0),
+          corners: match.corners,
+          cornersAgainst: match.cornersAgainst || 0,
+        }));
+
         this.cornersCache.set(teamData.teamName, {
           corners: totalCorners,
           cornersAgainst: totalCornersAgainst,
-          matches: teamData.matches.length
+          matches: teamData.matches.length,
+          matchDetails
         });
 
         console.log(`[FBrefStats] ${teamData.teamName}: ${totalCorners} corners, ${totalCornersAgainst} conceded (${teamData.matches.length} matches)`);
@@ -191,6 +212,26 @@ export class FBrefStatsService {
     }
 
     return this.cornersCache;
+  }
+
+  /**
+   * Calculate actual over/under percentages based on match history
+   */
+  private calculateOverPercentage(matchDetails: Array<{totalCorners: number}>, threshold: number): number {
+    if (matchDetails.length === 0) return 0;
+    
+    const gamesOver = matchDetails.filter(match => match.totalCorners > threshold).length;
+    const percentage = (gamesOver / matchDetails.length) * 100;
+    
+    return Math.round(percentage * 100) / 100; // Round to 2 decimal places
+  }
+
+  /**
+   * Calculate average corners per game
+   */
+  private calculateAverage(total: number, matches: number): number {
+    if (matches === 0) return 0;
+    return Math.round((total / matches) * 100) / 100; // Round to 2 decimal places
   }
 
   /**
@@ -216,8 +257,7 @@ export class FBrefStatsService {
   }
 
   /**
-   * Main method to get comprehensive match stats
-   * Uses fixture service for basic stats and only scrapes corners when needed
+   * Main method to get comprehensive match stats with proper corner calculations
    */
   async getMatchStats(homeTeam: string, awayTeam: string): Promise<TeamStatsData> {
     console.log(`[FBrefStats] Getting match stats for ${homeTeam} vs ${awayTeam}`);
@@ -232,85 +272,145 @@ export class FBrefStatsService {
       throw new Error(`Stats not found for teams: ${homeTeam} vs ${awayTeam}`);
     }
 
-    // Get corner statistics (uses cache or scrapes if needed)
+    // Get detailed corner statistics (uses cache or scrapes if needed)
     const cornersMap = await this.getCornerStatistics(allTeamStats);
     
     // Merge corner data with basic stats
-    const homeCornerData = cornersMap.get(homeStats.team) || { corners: 0, cornersAgainst: 0, matches: homeStats.matchesPlayed };
-    const awayCornerData = cornersMap.get(awayStats.team) || { corners: 0, cornersAgainst: 0, matches: awayStats.matchesPlayed };
-
-    // Update team stats with corner data
-    const enhancedHomeStats = {
-      ...homeStats,
-      corners: homeCornerData.corners,
-      cornersAgainst: homeCornerData.cornersAgainst,
+    const homeCornerData = cornersMap.get(homeStats.team) || { 
+      corners: 0, 
+      cornersAgainst: 0, 
+      matches: homeStats.matchesPlayed,
+      matchDetails: []
+    };
+    
+    const awayCornerData = cornersMap.get(awayStats.team) || { 
+      corners: 0, 
+      cornersAgainst: 0, 
+      matches: awayStats.matchesPlayed,
+      matchDetails: []
     };
 
-    const enhancedAwayStats = {
-      ...awayStats,
-      corners: awayCornerData.corners,
-      cornersAgainst: awayCornerData.cornersAgainst,
-    };
+    console.log(`[FBrefStats] ${homeTeam} corner details:`, {
+      totalCorners: homeCornerData.corners,
+      totalCornersAgainst: homeCornerData.cornersAgainst,
+      matches: homeCornerData.matches,
+      avgCornersFor: this.calculateAverage(homeCornerData.corners, homeCornerData.matches),
+      avgCornersAgainst: this.calculateAverage(homeCornerData.cornersAgainst, homeCornerData.matches),
+      avgTotalCorners: this.calculateAverage(homeCornerData.corners + homeCornerData.cornersAgainst, homeCornerData.matches)
+    });
 
-    const calculateOverPercentage = (total: number, matches: number, threshold: number): number => {
-      if (matches === 0) return 0;
-      const avg = total / matches;
-      return avg > threshold ? Math.min(90, Math.round(60 + (avg - threshold) * 10)) : Math.max(10, Math.round(50 - (threshold - avg) * 10));
-    };
+    console.log(`[FBrefStats] ${awayTeam} corner details:`, {
+      totalCorners: awayCornerData.corners,
+      totalCornersAgainst: awayCornerData.cornersAgainst,
+      matches: awayCornerData.matches,
+      avgCornersFor: this.calculateAverage(awayCornerData.corners, awayCornerData.matches),
+      avgCornersAgainst: this.calculateAverage(awayCornerData.cornersAgainst, awayCornerData.matches),
+      avgTotalCorners: this.calculateAverage(awayCornerData.corners + awayCornerData.cornersAgainst, awayCornerData.matches)
+    });
 
     return {
       recentForm: {
-        homeResults: enhancedHomeStats.recentForm || [],
-        awayResults: enhancedAwayStats.recentForm || [],
+        homeResults: homeStats.recentForm || [],
+        awayResults: awayStats.recentForm || [],
         homeStats: { 
-          matchesPlayed: enhancedHomeStats.matchesPlayed, 
-          won: enhancedHomeStats.won, 
-          drawn: enhancedHomeStats.drawn, 
-          lost: enhancedHomeStats.lost 
+          matchesPlayed: homeStats.matchesPlayed, 
+          won: homeStats.won, 
+          drawn: homeStats.drawn, 
+          lost: homeStats.lost 
         },
         awayStats: { 
-          matchesPlayed: enhancedAwayStats.matchesPlayed, 
-          won: enhancedAwayStats.won, 
-          drawn: enhancedAwayStats.drawn, 
-          lost: enhancedAwayStats.lost 
+          matchesPlayed: awayStats.matchesPlayed, 
+          won: awayStats.won, 
+          drawn: awayStats.drawn, 
+          lost: awayStats.lost 
         },
       },
       cornersMatchesPlayed: { 
-        homeValue: enhancedHomeStats.matchesPlayed, 
-        awayValue: enhancedAwayStats.matchesPlayed 
+        homeValue: homeCornerData.matches, 
+        awayValue: awayCornerData.matches 
       },
+      // UPDATED: Now showing averages per game
       cornersTaken: { 
-        homeValue: enhancedHomeStats.corners || 0, 
-        awayValue: enhancedAwayStats.corners || 0 
+        homeValue: this.calculateAverage(homeCornerData.corners, homeCornerData.matches), 
+        awayValue: this.calculateAverage(awayCornerData.corners, awayCornerData.matches)
       },
       cornersAgainst: { 
-        homeValue: enhancedHomeStats.cornersAgainst || 0, 
-        awayValue: enhancedAwayStats.cornersAgainst || 0 
+        homeValue: this.calculateAverage(homeCornerData.cornersAgainst, homeCornerData.matches), 
+        awayValue: this.calculateAverage(awayCornerData.cornersAgainst, awayCornerData.matches)
       },
       totalCorners: { 
-        homeValue: (enhancedHomeStats.corners || 0) + (enhancedHomeStats.cornersAgainst || 0), 
-        awayValue: (enhancedAwayStats.corners || 0) + (enhancedAwayStats.cornersAgainst || 0) 
+        homeValue: this.calculateAverage(homeCornerData.corners + homeCornerData.cornersAgainst, homeCornerData.matches), 
+        awayValue: this.calculateAverage(awayCornerData.corners + awayCornerData.cornersAgainst, awayCornerData.matches)
       },
+      // UPDATED: Now showing actual percentages based on match history
       over75MatchCorners: { 
-        homeValue: calculateOverPercentage((enhancedHomeStats.corners || 0) + (enhancedHomeStats.cornersAgainst || 0), enhancedHomeStats.matchesPlayed, 7.5), 
-        awayValue: calculateOverPercentage((enhancedAwayStats.corners || 0) + (enhancedAwayStats.cornersAgainst || 0), enhancedAwayStats.matchesPlayed, 7.5) 
+        homeValue: this.calculateOverPercentage(homeCornerData.matchDetails, 7.5), 
+        awayValue: this.calculateOverPercentage(awayCornerData.matchDetails, 7.5)
       },
       over85MatchCorners: { 
-        homeValue: calculateOverPercentage((enhancedHomeStats.corners || 0) + (enhancedHomeStats.cornersAgainst || 0), enhancedHomeStats.matchesPlayed, 8.5), 
-        awayValue: calculateOverPercentage((enhancedAwayStats.corners || 0) + (enhancedAwayStats.cornersAgainst || 0), enhancedAwayStats.matchesPlayed, 8.5) 
+        homeValue: this.calculateOverPercentage(homeCornerData.matchDetails, 8.5), 
+        awayValue: this.calculateOverPercentage(awayCornerData.matchDetails, 8.5)
       },
       over95MatchCorners: { 
-        homeValue: calculateOverPercentage((enhancedHomeStats.corners || 0) + (enhancedHomeStats.cornersAgainst || 0), enhancedHomeStats.matchesPlayed, 9.5), 
-        awayValue: calculateOverPercentage((enhancedAwayStats.corners || 0) + (enhancedAwayStats.cornersAgainst || 0), enhancedAwayStats.matchesPlayed, 9.5) 
+        homeValue: this.calculateOverPercentage(homeCornerData.matchDetails, 9.5), 
+        awayValue: this.calculateOverPercentage(awayCornerData.matchDetails, 9.5)
       },
       over105MatchCorners: { 
-        homeValue: calculateOverPercentage((enhancedHomeStats.corners || 0) + (enhancedHomeStats.cornersAgainst || 0), enhancedHomeStats.matchesPlayed, 10.5), 
-        awayValue: calculateOverPercentage((enhancedAwayStats.corners || 0) + (enhancedAwayStats.cornersAgainst || 0), enhancedAwayStats.matchesPlayed, 10.5) 
+        homeValue: this.calculateOverPercentage(homeCornerData.matchDetails, 10.5), 
+        awayValue: this.calculateOverPercentage(awayCornerData.matchDetails, 10.5)
       },
       over115MatchCorners: { 
-        homeValue: calculateOverPercentage((enhancedHomeStats.corners || 0) + (enhancedHomeStats.cornersAgainst || 0), enhancedHomeStats.matchesPlayed, 11.5), 
-        awayValue: calculateOverPercentage((enhancedAwayStats.corners || 0) + (enhancedAwayStats.cornersAgainst || 0), enhancedAwayStats.matchesPlayed, 11.5) 
+        homeValue: this.calculateOverPercentage(homeCornerData.matchDetails, 11.5), 
+        awayValue: this.calculateOverPercentage(awayCornerData.matchDetails, 11.5)
       },
+    };
+  }
+
+  /**
+   * NEW: Get detailed corner breakdown for a specific team
+   */
+  async getTeamCornerBreakdown(teamName: string): Promise<{
+    averages: {
+      cornersFor: number;
+      cornersAgainst: number;
+      totalCorners: number;
+    };
+    percentages: {
+      over75: number;
+      over85: number;
+      over95: number;
+      over105: number;
+      over115: number;
+    };
+    matchCount: number;
+    recentMatches: Array<{
+      opponent: string;
+      totalCorners: number;
+      cornersFor: number;
+      cornersAgainst: number;
+    }>;
+  } | null> {
+    const allTeamStats = await fbrefFixtureService.getAllTeamStats();
+    const cornersMap = await this.getCornerStatistics(allTeamStats);
+    const cornerData = cornersMap.get(normalizeTeamName(teamName));
+    
+    if (!cornerData) return null;
+
+    return {
+      averages: {
+        cornersFor: this.calculateAverage(cornerData.corners, cornerData.matches),
+        cornersAgainst: this.calculateAverage(cornerData.cornersAgainst, cornerData.matches),
+        totalCorners: this.calculateAverage(cornerData.corners + cornerData.cornersAgainst, cornerData.matches)
+      },
+      percentages: {
+        over75: this.calculateOverPercentage(cornerData.matchDetails, 7.5),
+        over85: this.calculateOverPercentage(cornerData.matchDetails, 8.5),
+        over95: this.calculateOverPercentage(cornerData.matchDetails, 9.5),
+        over105: this.calculateOverPercentage(cornerData.matchDetails, 10.5),
+        over115: this.calculateOverPercentage(cornerData.matchDetails, 11.5),
+      },
+      matchCount: cornerData.matches,
+      recentMatches: cornerData.matchDetails.slice(-5) // Last 5 matches
     };
   }
 
@@ -337,7 +437,14 @@ export class FBrefStatsService {
         size: this.cornersCache.size,
         isValid: this.isCornersCacheValid(),
         cacheTime: this.cornersCacheTime,
-        teams: Array.from(this.cornersCache.keys())
+        teams: Array.from(this.cornersCache.keys()),
+        sampleData: Array.from(this.cornersCache.entries()).slice(0, 2).map(([team, data]) => ({
+          team,
+          matches: data.matches,
+          avgCornersFor: this.calculateAverage(data.corners, data.matches),
+          avgCornersAgainst: this.calculateAverage(data.cornersAgainst, data.matches),
+          over75Percentage: this.calculateOverPercentage(data.matchDetails, 7.5)
+        }))
       },
       currentLeague: this.currentLeague,
       currentSeason: this.currentSeason
