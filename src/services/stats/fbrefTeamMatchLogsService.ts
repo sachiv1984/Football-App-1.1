@@ -179,8 +179,8 @@ export class FBrefTeamMatchLogsService {
       const hasRequiredColumns = this.hasRequiredColumns(headers);
       
       // Additional check: look for the "Against [Team]" pattern in caption or headers
-      const isOppositionTable = cap.includes('against ') || 
-                               t.headers.some((h: string) => h.toLowerCase().includes('against'));
+     // const isOppositionTable = cap.includes('against ') || 
+                             //  t.headers.some((h: string) => h.toLowerCase().includes('against'));
       
       return hasMatchLogs && hasCorners && hasRequiredColumns;
     });
