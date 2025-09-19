@@ -44,16 +44,31 @@ interface TeamSeasonStats {
 }
 
 // Team ID mappings for different leagues
-const LEAGUE_TEAMS = {
+const LEAGUE_TEAMS: Record<keyof typeof FBREF_URLS, Record<string, string>> = {
   premierLeague: PREMIER_LEAGUE_TEAMS,
-  // Add other leagues as needed
   laLiga: {
     'Real Madrid': 'real-madrid-id',
     'Barcelona': 'barcelona-id',
     // Add more La Liga teams
   },
-  // Add more leagues...
-} as const;
+  bundesliga: {
+    'Bayern Munich': 'bayern-munich-id',
+    'Borussia Dortmund': 'borussia-dortmund-id',
+    // Add more Bundesliga teams
+  },
+  serieA: {
+    'Juventus': 'juventus-id',
+    'AC Milan': 'ac-milan-id',
+    // Add more Serie A teams
+  },
+  ligue1: {
+    'Paris Saint-Germain': 'psg-id',
+    'Marseille': 'marseille-id',
+    // Add more Ligue 1 teams
+  },
+};
+
+const leagueTeams = LEAGUE_TEAMS[this.currentLeague] || {};
 
 // Competition ID mappings
 const COMPETITION_IDS = {
