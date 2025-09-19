@@ -120,11 +120,15 @@ export class FBrefTeamMatchLogsService {
     });
 
     if (table) {
-      this.tableCache.set(cacheKey, table);
-      if (this.tableCache.size > 50) this.tableCache.delete(this.tableCache.keys().next().value);
+  this.tableCache.set(cacheKey, table);
+  if (this.tableCache.size > 50) {
+    const firstKey = this.tableCache.keys().next().value;
+    if (firstKey !== undefined) {
+      this.tableCache.delete(firstKey);
     }
-    return table || null;
   }
+}
+
 
   private extractCornersFromMatchLogsTable(table: any, isOpposition: boolean, options: Required<ScrapeOptions>): TeamMatchLogCorners[] {
     const headers = table.headers.map((h: string) => h.trim().toLowerCase());
