@@ -8,8 +8,19 @@ import OptimizedFeaturedGamesCarousel from '../components/fixtures/FeaturedGames
 import { ErrorBoundary, CarouselErrorBoundary } from '../components/ErrorBoundary';
 import { useFixtures } from '../hooks/useFixtures';
 import { useGameWeekFixtures } from '../hooks/useGameWeekFixtures';
-import { FeaturedFixtureWithImportance, Game } from '../types';
-import FBrefScraperVercel from '../components/FBrefScraper';
+import { FeaturedFixtureWithImportance, Game, FeaturedFixture } from '../types';
+
+const mapToFeaturedFixtureWithImportance = (
+  fixture: Game | FeaturedFixture
+): FeaturedFixtureWithImportance => ({
+  ...fixture,
+  importance: fixture.importance ?? 0,        // ✅ default if undefined
+  matchWeek: fixture.matchWeek ?? 1,          // ✅ default if undefined
+  importanceScore: 'importanceScore' in fixture ? fixture.importanceScore : 0,
+  tags: 'tags' in fixture ? fixture.tags : [],
+  isBigMatch: 'isBigMatch' in fixture ? fixture.isBigMatch : false,
+});
+
 
 // -------------------------
 // HomePage Component
@@ -30,16 +41,12 @@ const HomePage: React.FC = () => {
 
   const handleToggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
-  // Optional: Keep for logging/analytics, but navigation will handle the actual routing
+  // Optional: Keep for logging/analytics
   const handleGameSelect = (fixture: FeaturedFixtureWithImportance | Game) => {
     console.log('Selected fixture:', fixture.id);
-
-    // Only available on Featured fixtures
     if ('importanceScore' in fixture) {
       console.log('Importance Score:', fixture.importanceScore);
     }
-    
-    // Note: Navigation will be handled automatically by FixtureCard when enableNavigation={true}
   };
 
   return (
@@ -53,24 +60,16 @@ const HomePage: React.FC = () => {
       >
         <Header isDarkMode={isDarkMode} onToggleDarkMode={handleToggleDarkMode} />
 
-        {/* Header to Carousel Spacing - spacing.md mobile, spacing.lg desktop */}
         <div className="mt-4 lg:mt-6" />
-
- {/* Debug Data Table */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 my-8">
-        <FBrefScraperVercel />
-      </div>
 
         {/* Featured Fixtures Section */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Section Heading */}
           <div className="mb-4 lg:mb-6">
             <h2 className="text-2xl lg:text-3xl font-semibold text-gray-900 text-center">
               Featured Fixtures
             </h2>
           </div>
 
-          {/* Carousel */}
           <CarouselErrorBoundary>
             {loading ? (
               <div className="text-center py-12">
@@ -87,27 +86,28 @@ const HomePage: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <OptimizedFeaturedGamesCarousel
-                fixtures={featuredFixtures}
-                onGameSelect={handleGameSelect}
-                isLoading={loading}
-                className="mb-8 lg:mb-12"
-                // If this carousel uses FixtureCard internally, you may need to pass enableNavigation prop
-              />
+              <>
+                {console.log('Featured Fixtures:', featuredFixtures)}
+
+                <OptimizedFeaturedGamesCarousel
+                  fixtures={featuredFixtures}
+                  onGameSelect={handleGameSelect}
+                  isLoading={loading}
+                  className="mb-8 lg:mb-12"
+                />
+              </>
             )}
           </CarouselErrorBoundary>
         </div>
 
         {/* Matchday Section */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
-          {/* Matchday Heading */}
           <div className="mb-6">
             <h2 className="text-2xl lg:text-3xl font-semibold text-gray-900 text-center">
               Current Matchday
             </h2>
           </div>
 
-          {/* Matchday Content */}
           <div className="space-y-10">
             {gameWeekLoading ? (
               <div className="text-center py-12">
@@ -131,7 +131,6 @@ const HomePage: React.FC = () => {
               </div>
             ) : gameWeekFixtures.length > 0 ? (
               <div className="space-y-10">
-                {/* Group fixtures by date */}
                 {Object.entries(
                   gameWeekFixtures.reduce((groups, fixture) => {
                     const date = new Date(fixture.dateTime).toLocaleDateString('en-GB', {
@@ -148,18 +147,16 @@ const HomePage: React.FC = () => {
                   }, {} as Record<string, typeof gameWeekFixtures>)
                 ).map(([date, fixtures]) => (
                   <div key={date} className="space-y-4">
-                    {/* Date heading */}
                     <h3 className="text-lg font-medium text-gray-800 text-left">{date}</h3>
 
-                    {/* Fixtures grid for this date */}
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                       {fixtures.map((fixture) => (
                         <FixtureCard
                           key={fixture.id}
-                          fixture={fixture}
+                          fixture={mapToFeaturedFixtureWithImportance(fixture)}
                           size="lg"
                           showVenue={true}
-                          enableNavigation={true}  // This enables navigation to stats page
+                          enableNavigation={true}
                           className="hover:scale-[1.02] transition-transform duration-200"
                         />
                       ))}
@@ -176,7 +173,6 @@ const HomePage: React.FC = () => {
           </div>
         </div>
 
-        {/* Footer Spacing */}
         <div className="mt-12 lg:mt-16" />
         <Footer />
       </div>
