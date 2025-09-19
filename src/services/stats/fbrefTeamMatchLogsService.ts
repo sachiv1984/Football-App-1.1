@@ -24,7 +24,7 @@ export interface ScrapeOptions {
   delayBetweenRequests?: number;
   retries?: number;
   enableLogging?: boolean;
-  skipDefensiveData?: boolean;
+  skipDefensiveData?: boolean; // Whether to skip “against” stats
 }
 
 export class FBrefTeamMatchLogsService {
@@ -38,6 +38,9 @@ export class FBrefTeamMatchLogsService {
 
   private readonly tableCache = new Map<string, any>();
 
+  /**
+   * Scrape team's match logs for corners
+   */
   async scrapeTeamCorners(
     teamId: string, 
     season: string, 
@@ -45,31 +48,26 @@ export class FBrefTeamMatchLogsService {
     teamName: string,
     options: Partial<ScrapeOptions> = {}
   ): Promise<TeamSeasonCorners | null> {
-    
+
     const opts = { ...this.defaultOptions, ...options };
-    
+
     try {
-      // Scrape offensive first
       const offensiveData = await this.scrapePassingTypes(teamId, season, competitionId, false, opts);
-      
       if (!offensiveData) {
-        if (opts.enableLogging) {
-          console.error(`[TeamMatchLogs] Failed to get offensive data for ${teamName}`);
-        }
+        if (opts.enableLogging) console.error(`[TeamMatchLogs] Failed to get offensive data for ${teamName}`);
         return null;
       }
 
       let defensiveData: TeamMatchLogCorners[] | null = null;
-      
       if (!opts.skipDefensiveData) {
         try {
           defensiveData = await this.scrapePassingTypes(teamId, season, competitionId, true, opts);
           if (opts.enableLogging && !defensiveData) {
-            console.warn(`[TeamMatchLogs] Defensive data not available for ${teamName}`);
+            console.warn(`[TeamMatchLogs] Defensive data not available for ${teamName}, using offensive only`);
           }
         } catch (error) {
           if (opts.enableLogging) {
-            console.warn(`[TeamMatchLogs] Failed to get defensive data for ${teamName}`, error);
+            console.warn(`[TeamMatchLogs] Failed to get defensive data for ${teamName}, continuing with offensive only:`, error);
           }
         }
       }
@@ -83,13 +81,14 @@ export class FBrefTeamMatchLogsService {
         matches
       };
     } catch (error) {
-      if (opts.enableLogging) {
-        console.error(`[TeamMatchLogs] Error scraping ${teamName}:`, error);
-      }
+      if (opts.enableLogging) console.error(`[TeamMatchLogs] Error scraping ${teamName}:`, error);
       return null;
     }
   }
 
+  /**
+   * Scrape passing types table (JSON-first, then fallback HTML)
+   */
   private async scrapePassingTypes(
     teamId: string, 
     season: string, 
@@ -97,225 +96,115 @@ export class FBrefTeamMatchLogsService {
     isOpposition: boolean,
     options: Required<ScrapeOptions>
   ): Promise<TeamMatchLogCorners[] | null> {
-    
+
     const url = FBrefUrlBuilder.buildPassingTypesUrl(teamId, season, competitionId, isOpposition);
-    
-    if (options.enableLogging) {
-      console.log(`[TeamMatchLogs] Scraping ${isOpposition ? 'defensive' : 'offensive'} corners: ${url}`);
-    }
+    if (options.enableLogging) console.log(`[TeamMatchLogs] Scraping ${isOpposition ? 'defensive' : 'offensive'} corners: ${url}`);
 
-    for (let attempt = 1; attempt <= options.retries + 1; attempt++) {
-      try {
-        const scraped = await fbrefScraper.scrapeUrl(url);
-        const table = this.findMatchLogsTable(scraped, url, isOpposition);
-        
-        if (!table) {
-          if (options.enableLogging) {
-            console.warn(`[TeamMatchLogs] No suitable table found in ${url} (attempt ${attempt})`);
-          }
-          if (attempt <= options.retries) {
-            await this.delay(options.delayBetweenRequests);
-            continue;
-          }
-          return null;
-        }
+    let table: { headers: string[]; rows: any[][] } | null = null;
 
-        return this.extractCornersFromMatchLogsTable(table, isOpposition, options);
-        
-      } catch (err) {
-        if (options.enableLogging) {
-          console.warn(`[TeamMatchLogs] Attempt ${attempt} failed for ${url}:`, err);
-        }
-        
-        if (attempt <= options.retries) {
-          await this.delay(options.delayBetweenRequests * attempt);
-        } else {
-          if (options.enableLogging) {
-            console.error(`[TeamMatchLogs] All attempts failed for ${url}:`, err);
-          }
-          throw err;
-        }
+    // Try JSON-first
+    try {
+      const jsonTables = await fbrefScraper.scrapeJsonTables(url);
+      if (jsonTables?.length) {
+        table = jsonTables.find(t => {
+          const id = ((t as any).table_type || t.id || "").toString().toLowerCase();
+          if (isOpposition) return id.includes("against");
+          return id.includes("for") || id.includes("matchlog");
+        }) || null;
+
+        if (table) table = { headers: table.headers, rows: table.rows };
       }
+    } catch (err) {
+      if (options.enableLogging) console.warn(`[TeamMatchLogs] JSON scraping failed for ${url}`, err);
     }
-    
-    return null;
+
+    // Fallback to HTML
+    if (!table) {
+      const scraped = await fbrefScraper.scrapeUrl(url);
+      table = this.findMatchLogsTable(scraped, url);
+    }
+
+    if (!table) {
+      if (options.enableLogging) console.warn(`[TeamMatchLogs] No table found at ${url}`);
+      return null;
+    }
+
+    return this.extractCornersFromMatchLogsTable(table, isOpposition, options);
   }
 
-  private findMatchLogsTable(scraped: ScrapedData, url?: string, isOpposition = false): any | null {
-    const cacheKey = `${url}_${isOpposition ? "opp" : "for"}`;
-    if (this.tableCache.has(cacheKey)) {
-      return this.tableCache.get(cacheKey);
-    }
-
-    const table = scraped.tables.find(t => {
-      const id = (t.id || "").toLowerCase();
-      const cap = (t.caption || "").toLowerCase();
-      // const headers = t.headers || [];
-
-      if (isOpposition) {
-        return id.includes("matchlogs_against") || cap.includes("against");
-      } else {
-        return id.includes("matchlogs_for") || id.includes("matchlogs") || cap.includes("match logs");
-      }
-    });
-
-    if (table) {
-      this.tableCache.set(cacheKey, table);
-      if (this.tableCache.size > 50) {
-        const firstKey = this.tableCache.keys().next().value;
-        if (firstKey !== undefined) this.tableCache.delete(firstKey);
-      }
-    }
-
-    return table || null;
-  }
-
+  /**
+   * Extract corners from a table
+   */
   private extractCornersFromMatchLogsTable(
     table: any, 
     isOpposition: boolean,
     options: Required<ScrapeOptions>
   ): TeamMatchLogCorners[] {
-    
+
     const headers = table.headers.map((h: string) => h.trim().toLowerCase());
+
     const columnIndices = {
       date: this.findColumnIndex(headers, ['date', 'day']),
       opponent: this.findColumnIndex(headers, ['opponent', 'opp', 'vs']),
       venue: this.findColumnIndex(headers, ['venue', 'home/away', 'h/a']),
       corners: this.findColumnIndex(headers, ['ck', 'corners', 'corner kicks'])
     };
-    
+
     if (columnIndices.date === -1 || columnIndices.opponent === -1 || columnIndices.corners === -1) {
-      if (options.enableLogging) {
-        console.error('[TeamMatchLogs] Missing required columns:', columnIndices);
-      }
+      if (options.enableLogging) console.error('[TeamMatchLogs] Missing required columns:', columnIndices);
       return [];
     }
 
     const matches: TeamMatchLogCorners[] = [];
-    
     for (const row of table.rows) {
       try {
         const rawDate = this.extractCellText(row[columnIndices.date]);
         const rawOpponent = this.extractCellText(row[columnIndices.opponent]);
         const rawCorners = this.extractCellText(row[columnIndices.corners]);
+        if (!rawDate || !rawOpponent || rawDate.toLowerCase().includes('date')) continue;
 
-        if (!rawDate || !rawOpponent || rawDate.toLowerCase().includes('date')) {
-          continue;
-        }
-
-        const date = rawDate;
-        const opponent = normalizeTeamName(rawOpponent);
-        const corners = this.safeParseNumber(rawCorners);
-        const venue = this.parseVenue(
-          columnIndices.venue !== -1 ? this.extractCellText(row[columnIndices.venue]) : ''
-        );
-        
         const matchData: TeamMatchLogCorners = {
-          date,
-          opponent,
-          venue,
-          corners: isOpposition ? 0 : corners,
+          date: rawDate,
+          opponent: normalizeTeamName(rawOpponent),
+          venue: this.parseVenue(columnIndices.venue !== -1 ? this.extractCellText(row[columnIndices.venue]) : ''),
+          corners: isOpposition ? 0 : this.safeParseNumber(rawCorners),
         };
 
-        if (isOpposition) {
-          matchData.cornersAgainst = corners;
-        }
+        if (isOpposition) matchData.cornersAgainst = this.safeParseNumber(rawCorners);
 
         matches.push(matchData);
       } catch (err) {
-        if (options.enableLogging) {
-          console.warn('[TeamMatchLogs] Error processing row:', err);
-        }
+        if (options.enableLogging) console.warn('[TeamMatchLogs] Error processing row:', err);
       }
     }
 
-    if (options.enableLogging) {
-      console.log(`[TeamMatchLogs] Extracted ${matches.length} matches (${isOpposition ? 'defensive' : 'offensive'})`);
-    }
-    
+    if (options.enableLogging) console.log(`[TeamMatchLogs] Extracted ${matches.length} matches (${isOpposition ? 'defensive' : 'offensive'})`);
     return matches;
   }
 
+  /**
+   * Merge offensive and defensive data
+   */
   private mergeOffensiveAndDefensive(
     offensiveData: TeamMatchLogCorners[],
     defensiveData: TeamMatchLogCorners[] | null
   ): TeamMatchLogCorners[] {
-    
+
     if (!defensiveData || defensiveData.length === 0) {
-      return offensiveData.map(match => ({
-        ...match,
-        cornersAgainst: undefined
-      }));
+      return offensiveData.map(match => ({ ...match, cornersAgainst: undefined }));
     }
 
     const defensiveMap = new Map<string, number>();
     for (const defMatch of defensiveData) {
       const key = `${defMatch.date}_${defMatch.opponent}`;
-      const cornersAgainst = defMatch.cornersAgainst ?? defMatch.corners;
-      defensiveMap.set(key, cornersAgainst);
+      defensiveMap.set(key, defMatch.cornersAgainst ?? defMatch.corners);
     }
 
     return offensiveData.map(offMatch => {
       const key = `${offMatch.date}_${offMatch.opponent}`;
       const cornersAgainst = defensiveMap.get(key);
-      return { ...offMatch, cornersAgainst };
+      return { ...offMatch, cornersAgainst: cornersAgainst ?? undefined };
     });
-  }
-
-  async scrapeMultipleTeams(teams: Array<{
-    teamId: string;
-    teamName: string;
-    season: string;
-    competitionId: string;
-  }>, options: Partial<ScrapeOptions> = {}): Promise<TeamSeasonCorners[]> {
-    
-    const opts = { ...this.defaultOptions, ...options };
-    const results: TeamSeasonCorners[] = [];
-    const failedTeams: string[] = [];
-    
-    if (opts.enableLogging) {
-      console.log(`[TeamMatchLogs] Starting batch scrape for ${teams.length} teams`);
-    }
-
-    for (let i = 0; i < teams.length; i++) {
-      const team = teams[i];
-      if (opts.enableLogging) {
-        console.log(`[TeamMatchLogs] Processing ${team.teamName} (${i + 1}/${teams.length})`);
-      }
-
-      try {
-        const corners = await this.scrapeTeamCorners(
-          team.teamId, 
-          team.season, 
-          team.competitionId, 
-          team.teamName,
-          { ...opts, skipDefensiveData: false } // now include defensive scrape
-        );
-
-        if (corners) {
-          results.push(corners);
-          if (opts.enableLogging) {
-            console.log(`[TeamMatchLogs] ✓ Successfully scraped ${team.teamName}`);
-          }
-        } else {
-          failedTeams.push(team.teamName);
-          if (opts.enableLogging) {
-            console.warn(`[TeamMatchLogs] ✗ Failed to scrape ${team.teamName}`);
-          }
-        }
-      } catch (error) {
-        failedTeams.push(team.teamName);
-        if (opts.enableLogging) {
-          console.error(`[TeamMatchLogs] ✗ Error processing ${team.teamName}:`, error);
-        }
-      }
-
-      if (i < teams.length - 1) {
-        await this.delay(opts.delayBetweenRequests);
-      }
-    }
-    
-    return results;
   }
 
   private findColumnIndex(headers: string[], searchTerms: string[]): number {
@@ -333,9 +222,7 @@ export class FBrefTeamMatchLogsService {
   }
 
   private extractCellText(cell: any): string {
-    if (typeof cell === "object" && cell !== null) {
-      return (cell.text || String(cell)).trim();
-    }
+    if (typeof cell === "object" && cell !== null) return (cell.text || String(cell)).trim();
     return String(cell || "").trim();
   }
 
@@ -364,11 +251,12 @@ export class FBrefTeamMatchLogsService {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  public clearCache(): void {
-    this.tableCache.clear();
-  }
+  public clearCache(): void { this.tableCache.clear(); }
 }
 
+/**
+ * URL Builder
+ */
 export class FBrefUrlBuilder {
   private static readonly urlCache = new Map<string, string>();
 
@@ -378,56 +266,17 @@ export class FBrefUrlBuilder {
     competitionId: string, 
     isOpposition: boolean = false
   ): string {
-    const cacheKey = `${teamId}_${season}_${competitionId}`;
-    if (this.urlCache.has(cacheKey)) {
-      return this.urlCache.get(cacheKey)!;
-    }
+    const cacheKey = `${teamId}_${season}_${competitionId}_${isOpposition}`;
+    if (this.urlCache.has(cacheKey)) return this.urlCache.get(cacheKey)!;
 
     const baseUrl = `https://fbref.com/en/squads/${teamId}/${season}/matchlogs/${competitionId}/passing_types`;
-    this.urlCache.set(cacheKey, baseUrl);
-    return baseUrl;
+    const url = baseUrl; 
+    this.urlCache.set(cacheKey, url);
+    return url;
   }
 
-  static buildTeamStatsUrl(teamId: string, season?: string): string {
-    const base = `https://fbref.com/en/squads/${teamId}`;
-    return season ? `${base}/${season}` : `${base}-Stats`;
-  }
-
-  static buildFixturesUrl(teamId: string, season: string, competitionId: string): string {
-    return `https://fbref.com/en/squads/${teamId}/${season}/matchlogs/${competitionId}/schedule`;
-  }
-
-  static extractTeamId(url: string): string | null {
-    const match = url.match(/\/squads\/([a-f0-9]+)\//);
-    return match ? match[1] : null;
-  }
-
-  static clearCache(): void {
-    this.urlCache.clear();
-  }
+  static clearCache(): void { this.urlCache.clear(); }
 }
 
-export const PREMIER_LEAGUE_TEAMS = {
-  'Liverpool': '822bd0ba',
-  'Manchester City': 'b8fd03ef',
-  'Arsenal': '18bb7c10',
-  'Chelsea': 'cff3d9bb',
-  'Manchester United': '19538871',
-  'Tottenham': '361ca564',
-  'Newcastle United': 'b2b47a98',
-  'Brighton & Hove Albion': 'd07537b9',
-  'Aston Villa': '8602292d',
-  'West Ham United': '7c21e445',
-  'Bournemouth': '4ba7cbea',
-  'Everton': 'd3fd31cc',
-  'Sunderland': '8ef52968',
-  'Crystal Palace': '47c64c55',
-  'Fulham': 'fd962109',
-  'Brentford': 'cd051869',
-  'Nottingham Forest': 'e4a775cb',
-  'Leeds United': '5bfb9659',
-  'Burnley': '943e8050',
-  'Wolverhampton Wanderers': '8cec06e1',
-} as const;
-
+// Export service instance
 export const fbrefTeamMatchLogsService = new FBrefTeamMatchLogsService();
