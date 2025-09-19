@@ -1,7 +1,7 @@
 // src/services/stats/fbrefStatsService.ts
 import { fbrefScraper, type ScrapedData, type TableData } from '../scrape/Fbref';
 import { normalizeTeamName } from '../../utils/teamUtils';
-import { fbrefTeamMatchLogsService, PREMIER_LEAGUE_TEAMS, type TeamSeasonCorners } from './fbrefMatchLogsService';
+import { fbrefMatchLogsService, PREMIER_LEAGUE_TEAMS, type TeamSeasonCorners } from './fbrefMatchLogsService';
 
 interface TeamFormData {
   homeResults: ('W' | 'D' | 'L')[];
