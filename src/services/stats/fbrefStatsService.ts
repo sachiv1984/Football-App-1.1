@@ -57,7 +57,7 @@ export class FBrefStatsService {
   private cacheTime = 0;
   private readonly cacheTimeout = 30 * 60 * 1000; // 30 minutes
 
-  private readonly FBREF_URLS = {
+  const FBREF_URLS = {
     premierLeague: {
       stats: [
         'https://fbref.com/en/comps/9/2025-2026/2025-2026-Premier-League-Stats',
