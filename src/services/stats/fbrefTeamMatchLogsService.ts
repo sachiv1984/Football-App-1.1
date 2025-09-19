@@ -79,12 +79,6 @@ export class FBrefTeamMatchLogsService {
   ): Promise<TeamMatchLogCorners[] | null> {
     // Try different URL patterns that might contain both datasets
     const urlsToTry = [
-      // Main match logs page (most comprehensive)
-      `https://fbref.com/en/squads/${teamId}/${season}/matchlogs/${competitionId}/misc`,
-      // Alternative match logs pages
-      `https://fbref.com/en/squads/${teamId}/${season}/matchlogs/${competitionId}/keeper`,
-      `https://fbref.com/en/squads/${teamId}/${season}/matchlogs/${competitionId}/passing`,
-      // Fallback to the original passing_types page
       `https://fbref.com/en/squads/${teamId}/${season}/matchlogs/${competitionId}/passing_types`,
     ];
 
