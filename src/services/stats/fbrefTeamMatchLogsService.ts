@@ -109,25 +109,29 @@ export class FBrefTeamMatchLogsService {
   }
 
   private findMatchLogsTable(scraped: ScrapedData, url?: string, isOpposition = false): any | null {
-    const cacheKey = `${url}_${isOpposition ? "opp" : "for"}`;
-    if (this.tableCache.has(cacheKey)) return this.tableCache.get(cacheKey);
+  const cacheKey = `${url}_${isOpposition ? "opp" : "for"}`;
+  if (this.tableCache.has(cacheKey)) return this.tableCache.get(cacheKey);
 
-    const table = scraped.tables.find(t => {
-      const id = (t.id || "").toLowerCase();
-      const cap = (t.caption || "").toLowerCase();
-      if (isOpposition) return id.includes("matchlogs_against") || cap.includes("against");
-      else return id.includes("matchlogs_for") || id.includes("matchlogs") || cap.includes("match logs");
-    });
+  const table = scraped.tables.find(t => {
+    const id = (t.id || "").toLowerCase();
+    const cap = (t.caption || "").toLowerCase();
+    if (isOpposition) return id.includes("matchlogs_against") || cap.includes("against");
+    else return id.includes("matchlogs_for") || id.includes("matchlogs") || cap.includes("match logs");
+  });
 
-    if (table) {
-  this.tableCache.set(cacheKey, table);
-  if (this.tableCache.size > 50) {
-    const firstKey = this.tableCache.keys().next().value;
-    if (firstKey !== undefined) {
-      this.tableCache.delete(firstKey);
+  if (table) {
+    this.tableCache.set(cacheKey, table);
+    if (this.tableCache.size > 50) {
+      const firstKey = this.tableCache.keys().next().value;
+      if (firstKey !== undefined) {
+        this.tableCache.delete(firstKey);
+      }
     }
   }
+
+  return table || null;
 }
+
 
 
   private extractCornersFromMatchLogsTable(table: any, isOpposition: boolean, options: Required<ScrapeOptions>): TeamMatchLogCorners[] {
