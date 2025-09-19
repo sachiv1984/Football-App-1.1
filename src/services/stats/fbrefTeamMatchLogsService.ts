@@ -3,6 +3,50 @@
 import { fbrefScraper, type ScrapedData } from "../scrape/Fbref";
 import { normalizeTeamName } from "../../utils/teamUtils";
 
+/**
+ * Utility class for building FBRef URLs
+ */
+export class FBrefUrlBuilder {
+  /**
+   * Build the passing types match logs URL
+   */
+  static buildPassingTypesUrl(
+    teamId: string,
+    season: string,
+    competitionId: string,
+    isOpposition: boolean = false
+  ): string {
+    const baseUrl = `https://fbref.com/en/squads/${teamId}/${season}/matchlogs/${competitionId}/passing_types`;
+    return isOpposition ? `${baseUrl}/vs` : baseUrl;
+  }
+
+  /**
+   * Build team stats URL
+   */
+  static buildTeamStatsUrl(teamId: string, season?: string): string {
+    const base = `https://fbref.com/en/squads/${teamId}`;
+    return season ? `${base}/${season}` : `${base}-Stats`;
+  }
+
+  /**
+   * Build fixtures URL
+   */
+  static buildFixturesUrl(teamId: string, season: string, competitionId: string): string {
+    return `https://fbref.com/en/squads/${teamId}/${season}/matchlogs/${competitionId}/schedule`;
+  }
+
+  /**
+   * Extract team ID from FBRef team URL
+   */
+  static extractTeamId(url: string): string | null {
+    const match = url.match(/\/squads\/([a-f0-9]+)\//);
+    return match ? match[1] : null;
+  }
+}
+
+/**
+ * Interface for Team Match Log Corners
+ */
 export interface TeamMatchLogCorners {
   date: string;
   opponent: string;
@@ -12,6 +56,9 @@ export interface TeamMatchLogCorners {
   matchUrl?: string;
 }
 
+/**
+ * Interface for Team Season Corners
+ */
 export interface TeamSeasonCorners {
   teamName: string;
   season: string;
@@ -19,22 +66,19 @@ export interface TeamSeasonCorners {
   matches: TeamMatchLogCorners[];
 }
 
+/**
+ * Service for scraping FBRef team match logs
+ */
 export class FBrefTeamMatchLogsService {
-  
   /**
    * Scrape team's match logs for corner statistics
-   * @param teamId - Team ID from fbref URL (e.g., '822bd0ba' for Liverpool)
-   * @param season - Season (e.g., '2025-2026')
-   * @param competitionId - Competition ID (e.g., 'c9' for Premier League)
-   * @param teamName - Team name for reference
    */
   async scrapeTeamCorners(
-    teamId: string, 
-    season: string, 
-    competitionId: string, 
+    teamId: string,
+    season: string,
+    competitionId: string,
     teamName: string
   ): Promise<TeamSeasonCorners | null> {
-    
     // First get offensive corners (CK column)
     const offensiveData = await this.scrapePassingTypes(teamId, season, competitionId, false);
     if (!offensiveData) {
@@ -44,7 +88,7 @@ export class FBrefTeamMatchLogsService {
 
     // Then get defensive corners (vs Opposition)
     const defensiveData = await this.scrapePassingTypes(teamId, season, competitionId, true);
-    
+
     // Merge the data
     const matches = this.mergeOffensiveAndDefensive(offensiveData, defensiveData);
 
@@ -52,20 +96,18 @@ export class FBrefTeamMatchLogsService {
       teamName: normalizeTeamName(teamName),
       season,
       competition: this.getCompetitionName(competitionId),
-      matches
+      matches,
     };
   }
 
   private async scrapePassingTypes(
-    teamId: string, 
-    season: string, 
-    competitionId: string, 
+    teamId: string,
+    season: string,
+    competitionId: string,
     isOpposition: boolean
   ): Promise<TeamMatchLogCorners[] | null> {
-    
-    const baseUrl = `https://fbref.com/en/squads/${teamId}/${season}/matchlogs/${competitionId}/passing_types`;
-    const url = isOpposition ? `${baseUrl}/vs` : baseUrl;
-    
+    const url = FBrefUrlBuilder.buildPassingTypesUrl(teamId, season, competitionId, isOpposition);
+
     console.log(`[TeamMatchLogs] Scraping ${isOpposition ? 'defensive' : 'offensive'} corners: ${url}`);
 
     let scraped: ScrapedData;
@@ -76,7 +118,6 @@ export class FBrefTeamMatchLogsService {
       return null;
     }
 
-    // Find the match logs table
     const table = this.findMatchLogsTable(scraped);
     if (!table) {
       console.error(`[TeamMatchLogs] No suitable table found in ${url}`);
@@ -87,15 +128,13 @@ export class FBrefTeamMatchLogsService {
   }
 
   private findMatchLogsTable(scraped: ScrapedData): any | null {
-    // Look for the main match logs table
-    const table = scraped.tables.find(t => {
+    const table = scraped.tables.find((t) => {
       const cap = (t.caption || "").toLowerCase();
       const id = (t.id || "").toLowerCase();
-      
-      // Should contain match logs indicators and corners column
+
       const hasMatchLogs = cap.includes("match logs") || cap.includes("matchlogs") || id.includes("matchlogs");
       const hasCorners = t.headers.some((h: string) => h.toLowerCase().includes("ck") || h.toLowerCase().includes("corner"));
-      
+
       return hasMatchLogs && hasCorners && t.rows.length > 0;
     });
 
@@ -108,19 +147,18 @@ export class FBrefTeamMatchLogsService {
 
   private extractCornersFromMatchLogsTable(table: any, isOpposition: boolean): TeamMatchLogCorners[] {
     const headers = table.headers.map((h: string) => h.trim().toLowerCase());
-    
-    // Find key column indices
+
     const dateIdx = this.findColumnIndex(headers, ['date', 'day']);
     const opponentIdx = this.findColumnIndex(headers, ['opponent', 'opp', 'vs']);
     const venueIdx = this.findColumnIndex(headers, ['venue', 'home/away', 'h/a']);
     const cornersIdx = this.findColumnIndex(headers, ['ck', 'corners', 'corner kicks']);
-    
+
     if (dateIdx === -1 || opponentIdx === -1 || cornersIdx === -1) {
       console.error('[TeamMatchLogs] Missing required columns:', {
         date: dateIdx,
         opponent: opponentIdx,
         corners: cornersIdx,
-        headers
+        headers,
       });
       return [];
     }
@@ -134,18 +172,17 @@ export class FBrefTeamMatchLogsService {
         const venueText = venueIdx !== -1 ? this.extractCellText(row[venueIdx]) : '';
         const corners = this.safeParseNumber(this.extractCellText(row[cornersIdx]));
 
-        // Skip header rows or invalid data
         if (!date || !opponent || date.toLowerCase().includes('date')) {
           continue;
         }
 
         const venue = this.parseVenue(venueText);
-        
+
         const matchData: TeamMatchLogCorners = {
           date,
           opponent,
           venue,
-          corners: isOpposition ? 0 : corners, // For opposition data, corners go in cornersAgainst
+          corners: isOpposition ? 0 : corners,
         };
 
         if (isOpposition) {
@@ -158,7 +195,6 @@ export class FBrefTeamMatchLogsService {
       }
     }
 
-    console.log(`[TeamMatchLogs] Extracted ${matches.length} matches (${isOpposition ? 'defensive' : 'offensive'})`);
     return matches;
   }
 
@@ -166,31 +202,25 @@ export class FBrefTeamMatchLogsService {
     offensiveData: TeamMatchLogCorners[],
     defensiveData: TeamMatchLogCorners[] | null
   ): TeamMatchLogCorners[] {
-    
     if (!defensiveData) {
-      console.warn('[TeamMatchLogs] No defensive data available, using offensive only');
       return offensiveData;
     }
 
-    // Merge by matching date and opponent
-    const merged = offensiveData.map(offMatch => {
-      const defMatch = defensiveData.find(dm => 
-        dm.date === offMatch.date && dm.opponent === offMatch.opponent
+    return offensiveData.map((offMatch) => {
+      const defMatch = defensiveData.find(
+        (dm) => dm.date === offMatch.date && dm.opponent === offMatch.opponent
       );
-      
+
       return {
         ...offMatch,
-        cornersAgainst: defMatch?.cornersAgainst
+        cornersAgainst: defMatch?.cornersAgainst,
       };
     });
-
-    console.log(`[TeamMatchLogs] Merged ${merged.length} matches with both offensive and defensive data`);
-    return merged;
   }
 
   private findColumnIndex(headers: string[], searchTerms: string[]): number {
     for (const term of searchTerms) {
-      const idx = headers.findIndex(h => 
+      const idx = headers.findIndex((h) =>
         h.includes(term) || h.replace(/[_\s]/g, "") === term.replace(/[_\s]/g, "")
       );
       if (idx !== -1) return idx;
@@ -225,10 +255,10 @@ export class FBrefTeamMatchLogsService {
       'c11': 'Champions League',
       'c16': 'FA Cup',
       'c21': 'EFL Cup',
-      // Add more as needed
     };
     return competitions[competitionId] || `Competition ${competitionId}`;
   }
+}
 
   /**
    * Scrape multiple teams' corner statistics
