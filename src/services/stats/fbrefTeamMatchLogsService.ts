@@ -29,11 +29,11 @@ export interface ScrapeOptions {
 
 export class FBrefTeamMatchLogsService {
   private readonly defaultOptions: Required<ScrapeOptions> = {
-    concurrency: 3, // Conservative to avoid rate limiting
-    delayBetweenRequests: 800, // Reduced from 1000ms
-    retries: 2,
+    concurrency: 2, // Reduced from 3 to avoid rate limiting
+    delayBetweenRequests: 1500, // Increased from 800ms to be more conservative
+    retries: 1, // Reduced retries to minimize requests
     enableLogging: true,
-    skipDefensiveData: false,
+    skipDefensiveData: true, // Default to true since /vs URLs seem unreliable
   };
 
   // Cache parsed tables to avoid re-parsing similar structures
@@ -156,7 +156,7 @@ export class FBrefTeamMatchLogsService {
       return this.tableCache.get(cacheKey);
     }
 
-    // Optimized table finding with more specific criteria
+    // Look for match logs table - it could be offensive or defensive data
     const table = scraped.tables.find(t => {
       if (!t.rows || t.rows.length === 0) return false;
       
@@ -164,16 +164,23 @@ export class FBrefTeamMatchLogsService {
       const id = (t.id || "").toLowerCase();
       const headers = t.headers || [];
       
-      // More specific matching
+      // Check if this is a match logs table
       const hasMatchLogs = cap.includes("match logs") || cap.includes("matchlogs") || 
-                          id.includes("matchlogs") || id.includes("match_logs");
+                          id.includes("matchlogs") || id.includes("match_logs") ||
+                          id === "matchlogs_against"; // Specific check for opposition table
       
+      // Must have corner kicks column
       const hasCorners = headers.some((h: string) => {
         const header = h.toLowerCase();
-        return header === 'ck' || header.includes('corner');
+        return header === 'ck' || header.includes('corner') || 
+               header === 'corner_kicks' || header.includes('corner kicks');
       });
       
       const hasRequiredColumns = this.hasRequiredColumns(headers);
+      
+      // Additional check: look for the "Against [Team]" pattern in caption or headers
+      const isOppositionTable = cap.includes('against ') || 
+                               t.headers.some((h: string) => h.toLowerCase().includes('against'));
       
       return hasMatchLogs && hasCorners && hasRequiredColumns;
     });
@@ -307,7 +314,7 @@ export class FBrefTeamMatchLogsService {
   }
 
   /**
-   * Scrape multiple teams with enhanced error handling and fallback options
+   * Scrape multiple teams with enhanced error handling and aggressive rate limiting protection
    */
   async scrapeMultipleTeams(teams: Array<{
     teamId: string;
@@ -318,77 +325,62 @@ export class FBrefTeamMatchLogsService {
     
     const opts = { ...this.defaultOptions, ...options };
     const results: TeamSeasonCorners[] = [];
+    const failedTeams: string[] = [];
     
     if (opts.enableLogging) {
       console.log(`[TeamMatchLogs] Starting batch scrape for ${teams.length} teams (concurrency: ${opts.concurrency})`);
     }
 
-    // Process teams in batches with controlled concurrency
-    for (let i = 0; i < teams.length; i += opts.concurrency) {
-      const batch = teams.slice(i, i + opts.concurrency);
+    // Process teams one by one to avoid rate limiting completely
+    for (let i = 0; i < teams.length; i++) {
+      const team = teams[i];
       
       if (opts.enableLogging) {
-        console.log(`[TeamMatchLogs] Processing batch ${Math.floor(i / opts.concurrency) + 1}: ${batch.map(t => t.teamName).join(', ')}`);
+        console.log(`[TeamMatchLogs] Processing ${team.teamName} (${i + 1}/${teams.length})`);
       }
 
-      const batchPromises = batch.map(async (team, batchIndex) => {
-        try {
-          // Add staggered delay within batch to avoid overwhelming the server
-          if (batchIndex > 0) {
-            await this.delay(opts.delayBetweenRequests * 0.3 * batchIndex);
-          }
+      try {
+        // Always skip defensive data to minimize requests
+        const corners = await this.scrapeTeamCorners(
+          team.teamId, 
+          team.season, 
+          team.competitionId, 
+          team.teamName,
+          { ...opts, skipDefensiveData: true } // Force skip defensive to reduce requests
+        );
 
-          // Try with defensive data first, then fallback to offensive-only
-          let corners = await this.scrapeTeamCorners(
-            team.teamId, 
-            team.season, 
-            team.competitionId, 
-            team.teamName,
-            opts
-          );
-
-          // If that failed and we were trying to get defensive data, try with skipDefensiveData
-          if (!corners && !opts.skipDefensiveData) {
-            if (opts.enableLogging) {
-              console.log(`[TeamMatchLogs] Retrying ${team.teamName} without defensive data`);
-            }
-            corners = await this.scrapeTeamCorners(
-              team.teamId, 
-              team.season, 
-              team.competitionId, 
-              team.teamName,
-              { ...opts, skipDefensiveData: true }
-            );
-          }
-          
-          return { team, corners, success: !!corners };
-        } catch (error) {
-          if (opts.enableLogging) {
-            console.error(`[TeamMatchLogs] Error processing ${team.teamName}:`, error);
-          }
-          return { team, corners: null, success: false };
-        }
-      });
-
-      const batchResults = await Promise.all(batchPromises);
-      
-      // Process results
-      for (const { team, corners, success } of batchResults) {
-        if (success && corners) {
+        if (corners) {
           results.push(corners);
-        } else if (opts.enableLogging) {
-          console.warn(`[TeamMatchLogs] Failed to scrape ${team.teamName}`);
+          if (opts.enableLogging) {
+            console.log(`[TeamMatchLogs] ✓ Successfully scraped ${team.teamName}`);
+          }
+        } else {
+          failedTeams.push(team.teamName);
+          if (opts.enableLogging) {
+            console.warn(`[TeamMatchLogs] ✗ Failed to scrape ${team.teamName}`);
+          }
+        }
+      } catch (error) {
+        failedTeams.push(team.teamName);
+        if (opts.enableLogging) {
+          console.error(`[TeamMatchLogs] ✗ Error processing ${team.teamName}:`, error);
         }
       }
 
-      // Delay between batches (not needed for the last batch)
-      if (i + opts.concurrency < teams.length) {
+      // Always delay between teams to avoid rate limiting
+      if (i < teams.length - 1) {
+        if (opts.enableLogging) {
+          console.log(`[TeamMatchLogs] Waiting ${opts.delayBetweenRequests}ms before next team...`);
+        }
         await this.delay(opts.delayBetweenRequests);
       }
     }
     
     if (opts.enableLogging) {
-      console.log(`[TeamMatchLogs] Completed scraping for ${results.length}/${teams.length} teams`);
+      console.log(`[TeamMatchLogs] Completed: ${results.length}/${teams.length} successful`);
+      if (failedTeams.length > 0) {
+        console.log(`[TeamMatchLogs] Failed teams:`, failedTeams.join(', '));
+      }
     }
     
     return results;
@@ -473,8 +465,14 @@ export class FBrefUrlBuilder {
       return this.urlCache.get(cacheKey)!;
     }
 
+    // Based on the HTML analysis, /vs URLs might not work consistently
+    // For now, just use the base URL as it contains both offensive data
+    // The defensive data might be in the same table or require different URL structure
     const baseUrl = `https://fbref.com/en/squads/${teamId}/${season}/matchlogs/${competitionId}/passing_types`;
-    const url = isOpposition ? `${baseUrl}/vs` : baseUrl;
+    
+    // Comment out the /vs logic for now since it's causing 500 errors
+    // const url = isOpposition ? `${baseUrl}/vs` : baseUrl;
+    const url = baseUrl; // Use base URL for both offensive and defensive for now
     
     this.urlCache.set(cacheKey, url);
     return url;
