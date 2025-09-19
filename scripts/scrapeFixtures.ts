@@ -1,15 +1,12 @@
 import axios from 'axios';
-import cheerio from 'cheerio';
+import { load } from 'cheerio';
 import fs from 'fs';
 import path from 'path';
 
 const OUTPUT_FILE = path.join(__dirname, '../data/fixtures.json');
+const DATA_DIR = path.dirname(OUTPUT_FILE);
 
-// FBref Premier League team URLs (example for Arsenal)
-const TEAMS = [
-  { name: 'Arsenal', url: 'https://fbref.com/en/squads/18bb7c10/2025-2026/matchlogs/c9/schedule/Arsenal-Scores-and-Fixtures-Premier-League' },
-  // add other 19 teams...
-];
+if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
 
 interface RawFixture {
   id: string;
@@ -24,101 +21,72 @@ interface RawFixture {
   matchUrl?: string;
 }
 
-async function scrapeTeamFixtures(team: { name: string; url: string }): Promise<RawFixture[]> {
-  const res = await axios.get(team.url);
-  const $ = cheerio.load(res.data);
+const LEAGUE_FIXTURES_URL = 'https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures';
+
+async function scrapeFixtures(): Promise<RawFixture[]> {
+  const res = await axios.get(LEAGUE_FIXTURES_URL);
+  const $ = load(res.data);
 
   const fixtures: RawFixture[] = [];
 
-  // FBref uses tables with id="matchlogs_all"
-  const table = $('#matchlogs_all');
-
-  if (!table.length) {
-    console.warn(`No fixtures table found for ${team.name}`);
-    return fixtures;
-  }
+  // FBref table has id="sched_all"
+  const table = $('#sched_all');
+  if (!table.length) throw new Error('Fixtures table not found');
 
   table.find('tbody > tr').each((_, row) => {
     const $row = $(row);
-
-    // Skip rows with class "thead" (header rows inside tbody)
-    if ($row.hasClass('thead')) return;
+    if ($row.hasClass('thead')) return; // skip header rows inside tbody
 
     const dateStr = $row.find('td[data-stat="date"]').text().trim();
-    const opponent = $row.find('td[data-stat="opponent"]').text().trim();
-    const homeAway = $row.find('td[data-stat="home_away"]').text().trim();
-    const result = $row.find('td[data-stat="result"]').text().trim();
+    const homeTeam = $row.find('td[data-stat="home_team"]').text().trim();
+    const awayTeam = $row.find('td[data-stat="away_team"]').text().trim();
     const scoreStr = $row.find('td[data-stat="score"]').text().trim();
-    const venue = homeAway === 'Home' ? team.name : opponent;
+    const matchUrl = $row.find('td[data-stat="match_report"] a').attr('href')
+      ? `https://fbref.com${$row.find('td[data-stat="match_report"] a').attr('href')}`
+      : undefined;
 
-    if (!dateStr || !opponent) return;
+    if (!dateStr || !homeTeam || !awayTeam) return;
 
-    // Parse scores
     let homeScore: number | undefined;
     let awayScore: number | undefined;
+    let status: RawFixture['status'] = 'scheduled';
 
     if (scoreStr.includes('–')) {
       const [h, a] = scoreStr.split('–').map(s => parseInt(s.trim(), 10));
       if (!isNaN(h) && !isNaN(a)) {
-        if (homeAway === 'Home') {
-          homeScore = h;
-          awayScore = a;
-        } else {
-          homeScore = a;
-          awayScore = h;
-        }
+        homeScore = h;
+        awayScore = a;
+        status = 'finished';
       }
+    } else if (scoreStr.toLowerCase().includes('postponed')) {
+      status = 'postponed';
     }
 
-    // Determine status
-    let status: RawFixture['status'] = 'scheduled';
-    if (result.toLowerCase() === 'postponed') status = 'postponed';
-    else if (scoreStr.includes('–')) status = 'finished';
-
-    const fixture: RawFixture = {
-      id: `fbref-${team.name}-${opponent}-${dateStr}`.replace(/\s+/g, '-'),
+    fixtures.push({
+      id: `fbref-${homeTeam}-${awayTeam}-${dateStr}`.replace(/\s+/g, '-'),
       dateTime: new Date(dateStr).toISOString(),
-      homeTeam: homeAway === 'Home' ? team.name : opponent,
-      awayTeam: homeAway === 'Away' ? team.name : opponent,
+      homeTeam,
+      awayTeam,
       homeScore,
       awayScore,
       status,
-      venue,
-      matchWeek: undefined, // can compute later in service
-      matchUrl: $row.find('td[data-stat="match_report"] a').attr('href')
-        ? `https://fbref.com${$row.find('td[data-stat="match_report"] a').attr('href')}`
-        : undefined,
-    };
-
-    fixtures.push(fixture);
+      matchUrl,
+      venue: homeTeam, // can adjust later
+      matchWeek: undefined, // assigned later in service
+    });
   });
 
   return fixtures;
 }
 
-async function scrapeAllTeams() {
-  const allFixtures: RawFixture[] = [];
-
-  for (const team of TEAMS) {
-    try {
-      console.log(`Scraping fixtures for ${team.name}`);
-      const fixtures = await scrapeTeamFixtures(team);
-      allFixtures.push(...fixtures);
-      // Respect FBref rate limit: 10 requests/min
-      await new Promise(res => setTimeout(res, 7000)); // 7 seconds delay
-    } catch (err) {
-      console.error(`Error scraping ${team.name}:`, err);
-    }
+async function run() {
+  try {
+    const fixtures = await scrapeFixtures();
+    fs.writeFileSync(OUTPUT_FILE, JSON.stringify(fixtures, null, 2));
+    console.log(`Scraped ${fixtures.length} fixtures and saved to ${OUTPUT_FILE}`);
+  } catch (err) {
+    console.error('Error scraping fixtures:', err);
   }
-
-  // Remove duplicates (same match can appear in home/away team pages)
-  const uniqueFixtures = Array.from(
-    new Map(allFixtures.map(f => [f.id, f])).values()
-  );
-
-  fs.writeFileSync(OUTPUT_FILE, JSON.stringify(uniqueFixtures, null, 2));
-  console.log(`Scraped ${uniqueFixtures.length} unique fixtures. Saved to ${OUTPUT_FILE}`);
 }
 
-// Run scraper
-scrapeAllTeams().catch(err => console.error(err));
+run();
