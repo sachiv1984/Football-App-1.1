@@ -2,12 +2,19 @@ import axios from 'axios';
 import { load } from 'cheerio';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
+// ---------- ESM fix for __dirname ----------
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// ---------- Output file ----------
 const OUTPUT_FILE = path.join(__dirname, '../data/fixtures.json');
 const DATA_DIR = path.dirname(OUTPUT_FILE);
 
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
 
+// ---------- Fixture type ----------
 interface RawFixture {
   id: string;
   dateTime: string;
@@ -21,15 +28,17 @@ interface RawFixture {
   matchUrl?: string;
 }
 
-const LEAGUE_FIXTURES_URL = 'https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures';
+// ---------- FBref Premier League schedule URL ----------
+const LEAGUE_FIXTURES_URL =
+  'https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures';
 
+// ---------- Scraper function ----------
 async function scrapeFixtures(): Promise<RawFixture[]> {
   const res = await axios.get(LEAGUE_FIXTURES_URL);
   const $ = load(res.data);
 
   const fixtures: RawFixture[] = [];
 
-  // FBref table has id="sched_all"
   const table = $('#sched_all');
   if (!table.length) throw new Error('Fixtures table not found');
 
@@ -71,7 +80,7 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
       awayScore,
       status,
       matchUrl,
-      venue: homeTeam, // can adjust later
+      venue: homeTeam, // optional placeholder
       matchWeek: undefined, // assigned later in service
     });
   });
@@ -79,6 +88,7 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
   return fixtures;
 }
 
+// ---------- Run scraper ----------
 async function run() {
   try {
     const fixtures = await scrapeFixtures();
