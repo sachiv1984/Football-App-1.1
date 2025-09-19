@@ -144,13 +144,9 @@ export class FBrefStatsService {
       this.clearCache();
     }
   }
-  addTeamMapping(league: keyof typeof LEAGUE_TEAMS, teamName: string, teamId: string): void {
-    LEAGUE_TEAMS[league][teamName] = teamId;
-    console.log(`[FBrefStats] Added team mapping: ${teamName} -> ${teamId} for ${league}`);
-  }
-  
+
   private async scrapeStatsData(): Promise<ScrapedData> {
-    const statsUrls = this.FBREF_URLS[this.currentLeague].stats;
+    const statsUrls = FBREF_URLS[this.currentLeague].stats; // Access FBREF_URLS directly
     for (const url of statsUrls) {
       try {
         const data = await fbrefScraper.scrapeUrl(url);
@@ -164,7 +160,7 @@ export class FBrefStatsService {
   }
 
   private async scrapeFixturesData(): Promise<ScrapedData> {
-    const fixturesUrl = this.FBREF_URLS[this.currentLeague].fixtures;
+    const fixturesUrl = FBREF_URLS[this.currentLeague].fixtures; // Access FBREF_URLS directly
     return await fbrefScraper.scrapeUrl(fixturesUrl);
   }
 
