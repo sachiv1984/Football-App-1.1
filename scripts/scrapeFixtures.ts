@@ -4,17 +4,19 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// ESM __dirname fix
+// ---------- ESM fix for __dirname ----------
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Output path
+// ---------- Output file ----------
 const DATA_DIR = path.join(__dirname, '../data');
 const OUTPUT_FILE = path.join(DATA_DIR, 'fixtures.json');
+
+// Create data folder if it doesn't exist
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
 
-// Fixture type
-export interface RawFixture {
+// ---------- Fixture type ----------
+interface RawFixture {
   id: string;
   dateTime: string;
   homeTeam: string;
@@ -27,11 +29,12 @@ export interface RawFixture {
   matchUrl?: string;
 }
 
-// Premier League schedule
+// ---------- FBref Premier League schedule URL ----------
 const LEAGUE_FIXTURES_URL =
   'https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures';
 
-export async function scrapeFixtures(): Promise<RawFixture[]> {
+// ---------- Scraper function ----------
+async function scrapeFixtures(): Promise<RawFixture[]> {
   const res = await axios.get(LEAGUE_FIXTURES_URL);
   const $ = load(res.data);
 
@@ -42,15 +45,16 @@ export async function scrapeFixtures(): Promise<RawFixture[]> {
 
   table.find('tbody > tr').each((_, row) => {
     const $row = $(row);
-    if ($row.hasClass('thead')) return;
+    if ($row.hasClass('thead')) return; // skip header rows inside tbody
 
     const dateStr = $row.find('td[data-stat="date"]').text().trim();
     const homeTeam = $row.find('td[data-stat="home_team"]').text().trim();
     const awayTeam = $row.find('td[data-stat="away_team"]').text().trim();
     const scoreStr = $row.find('td[data-stat="score"]').text().trim();
     const venueCell = $row.find('td[data-stat="venue"]').text().trim();
-    const matchUrlAttr = $row.find('td[data-stat="match_report"] a').attr('href');
-    const matchUrl = matchUrlAttr ? `https://fbref.com${matchUrlAttr}` : undefined;
+    const matchUrl = $row.find('td[data-stat="match_report"] a').attr('href')
+      ? `https://fbref.com${$row.find('td[data-stat="match_report"] a').attr('href')}`
+      : undefined;
 
     if (!dateStr || !homeTeam || !awayTeam) return;
 
@@ -77,17 +81,24 @@ export async function scrapeFixtures(): Promise<RawFixture[]> {
       homeScore,
       awayScore,
       status,
-      venue: venueCell || undefined,
-      matchWeek: undefined,
       matchUrl,
+      venue: venueCell,
+      matchWeek: undefined, // assigned later in service
     });
   });
 
   return fixtures;
 }
 
-// Optional: Save JSON locally
-export async function saveFixturesToFile(fixtures: RawFixture[]) {
-  fs.writeFileSync(OUTPUT_FILE, JSON.stringify(fixtures, null, 2));
-  console.log(`Saved ${fixtures.length} fixtures to ${OUTPUT_FILE}`);
+// ---------- Run scraper ----------
+async function run() {
+  try {
+    const fixtures = await scrapeFixtures();
+    fs.writeFileSync(OUTPUT_FILE, JSON.stringify(fixtures, null, 2));
+    console.log(`Scraped ${fixtures.length} fixtures and saved to ${OUTPUT_FILE}`);
+  } catch (err) {
+    console.error('Error scraping fixtures:', err);
+  }
 }
+
+run();
