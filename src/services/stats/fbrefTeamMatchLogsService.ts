@@ -175,7 +175,9 @@ export class FBrefTeamMatchLogsService {
       // Limit cache size
       if (this.tableCache.size > 50) {
         const firstKey = this.tableCache.keys().next().value;
-        this.tableCache.delete(firstKey);
+        if (firstKey !== undefined) {
+          this.tableCache.delete(firstKey);
+        }
       }
     }
 
