@@ -268,8 +268,6 @@ export class FBrefTeamMatchLogsService {
   }
 }
 
-}
-
 /**
  * Utility class for building FBRef URLs and managing team data
  */
