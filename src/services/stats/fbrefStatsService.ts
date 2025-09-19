@@ -43,8 +43,6 @@ interface TeamSeasonStats {
   recentForm: ('W' | 'D' | 'L')[];
 }
 
-
-
 // Competition ID mappings
 const COMPETITION_IDS = {
   premierLeague: 'c9',
@@ -118,9 +116,6 @@ const LEAGUE_TEAMS: Record<keyof typeof FBREF_URLS, Record<string, string>> = {
     // Add more Ligue 1 teams
   },
 };
-
-// const leagueTeams = LEAGUE_TEAMS[this.currentLeague] || {};
-  
 
   private currentLeague: keyof typeof this.FBREF_URLS = 'premierLeague';
   private currentSeason = '2025-2026';
