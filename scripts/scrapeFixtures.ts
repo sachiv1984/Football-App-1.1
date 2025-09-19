@@ -1,3 +1,4 @@
+// src/scrape/fbrefFixtures.ts
 import axios from 'axios';
 import { load } from 'cheerio';
 import fs from 'fs';
@@ -11,7 +12,9 @@ const __dirname = path.dirname(__filename);
 // ---------- Output file ----------
 const DATA_DIR = path.join(__dirname, '../data');
 const OUTPUT_FILE = path.join(DATA_DIR, 'fixtures.json');
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
+
+// Create data folder if it doesn't exist
+if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
 // ---------- Fixture type ----------
 interface RawFixture {
@@ -27,11 +30,6 @@ interface RawFixture {
   matchUrl?: string;
 }
 
-// ---------- Helpers ----------
-function normalizeTeamName(name: string) {
-  return name.trim().replace(/\s+/g, ' ');
-}
-
 // ---------- FBref Premier League schedule URL ----------
 const LEAGUE_FIXTURES_URL =
   'https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures';
@@ -43,8 +41,7 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
 
   const fixtures: RawFixture[] = [];
 
-  // FBref often uses tables with ID starting with "sched_"
-  const table = $('table[id^="sched_"]');
+  const table = $('#sched_all');
   if (!table.length) throw new Error('Fixtures table not found');
 
   table.find('tbody > tr').each((_, row) => {
@@ -52,13 +49,13 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
     if ($row.hasClass('thead')) return; // skip header rows inside tbody
 
     const dateStr = $row.find('td[data-stat="date"]').text().trim();
-    const homeTeam = normalizeTeamName($row.find('td[data-stat="home_team"]').text());
-    const awayTeam = normalizeTeamName($row.find('td[data-stat="away_team"]').text());
+    const homeTeam = $row.find('td[data-stat="home_team"]').text().trim();
+    const awayTeam = $row.find('td[data-stat="away_team"]').text().trim();
     const scoreStr = $row.find('td[data-stat="score"]').text().trim();
-    const matchUrlCell = $row.find('td[data-stat="match_report"] a');
-    const matchUrl = matchUrlCell.length
-      ? `https://fbref.com${matchUrlCell.attr('href')}`
-      : undefined;
+    const venue = $row.find('td[data-stat="venue"]').text().trim() || undefined;
+
+    const matchUrlRaw = $row.find('td[data-stat="match_report"] a').attr('href');
+    const matchUrl = matchUrlRaw ? `https://fbref.com${matchUrlRaw}` : undefined;
 
     if (!dateStr || !homeTeam || !awayTeam) return;
 
@@ -86,8 +83,8 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
       awayScore,
       status,
       matchUrl,
-      venue: homeTeam, // optional placeholder
-      matchWeek: undefined, // optional: calculate later
+      venue,
+      matchWeek: undefined, // can be assigned later in service
     });
   });
 
