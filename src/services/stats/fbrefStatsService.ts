@@ -144,7 +144,6 @@ export class FBrefStatsService {
       this.clearCache();
     }
   }
-
   addTeamMapping(league: keyof typeof LEAGUE_TEAMS, teamName: string, teamId: string): void {
     LEAGUE_TEAMS[league][teamName] = teamId;
     console.log(`[FBrefStats] Added team mapping: ${teamName} -> ${teamId} for ${league}`);
