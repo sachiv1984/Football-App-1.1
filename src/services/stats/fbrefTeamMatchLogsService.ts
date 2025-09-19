@@ -53,16 +53,8 @@ export class FBrefTeamMatchLogsService {
     const opts = { ...this.defaultOptions, ...options };
     
     try {
-      // Scrape both offensive and defensive data in parallel if needed
-      const tasks: Promise<TeamMatchLogCorners[] | null>[] = [
-        this.scrapePassingTypes(teamId, season, competitionId, false, opts)
-      ];
-      
-      if (!opts.skipDefensiveData) {
-        tasks.push(this.scrapePassingTypes(teamId, season, competitionId, true, opts));
-      }
-
-      const [offensiveData, defensiveData] = await Promise.all(tasks);
+      // Always get offensive data first
+      const offensiveData = await this.scrapePassingTypes(teamId, season, competitionId, false, opts);
       
       if (!offensiveData) {
         if (opts.enableLogging) {
@@ -71,10 +63,25 @@ export class FBrefTeamMatchLogsService {
         return null;
       }
 
+      let defensiveData: TeamMatchLogCorners[] | null = null;
+      
+      // Try to get defensive data if not skipping, but don't fail if it doesn't work
+      if (!opts.skipDefensiveData) {
+        try {
+          defensiveData = await this.scrapePassingTypes(teamId, season, competitionId, true, opts);
+          if (opts.enableLogging && !defensiveData) {
+            console.warn(`[TeamMatchLogs] Defensive data not available for ${teamName}, using offensive only`);
+          }
+        } catch (error) {
+          if (opts.enableLogging) {
+            console.warn(`[TeamMatchLogs] Failed to get defensive data for ${teamName}, continuing with offensive only:`, error);
+          }
+          // Continue without defensive data
+        }
+      }
+
       // Merge the data
-      const matches = opts.skipDefensiveData 
-        ? offensiveData 
-        : this.mergeOffensiveAndDefensive(offensiveData, defensiveData);
+      const matches = this.mergeOffensiveAndDefensive(offensiveData, defensiveData);
 
       return {
         teamName: normalizeTeamName(teamName),
@@ -131,8 +138,10 @@ export class FBrefTeamMatchLogsService {
         if (attempt <= options.retries) {
           await this.delay(options.delayBetweenRequests * attempt); // Exponential backoff
         } else {
-          console.error(`[TeamMatchLogs] All attempts failed for ${url}`);
-          return null;
+          if (options.enableLogging) {
+            console.error(`[TeamMatchLogs] All attempts failed for ${url}:`, err);
+          }
+          throw err; // Re-throw to let caller handle it
         }
       }
     }
@@ -266,25 +275,31 @@ export class FBrefTeamMatchLogsService {
     defensiveData: TeamMatchLogCorners[] | null
   ): TeamMatchLogCorners[] {
     
-    if (!defensiveData) {
-      return offensiveData;
+    if (!defensiveData || defensiveData.length === 0) {
+      // Return offensive data with cornersAgainst as undefined
+      return offensiveData.map(match => ({
+        ...match,
+        cornersAgainst: undefined
+      }));
     }
 
     // Create a lookup map for faster matching
-    const defensiveMap = new Map<string, TeamMatchLogCorners>();
+    const defensiveMap = new Map<string, number>();
     for (const defMatch of defensiveData) {
       const key = `${defMatch.date}_${defMatch.opponent}`;
-      defensiveMap.set(key, defMatch);
+      // Get corners from cornersAgainst field (since it was populated in defensive scraping)
+      const cornersAgainst = defMatch.cornersAgainst ?? defMatch.corners;
+      defensiveMap.set(key, cornersAgainst);
     }
 
     // Merge using the map
     const merged = offensiveData.map(offMatch => {
       const key = `${offMatch.date}_${offMatch.opponent}`;
-      const defMatch = defensiveMap.get(key);
+      const cornersAgainst = defensiveMap.get(key);
       
       return {
         ...offMatch,
-        cornersAgainst: defMatch?.cornersAgainst
+        cornersAgainst: cornersAgainst !== undefined ? cornersAgainst : undefined
       };
     });
 
@@ -292,7 +307,7 @@ export class FBrefTeamMatchLogsService {
   }
 
   /**
-   * Scrape multiple teams with concurrency control and batching
+   * Scrape multiple teams with enhanced error handling and fallback options
    */
   async scrapeMultipleTeams(teams: Array<{
     teamId: string;
@@ -323,13 +338,28 @@ export class FBrefTeamMatchLogsService {
             await this.delay(opts.delayBetweenRequests * 0.3 * batchIndex);
           }
 
-          const corners = await this.scrapeTeamCorners(
+          // Try with defensive data first, then fallback to offensive-only
+          let corners = await this.scrapeTeamCorners(
             team.teamId, 
             team.season, 
             team.competitionId, 
             team.teamName,
             opts
           );
+
+          // If that failed and we were trying to get defensive data, try with skipDefensiveData
+          if (!corners && !opts.skipDefensiveData) {
+            if (opts.enableLogging) {
+              console.log(`[TeamMatchLogs] Retrying ${team.teamName} without defensive data`);
+            }
+            corners = await this.scrapeTeamCorners(
+              team.teamId, 
+              team.season, 
+              team.competitionId, 
+              team.teamName,
+              { ...opts, skipDefensiveData: true }
+            );
+          }
           
           return { team, corners, success: !!corners };
         } catch (error) {
