@@ -52,50 +52,43 @@ const COMPETITION_IDS = {
   ligue1: 'c13',
 } as const;
 
-export class FBrefStatsService {
-  private statsCache: Map<string, TeamSeasonStats> = new Map();
-  private cacheTime = 0;
-  private readonly cacheTimeout = 30 * 60 * 1000; // 30 minutes
+// Declare FBREF_URLS globally
+const FBREF_URLS = {
+  premierLeague: {
+    stats: [
+      'https://fbref.com/en/comps/9/2025-2026/2025-2026-Premier-League-Stats',
+      'https://fbref.com/en/comps/9/Premier-League-Stats',
+      'https://fbref.com/en/comps/9/stats/Premier-League-Stats',
+    ],
+    fixtures: 'https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures',
+  },
+  laLiga: {
+    stats: [
+      'https://fbref.com/en/comps/12/2025-2026/2025-2026-La-Liga-Stats',
+    ],
+    fixtures: 'https://fbref.com/en/comps/12/schedule/La-Liga-Scores-and-Fixtures',
+  },
+  bundesliga: {
+    stats: [
+      'https://fbref.com/en/comps/20/2025-2026/2025-2026-Bundesliga-Stats',
+    ],
+    fixtures: 'https://fbref.com/en/comps/20/schedule/Bundesliga-Scores-and-Fixtures',
+  },
+  serieA: {
+    stats: [
+      'https://fbref.com/en/comps/11/2025-2026/2025-2026-Serie-A-Stats',
+    ],
+    fixtures: 'https://fbref.com/en/comps/11/schedule/Serie-A-Scores-and-Fixtures',
+  },
+  ligue1: {
+    stats: [
+      'https://fbref.com/en/comps/13/2025-2026/2025-2026-Ligue-1-Stats',
+    ],
+    fixtures: 'https://fbref.com/en/comps/13/schedule/Ligue-1-Scores-and-Fixtures',
+  },
+};
 
-  // Declare FBREF_URLS as a readonly property
-  private readonly FBREF_URLS = {
-    premierLeague: {
-      stats: [
-        'https://fbref.com/en/comps/9/2025-2026/2025-2026-Premier-League-Stats',
-        'https://fbref.com/en/comps/9/Premier-League-Stats',
-        'https://fbref.com/en/comps/9/stats/Premier-League-Stats',
-      ],
-      fixtures: 'https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures',
-    },
-    laLiga: {
-      stats: [
-        'https://fbref.com/en/comps/12/2025-2026/2025-2026-La-Liga-Stats',
-      ],
-      fixtures: 'https://fbref.com/en/comps/12/schedule/La-Liga-Scores-and-Fixtures',
-    },
-    bundesliga: {
-      stats: [
-        'https://fbref.com/en/comps/20/2025-2026/2025-2026-Bundesliga-Stats',
-      ],
-      fixtures: 'https://fbref.com/en/comps/20/schedule/Bundesliga-Scores-and-Fixtures',
-    },
-    serieA: {
-      stats: [
-        'https://fbref.com/en/comps/11/2025-2026/2025-2026-Serie-A-Stats',
-      ],
-      fixtures: 'https://fbref.com/en/comps/11/schedule/Serie-A-Scores-and-Fixtures',
-    },
-    ligue1: {
-      stats: [
-        'https://fbref.com/en/comps/13/2025-2026/2025-2026-Ligue-1-Stats',
-      ],
-      fixtures: 'https://fbref.com/en/comps/13/schedule/Ligue-1-Scores-and-Fixtures',
-    },
-  };
-}
-
-
-  // Team ID mappings for different leagues
+// Team ID mappings for different leagues
 const LEAGUE_TEAMS: Record<keyof typeof FBREF_URLS, Record<string, string>> = {
   premierLeague: PREMIER_LEAGUE_TEAMS,
   laLiga: {
@@ -120,7 +113,12 @@ const LEAGUE_TEAMS: Record<keyof typeof FBREF_URLS, Record<string, string>> = {
   },
 };
 
-  private currentLeague: keyof typeof this.FBREF_URLS = 'premierLeague';
+export class FBrefStatsService {
+  private statsCache: Map<string, TeamSeasonStats> = new Map();
+  private cacheTime = 0;
+  private readonly cacheTimeout = 30 * 60 * 1000; // 30 minutes
+
+  private currentLeague: keyof typeof FBREF_URLS = 'premierLeague';
   private currentSeason = '2025-2026';
 
   private isCacheValid(): boolean {
@@ -133,7 +131,7 @@ const LEAGUE_TEAMS: Record<keyof typeof FBREF_URLS, Record<string, string>> = {
     console.log('Stats cache cleared');
   }
 
-  setLeague(league: keyof typeof this.FBREF_URLS): void {
+  setLeague(league: keyof typeof FBREF_URLS): void {
     if (this.currentLeague !== league) {
       this.currentLeague = league;
       this.clearCache();
@@ -147,6 +145,11 @@ const LEAGUE_TEAMS: Record<keyof typeof FBREF_URLS, Record<string, string>> = {
     }
   }
 
+  addTeamMapping(league: keyof typeof LEAGUE_TEAMS, teamName: string, teamId: string): void {
+    LEAGUE_TEAMS[league][teamName] = teamId;
+    console.log(`[FBrefStats] Added team mapping: ${teamName} -> ${teamId} for ${league}`);
+  }
+  
   private async scrapeStatsData(): Promise<ScrapedData> {
     const statsUrls = this.FBREF_URLS[this.currentLeague].stats;
     for (const url of statsUrls) {
