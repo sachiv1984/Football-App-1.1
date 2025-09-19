@@ -418,14 +418,6 @@ export class FBrefStatsService {
       over115MatchCorners: { homeValue: calculateOverPercentage(homeStats.corners + homeStats.cornersAgainst, homeStats.matchesPlayed, 11.5), awayValue: calculateOverPercentage(awayStats.corners + awayStats.cornersAgainst, awayStats.matchesPlayed, 11.5) },
     };
   }
-
-  /**
-   * Add a team ID mapping (useful for teams not in predefined list)
-   */
-  addTeamMapping(league: keyof typeof LEAGUE_TEAMS, teamName: string, teamId: string): void {
-    // This would need to be implemented to dynamically add team mappings
-    console.log(`[FBrefStats] Adding team mapping: ${teamName} -> ${teamId} for ${league}`);
-  }
 }
 
 export const fbrefStatsService = new FBrefStatsService();
