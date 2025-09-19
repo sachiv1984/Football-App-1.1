@@ -8,7 +8,7 @@ export interface TeamMatchLogCorners {
   opponent: string;
   venue: 'Home' | 'Away';
   corners: number;
-  cornersAgainst?: number; // Available when scraping opposition data
+  cornersAgainst?: number;
   matchUrl?: string;
 }
 
@@ -19,133 +19,225 @@ export interface TeamSeasonCorners {
   matches: TeamMatchLogCorners[];
 }
 
+export interface ScrapeOptions {
+  concurrency?: number;
+  delayBetweenRequests?: number;
+  retries?: number;
+  enableLogging?: boolean;
+  skipDefensiveData?: boolean; // For cases where only offensive stats are needed
+}
+
 export class FBrefTeamMatchLogsService {
+  private readonly defaultOptions: Required<ScrapeOptions> = {
+    concurrency: 3, // Conservative to avoid rate limiting
+    delayBetweenRequests: 800, // Reduced from 1000ms
+    retries: 2,
+    enableLogging: true,
+    skipDefensiveData: false,
+  };
+
+  // Cache parsed tables to avoid re-parsing similar structures
+  private readonly tableCache = new Map<string, any>();
   
   /**
-   * Scrape team's match logs for corner statistics
-   * @param teamId - Team ID from fbref URL (e.g., '822bd0ba' for Liverpool)
-   * @param season - Season (e.g., '2025-2026')
-   * @param competitionId - Competition ID (e.g., 'c9' for Premier League)
-   * @param teamName - Team name for reference
+   * Scrape team's match logs for corner statistics (optimized version)
    */
   async scrapeTeamCorners(
     teamId: string, 
     season: string, 
     competitionId: string, 
-    teamName: string
+    teamName: string,
+    options: Partial<ScrapeOptions> = {}
   ): Promise<TeamSeasonCorners | null> {
     
-    // First get offensive corners (CK column)
-    const offensiveData = await this.scrapePassingTypes(teamId, season, competitionId, false);
-    if (!offensiveData) {
-      console.error(`[TeamMatchLogs] Failed to get offensive data for ${teamName}`);
+    const opts = { ...this.defaultOptions, ...options };
+    
+    try {
+      // Scrape both offensive and defensive data in parallel if needed
+      const tasks: Promise<TeamMatchLogCorners[] | null>[] = [
+        this.scrapePassingTypes(teamId, season, competitionId, false, opts)
+      ];
+      
+      if (!opts.skipDefensiveData) {
+        tasks.push(this.scrapePassingTypes(teamId, season, competitionId, true, opts));
+      }
+
+      const [offensiveData, defensiveData] = await Promise.all(tasks);
+      
+      if (!offensiveData) {
+        if (opts.enableLogging) {
+          console.error(`[TeamMatchLogs] Failed to get offensive data for ${teamName}`);
+        }
+        return null;
+      }
+
+      // Merge the data
+      const matches = opts.skipDefensiveData 
+        ? offensiveData 
+        : this.mergeOffensiveAndDefensive(offensiveData, defensiveData);
+
+      return {
+        teamName: normalizeTeamName(teamName),
+        season,
+        competition: this.getCompetitionName(competitionId),
+        matches
+      };
+    } catch (error) {
+      if (opts.enableLogging) {
+        console.error(`[TeamMatchLogs] Error scraping ${teamName}:`, error);
+      }
       return null;
     }
-
-    // Then get defensive corners (vs Opposition)
-    const defensiveData = await this.scrapePassingTypes(teamId, season, competitionId, true);
-    
-    // Merge the data
-    const matches = this.mergeOffensiveAndDefensive(offensiveData, defensiveData);
-
-    return {
-      teamName: normalizeTeamName(teamName),
-      season,
-      competition: this.getCompetitionName(competitionId),
-      matches
-    };
   }
 
   private async scrapePassingTypes(
     teamId: string, 
     season: string, 
     competitionId: string, 
-    isOpposition: boolean
+    isOpposition: boolean,
+    options: Required<ScrapeOptions>
   ): Promise<TeamMatchLogCorners[] | null> {
     
-    const baseUrl = `https://fbref.com/en/squads/${teamId}/${season}/matchlogs/${competitionId}/passing_types`;
-    const url = isOpposition ? `${baseUrl}/vs` : baseUrl;
+    const url = FBrefUrlBuilder.buildPassingTypesUrl(teamId, season, competitionId, isOpposition);
     
-    console.log(`[TeamMatchLogs] Scraping ${isOpposition ? 'defensive' : 'offensive'} corners: ${url}`);
-
-    let scraped: ScrapedData;
-    try {
-      scraped = await fbrefScraper.scrapeUrl(url);
-    } catch (err) {
-      console.error(`[TeamMatchLogs] Error fetching ${url}:`, err);
-      return null;
+    if (options.enableLogging) {
+      console.log(`[TeamMatchLogs] Scraping ${isOpposition ? 'defensive' : 'offensive'} corners: ${url}`);
     }
 
-    // Find the match logs table
-    const table = this.findMatchLogsTable(scraped);
-    if (!table) {
-      console.error(`[TeamMatchLogs] No suitable table found in ${url}`);
-      return null;
-    }
+    // Try with retries
+    for (let attempt = 1; attempt <= options.retries + 1; attempt++) {
+      try {
+        const scraped = await fbrefScraper.scrapeUrl(url);
+        const table = this.findMatchLogsTable(scraped, url);
+        
+        if (!table) {
+          if (options.enableLogging) {
+            console.warn(`[TeamMatchLogs] No suitable table found in ${url} (attempt ${attempt})`);
+          }
+          if (attempt <= options.retries) {
+            await this.delay(options.delayBetweenRequests);
+            continue;
+          }
+          return null;
+        }
 
-    return this.extractCornersFromMatchLogsTable(table, isOpposition);
+        return this.extractCornersFromMatchLogsTable(table, isOpposition, options);
+        
+      } catch (err) {
+        if (options.enableLogging) {
+          console.warn(`[TeamMatchLogs] Attempt ${attempt} failed for ${url}:`, err);
+        }
+        
+        if (attempt <= options.retries) {
+          await this.delay(options.delayBetweenRequests * attempt); // Exponential backoff
+        } else {
+          console.error(`[TeamMatchLogs] All attempts failed for ${url}`);
+          return null;
+        }
+      }
+    }
+    
+    return null;
   }
 
-  private findMatchLogsTable(scraped: ScrapedData): any | null {
-    // Look for the main match logs table
+  private findMatchLogsTable(scraped: ScrapedData, url?: string): any | null {
+    // Check cache first
+    const cacheKey = url ? `table_${url}` : `table_${Date.now()}`;
+    if (url && this.tableCache.has(cacheKey)) {
+      return this.tableCache.get(cacheKey);
+    }
+
+    // Optimized table finding with more specific criteria
     const table = scraped.tables.find(t => {
+      if (!t.rows || t.rows.length === 0) return false;
+      
       const cap = (t.caption || "").toLowerCase();
       const id = (t.id || "").toLowerCase();
+      const headers = t.headers || [];
       
-      // Should contain match logs indicators and corners column
-      const hasMatchLogs = cap.includes("match logs") || cap.includes("matchlogs") || id.includes("matchlogs");
-      const hasCorners = t.headers.some((h: string) => h.toLowerCase().includes("ck") || h.toLowerCase().includes("corner"));
+      // More specific matching
+      const hasMatchLogs = cap.includes("match logs") || cap.includes("matchlogs") || 
+                          id.includes("matchlogs") || id.includes("match_logs");
       
-      return hasMatchLogs && hasCorners && t.rows.length > 0;
+      const hasCorners = headers.some((h: string) => {
+        const header = h.toLowerCase();
+        return header === 'ck' || header.includes('corner');
+      });
+      
+      const hasRequiredColumns = this.hasRequiredColumns(headers);
+      
+      return hasMatchLogs && hasCorners && hasRequiredColumns;
     });
 
-    if (table) {
-      console.log(`[TeamMatchLogs] Found table with ${table.rows.length} rows and headers:`, table.headers);
+    if (table && url) {
+      // Cache the result
+      this.tableCache.set(cacheKey, table);
+      // Limit cache size
+      if (this.tableCache.size > 50) {
+        const firstKey = this.tableCache.keys().next().value;
+        this.tableCache.delete(firstKey);
+      }
     }
 
     return table;
   }
 
-  private extractCornersFromMatchLogsTable(table: any, isOpposition: boolean): TeamMatchLogCorners[] {
+  private hasRequiredColumns(headers: string[]): boolean {
+    const lowerHeaders = headers.map(h => h.toLowerCase());
+    const hasDate = lowerHeaders.some(h => h.includes('date') || h.includes('day'));
+    const hasOpponent = lowerHeaders.some(h => h.includes('opponent') || h.includes('opp') || h === 'vs');
+    return hasDate && hasOpponent;
+  }
+
+  private extractCornersFromMatchLogsTable(
+    table: any, 
+    isOpposition: boolean,
+    options: Required<ScrapeOptions>
+  ): TeamMatchLogCorners[] {
+    
     const headers = table.headers.map((h: string) => h.trim().toLowerCase());
     
-    // Find key column indices
-    const dateIdx = this.findColumnIndex(headers, ['date', 'day']);
-    const opponentIdx = this.findColumnIndex(headers, ['opponent', 'opp', 'vs']);
-    const venueIdx = this.findColumnIndex(headers, ['venue', 'home/away', 'h/a']);
-    const cornersIdx = this.findColumnIndex(headers, ['ck', 'corners', 'corner kicks']);
+    // Pre-compute column indices once
+    const columnIndices = {
+      date: this.findColumnIndex(headers, ['date', 'day']),
+      opponent: this.findColumnIndex(headers, ['opponent', 'opp', 'vs']),
+      venue: this.findColumnIndex(headers, ['venue', 'home/away', 'h/a']),
+      corners: this.findColumnIndex(headers, ['ck', 'corners', 'corner kicks'])
+    };
     
-    if (dateIdx === -1 || opponentIdx === -1 || cornersIdx === -1) {
-      console.error('[TeamMatchLogs] Missing required columns:', {
-        date: dateIdx,
-        opponent: opponentIdx,
-        corners: cornersIdx,
-        headers
-      });
+    if (columnIndices.date === -1 || columnIndices.opponent === -1 || columnIndices.corners === -1) {
+      if (options.enableLogging) {
+        console.error('[TeamMatchLogs] Missing required columns:', columnIndices);
+      }
       return [];
     }
 
     const matches: TeamMatchLogCorners[] = [];
-
+    
+    // Process rows with optimized logic
     for (const row of table.rows) {
       try {
-        const date = this.extractCellText(row[dateIdx]);
-        const opponent = normalizeTeamName(this.extractCellText(row[opponentIdx]));
-        const venueText = venueIdx !== -1 ? this.extractCellText(row[venueIdx]) : '';
-        const corners = this.safeParseNumber(this.extractCellText(row[cornersIdx]));
+        const rawDate = this.extractCellText(row[columnIndices.date]);
+        const rawOpponent = this.extractCellText(row[columnIndices.opponent]);
+        const rawCorners = this.extractCellText(row[columnIndices.corners]);
 
-        // Skip header rows or invalid data
-        if (!date || !opponent || date.toLowerCase().includes('date')) {
+        // Quick validation
+        if (!rawDate || !rawOpponent || rawDate.toLowerCase().includes('date')) {
           continue;
         }
 
-        const venue = this.parseVenue(venueText);
+        const date = rawDate;
+        const opponent = normalizeTeamName(rawOpponent);
+        const corners = this.safeParseNumber(rawCorners);
+        const venue = this.parseVenue(
+          columnIndices.venue !== -1 ? this.extractCellText(row[columnIndices.venue]) : ''
+        );
         
         const matchData: TeamMatchLogCorners = {
           date,
           opponent,
           venue,
-          corners: isOpposition ? 0 : corners, // For opposition data, corners go in cornersAgainst
+          corners: isOpposition ? 0 : corners,
         };
 
         if (isOpposition) {
@@ -154,11 +246,16 @@ export class FBrefTeamMatchLogsService {
 
         matches.push(matchData);
       } catch (err) {
-        console.warn('[TeamMatchLogs] Error processing row:', err);
+        if (options.enableLogging) {
+          console.warn('[TeamMatchLogs] Error processing row:', err);
+        }
       }
     }
 
-    console.log(`[TeamMatchLogs] Extracted ${matches.length} matches (${isOpposition ? 'defensive' : 'offensive'})`);
+    if (options.enableLogging) {
+      console.log(`[TeamMatchLogs] Extracted ${matches.length} matches (${isOpposition ? 'defensive' : 'offensive'})`);
+    }
+    
     return matches;
   }
 
@@ -168,15 +265,20 @@ export class FBrefTeamMatchLogsService {
   ): TeamMatchLogCorners[] {
     
     if (!defensiveData) {
-      console.warn('[TeamMatchLogs] No defensive data available, using offensive only');
       return offensiveData;
     }
 
-    // Merge by matching date and opponent
+    // Create a lookup map for faster matching
+    const defensiveMap = new Map<string, TeamMatchLogCorners>();
+    for (const defMatch of defensiveData) {
+      const key = `${defMatch.date}_${defMatch.opponent}`;
+      defensiveMap.set(key, defMatch);
+    }
+
+    // Merge using the map
     const merged = offensiveData.map(offMatch => {
-      const defMatch = defensiveData.find(dm => 
-        dm.date === offMatch.date && dm.opponent === offMatch.opponent
-      );
+      const key = `${offMatch.date}_${offMatch.opponent}`;
+      const defMatch = defensiveMap.get(key);
       
       return {
         ...offMatch,
@@ -184,23 +286,108 @@ export class FBrefTeamMatchLogsService {
       };
     });
 
-    console.log(`[TeamMatchLogs] Merged ${merged.length} matches with both offensive and defensive data`);
     return merged;
   }
 
+  /**
+   * Scrape multiple teams with concurrency control and batching
+   */
+  async scrapeMultipleTeams(teams: Array<{
+    teamId: string;
+    teamName: string;
+    season: string;
+    competitionId: string;
+  }>, options: Partial<ScrapeOptions> = {}): Promise<TeamSeasonCorners[]> {
+    
+    const opts = { ...this.defaultOptions, ...options };
+    const results: TeamSeasonCorners[] = [];
+    
+    if (opts.enableLogging) {
+      console.log(`[TeamMatchLogs] Starting batch scrape for ${teams.length} teams (concurrency: ${opts.concurrency})`);
+    }
+
+    // Process teams in batches with controlled concurrency
+    for (let i = 0; i < teams.length; i += opts.concurrency) {
+      const batch = teams.slice(i, i + opts.concurrency);
+      
+      if (opts.enableLogging) {
+        console.log(`[TeamMatchLogs] Processing batch ${Math.floor(i / opts.concurrency) + 1}: ${batch.map(t => t.teamName).join(', ')}`);
+      }
+
+      const batchPromises = batch.map(async (team, batchIndex) => {
+        try {
+          // Add staggered delay within batch to avoid overwhelming the server
+          if (batchIndex > 0) {
+            await this.delay(opts.delayBetweenRequests * 0.3 * batchIndex);
+          }
+
+          const corners = await this.scrapeTeamCorners(
+            team.teamId, 
+            team.season, 
+            team.competitionId, 
+            team.teamName,
+            opts
+          );
+          
+          return { team, corners, success: !!corners };
+        } catch (error) {
+          if (opts.enableLogging) {
+            console.error(`[TeamMatchLogs] Error processing ${team.teamName}:`, error);
+          }
+          return { team, corners: null, success: false };
+        }
+      });
+
+      const batchResults = await Promise.all(batchPromises);
+      
+      // Process results
+      for (const { team, corners, success } of batchResults) {
+        if (success && corners) {
+          results.push(corners);
+        } else if (opts.enableLogging) {
+          console.warn(`[TeamMatchLogs] Failed to scrape ${team.teamName}`);
+        }
+      }
+
+      // Delay between batches (not needed for the last batch)
+      if (i + opts.concurrency < teams.length) {
+        await this.delay(opts.delayBetweenRequests);
+      }
+    }
+    
+    if (opts.enableLogging) {
+      console.log(`[TeamMatchLogs] Completed scraping for ${results.length}/${teams.length} teams`);
+    }
+    
+    return results;
+  }
+
+  // Utility methods (optimized)
   private findColumnIndex(headers: string[], searchTerms: string[]): number {
+    // Pre-process headers for faster matching
+    const processedHeaders = headers.map(h => h.replace(/[_\s]/g, "").toLowerCase());
+    
     for (const term of searchTerms) {
-      const idx = headers.findIndex(h => 
-        h.includes(term) || h.replace(/[_\s]/g, "") === term.replace(/[_\s]/g, "")
-      );
-      if (idx !== -1) return idx;
+      const processedTerm = term.replace(/[_\s]/g, "").toLowerCase();
+      
+      // Direct match first
+      const directIndex = headers.findIndex(h => h === term);
+      if (directIndex !== -1) return directIndex;
+      
+      // Contains match
+      const containsIndex = headers.findIndex(h => h.includes(term));
+      if (containsIndex !== -1) return containsIndex;
+      
+      // Processed match
+      const processedIndex = processedHeaders.findIndex(h => h === processedTerm);
+      if (processedIndex !== -1) return processedIndex;
     }
     return -1;
   }
 
   private extractCellText(cell: any): string {
     if (typeof cell === "object" && cell !== null) {
-      return cell.text || String(cell);
+      return (cell.text || String(cell)).trim();
     }
     return String(cell || "").trim();
   }
@@ -213,10 +400,7 @@ export class FBrefTeamMatchLogsService {
 
   private parseVenue(venueText: string): 'Home' | 'Away' {
     const text = venueText.toLowerCase().trim();
-    if (text.includes('home') || text === 'h' || text === '') {
-      return 'Home';
-    }
-    return 'Away';
+    return (text.includes('home') || text === 'h' || text === '') ? 'Home' : 'Away';
   }
 
   private getCompetitionName(competitionId: string): string {
@@ -225,92 +409,65 @@ export class FBrefTeamMatchLogsService {
       'c11': 'Champions League',
       'c16': 'FA Cup',
       'c21': 'EFL Cup',
-      // Add more as needed
     };
     return competitions[competitionId] || `Competition ${competitionId}`;
   }
 
-  /**
-   * Scrape multiple teams' corner statistics
-   */
-  async scrapeMultipleTeams(teams: Array<{
-    teamId: string;
-    teamName: string;
-    season: string;
-    competitionId: string;
-  }>): Promise<TeamSeasonCorners[]> {
-    
-    const results: TeamSeasonCorners[] = [];
-    
-    for (let i = 0; i < teams.length; i++) {
-      const team = teams[i];
-      console.log(`[TeamMatchLogs] Processing ${team.teamName} (${i + 1}/${teams.length})`);
-      
-      const corners = await this.scrapeTeamCorners(
-        team.teamId, 
-        team.season, 
-        team.competitionId, 
-        team.teamName
-      );
-      
-      if (corners) {
-        results.push(corners);
-      }
-      
-      // Polite delay between requests
-      if (i < teams.length - 1) {
-        await new Promise(r => setTimeout(r, 1000));
-      }
-    }
-    
-    console.log(`[TeamMatchLogs] Completed scraping for ${results.length}/${teams.length} teams`);
-    return results;
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  // Clear cache method for memory management
+  public clearCache(): void {
+    this.tableCache.clear();
   }
 }
 
 /**
- * Utility class for building FBRef URLs and managing team data
+ * Enhanced URL builder with caching and validation
  */
 export class FBrefUrlBuilder {
-  
-  /**
-   * Build the passing types match logs URL
-   */
+  private static readonly urlCache = new Map<string, string>();
+
   static buildPassingTypesUrl(
     teamId: string, 
     season: string, 
     competitionId: string, 
     isOpposition: boolean = false
   ): string {
+    const cacheKey = `${teamId}_${season}_${competitionId}_${isOpposition}`;
+    
+    if (this.urlCache.has(cacheKey)) {
+      return this.urlCache.get(cacheKey)!;
+    }
+
     const baseUrl = `https://fbref.com/en/squads/${teamId}/${season}/matchlogs/${competitionId}/passing_types`;
-    return isOpposition ? `${baseUrl}/vs` : baseUrl;
+    const url = isOpposition ? `${baseUrl}/vs` : baseUrl;
+    
+    this.urlCache.set(cacheKey, url);
+    return url;
   }
 
-  /**
-   * Build team stats URL
-   */
   static buildTeamStatsUrl(teamId: string, season?: string): string {
     const base = `https://fbref.com/en/squads/${teamId}`;
     return season ? `${base}/${season}` : `${base}-Stats`;
   }
 
-  /**
-   * Build fixtures URL
-   */
   static buildFixturesUrl(teamId: string, season: string, competitionId: string): string {
     return `https://fbref.com/en/squads/${teamId}/${season}/matchlogs/${competitionId}/schedule`;
   }
 
-  /**
-   * Extract team ID from FBRef team URL
-   */
   static extractTeamId(url: string): string | null {
     const match = url.match(/\/squads\/([a-f0-9]+)\//);
     return match ? match[1] : null;
   }
+
+  static clearCache(): void {
+    this.urlCache.clear();
+  }
 }
 
-// Common Premier League teams with their IDs for convenience
+// Pre-defined team configurations
 export const PREMIER_LEAGUE_TEAMS = {
   'Liverpool': '822bd0ba',
   'Manchester City': 'b8fd03ef',
