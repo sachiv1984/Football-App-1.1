@@ -68,7 +68,7 @@ const LEAGUE_TEAMS: Record<keyof typeof FBREF_URLS, Record<string, string>> = {
   },
 };
 
-const leagueTeams = LEAGUE_TEAMS[this.currentLeague] || {};
+// const leagueTeams = LEAGUE_TEAMS[this.currentLeague] || {};
 
 // Competition ID mappings
 const COMPETITION_IDS = {
