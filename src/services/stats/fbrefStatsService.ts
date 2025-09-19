@@ -43,32 +43,7 @@ interface TeamSeasonStats {
   recentForm: ('W' | 'D' | 'L')[];
 }
 
-// Team ID mappings for different leagues
-const LEAGUE_TEAMS: Record<keyof typeof FBREF_URLS, Record<string, string>> = {
-  premierLeague: PREMIER_LEAGUE_TEAMS,
-  laLiga: {
-    'Real Madrid': 'real-madrid-id',
-    'Barcelona': 'barcelona-id',
-    // Add more La Liga teams
-  },
-  bundesliga: {
-    'Bayern Munich': 'bayern-munich-id',
-    'Borussia Dortmund': 'borussia-dortmund-id',
-    // Add more Bundesliga teams
-  },
-  serieA: {
-    'Juventus': 'juventus-id',
-    'AC Milan': 'ac-milan-id',
-    // Add more Serie A teams
-  },
-  ligue1: {
-    'Paris Saint-Germain': 'psg-id',
-    'Marseille': 'marseille-id',
-    // Add more Ligue 1 teams
-  },
-};
 
-// const leagueTeams = LEAGUE_TEAMS[this.currentLeague] || {};
 
 // Competition ID mappings
 const COMPETITION_IDS = {
@@ -118,6 +93,34 @@ export class FBrefStatsService {
       fixtures: 'https://fbref.com/en/comps/13/schedule/Ligue-1-Scores-and-Fixtures',
     },
   };
+
+  // Team ID mappings for different leagues
+const LEAGUE_TEAMS: Record<keyof typeof FBREF_URLS, Record<string, string>> = {
+  premierLeague: PREMIER_LEAGUE_TEAMS,
+  laLiga: {
+    'Real Madrid': 'real-madrid-id',
+    'Barcelona': 'barcelona-id',
+    // Add more La Liga teams
+  },
+  bundesliga: {
+    'Bayern Munich': 'bayern-munich-id',
+    'Borussia Dortmund': 'borussia-dortmund-id',
+    // Add more Bundesliga teams
+  },
+  serieA: {
+    'Juventus': 'juventus-id',
+    'AC Milan': 'ac-milan-id',
+    // Add more Serie A teams
+  },
+  ligue1: {
+    'Paris Saint-Germain': 'psg-id',
+    'Marseille': 'marseille-id',
+    // Add more Ligue 1 teams
+  },
+};
+
+// const leagueTeams = LEAGUE_TEAMS[this.currentLeague] || {};
+  
 
   private currentLeague: keyof typeof this.FBREF_URLS = 'premierLeague';
   private currentSeason = '2025-2026';
