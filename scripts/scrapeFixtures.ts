@@ -1,10 +1,10 @@
 import axios from 'axios';
-import { load } from 'cheerio';
+import cheerio, { load, Cheerio, Element } from 'cheerio';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { createClient } from '@supabase/supabase-js'; // NEW
-import 'dotenv/config'; // NEW
+import { createClient } from '@supabase/supabase-js';
+import 'dotenv/config';
 
 // ---------- ESM fix for __dirname ----------
 const __filename = fileURLToPath(import.meta.url);
@@ -15,7 +15,7 @@ const DATA_DIR = path.join(__dirname, '../data');
 const OUTPUT_FILE = path.join(DATA_DIR, 'fixtures.json');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
 
-// ---------- Supabase client ---------- NEW
+// ---------- Supabase client ----------
 const supabase = createClient(
   process.env.SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -51,8 +51,8 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
 
   const fixtures: RawFixture[] = [];
 
-  const table = $('table[id^="sched_"]');
-  if (!table.length) throw new Error('Fixtures table not found');
+  const table: Cheerio<Element> = $('table[id^="sched_"]');
+  if (!table || table.length === 0) throw new Error('Fixtures table not found');
 
   table.find('tbody > tr').each((_, row) => {
     const $row = $(row);
@@ -102,12 +102,11 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
   return fixtures;
 }
 
-// ---------- Push to Supabase ---------- NEW
+// ---------- Push to Supabase ----------
 async function saveToSupabase(fixtures: RawFixture[]) {
-  // assumes you’ve created a table called "fixtures" in Supabase
   const { data, error } = await supabase
     .from('fixtures')
-    .upsert(fixtures, { onConflict: 'id' }); // prevent duplicates
+    .upsert(fixtures, { onConflict: 'id' });
 
   if (error) {
     console.error('Error saving to Supabase:', error);
@@ -133,4 +132,3 @@ async function run() {
 }
 
 run();
-
