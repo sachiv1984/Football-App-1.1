@@ -85,6 +85,8 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
   const rows = table.find('tbody > tr');
   console.log(`Found ${rows.length} rows in fixtures table`);
 
+  let currentMatchWeek: number | undefined = undefined; // Track current matchweek
+
   table.find('tbody > tr').each((index, row) => {
     const $row = $(row);
     if ($row.hasClass('thead')) {
@@ -99,10 +101,21 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
     const venue = $row.find('td[data-stat="venue"]').text()?.trim() ?? '';
     const matchUrl = $row.find('td[data-stat="match_report"] a').attr('href');
     const fullMatchUrl = matchUrl ? `https://fbref.com${matchUrl}` : undefined;
+    
+    // Check for matchweek - it might be in a "Wk" column
+    const wkStr = $row.find('td[data-stat="round"]').text()?.trim() ?? '';
+    if (wkStr && wkStr !== '') {
+      // Extract number from strings like "1", "2", "Matchweek 1", etc.
+      const wkMatch = wkStr.match(/(\d+)/);
+      if (wkMatch) {
+        currentMatchWeek = parseInt(wkMatch[1], 10);
+        console.log(`Found new matchweek: ${currentMatchWeek}`);
+      }
+    }
 
     // Debug log for first few rows
     if (index < 3) {
-      console.log(`Row ${index}: date="${dateStr}", home="${homeTeam}", away="${awayTeam}", score="${scoreStr}"`);
+      console.log(`Row ${index}: date="${dateStr}", home="${homeTeam}", away="${awayTeam}", score="${scoreStr}", wk="${wkStr}", currentWk=${currentMatchWeek}`);
     }
 
     if (!dateStr || !homeTeam || !awayTeam) {
@@ -137,7 +150,7 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
       status,
       matchurl: fullMatchUrl, // Changed from matchUrl
       venue,
-      matchweek: undefined,   // Changed from matchWeek
+      matchweek: currentMatchWeek,   // Use the carried-forward matchweek
     });
   });
 
