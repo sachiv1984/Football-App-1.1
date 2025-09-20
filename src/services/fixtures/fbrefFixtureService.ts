@@ -11,6 +11,7 @@ export interface TeamSeasonStats {
   drawn: number;
   lost: number;
   corners?: number; 
+  cornersAgainst?: number;
   goalsFor?: number;
   goalsAgainst?: number;
   points?: number;
@@ -81,7 +82,8 @@ private calculateForm(fixtures: SupabaseFixture[]): Map<string, TeamSeasonStats>
         won: 0,
         drawn: 0,
         lost: 0,
-        corners: 0
+        corners: 0,
+        cornersAgainst: 0
       });
     }
     if (!stats.has(f.awayTeam)) {
@@ -92,7 +94,8 @@ private calculateForm(fixtures: SupabaseFixture[]): Map<string, TeamSeasonStats>
         won: 0,
         drawn: 0,
         lost: 0,
-        corners: 0
+        corners: 0,
+        cornersAgainst: 0
       });
     }
   });
@@ -173,8 +176,8 @@ private calculateForm(fixtures: SupabaseFixture[]): Map<string, TeamSeasonStats>
       tags: [],
       isBigMatch: importance >= 8,
       status: f.status,
-      homeScore: f.homeScore || 0,
-      awayScore: f.awayScore || 0,
+      homeScore: f.homeScore ?? 0,
+      awayScore: f.awayScore ?? 0,
     };
   }
 
