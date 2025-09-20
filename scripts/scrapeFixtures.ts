@@ -64,22 +64,30 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
     throw new Error('Fixtures table not found');
   }
 
+  let currentMatchweek: number | undefined;
+
   table.find('tbody > tr').each((index, row) => {
     const $row = $(row);
 
-    // Skip header rows
-    if ($row.hasClass('thead') || $row.attr('class')?.includes('thead')) return;
+    // Check if this is a header row indicating matchweek
+    if ($row.hasClass('thead') || $row.attr('class')?.includes('thead')) {
+      const headerText = $row.text().trim();
+      const wkMatch = headerText.match(/(?:Matchweek|Week|Wk|Round)\s*(\d+)/i);
+      if (wkMatch) {
+        currentMatchweek = parseInt(wkMatch[1], 10);
+        // console.log(`Found matchweek header: ${currentMatchweek}`);
+      }
+      return; // skip header row
+    }
 
     // Extract date + time
     const dateStr = $row.find('td[data-stat="date"]').text()?.trim() ?? '';
     const timeStrRaw = $row.find('td[data-stat="start_time"]').text()?.trim() ?? '';
-    // Only allow valid 24-hour format; fallback to 00:00
     const timeStr = /^\d{1,2}:\d{2}$/.test(timeStrRaw) ? timeStrRaw : '00:00';
     let datetime: string;
     if (dateStr) {
       datetime = new Date(`${dateStr} ${timeStr}`).toISOString();
     } else {
-      // fallback if date missing
       datetime = new Date().toISOString();
     }
 
@@ -87,7 +95,6 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
     const homeTeam = normalizeTeamName($row.find('td[data-stat="home_team"]').text() ?? '');
     const awayTeam = normalizeTeamName($row.find('td[data-stat="away_team"]').text() ?? '');
 
-    // Skip incomplete rows
     if (!dateStr || !homeTeam || !awayTeam) return;
 
     // Extract score
@@ -114,15 +121,6 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
     const matchUrl = $row.find('td[data-stat="match_report"] a').attr('href');
     const fullMatchUrl = matchUrl ? `https://fbref.com${matchUrl}` : undefined;
 
-    // Extract matchweek directly from FBref
-    const gameweekStr = $row.find('td[data-stat="gameweek"]').text()?.trim();
-    let matchweek: number | undefined;
-    if (gameweekStr) {
-      const weekNum = parseInt(gameweekStr, 10);
-      if (!isNaN(weekNum)) matchweek = weekNum;
-    }
-
-    // Push fixture
     fixtures.push({
       id: `fbref-${homeTeam}-${awayTeam}-${dateStr}`.replace(/\s+/g, '-'),
       datetime,
@@ -133,7 +131,7 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
       status,
       matchurl: fullMatchUrl,
       venue,
-      matchweek,
+      matchweek: currentMatchweek,
     });
   });
 
@@ -178,11 +176,9 @@ async function run() {
     console.log('Starting fixture scraping...');
     const fixtures = await scrapeFixtures();
 
-    // Save to JSON file
     fs.writeFileSync(OUTPUT_FILE, JSON.stringify(fixtures, null, 2));
     console.log(`✅ Successfully saved ${fixtures.length} fixtures to ${OUTPUT_FILE}`);
 
-    // Save to Supabase
     await saveToSupabase(fixtures);
   } catch (err) {
     console.error('❌ Error in main process:', err);
@@ -190,4 +186,3 @@ async function run() {
 }
 
 run();
-
