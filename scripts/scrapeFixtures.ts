@@ -55,7 +55,7 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
     const homeTeam = normalizeTeamName($row.find('td[data-stat="home_team"]').text());
     const awayTeam = normalizeTeamName($row.find('td[data-stat="away_team"]').text());
     const scoreStr = $row.find('td[data-stat="score"]').text().trim();
-    const venue = $row.find('td[data-stat="venue"]').text().trim() || undefined;
+    const venue = $row.find('td[data-stat="venue"]').text().trim();
     const matchUrlCell = $row.find('td[data-stat="match_report"] a');
     const matchUrl = matchUrlCell.length
       ? `https://fbref.com${matchUrlCell.attr('href')}`
