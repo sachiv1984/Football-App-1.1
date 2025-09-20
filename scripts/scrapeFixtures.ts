@@ -103,13 +103,13 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
 // ---------- Push to Supabase ----------
 async function saveToSupabase(fixtures: RawFixture[]) {
   const { data, error } = await supabase
-    .from<RawFixture>('fixtures') // Explicit typing fixes TS "never" error
+    .from('fixtures')
     .upsert(fixtures, { onConflict: 'id' });
 
   if (error) {
     console.error('Error saving to Supabase:', error);
   } else {
-    console.log(`Saved ${data?.length ?? 0} fixtures to Supabase`);
+    console.log(`Saved ${fixtures.length} fixtures to Supabase`);
   }
 }
 
