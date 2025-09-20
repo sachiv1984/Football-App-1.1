@@ -20,13 +20,13 @@ export interface TeamSeasonStats {
 
 interface SupabaseFixture {
   id: string;
-  dateTime: string;
-  homeTeam: string;
-  awayTeam: string;
-  homeScore?: number;
-  awayScore?: number;
+  datetime: string;        // Changed from dateTime to datetime
+  hometeam: string;        // Likely lowercase based on the pattern
+  awayteam: string;        // Likely lowercase based on the pattern
+  homescore?: number;      // Likely lowercase based on the pattern
+  awayscore?: number;      // Likely lowercase based on the pattern
   status: 'scheduled' | 'live' | 'finished' | 'postponed' | 'upcoming';
-  matchWeek?: number;
+  matchweek?: number;      // Likely lowercase based on the pattern
   venue?: string;
 }
 
@@ -56,7 +56,7 @@ export class SupabaseFixtureService {
     const { data, error, status, statusText } = await supabase
       .from('fixtures')
       .select('*')
-      .order('dateTime', { ascending: true });
+      .order('datetime', { ascending: true }); // Changed from dateTime to datetime
 
     // Log detailed error information
     if (error) {
@@ -70,7 +70,6 @@ export class SupabaseFixtureService {
         code: error.code
       });
       
-      // Throw a more descriptive error
       throw new Error(`Supabase Error (${error.code}): ${error.message}${error.hint ? ` - ${error.hint}` : ''}`);
     }
 
@@ -89,17 +88,22 @@ export class SupabaseFixtureService {
     console.log('📊 Sample fixture data:', data[0]);
 
     return (data || []).map(f => ({
-      ...f,
-      homeTeam: normalizeTeamName(f.homeTeam),
-      awayTeam: normalizeTeamName(f.awayTeam),
+      id: f.id,
+      datetime: f.datetime,
+      hometeam: normalizeTeamName(f.hometeam), // Updated field name
+      awayteam: normalizeTeamName(f.awayteam), // Updated field name
+      homescore: f.homescore,
+      awayscore: f.awayscore,
       status: f.status || 'scheduled',
+      matchweek: f.matchweek,
+      venue: f.venue,
     }));
 
   } catch (err) {
     console.error('💥 Fetch fixtures error:', err);
     
     if (err instanceof Error) {
-      throw err; // Re-throw Supabase errors as-is
+      throw err;
     }
     
     throw new Error('Unknown error occurred while fetching fixtures');
@@ -112,9 +116,9 @@ private calculateForm(fixtures: SupabaseFixture[]): Map<string, TeamSeasonStats>
 
   // Initialize stats for all teams
   fixtures.forEach(f => {
-    if (!stats.has(f.homeTeam)) {
-      stats.set(f.homeTeam, {
-        team: f.homeTeam,
+    if (!stats.has(f.hometeam)) {
+      stats.set(f.hometeam, {
+        team: f.hometeam,
         recentForm: [],
         matchesPlayed: 0,
         won: 0,
@@ -124,9 +128,9 @@ private calculateForm(fixtures: SupabaseFixture[]): Map<string, TeamSeasonStats>
         cornersAgainst: 0
       });
     }
-    if (!stats.has(f.awayTeam)) {
-      stats.set(f.awayTeam, {
-        team: f.awayTeam,
+    if (!stats.has(f.awayteam)) {
+      stats.set(f.awayteam, {
+        team: f.awayteam,
         recentForm: [],
         matchesPlayed: 0,
         won: 0,
@@ -139,21 +143,21 @@ private calculateForm(fixtures: SupabaseFixture[]): Map<string, TeamSeasonStats>
   });
 
   const finishedFixtures = fixtures.filter(f => f.status === 'finished');
-  finishedFixtures.sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime());
+  finishedFixtures.sort((a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime());
 
   finishedFixtures.forEach(f => {
-    const homeStats = stats.get(f.homeTeam)!;
-    const awayStats = stats.get(f.awayTeam)!;
+    const homeStats = stats.get(f.hometeam)!;
+    const awayStats = stats.get(f.awayteam)!;
 
     // Update matches played
     homeStats.matchesPlayed++;
     awayStats.matchesPlayed++;
 
     // Determine result
-    const homeResult: 'W' | 'D' | 'L' = f.homeScore! > f.awayScore! ? 'W'
-      : f.homeScore! < f.awayScore! ? 'L' : 'D';
-    const awayResult: 'W' | 'D' | 'L' = f.awayScore! > f.homeScore! ? 'W'
-      : f.awayScore! < f.homeScore! ? 'L' : 'D';
+    const homeResult: 'W' | 'D' | 'L' = f.homescore! > f.awayscore! ? 'W'
+      : f.homescore! < f.awayscore! ? 'L' : 'D';
+    const awayResult: 'W' | 'D' | 'L' = f.awayscore! > f.homescore! ? 'W'
+      : f.awayscore! < f.homescore! ? 'L' : 'D';
 
     // Update win/draw/loss counts
     if (homeResult === 'W') homeStats.won++;
@@ -177,29 +181,29 @@ private calculateForm(fixtures: SupabaseFixture[]): Map<string, TeamSeasonStats>
 
   // ---------------- Transform ----------------
 private transformFixture(f: SupabaseFixture): FeaturedFixtureWithImportance {
-  const homeForm = this.teamStatsCache.get(f.homeTeam)?.recentForm || [];
-  const awayForm = this.teamStatsCache.get(f.awayTeam)?.recentForm || [];
+  const homeForm = this.teamStatsCache.get(f.hometeam)?.recentForm || [];
+  const awayForm = this.teamStatsCache.get(f.awayteam)?.recentForm || [];
 
   // Simple importance: live > scheduled > finished
   const importance = f.status === 'live' ? 10 : f.status === 'scheduled' ? 5 : 0;
 
   return {
     id: f.id,
-    dateTime: f.dateTime,
+    dateTime: f.datetime, // Convert to camelCase for your frontend
     homeTeam: {
-      id: f.homeTeam.replace(/\s+/g, '-').toLowerCase(),
-      name: f.homeTeam,
-      shortName: getDisplayTeamName(f.homeTeam),
+      id: f.hometeam.replace(/\s+/g, '-').toLowerCase(),
+      name: f.hometeam,
+      shortName: getDisplayTeamName(f.hometeam),
       form: homeForm,
-      logo: getTeamLogo({ name: f.homeTeam }).logoPath,
+      logo: getTeamLogo({ name: f.hometeam }).logoPath,
       colors: {},
     },
     awayTeam: {
-      id: f.awayTeam.replace(/\s+/g, '-').toLowerCase(),
-      name: f.awayTeam,
-      shortName: getDisplayTeamName(f.awayTeam),
+      id: f.awayteam.replace(/\s+/g, '-').toLowerCase(),
+      name: f.awayteam,
+      shortName: getDisplayTeamName(f.awayteam),
       form: awayForm,
-      logo: getTeamLogo({ name: f.awayTeam }).logoPath,
+      logo: getTeamLogo({ name: f.awayteam }).logoPath,
       colors: {},
     },
     venue: f.venue || 'TBD',
@@ -208,14 +212,14 @@ private transformFixture(f: SupabaseFixture): FeaturedFixtureWithImportance {
       name: 'Premier League',
       logo: getCompetitionLogo('Premier League') ?? undefined,
     },
-    matchWeek: f.matchWeek ?? 1,
+    matchWeek: f.matchweek ?? 1,
     importance,
     importanceScore: importance,
     tags: [],
     isBigMatch: importance >= 8,
     status: f.status,
-    homeScore: f.homeScore ?? 0,  // Fix: Use nullish coalescing
-    awayScore: f.awayScore ?? 0,  // Fix: Use nullish coalescing
+    homeScore: f.homescore ?? 0,
+    awayScore: f.awayscore ?? 0,
   };
 }
 
@@ -240,14 +244,13 @@ private async refreshCache(): Promise<void> {
   }
 
   async getCurrentGameWeekFixtures(): Promise<FeaturedFixtureWithImportance[]> {
-    if (!this.isCacheValid()) await this.refreshCache();
-    const now = Date.now();
-    return this.fixturesCache.filter(f => {
-      const t = new Date(f.dateTime).getTime();
-      return t >= now && t <= now + 7 * 24 * 60 * 60 * 1000;
-    });
-  }
-
+  if (!this.isCacheValid()) await this.refreshCache();
+  const now = Date.now();
+  return this.fixturesCache.filter(f => {
+    const t = new Date(f.dateTime).getTime(); // dateTime is already converted in transform
+    return t >= now && t <= now + 7 * 24 * 60 * 60 * 1000;
+  });
+}
   async getGameWeekInfo() {
     if (!this.isCacheValid()) await this.refreshCache();
     const fixtures = await this.getCurrentGameWeekFixtures();
