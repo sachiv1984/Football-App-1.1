@@ -23,7 +23,7 @@ const supabase = createClient(
 // ---------- Fixture type ----------
 interface RawFixture {
   id: string;
-  datetime: string | null;
+  datetime: string;
   hometeam: string;
   awayteam: string;
   homescore?: number;
@@ -32,6 +32,11 @@ interface RawFixture {
   venue?: string;
   matchweek?: number;
   matchurl?: string;
+}
+
+// ---------- Helpers ----------
+function normalizeTeamName(name: string) {
+  return name.trim().replace(/\s+/g, ' ');
 }
 
 // ---------- FBref URL ----------
@@ -51,69 +56,100 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
     await page.goto(LEAGUE_FIXTURES_URL, { waitUntil: 'networkidle2', timeout: 30000 });
     console.log('Page loaded');
 
+    // Wait for the fixtures table to render
     await page.waitForSelector('table[id^="sched_"]', { timeout: 10000 });
 
-    const fixtures: RawFixture[] = await page.$$eval('table[id^="sched_"] tbody tr', rows => {
-      return Array.from(rows).map(row => {
-        // Inline normalizeTeamName
-        const normalizeTeamName = (name: string) => name.trim().replace(/\s+/g, ' ');
+    // Extract fixture data
+    const fixtures: RawFixture[] = await page.$$eval(
+      'table[id^="sched_"] tbody tr',
+      rows => {
+        const parseDateTime = (dateStr: string, timeStr: string): string | null => {
+          try {
+            if (!dateStr) return null;
 
-        const getText = (selector: string) => {
-          const el = row.querySelector(selector);
-          return el ? el.textContent?.trim() || '' : '';
-        };
-        const getLink = (selector: string) => {
-          const a = row.querySelector<HTMLAnchorElement>(selector);
-          return a ? a.href : undefined;
-        };
+            // Example: "Sat Aug 17 2024"
+            const parts = dateStr.split(' ');
+            if (parts.length < 4) return null;
 
-        const dateStr = getText('td[data-stat="date"]');
-        const timeStr = getText('td[data-stat="start_time"]');
-        const homeTeam = normalizeTeamName(getText('td[data-stat="home_team"]'));
-        const awayTeam = normalizeTeamName(getText('td[data-stat="away_team"]'));
-        const scoreStr = getText('td[data-stat="score"]');
-        const venue = getText('td[data-stat="venue"]');
-        const matchweekStr = getText('td[data-stat="gameweek"]');
-        const matchurl = getLink('td[data-stat="match_report"] a');
+            const day = parseInt(parts[2], 10);
+            const year = parseInt(parts[3], 10);
 
-        let datetimeIso: string | null = null;
-if (dateStr) {
-  const dt = timeStr ? `${dateStr} ${timeStr}` : dateStr;
-  const parsed = new Date(dt);
-  if (!isNaN(parsed.getTime())) datetimeIso = parsed.toISOString();
-}
-        
-        let homeScore: number | undefined;
-        let awayScore: number | undefined;
-        let status: RawFixture['status'] = 'scheduled';
+            // Convert month short name to number
+            const month = new Date(`${parts[1]} 1, 2000`).getMonth();
 
-        if (scoreStr.includes('–')) {
-          const [h, a] = scoreStr.split('–').map(s => parseInt(s.trim(), 10));
-          if (!isNaN(h) && !isNaN(a)) {
-            homeScore = h;
-            awayScore = a;
-            status = 'finished';
+            let hours = 0, minutes = 0;
+            if (timeStr) {
+              const [h, m] = timeStr.split(':').map(x => parseInt(x, 10));
+              if (!isNaN(h)) hours = h;
+              if (!isNaN(m)) minutes = m;
+            }
+
+            const dt = new Date(Date.UTC(year, month, day, hours, minutes));
+            return dt.toISOString();
+          } catch {
+            return null;
           }
-        } else if (scoreStr.toLowerCase().includes('postponed')) {
-          status = 'postponed';
-        }
-
-        const matchweek = matchweekStr ? parseInt(matchweekStr, 10) : undefined;
-
-        return {
-          id: `fbref-${homeTeam}-${awayTeam}-${dateStr}`.replace(/\s+/g, '-'),
-          datetime: datetimeIso,
-          hometeam: homeTeam,
-          awayteam: awayTeam,
-          homescore: homeScore,
-          awayscore: awayScore,
-          status,
-          matchurl,
-          venue,
-          matchweek,
         };
-      });
-    });
+
+        const normalizeTeamName = (name: string) =>
+          name.trim().replace(/\s+/g, ' ');
+
+        return rows
+          .map(row => {
+            const getText = (selector: string) => {
+              const el = row.querySelector(selector);
+              return el ? el.textContent?.trim() || '' : '';
+            };
+            const getLink = (selector: string) => {
+              const a = row.querySelector<HTMLAnchorElement>(selector);
+              return a ? a.href : undefined;
+            };
+
+            const dateStr = getText('td[data-stat="date"]');
+            const timeStr = getText('td[data-stat="start_time"]');
+            const homeTeam = normalizeTeamName(getText('td[data-stat="home_team"]'));
+            const awayTeam = normalizeTeamName(getText('td[data-stat="away_team"]'));
+            const scoreStr = getText('td[data-stat="score"]');
+            const venue = getText('td[data-stat="venue"]');
+            const matchweekStr = getText('td[data-stat="gameweek"]');
+            const matchurl = getLink('td[data-stat="match_report"] a');
+
+            const datetimeIso = parseDateTime(dateStr, timeStr);
+            if (!datetimeIso) return null; // Skip invalid rows
+
+            let homeScore: number | undefined;
+            let awayScore: number | undefined;
+            let status: RawFixture['status'] = 'scheduled';
+
+            if (scoreStr.includes('–')) {
+              const [h, a] = scoreStr.split('–').map(s => parseInt(s.trim(), 10));
+              if (!isNaN(h) && !isNaN(a)) {
+                homeScore = h;
+                awayScore = a;
+                status = 'finished';
+              }
+            } else if (scoreStr.toLowerCase().includes('postponed')) {
+              status = 'postponed';
+            }
+
+            const matchweek = matchweekStr ? parseInt(matchweekStr, 10) : undefined;
+
+            return {
+              id: `fbref-${homeTeam}-${awayTeam}-${dateStr}`.replace(/\s+/g, '-'),
+              datetime: datetimeIso,
+              hometeam: homeTeam,
+              awayteam: awayTeam,
+              homescore: homeScore,
+              awayscore: awayScore,
+              status,
+              matchurl,
+              venue,
+              matchweek,
+            };
+          })
+          .filter(f => f !== null) as RawFixture[];
+      }
+    );
 
     console.log(`✅ Scraped ${fixtures.length} fixtures`);
     return fixtures;
