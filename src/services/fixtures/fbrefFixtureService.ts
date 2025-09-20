@@ -50,15 +50,43 @@ export class SupabaseFixtureService {
 
   // ---------------- Fetch fixtures ----------------
   private async fetchFixturesFromSupabase(): Promise<SupabaseFixture[]> {
-    const { data, error } = await supabase
+  console.log('🔄 Fetching fixtures from Supabase...');
+  
+  try {
+    const { data, error, status, statusText } = await supabase
       .from('fixtures')
       .select('*')
       .order('dateTime', { ascending: true });
 
+    // Log detailed error information
     if (error) {
-      console.error('Supabase fetch error:', error);
+      console.error('❌ Supabase fetch error details:', {
+        error,
+        status,
+        statusText,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
+      
+      // Throw a more descriptive error
+      throw new Error(`Supabase Error (${error.code}): ${error.message}${error.hint ? ` - ${error.hint}` : ''}`);
+    }
+
+    console.log('✅ Supabase fetch successful:', {
+      recordCount: data?.length || 0,
+      status,
+      statusText
+    });
+
+    if (!data || data.length === 0) {
+      console.warn('⚠️ No fixtures found in database');
       return [];
     }
+
+    // Log sample data structure
+    console.log('📊 Sample fixture data:', data[0]);
 
     return (data || []).map(f => ({
       ...f,
@@ -66,7 +94,17 @@ export class SupabaseFixtureService {
       awayTeam: normalizeTeamName(f.awayTeam),
       status: f.status || 'scheduled',
     }));
+
+  } catch (err) {
+    console.error('💥 Fetch fixtures error:', err);
+    
+    if (err instanceof Error) {
+      throw err; // Re-throw Supabase errors as-is
+    }
+    
+    throw new Error('Unknown error occurred while fetching fixtures');
   }
+}
 
   // ---------------- Calculate recent form ----------------
 private calculateForm(fixtures: SupabaseFixture[]): Map<string, TeamSeasonStats> {
