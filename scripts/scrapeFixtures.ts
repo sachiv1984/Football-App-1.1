@@ -87,7 +87,7 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
       awayScore,
       status,
       matchUrl,
-      venue:
+      venue,
       matchWeek: undefined, // optional: calculate later
     });
   });
