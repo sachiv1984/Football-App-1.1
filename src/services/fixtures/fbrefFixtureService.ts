@@ -6,6 +6,15 @@ import { normalizeTeamName, getDisplayTeamName, getTeamLogo, getCompetitionLogo 
 export interface TeamSeasonStats {
   team: string;
   recentForm: ('W' | 'D' | 'L')[];
+  matchesPlayed: number;
+  won: number;
+  drawn: number;
+  lost: number;
+  corners?: number; 
+  goalsFor?: number;
+  goalsAgainst?: number;
+  points?: number;
+  // ... any other stats your fbrefStatsService expects
 }
 
 interface SupabaseFixture {
@@ -59,33 +68,71 @@ export class SupabaseFixtureService {
   }
 
   // ---------------- Calculate recent form ----------------
-  private calculateForm(fixtures: SupabaseFixture[]): Map<string, ('W' | 'D' | 'L')[]> {
-    const forms = new Map<string, ('W' | 'D' | 'L')[]>();
+private calculateForm(fixtures: SupabaseFixture[]): Map<string, TeamSeasonStats> {
+  const stats = new Map<string, TeamSeasonStats>();
 
-    const finishedFixtures = fixtures.filter(f => f.status === 'finished');
-    finishedFixtures.sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime()); // recent first
+  // Initialize stats for all teams
+  fixtures.forEach(f => {
+    if (!stats.has(f.homeTeam)) {
+      stats.set(f.homeTeam, {
+        team: f.homeTeam,
+        recentForm: [],
+        matchesPlayed: 0,
+        won: 0,
+        drawn: 0,
+        lost: 0,
+        corners: 0
+      });
+    }
+    if (!stats.has(f.awayTeam)) {
+      stats.set(f.awayTeam, {
+        team: f.awayTeam,
+        recentForm: [],
+        matchesPlayed: 0,
+        won: 0,
+        drawn: 0,
+        lost: 0,
+        corners: 0
+      });
+    }
+  });
 
-    finishedFixtures.forEach(f => {
-      const homeForm = forms.get(f.homeTeam) || [];
-      const awayForm = forms.get(f.awayTeam) || [];
+  const finishedFixtures = fixtures.filter(f => f.status === 'finished');
+  finishedFixtures.sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime());
 
-      const result: 'W' | 'D' | 'L' = f.homeScore! > f.awayScore! ? 'W'
-        : f.homeScore! < f.awayScore! ? 'L' : 'D';
+  finishedFixtures.forEach(f => {
+    const homeStats = stats.get(f.homeTeam)!;
+    const awayStats = stats.get(f.awayTeam)!;
 
-      homeForm.unshift(result);
-      if (homeForm.length > 5) homeForm.pop();
-      forms.set(f.homeTeam, homeForm);
+    // Update matches played
+    homeStats.matchesPlayed++;
+    awayStats.matchesPlayed++;
 
-      const awayResult: 'W' | 'D' | 'L' = f.awayScore! > f.homeScore! ? 'W'
-        : f.awayScore! < f.homeScore! ? 'L' : 'D';
+    // Determine result
+    const homeResult: 'W' | 'D' | 'L' = f.homeScore! > f.awayScore! ? 'W'
+      : f.homeScore! < f.awayScore! ? 'L' : 'D';
+    const awayResult: 'W' | 'D' | 'L' = f.awayScore! > f.homeScore! ? 'W'
+      : f.awayScore! < f.homeScore! ? 'L' : 'D';
 
-      awayForm.unshift(awayResult);
-      if (awayForm.length > 5) awayForm.pop();
-      forms.set(f.awayTeam, awayForm);
-    });
+    // Update win/draw/loss counts
+    if (homeResult === 'W') homeStats.won++;
+    else if (homeResult === 'D') homeStats.drawn++;
+    else homeStats.lost++;
 
-    return forms;
-  }
+    if (awayResult === 'W') awayStats.won++;
+    else if (awayResult === 'D') awayStats.drawn++;
+    else awayStats.lost++;
+
+    // Update recent form (last 5 games)
+    homeStats.recentForm.unshift(homeResult);
+    if (homeStats.recentForm.length > 5) homeStats.recentForm.pop();
+
+    awayStats.recentForm.unshift(awayResult);
+    if (awayStats.recentForm.length > 5) awayStats.recentForm.pop();
+  });
+
+  return stats;
+}
 
   // ---------------- Transform ----------------
   private transformFixture(f: SupabaseFixture): FeaturedFixtureWithImportance {
@@ -132,18 +179,18 @@ export class SupabaseFixtureService {
   }
 
   // ---------------- Refresh Cache ----------------
-  private async refreshCache(): Promise<void> {
-    const fixtures = await this.fetchFixturesFromSupabase();
-    const forms = this.calculateForm(fixtures);
+private async refreshCache(): Promise<void> {
+  const fixtures = await this.fetchFixturesFromSupabase();
+  const teamStatsMap = this.calculateForm(fixtures);
 
-    this.teamStatsCache.clear();
-    forms.forEach((recentForm, team) => {
-      this.teamStatsCache.set(team, { team, recentForm });
-    });
+  this.teamStatsCache.clear();
+  teamStatsMap.forEach((stats, team) => {
+    this.teamStatsCache.set(team, stats);
+  });
 
-    this.fixturesCache = fixtures.map(f => this.transformFixture(f));
-    this.cacheTime = Date.now();
-  }
+  this.fixturesCache = fixtures.map(f => this.transformFixture(f));
+  this.cacheTime = Date.now();
+}
 
   // ---------------- Public Methods ----------------
   async getAllFixtures(): Promise<FeaturedFixtureWithImportance[]> {
