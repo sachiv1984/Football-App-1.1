@@ -1,27 +1,19 @@
-import axios from 'axios';
-import * as cheerio from 'cheerio';
+// src/scrapers/fbrefPuppeteerScraper.ts
+import puppeteer from 'puppeteer';
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { createClient } from '@supabase/supabase-js';
 import 'dotenv/config';
 
-// ---------- ESM fix for __dirname ----------
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// ---------- Output file ----------
 const DATA_DIR = path.join(__dirname, '../data');
 const OUTPUT_FILE = path.join(DATA_DIR, 'fixtures.json');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
 
-// ---------- Supabase client ----------
 const supabase = createClient(
   process.env.SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// ---------- Fixture types ----------
 interface RawFixture {
   id: string;
   datetime: string;
@@ -35,153 +27,120 @@ interface RawFixture {
   matchurl?: string;
 }
 
-// ---------- Helpers ----------
 function normalizeTeamName(name: string) {
   return name.trim().replace(/\s+/g, ' ');
 }
 
-// ---------- FBref Premier League schedule URL ----------
-const LEAGUE_FIXTURES_URL =
-  'https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures';
+const FBREF_URL = 'https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures';
 
-// ---------- Scraper function ----------
 async function scrapeFixtures(): Promise<RawFixture[]> {
-  console.log('Fetching fixtures from FBref...');
-  
-  const res = await axios.get(LEAGUE_FIXTURES_URL, {
-    timeout: 10000,
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-    }
-  });
-  console.log(`✅ Successfully fetched page (${res.data.length} bytes)`);
+  console.log('Launching Puppeteer...');
+  const browser = await puppeteer.launch({ headless: true });
+  const page = await browser.newPage();
 
-  const $ = cheerio.load(res.data);
-  const fixtures: RawFixture[] = [];
+  await page.goto(FBREF_URL, { waitUntil: 'networkidle0' });
+  console.log('Page loaded');
 
-  const table = $('table[id^="sched_"]');
-  if (!table || table.length === 0) {
-    throw new Error('Fixtures table not found');
-  }
+  // Wait for the main fixture table
+  await page.waitForSelector('table[id^="sched_"]');
 
-  let currentMatchweek: number | undefined;
+  // Extract fixtures
+  const fixtures: RawFixture[] = await page.evaluate(() => {
+    const rows = Array.from(document.querySelectorAll('table[id^="sched_"] tbody tr'));
+    const data: RawFixture[] = [];
 
-  table.find('tbody > tr').each((index, row) => {
-    const $row = $(row);
+    let currentMatchweek: number | undefined;
 
-    // Check if this is a header row indicating matchweek
-    if ($row.hasClass('thead') || $row.attr('class')?.includes('thead')) {
-      const headerText = $row.text().trim();
-      const wkMatch = headerText.match(/(?:Matchweek|Week|Wk|Round)\s*(\d+)/i);
-      if (wkMatch) {
-        currentMatchweek = parseInt(wkMatch[1], 10);
-        // console.log(`Found matchweek header: ${currentMatchweek}`);
+    rows.forEach((row: any) => {
+      const tr = row as HTMLTableRowElement;
+
+      // Skip header rows inside tbody
+      if (tr.classList.contains('thead')) {
+        const headerText = tr.innerText;
+        const matchweekMatch = headerText.match(/(?:Matchweek|Week|Wk|Round)\s*(\d+)/i);
+        if (matchweekMatch) {
+          currentMatchweek = parseInt(matchweekMatch[1], 10);
+        }
+        return;
       }
-      return; // skip header row
-    }
 
-    // Extract date + time
-    const dateStr = $row.find('td[data-stat="date"]').text()?.trim() ?? '';
-    const timeStrRaw = $row.find('td[data-stat="start_time"]').text()?.trim() ?? '';
-    const timeStr = /^\d{1,2}:\d{2}$/.test(timeStrRaw) ? timeStrRaw : '00:00';
-    let datetime: string;
-    if (dateStr) {
-      datetime = new Date(`${dateStr} ${timeStr}`).toISOString();
-    } else {
-      datetime = new Date().toISOString();
-    }
+      const dateStr = tr.querySelector('td[data-stat="date"]')?.textContent?.trim();
+      const timeStr = tr.querySelector('td[data-stat="start_time"]')?.textContent?.trim();
+      const hometeam = tr.querySelector('td[data-stat="home_team"]')?.textContent?.trim();
+      const awayteam = tr.querySelector('td[data-stat="away_team"]')?.textContent?.trim();
+      const scoreStr = tr.querySelector('td[data-stat="score"]')?.textContent?.trim();
+      const venue = tr.querySelector('td[data-stat="venue"]')?.textContent?.trim();
+      const matchUrl = tr.querySelector('td[data-stat="match_report"] a')?.getAttribute('href');
 
-    // Extract teams
-    const homeTeam = normalizeTeamName($row.find('td[data-stat="home_team"]').text() ?? '');
-    const awayTeam = normalizeTeamName($row.find('td[data-stat="away_team"]').text() ?? '');
+      if (!dateStr || !hometeam || !awayteam) return;
 
-    if (!dateStr || !homeTeam || !awayTeam) return;
-
-    // Extract score
-    const scoreStr = $row.find('td[data-stat="score"]').text()?.trim() ?? '';
-    let homeScore: number | undefined;
-    let awayScore: number | undefined;
-    let status: RawFixture['status'] = 'scheduled';
-
-    if (scoreStr.includes('–')) {
-      const [h, a] = scoreStr.split('–').map(s => parseInt(s.trim(), 10));
-      if (!isNaN(h) && !isNaN(a)) {
-        homeScore = h;
-        awayScore = a;
-        status = 'finished';
+      // Combine date + time
+      const datetime = timeStr ? `${dateStr} ${timeStr}` : dateStr;
+      let isoDatetime: string;
+      try {
+        isoDatetime = new Date(datetime).toISOString();
+      } catch {
+        isoDatetime = new Date(dateStr).toISOString();
       }
-    } else if (scoreStr.toLowerCase().includes('postponed')) {
-      status = 'postponed';
-    }
 
-    // Extract venue
-    const venue = $row.find('td[data-stat="venue"]').text()?.trim() ?? '';
+      let homeScore: number | undefined;
+      let awayScore: number | undefined;
+      let status: RawFixture['status'] = 'scheduled';
 
-    // Extract match URL
-    const matchUrl = $row.find('td[data-stat="match_report"] a').attr('href');
-    const fullMatchUrl = matchUrl ? `https://fbref.com${matchUrl}` : undefined;
+      if (scoreStr && scoreStr.includes('–')) {
+        const [h, a] = scoreStr.split('–').map((s) => parseInt(s.trim(), 10));
+        if (!isNaN(h) && !isNaN(a)) {
+          homeScore = h;
+          awayScore = a;
+          status = 'finished';
+        }
+      } else if (scoreStr?.toLowerCase().includes('postponed')) {
+        status = 'postponed';
+      }
 
-    fixtures.push({
-      id: `fbref-${homeTeam}-${awayTeam}-${dateStr}`.replace(/\s+/g, '-'),
-      datetime,
-      hometeam: homeTeam,
-      awayteam: awayTeam,
-      homescore: homeScore,
-      awayscore: awayScore,
-      status,
-      matchurl: fullMatchUrl,
-      venue,
-      matchweek: currentMatchweek,
+      data.push({
+        id: `fbref-${hometeam}-${awayteam}-${dateStr}`.replace(/\s+/g, '-'),
+        datetime: isoDatetime,
+        hometeam,
+        awayteam,
+        homescore: homeScore,
+        awayscore: awayScore,
+        status,
+        venue,
+        matchweek: currentMatchweek,
+        matchurl: matchUrl ? `https://fbref.com${matchUrl}` : undefined,
+      });
     });
+
+    return data;
   });
 
-  console.log(`✅ Successfully parsed ${fixtures.length} fixtures`);
+  console.log(`Scraped ${fixtures.length} fixtures`);
+  await browser.close();
   return fixtures;
 }
 
-// ---------- Supabase functions ----------
-async function checkTableSchema() {
-  try {
-    const { data, error } = await supabase.from('fixtures').select('*').limit(0);
-    if (error) {
-      console.error('❌ Error checking table schema:', error);
-      return null;
-    }
-    return true;
-  } catch (err) {
-    console.error('❌ Failed to check table schema:', err);
-    return null;
+async function saveFixtures(fixtures: RawFixture[]) {
+  if (!fixtures.length) return;
+
+  fs.writeFileSync(OUTPUT_FILE, JSON.stringify(fixtures, null, 2));
+  console.log(`Saved to ${OUTPUT_FILE}`);
+
+  // Upsert into Supabase
+  const { data, error } = await supabase.from('fixtures').upsert(fixtures, { onConflict: 'id' }).select();
+  if (error) {
+    console.error('Error saving to Supabase:', error);
+  } else {
+    console.log(`Saved ${data?.length || 0} fixtures to Supabase`);
   }
 }
 
-async function saveToSupabase(fixtures: RawFixture[]) {
-  const schemaCheck = await checkTableSchema();
-  if (!schemaCheck) return;
-
-  try {
-    const { data, error } = await supabase
-      .from('fixtures')
-      .upsert(fixtures, { onConflict: 'id' })
-      .select();
-    if (error) console.error('❌ Error saving to Supabase:', error);
-    else console.log(`✅ Successfully saved ${data?.length || 0} fixtures to Supabase`);
-  } catch (upsertError) {
-    console.error('❌ Upsert operation failed:', upsertError);
-  }
-}
-
-// ---------- Run scraper ----------
 async function run() {
   try {
-    console.log('Starting fixture scraping...');
     const fixtures = await scrapeFixtures();
-
-    fs.writeFileSync(OUTPUT_FILE, JSON.stringify(fixtures, null, 2));
-    console.log(`✅ Successfully saved ${fixtures.length} fixtures to ${OUTPUT_FILE}`);
-
-    await saveToSupabase(fixtures);
+    await saveFixtures(fixtures);
   } catch (err) {
-    console.error('❌ Error in main process:', err);
+    console.error('Scraper error:', err);
   }
 }
 
