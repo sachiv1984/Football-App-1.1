@@ -91,16 +91,35 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
   // Check for any elements containing "Matchweek", "Week", "Wk", "Round"
   const matchweekElements = $('*:contains("Matchweek"), *:contains("Week"), *:contains("Wk"), *:contains("Round")');
   console.log(`Found ${matchweekElements.length} elements with week-related text`);
-  matchweekElements.slice(0, 5).each((i, el) => {
-    console.log(`  Week element ${i}: "${$(el).text().trim().substring(0, 100)}"`);
+  matchweekElements.slice(0, 10).each((i, el) => {
+    const text = $(el).text().trim();
+    if (text.length < 200) { // Only show reasonably short text
+      console.log(`  Week element ${i}: "${text}"`);
+    }
   });
 
   // Check for thead rows or section dividers that might contain matchweek info
-  const theadRows = table.find('tr.thead');
-  console.log(`Found ${theadRows.length} thead rows`);
+  const theadRows = table.find('tr.thead, tr[class*="thead"]');
+  console.log(`Found ${theadRows.length} thead/header rows`);
   theadRows.each((i, el) => {
     console.log(`  Thead ${i}: "${$(el).text().trim()}"`);
   });
+
+  // Alternative approach: Calculate matchweek based on date
+  // Premier League usually starts mid-August and each matchweek is ~1 week apart
+  function calculateMatchweek(dateStr: string): number {
+    const matchDate = new Date(dateStr);
+    
+    // Season typically starts around August 15th - this is an approximation
+    const seasonStart = new Date('2025-08-15'); // Adjust based on actual season start
+    const daysDiff = Math.floor((matchDate.getTime() - seasonStart.getTime()) / (1000 * 60 * 60 * 24));
+    
+    // Each matchweek is roughly 7 days apart, but can vary
+    const estimatedWeek = Math.max(1, Math.floor(daysDiff / 7) + 1);
+    
+    // Cap at 38 matchweeks (Premier League has 38 matchweeks)
+    return Math.min(38, estimatedWeek);
+  }
 
   let currentMatchWeek: number | undefined = undefined;
 
@@ -108,7 +127,7 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
     const $row = $(row);
     
     // Check if this is a section header row (thead class or similar)
-    if ($row.hasClass('thead')) {
+    if ($row.hasClass('thead') || $row.attr('class')?.includes('thead')) {
       const headerText = $row.text().trim();
       console.log(`Found header row ${index}: "${headerText}"`);
       
@@ -129,16 +148,27 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
     const matchUrl = $row.find('td[data-stat="match_report"] a').attr('href');
     const fullMatchUrl = matchUrl ? `https://fbref.com${matchUrl}` : undefined;
 
-    // Debug log for first few rows - show all columns
-    if (index < 3) {
-      console.log(`Row ${index} columns:`);
-      $row.find('td').each((colIndex, col) => {
-        const $col = $(col);
-        const dataStat = $col.attr('data-stat');
-        const text = $col.text().trim();
-        console.log(`  Column ${colIndex}: data-stat="${dataStat}", text="${text}"`);
-      });
-      console.log(`  Parsed: date="${dateStr}", home="${homeTeam}", away="${awayTeam}", score="${scoreStr}", currentWk=${currentMatchWeek}`);
+    // Look for matchweek in the gameweek column
+    const gameweekStr = $row.find('td[data-stat="gameweek"]').text()?.trim() ?? '';
+    let matchweek: number | undefined = undefined;
+    
+    if (gameweekStr && gameweekStr !== '') {
+      const weekNum = parseInt(gameweekStr, 10);
+      if (!isNaN(weekNum)) {
+        matchweek = weekNum;
+        currentMatchWeek = weekNum; // Update current matchweek
+      }
+    } else if (currentMatchWeek) {
+      // Use the last known matchweek if this row doesn't have one
+      matchweek = currentMatchWeek;
+    } else if (dateStr) {
+      // Fall back to date-based calculation
+      matchweek = calculateMatchweek(dateStr);
+    }
+
+    // Debug log for first few rows
+    if (index < 5) {
+      console.log(`  Row ${index}: date="${dateStr}", gameweek="${gameweekStr}", calculated matchweek=${matchweek}, home="${homeTeam}", away="${awayTeam}"`);
     }
 
     if (!dateStr || !homeTeam || !awayTeam) {
@@ -165,15 +195,15 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
 
     fixtures.push({
       id: `fbref-${homeTeam}-${awayTeam}-${dateStr}`.replace(/\s+/g, '-'),
-      datetime: new Date(dateStr).toISOString(), // Changed from dateTime
-      hometeam: homeTeam,     // Changed from homeTeam
-      awayteam: awayTeam,     // Changed from awayTeam
-      homescore: homeScore,   // Changed from homeScore
-      awayscore: awayScore,   // Changed from awayScore
+      datetime: new Date(dateStr).toISOString(),
+      hometeam: homeTeam,
+      awayteam: awayTeam,
+      homescore: homeScore,
+      awayscore: awayScore,
       status,
-      matchurl: fullMatchUrl, // Changed from matchUrl
+      matchurl: fullMatchUrl,
       venue,
-      matchweek: currentMatchWeek,   // Use the carried-forward matchweek
+      matchweek: matchweek, // Use the calculated or extracted matchweek
     });
   });
 
