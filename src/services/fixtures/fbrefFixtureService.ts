@@ -230,4 +230,5 @@ export class SupabaseFixtureService {
   }
 }
 
-export const supabaseFixtureService = new SupabaseFixtureService();
+export constexport const fbrefFixtureService = new SupabaseFixtureService();
+
