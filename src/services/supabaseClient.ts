@@ -1,51 +1,68 @@
 // src/services/supabaseClient.ts
 import { createClient } from '@supabase/supabase-js';
 
-// Function to get environment variable with fallbacks
-function getEnvVar(name: string): string | undefined {
-  // Try Vite's import.meta.env first (if available)
-  if (typeof import.meta !== 'undefined' && import.meta.env) {
-    return import.meta.env[name];
+// Function to get environment variables with fallbacks for different environments
+function getSupabaseConfig() {
+  let supabaseUrl: string | undefined;
+  let supabaseKey: string | undefined;
+
+  // For Vite development (with VITE_ prefix)
+  if (import.meta.env) {
+    supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
   }
-  
-  // Try process.env for Node.js environments
-  if (typeof process !== 'undefined' && process.env) {
-    return process.env[name];
+
+  // Fallback for deployment environments (Vercel, etc.) where you might have different naming
+  if (!supabaseUrl && typeof process !== 'undefined' && process.env) {
+    supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
   }
-  
-  // Try window for browser environments (if you're setting them globally)
-  if (typeof window !== 'undefined' && (window as any).env) {
-    return (window as any).env[name];
+
+  if (!supabaseKey && typeof process !== 'undefined' && process.env) {
+    supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || 
+                  process.env.SUPABASE_ANON_KEY ||
+                  process.env.VITE_SUPABASE_KEY ||
+                  process.env.SUPABASE_KEY;
   }
-  
-  return undefined;
+
+  // Debug logging (remove in production)
+  console.log('Supabase config check:', {
+    hasUrl: !!supabaseUrl,
+    hasKey: !!supabaseKey,
+    environment: import.meta.env?.MODE || 'unknown',
+    // Show partial URL for debugging (don't show full URL in production)
+    urlPreview: supabaseUrl ? supabaseUrl.substring(0, 20) + '...' : 'missing'
+  });
+
+  return { supabaseUrl, supabaseKey };
 }
 
-const supabaseUrl = getEnvVar('VITE_SUPABASE_URL');
-const supabaseKey = getEnvVar('VITE_SUPABASE_ANON_KEY');
+const { supabaseUrl, supabaseKey } = getSupabaseConfig();
 
-// Debug logging (remove in production)
-console.log('Environment check:', {
-  supabaseUrl: supabaseUrl ? 'Found' : 'Missing',
-  supabaseKey: supabaseKey ? 'Found' : 'Missing',
-  env: typeof import.meta !== 'undefined' ? 'Vite' : typeof process !== 'undefined' ? 'Node' : 'Browser'
-});
+if (!supabaseUrl) {
+  throw new Error(`
+    Missing Supabase URL. Please set one of:
+    - VITE_SUPABASE_URL (for Vite)
+    - SUPABASE_URL (for deployment)
+    
+    Current environment: ${import.meta.env?.MODE || 'unknown'}
+  `);
+}
 
-if (!supabaseUrl || !supabaseKey) {
-  console.error('Missing Supabase environment variables:', {
-    VITE_SUPABASE_URL: supabaseUrl || 'MISSING',
-    VITE_SUPABASE_ANON_KEY: supabaseKey ? 'Present' : 'MISSING'
-  });
-  throw new Error(
-    'Missing Supabase environment variables. Please check your .env file and ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set.'
-  );
+if (!supabaseKey) {
+  throw new Error(`
+    Missing Supabase key. Please set one of:
+    - VITE_SUPABASE_ANON_KEY (for Vite)
+    - SUPABASE_ANON_KEY (for deployment)
+    
+    Current environment: ${import.meta.env?.MODE || 'unknown'}
+  `);
 }
 
 // Validate URL format
 try {
   new URL(supabaseUrl);
 } catch (error) {
-  throw new Error(`Invalid Supabase URL format: ${supabaseUrl}. Must be a valid HTTPS URL like https://your-project.supabase.co`);
+  throw new Error(`Invalid Supabase URL format: ${supabaseUrl}. Must be a valid HTTPS URL.`);
 }
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
