@@ -3,6 +3,8 @@ import { load } from 'cheerio';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createClient } from '@supabase/supabase-js'; // NEW
+import 'dotenv/config'; // NEW
 
 // ---------- ESM fix for __dirname ----------
 const __filename = fileURLToPath(import.meta.url);
@@ -12,6 +14,12 @@ const __dirname = path.dirname(__filename);
 const DATA_DIR = path.join(__dirname, '../data');
 const OUTPUT_FILE = path.join(DATA_DIR, 'fixtures.json');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
+
+// ---------- Supabase client ---------- NEW
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 // ---------- Fixture type ----------
 interface RawFixture {
@@ -43,13 +51,12 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
 
   const fixtures: RawFixture[] = [];
 
-  // FBref often uses tables with ID starting with "sched_"
   const table = $('table[id^="sched_"]');
   if (!table.length) throw new Error('Fixtures table not found');
 
   table.find('tbody > tr').each((_, row) => {
     const $row = $(row);
-    if ($row.hasClass('thead')) return; // skip header rows inside tbody
+    if ($row.hasClass('thead')) return;
 
     const dateStr = $row.find('td[data-stat="date"]').text().trim();
     const homeTeam = normalizeTeamName($row.find('td[data-stat="home_team"]').text());
@@ -88,22 +95,42 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
       status,
       matchUrl,
       venue,
-      matchWeek: undefined, // optional: calculate later
+      matchWeek: undefined,
     });
   });
 
   return fixtures;
 }
 
+// ---------- Push to Supabase ---------- NEW
+async function saveToSupabase(fixtures: RawFixture[]) {
+  // assumes you’ve created a table called "fixtures" in Supabase
+  const { data, error } = await supabase
+    .from('fixtures')
+    .upsert(fixtures, { onConflict: 'id' }); // prevent duplicates
+
+  if (error) {
+    console.error('Error saving to Supabase:', error);
+  } else {
+    console.log(`Saved ${data?.length || 0} fixtures to Supabase`);
+  }
+}
+
 // ---------- Run scraper ----------
 async function run() {
   try {
     const fixtures = await scrapeFixtures();
+
+    // Save to file
     fs.writeFileSync(OUTPUT_FILE, JSON.stringify(fixtures, null, 2));
     console.log(`Scraped ${fixtures.length} fixtures and saved to ${OUTPUT_FILE}`);
+
+    // Save to Supabase
+    await saveToSupabase(fixtures);
   } catch (err) {
     console.error('Error scraping fixtures:', err);
   }
 }
 
 run();
+
