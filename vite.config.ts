@@ -7,7 +7,6 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
-      // Add other aliases you might have been using
     }
   },
   // Environment variables prefix (change from REACT_APP_ to VITE_)
@@ -30,5 +29,15 @@ export default defineConfig({
   // Preview server configuration
   preview: {
     port: 4173,
+  },
+
+  // Support for Node.js modules in the browser (for packages like cheerio)
+  define: {
+    global: 'globalThis',
+  },
+  
+  // Optimize dependencies
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom', 'axios', 'framer-motion']
   }
 })
