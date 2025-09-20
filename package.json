@@ -3,9 +3,7 @@
   "version": "1.0.0",
   "type": "module", 
   "private": true,
-  "homepage": ".",
   "dependencies": {
-    "@craco/craco": "^7.1.0",
     "@heroicons/react": "^2.2.0",
     "@upstash/redis": "^1.35.3",
     "axios": "^1.11.0",
@@ -19,7 +17,6 @@
     "react-dom": "^18.2.0",
     "react-responsive": "^10.0.1",
     "react-router-dom": "^7.8.2",
-    "react-scripts": "5.0.1",
     "swiper": "^11.2.10",
     "tailwindcss": "^3.4.17"
   },
@@ -33,43 +30,29 @@
     "@types/react-dom": "^18.3.7",
     "@typescript-eslint/eslint-plugin": "^8.40.0",
     "@typescript-eslint/parser": "^8.40.0",
+    "@vitejs/plugin-react": "^4.0.0",
     "autoprefixer": "^10.4.21",
-    "gh-pages": "^6.3.0",
+    "eslint": "^8.45.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.3",
     "postcss": "^8.5.6",
     "prettier": "^3.6.2",
     "prettier-plugin-tailwindcss": "^0.6.14",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "vite": "^5.0.0"
   },
   "scripts": {
-    "dev": "vite"
+    "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "eject": "react-scripts eject",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d build",
+    "deploy": "gh-pages -d dist",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,md}\"",
     "type-check": "tsc --noEmit",
     "scrape:fixtures": "ts-node scripts/scrapeFixtures.ts",
     "test-data": "node test-update.js"
-  },
-  "jest": {
-    "moduleNameMapper": {
-      "^@/(.*)$": "<rootDir>/src/$1"
-    }
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
   }
 }
