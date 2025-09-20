@@ -3,6 +3,9 @@ import puppeteer from 'puppeteer';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import 'dotenv/config';
+import { createClient } from '@supabase/supabase-js'; // <-- Add this
+
 
 // ---------- Fix __dirname in ESM ----------
 const __filename = fileURLToPath(import.meta.url);
