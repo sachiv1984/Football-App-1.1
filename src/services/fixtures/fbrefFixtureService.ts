@@ -186,6 +186,20 @@ export class SupabaseFixtureService {
   getCurrentLeague() {
     return { name: 'premierLeague', urls: {} };
   }
+
+async getFeaturedFixtures(limit = 8): Promise<FeaturedFixtureWithImportance[]> {
+  if (!this.isCacheValid()) await this.refreshCache();
+  const now = Date.now();
+
+  const upcoming = this.fixturesCache
+    .filter(f => new Date(f.dateTime).getTime() >= now) // future fixtures
+    .sort((a, b) => {
+      if (b.importance !== a.importance) return b.importance - a.importance; // highest importance first
+      return new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime(); // then earliest date
+    });
+
+  return upcoming.slice(0, limit);
+}
 }
 
 export const fbrefFixtureService = new SupabaseFixtureService();
