@@ -6,22 +6,22 @@ import { fileURLToPath } from 'url';
 import { createClient } from '@supabase/supabase-js';
 import 'dotenv/config';
 
-// ESM fix for __dirname
+// ---------- ESM fix for __dirname ----------
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Output file
+// ---------- Output file ----------
 const DATA_DIR = path.join(__dirname, '../data');
 const OUTPUT_FILE = path.join(DATA_DIR, 'fixtures.json');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
 
-// Supabase client
+// ---------- Supabase client ----------
 const supabase = createClient(
   process.env.SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// Fixture type
+// ---------- Fixture type ----------
 interface RawFixture {
   id: string;
   dateTime: string;
@@ -35,27 +35,27 @@ interface RawFixture {
   matchUrl?: string;
 }
 
-// Helpers
+// ---------- Helpers ----------
 function normalizeTeamName(name: string) {
   return name.trim().replace(/\s+/g, ' ');
 }
 
-// FBref Premier League schedule URL
+// ---------- FBref Premier League schedule URL ----------
 const LEAGUE_FIXTURES_URL =
   'https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures';
 
-// Scraper function
+// ---------- Scraper function ----------
 async function scrapeFixtures(): Promise<RawFixture[]> {
   const res = await axios.get(LEAGUE_FIXTURES_URL);
   const $ = cheerio.load(res.data);
 
   const fixtures: RawFixture[] = [];
 
-  const table = $('table[id^="sched_"]'); // <-- no Element type here
-  if (!table || table.length === 0) throw new Error('Fixtures table not found');
+  const table: cheerio.Cheerio<cheerio.Element> = $('table[id^="sched_"]');
+  if (table.length === 0) throw new Error('Fixtures table not found');
 
   table.find('tbody > tr').each((_, row) => {
-    const $row = $(row);
+    const $row: cheerio.Cheerio<cheerio.Element> = $(row);
     if ($row.hasClass('thead')) return;
 
     const dateStr = $row.find('td[data-stat="date"]').text().trim();
@@ -63,10 +63,8 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
     const awayTeam = normalizeTeamName($row.find('td[data-stat="away_team"]').text());
     const scoreStr = $row.find('td[data-stat="score"]').text().trim();
     const venue = $row.find('td[data-stat="venue"]').text().trim();
-    const matchUrlCell = $row.find('td[data-stat="match_report"] a');
-    const matchUrl = matchUrlCell.length
-      ? `https://fbref.com${matchUrlCell.attr('href')}`
-      : undefined;
+    const matchUrlCell: cheerio.Cheerio<cheerio.Element> = $row.find('td[data-stat="match_report"] a');
+    const matchUrl = matchUrlCell.length > 0 ? `https://fbref.com${matchUrlCell.attr('href')}` : undefined;
 
     if (!dateStr || !homeTeam || !awayTeam) return;
 
@@ -102,17 +100,20 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
   return fixtures;
 }
 
-// Push to Supabase
+// ---------- Push to Supabase ----------
 async function saveToSupabase(fixtures: RawFixture[]) {
   const { data, error } = await supabase
     .from('fixtures')
     .upsert(fixtures, { onConflict: 'id' });
 
-  if (error) console.error('Error saving to Supabase:', error);
-  else console.log(`Saved ${data?.length || 0} fixtures to Supabase`);
+  if (error) {
+    console.error('Error saving to Supabase:', error);
+  } else {
+    console.log(`Saved ${data?.length || 0} fixtures to Supabase`);
+  }
 }
 
-// Run scraper
+// ---------- Run scraper ----------
 async function run() {
   try {
     const fixtures = await scrapeFixtures();
