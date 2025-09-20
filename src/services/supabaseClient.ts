@@ -1,18 +1,19 @@
 // src/services/supabaseClient.ts
 import { createClient } from '@supabase/supabase-js';
 
-// Function to get environment variables with fallbacks for different environments
+// Type-safe environment variable access
 function getSupabaseConfig() {
   let supabaseUrl: string | undefined;
   let supabaseKey: string | undefined;
 
-  // For Vite development (with VITE_ prefix)
-  if (import.meta.env) {
-    supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  // Check if we're in a Vite environment with import.meta.env
+  if (typeof import.meta !== 'undefined' && 'env' in import.meta) {
+    const env = (import.meta as any).env;
+    supabaseUrl = env.VITE_SUPABASE_URL;
+    supabaseKey = env.VITE_SUPABASE_ANON_KEY;
   }
 
-  // Fallback for deployment environments (Vercel, etc.) where you might have different naming
+  // Fallback for Node.js environments (build time, server-side)
   if (!supabaseUrl && typeof process !== 'undefined' && process.env) {
     supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
   }
@@ -24,19 +25,25 @@ function getSupabaseConfig() {
                   process.env.SUPABASE_KEY;
   }
 
+  // Get environment mode safely
+  let mode = 'unknown';
+  if (typeof import.meta !== 'undefined' && 'env' in import.meta) {
+    mode = ((import.meta as any).env.MODE) || 'development';
+  }
+
   // Debug logging (remove in production)
   console.log('Supabase config check:', {
     hasUrl: !!supabaseUrl,
     hasKey: !!supabaseKey,
-    environment: import.meta.env?.MODE || 'unknown',
+    environment: mode,
     // Show partial URL for debugging (don't show full URL in production)
     urlPreview: supabaseUrl ? supabaseUrl.substring(0, 20) + '...' : 'missing'
   });
 
-  return { supabaseUrl, supabaseKey };
+  return { supabaseUrl, supabaseKey, mode };
 }
 
-const { supabaseUrl, supabaseKey } = getSupabaseConfig();
+const { supabaseUrl, supabaseKey, mode } = getSupabaseConfig();
 
 if (!supabaseUrl) {
   throw new Error(`
@@ -44,7 +51,7 @@ if (!supabaseUrl) {
     - VITE_SUPABASE_URL (for Vite)
     - SUPABASE_URL (for deployment)
     
-    Current environment: ${import.meta.env?.MODE || 'unknown'}
+    Current environment: ${mode}
   `);
 }
 
@@ -54,7 +61,7 @@ if (!supabaseKey) {
     - VITE_SUPABASE_ANON_KEY (for Vite)
     - SUPABASE_ANON_KEY (for deployment)
     
-    Current environment: ${import.meta.env?.MODE || 'unknown'}
+    Current environment: ${mode}
   `);
 }
 
