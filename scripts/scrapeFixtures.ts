@@ -34,11 +34,6 @@ interface RawFixture {
   matchurl?: string;
 }
 
-// ---------- Helpers ----------
-function normalizeTeamName(name: string) {
-  return name.trim().replace(/\s+/g, ' ');
-}
-
 // ---------- FBref URL ----------
 const LEAGUE_FIXTURES_URL =
   'https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures';
@@ -56,12 +51,13 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
     await page.goto(LEAGUE_FIXTURES_URL, { waitUntil: 'networkidle2', timeout: 30000 });
     console.log('Page loaded');
 
-    // Wait for the fixtures table to render
     await page.waitForSelector('table[id^="sched_"]', { timeout: 10000 });
 
-    // Extract fixture data
     const fixtures: RawFixture[] = await page.$$eval('table[id^="sched_"] tbody tr', rows => {
-      return rows.map(row => {
+      return Array.from(rows).map(row => {
+        // Inline normalizeTeamName
+        const normalizeTeamName = (name: string) => name.trim().replace(/\s+/g, ' ');
+
         const getText = (selector: string) => {
           const el = row.querySelector(selector);
           return el ? el.textContent?.trim() || '' : '';
@@ -82,7 +78,6 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
 
         let datetimeIso = '';
         if (dateStr) {
-          // Combine date and time if available
           const dt = timeStr ? `${dateStr} ${timeStr}` : dateStr;
           const parsed = new Date(dt);
           if (!isNaN(parsed.getTime())) datetimeIso = parsed.toISOString();
