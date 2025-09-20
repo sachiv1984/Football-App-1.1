@@ -28,4 +28,4 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: node --loader ts-node/esm scripts/dist/scrapeFixtures.js
+        run: node dist/scrapeFixtures.js
