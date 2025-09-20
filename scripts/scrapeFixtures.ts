@@ -72,8 +72,16 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
 
     // Extract date + time
     const dateStr = $row.find('td[data-stat="date"]').text()?.trim() ?? '';
-    const timeStr = $row.find('td[data-stat="start_time"]').text()?.trim() ?? '00:00';
-    const datetime = new Date(`${dateStr} ${timeStr}`).toISOString();
+    const timeStrRaw = $row.find('td[data-stat="start_time"]').text()?.trim() ?? '';
+    // Only allow valid 24-hour format; fallback to 00:00
+    const timeStr = /^\d{1,2}:\d{2}$/.test(timeStrRaw) ? timeStrRaw : '00:00';
+    let datetime: string;
+    if (dateStr) {
+      datetime = new Date(`${dateStr} ${timeStr}`).toISOString();
+    } else {
+      // fallback if date missing
+      datetime = new Date().toISOString();
+    }
 
     // Extract teams
     const homeTeam = normalizeTeamName($row.find('td[data-stat="home_team"]').text() ?? '');
@@ -182,3 +190,4 @@ async function run() {
 }
 
 run();
+
