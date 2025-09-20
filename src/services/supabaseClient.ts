@@ -1,21 +1,26 @@
 // src/services/supabaseClient.ts
 import { createClient } from '@supabase/supabase-js';
 
-// Make sure you have these environment variables set in Vercel or your .env file:
-// VITE_SUPABASE_URL
-// VITE_SUPABASE_ANON_KEY   (for frontend/public access)
-// SUPABASE_SERVICE_ROLE_KEY (for server-side only access)
+// Use process.env for Node.js environments or provide fallbacks
+const supabaseUrl = process.env.VITE_SUPABASE_URL || 
+                   (typeof window !== 'undefined' && (window as any).env?.VITE_SUPABASE_URL) || 
+                   'your-fallback-url';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || 
+                   (typeof window !== 'undefined' && (window as any).env?.VITE_SUPABASE_ANON_KEY) || 
+                   'your-fallback-key';
 
-// For server-side use (API routes, SSR), you can use service role key
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Alternative approach - check if import.meta is available
+// const supabaseUrl = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_URL) || 
+//                    process.env.VITE_SUPABASE_URL || 
+//                    'your-fallback-url';
 
-// Public client (safe for frontend)
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// const supabaseKey = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_ANON_KEY) || 
+//                    process.env.VITE_SUPABASE_ANON_KEY || 
+//                    'your-fallback-key';
 
-// Optional: server-side client using service role key
-export const supabaseAdmin = supabaseServiceRoleKey
-  ? createClient(supabaseUrl, supabaseServiceRoleKey)
-  : supabase;
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error('Missing Supabase environment variables');
+}
+
+export const supabase = createClient(supabaseUrl, supabaseKey);
