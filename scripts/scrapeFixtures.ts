@@ -1,5 +1,5 @@
 import axios from 'axios';
-import cheerio, { load, Cheerio, Element } from 'cheerio';
+import * as cheerio from 'cheerio';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -47,11 +47,11 @@ const LEAGUE_FIXTURES_URL =
 // ---------- Scraper function ----------
 async function scrapeFixtures(): Promise<RawFixture[]> {
   const res = await axios.get(LEAGUE_FIXTURES_URL);
-  const $ = load(res.data);
+  const $ = cheerio.load(res.data);
 
   const fixtures: RawFixture[] = [];
 
-  const table: Cheerio<Element> = $('table[id^="sched_"]');
+  const table: cheerio.Cheerio<cheerio.Element> = $('table[id^="sched_"]') as cheerio.Cheerio<cheerio.Element>;
   if (!table || table.length === 0) throw new Error('Fixtures table not found');
 
   table.find('tbody > tr').each((_, row) => {
