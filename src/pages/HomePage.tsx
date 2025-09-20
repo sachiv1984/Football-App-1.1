@@ -6,47 +6,27 @@ import FixtureCard from '../components/fixtures/FixtureCard/FixtureCard';
 import { designTokens } from '../styles/designTokens';
 import OptimizedFeaturedGamesCarousel from '../components/fixtures/FeaturedGamesCarousel/OptimizedFeaturedGamesCarousel';
 import { ErrorBoundary, CarouselErrorBoundary } from '../components/ErrorBoundary';
-import { useFixtures } from '../hooks/useFixtures';
-import { useGameWeekFixtures } from '../hooks/useGameWeekFixtures';
-import { FeaturedFixtureWithImportance, Game, FeaturedFixture } from '../types';
+import { FeaturedFixtureWithImportance } from '../types';
+import { useFixtures } from '../hooks/useFixtures'; // Your existing hook
+import { useGameWeekFixtures } from '../hooks/useGameWeekFixtures'; // New hook
 
-const mapToFeaturedFixtureWithImportance = (
-  fixture: Game | FeaturedFixture
-): FeaturedFixtureWithImportance => ({
-  ...fixture,
-  importance: fixture.importance ?? 0,        // ✅ default if undefined
-  matchWeek: fixture.matchWeek ?? 1,          // ✅ default if undefined
-  importanceScore: 'importanceScore' in fixture ? fixture.importanceScore : 0,
-  tags: 'tags' in fixture ? fixture.tags : [],
-  isBigMatch: 'isBigMatch' in fixture ? fixture.isBigMatch : false,
-});
-
-
-// -------------------------
-// HomePage Component
-// -------------------------
 const HomePage: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
 
-  // Existing hooks
-  const { featuredFixtures, loading, error } = useFixtures();
-
-  // New game week hook
-  const {
-    fixtures: gameWeekFixtures,
-    isLoading: gameWeekLoading,
-    error: gameWeekError,
-    refetch: refetchGameWeek,
+  // Use your existing hooks
+  const { featuredFixtures, loading, error, refetch } = useFixtures(8);
+  const { 
+    fixtures: gameWeekFixtures, 
+    isLoading: gameWeekLoading, 
+    error: gameWeekError, 
+    refetch: refetchGameWeek 
   } = useGameWeekFixtures();
 
   const handleToggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
-  // Optional: Keep for logging/analytics
-  const handleGameSelect = (fixture: FeaturedFixtureWithImportance | Game) => {
+  const handleGameSelect = (fixture: FeaturedFixtureWithImportance) => {
     console.log('Selected fixture:', fixture.id);
-    if ('importanceScore' in fixture) {
-      console.log('Importance Score:', fixture.importanceScore);
-    }
+    console.log('Importance Score:', fixture.importanceScore);
   };
 
   return (
@@ -82,7 +62,13 @@ const HomePage: React.FC = () => {
               <div className="text-center py-12">
                 <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md mx-auto">
                   <div className="text-red-600 font-medium mb-2">⚠️ Error Loading Fixtures</div>
-                  <p className="text-red-700 text-sm">{error}</p>
+                  <p className="text-red-700 text-sm mb-4">{error}</p>
+                  <button
+                    onClick={refetch}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+                  >
+                    Try Again
+                  </button>
                 </div>
               </div>
             ) : (
@@ -153,7 +139,7 @@ const HomePage: React.FC = () => {
                       {fixtures.map((fixture) => (
                         <FixtureCard
                           key={fixture.id}
-                          fixture={mapToFeaturedFixtureWithImportance(fixture)}
+                          fixture={fixture} // Already correct type from Supabase service
                           size="lg"
                           showVenue={true}
                           enableNavigation={true}
