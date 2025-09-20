@@ -138,48 +138,50 @@ private calculateForm(fixtures: SupabaseFixture[]): Map<string, TeamSeasonStats>
 }
 
   // ---------------- Transform ----------------
-  private transformFixture(f: SupabaseFixture): FeaturedFixtureWithImportance {
-    const homeForm = this.teamStatsCache.get(f.homeTeam)?.recentForm || [];
-    const awayForm = this.teamStatsCache.get(f.awayTeam)?.recentForm || [];
+ // In your transformFixture method, ensure proper type handling:
+private transformFixture(f: SupabaseFixture): FeaturedFixtureWithImportance {
+  const homeForm = this.teamStatsCache.get(f.homeTeam)?.recentForm || [];
+  const awayForm = this.teamStatsCache.get(f.awayTeam)?.recentForm || [];
 
-    // Simple importance: live > scheduled > finished
-    const importance = f.status === 'live' ? 10 : f.status === 'scheduled' ? 5 : 0;
+  // Simple importance: live > scheduled > finished
+  const importance = f.status === 'live' ? 10 : f.status === 'scheduled' ? 5 : 0;
 
-    return {
-      id: f.id,
-      dateTime: f.dateTime,
-      homeTeam: {
-        id: f.homeTeam.replace(/\s+/g, '-').toLowerCase(),
-        name: f.homeTeam,
-        shortName: getDisplayTeamName(f.homeTeam),
-        form: homeForm,
-        logo: getTeamLogo({ name: f.homeTeam }).logoPath,
-        colors: {},
-      },
-      awayTeam: {
-        id: f.awayTeam.replace(/\s+/g, '-').toLowerCase(),
-        name: f.awayTeam,
-        shortName: getDisplayTeamName(f.awayTeam),
-        form: awayForm,
-        logo: getTeamLogo({ name: f.awayTeam }).logoPath,
-        colors: {},
-      },
-      venue: f.venue || 'TBD',
-      competition: {
-        id: 'premierLeague',
-        name: 'Premier League',
-        logo: getCompetitionLogo('Premier League') ?? undefined,
-      },
-      matchWeek: f.matchWeek,
-      importance,
-      importanceScore: importance,
-      tags: [],
-      isBigMatch: importance >= 8,
-      status: f.status,
-      homeScore: f.homeScore ?? 0,
-      awayScore: f.awayScore ?? 0,
-    };
-  }
+  return {
+    id: f.id,
+    dateTime: f.dateTime,
+    homeTeam: {
+      id: f.homeTeam.replace(/\s+/g, '-').toLowerCase(),
+      name: f.homeTeam,
+      shortName: getDisplayTeamName(f.homeTeam),
+      form: homeForm,
+      logo: getTeamLogo({ name: f.homeTeam }).logoPath,
+      colors: {},
+    },
+    awayTeam: {
+      id: f.awayTeam.replace(/\s+/g, '-').toLowerCase(),
+      name: f.awayTeam,
+      shortName: getDisplayTeamName(f.awayTeam),
+      form: awayForm,
+      logo: getTeamLogo({ name: f.awayTeam }).logoPath,
+      colors: {},
+    },
+    venue: f.venue || 'TBD',
+    competition: {
+      id: 'premierLeague',
+      name: 'Premier League',
+      logo: getCompetitionLogo('Premier League') ?? undefined,
+    },
+    matchWeek: f.matchWeek,
+    importance,
+    importanceScore: importance,
+    tags: [],
+    isBigMatch: importance >= 8,
+    status: f.status,
+    // Fix the score assignments with explicit type handling
+    homeScore: typeof f.homeScore === 'number' ? f.homeScore : 0,
+    awayScore: typeof f.awayScore === 'number' ? f.awayScore : 0,
+  };
+}
 
   // ---------------- Refresh Cache ----------------
 private async refreshCache(): Promise<void> {
