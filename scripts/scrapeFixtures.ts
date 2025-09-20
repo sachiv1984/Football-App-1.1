@@ -51,20 +51,20 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
 
   const fixtures: RawFixture[] = [];
 
-  const table = $('table[id^="sched_"]'); // TypeScript infers Cheerio type
-  if (table.length === 0) throw new Error('Fixtures table not found');
+  const table = $('table[id^="sched_"]');
+  if (!table || table.length === 0) throw new Error('Fixtures table not found');
 
   table.find('tbody > tr').each((_, row) => {
     const $row = $(row);
     if ($row.hasClass('thead')) return;
 
-    const dateStr = $row.find('td[data-stat="date"]').text().trim();
-    const homeTeam = normalizeTeamName($row.find('td[data-stat="home_team"]').text());
-    const awayTeam = normalizeTeamName($row.find('td[data-stat="away_team"]').text());
-    const scoreStr = $row.find('td[data-stat="score"]').text().trim();
-    const venue = $row.find('td[data-stat="venue"]').text().trim();
-    const matchUrlCell = $row.find('td[data-stat="match_report"] a');
-    const matchUrl = matchUrlCell.length > 0 ? `https://fbref.com${matchUrlCell.attr('href')}` : undefined;
+    const dateStr = $row.find('td[data-stat="date"]').text()?.trim() ?? '';
+    const homeTeam = normalizeTeamName($row.find('td[data-stat="home_team"]').text() ?? '');
+    const awayTeam = normalizeTeamName($row.find('td[data-stat="away_team"]').text() ?? '');
+    const scoreStr = $row.find('td[data-stat="score"]').text()?.trim() ?? '';
+    const venue = $row.find('td[data-stat="venue"]').text()?.trim() ?? '';
+    const matchUrl = $row.find('td[data-stat="match_report"] a').attr('href');
+    const fullMatchUrl = matchUrl ? `https://fbref.com${matchUrl}` : undefined;
 
     if (!dateStr || !homeTeam || !awayTeam) return;
 
@@ -91,7 +91,7 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
       homeScore,
       awayScore,
       status,
-      matchUrl,
+      matchUrl: fullMatchUrl,
       venue,
       matchWeek: undefined,
     });
@@ -109,7 +109,7 @@ async function saveToSupabase(fixtures: RawFixture[]) {
   if (error) {
     console.error('Error saving to Supabase:', error);
   } else {
-    console.log(`Saved ${data?.length || 0} fixtures to Supabase`);
+    console.log(`Saved ${data?.length ?? 0} fixtures to Supabase`);
   }
 }
 
