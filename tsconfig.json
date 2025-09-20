@@ -1,36 +1,15 @@
 {
   "compilerOptions": {
-    /* Basic Options */
-    "target": "ES6",
-    "lib": ["DOM", "DOM.Iterable", "ESNext"],
-    "allowJs": true,
-    "skipLibCheck": true,
+    "target": "ES2020",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "strict": true,
     "forceConsistentCasingInFileNames": true,
-    "noEmit": true,
-    "isolatedModules": true,
-    "module": "ESNext",
-    "moduleResolution": "Node",
-    "resolveJsonModule": true,
-    "jsx": "react-jsx",
-
-    /* Path Aliases */
-    "baseUrl": "src",
-    "paths": {
-      "@/*": ["*"]
-    },
-
-    /* Optional Strictness Improvements */
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "strictFunctionTypes": true,
-    "strictBindCallApply": true,
-    "noImplicitThis": true,
-    "alwaysStrict": true,
-    "noFallthroughCasesInSwitch": true
+    "skipLibCheck": true,
+    "outDir": "dist"
   },
-  "include": ["src"],
-  "exclude": ["node_modules", "build"]
+  "include": ["scripts/**/*.ts"]
 }
+
