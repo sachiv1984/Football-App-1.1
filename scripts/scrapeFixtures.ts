@@ -2,11 +2,15 @@
 import puppeteer from 'puppeteer';
 import fs from 'fs';
 import path from 'path';
-import { createClient } from '@supabase/supabase-js';
-import 'dotenv/config';
+import { fileURLToPath } from 'url';
+
+// ---------- Fix __dirname in ESM ----------
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const DATA_DIR = path.join(__dirname, '../data');
 const OUTPUT_FILE = path.join(DATA_DIR, 'fixtures.json');
+
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
 
 const supabase = createClient(
