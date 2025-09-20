@@ -170,7 +170,7 @@ private transformFixture(f: SupabaseFixture): FeaturedFixtureWithImportance {
       name: 'Premier League',
       logo: getCompetitionLogo('Premier League') ?? undefined,
     },
-    matchWeek: f.matchWeek,
+    matchWeek: f.matchWeek ?? 1,
     importance,
     importanceScore: importance,
     tags: [],
