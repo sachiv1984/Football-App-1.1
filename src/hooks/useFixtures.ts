@@ -1,65 +1,49 @@
 // src/hooks/useFixtures.ts
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { FeaturedFixtureWithImportance } from '../types';
 import { fbrefFixtureService } from '../services/fixtures/fbrefFixtureService';
 
-export const useFixtures = () => {
+export const useFixtures = (limit = 8) => {
   const [featuredFixtures, setFeaturedFixtures] = useState<FeaturedFixtureWithImportance[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const loadFixtures = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      console.log('Fetching featured fixtures...');
+      const fixtures = await fbrefFixtureService.getFeaturedFixtures(limit);
+      console.log('Fetched Fixtures:', fixtures);
+
+      setFeaturedFixtures(fixtures);
+    } catch (err) {
+      console.error('Error loading featured fixtures:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load fixtures');
+      setFeaturedFixtures([]); // Set empty array on error
+    } finally {
+      setLoading(false);
+    }
+  }, [limit]);
+
   useEffect(() => {
-    const loadFixtures = async () => {
-  try {
-    setLoading(true);
-    setError(null);
-
-    console.log('Fetching featured fixtures...');
-    const fixtures = await fbrefFixtureService.getFeaturedFixtures(8);
-    console.log('Fetched Fixtures:', fixtures);
-
-    setFeaturedFixtures(fixtures);
-  } catch (err) {
-    console.error('Error loading featured fixtures:', err);
-    setError(err instanceof Error ? err.message : 'Failed to load fixtures');
-    setFeaturedFixtures([]); // Set empty array on error
-  } finally {
-    setLoading(false);
-  }
-};
-
-
     loadFixtures();
-  }, []);
+  }, [loadFixtures]);
 
-  const refetch = async () => {
+  const refetch = useCallback(async () => {
     fbrefFixtureService.clearCache(); // Clear cache before refetching
-    const loadFixtures = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const fixtures = await fbrefFixtureService.getFeaturedFixtures(8);
-        setFeaturedFixtures(fixtures);
-      } catch (err) {
-        console.error('Error refetching featured fixtures:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load fixtures');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     await loadFixtures();
-  };
+  }, [loadFixtures]);
 
-  // Additional methods for the new service
-  const switchLeague = async (league: 'premierLeague' | 'laLiga' | 'bundesliga' | 'serieA' | 'ligue1') => {
+  // Additional methods for the service
+  const switchLeague = useCallback(async (league: 'premierLeague' | 'laLiga' | 'bundesliga' | 'serieA' | 'ligue1') => {
     try {
       setLoading(true);
       setError(null);
       
       fbrefFixtureService.setLeague(league);
-      const fixtures = await fbrefFixtureService.getFeaturedFixtures(8);
+      const fixtures = await fbrefFixtureService.getFeaturedFixtures(limit);
       setFeaturedFixtures(fixtures);
     } catch (err) {
       console.error('Error switching league:', err);
@@ -67,11 +51,11 @@ export const useFixtures = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [limit]);
 
-  const getCurrentLeague = () => {
+  const getCurrentLeague = useCallback(() => {
     return fbrefFixtureService.getCurrentLeague();
-  };
+  }, []);
 
   return {
     featuredFixtures,
