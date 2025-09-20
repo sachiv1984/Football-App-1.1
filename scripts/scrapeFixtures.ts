@@ -51,11 +51,11 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
 
   const fixtures: RawFixture[] = [];
 
-  const table: cheerio.Cheerio<cheerio.Element> = $('table[id^="sched_"]');
+  const table = $('table[id^="sched_"]'); // TypeScript infers Cheerio type
   if (table.length === 0) throw new Error('Fixtures table not found');
 
   table.find('tbody > tr').each((_, row) => {
-    const $row: cheerio.Cheerio<cheerio.Element> = $(row);
+    const $row = $(row);
     if ($row.hasClass('thead')) return;
 
     const dateStr = $row.find('td[data-stat="date"]').text().trim();
@@ -63,7 +63,7 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
     const awayTeam = normalizeTeamName($row.find('td[data-stat="away_team"]').text());
     const scoreStr = $row.find('td[data-stat="score"]').text().trim();
     const venue = $row.find('td[data-stat="venue"]').text().trim();
-    const matchUrlCell: cheerio.Cheerio<cheerio.Element> = $row.find('td[data-stat="match_report"] a');
+    const matchUrlCell = $row.find('td[data-stat="match_report"] a');
     const matchUrl = matchUrlCell.length > 0 ? `https://fbref.com${matchUrlCell.attr('href')}` : undefined;
 
     if (!dateStr || !homeTeam || !awayTeam) return;
