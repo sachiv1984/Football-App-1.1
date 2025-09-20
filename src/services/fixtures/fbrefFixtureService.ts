@@ -138,7 +138,6 @@ private calculateForm(fixtures: SupabaseFixture[]): Map<string, TeamSeasonStats>
 }
 
   // ---------------- Transform ----------------
- // In your transformFixture method, ensure proper type handling:
 private transformFixture(f: SupabaseFixture): FeaturedFixtureWithImportance {
   const homeForm = this.teamStatsCache.get(f.homeTeam)?.recentForm || [];
   const awayForm = this.teamStatsCache.get(f.awayTeam)?.recentForm || [];
@@ -177,9 +176,8 @@ private transformFixture(f: SupabaseFixture): FeaturedFixtureWithImportance {
     tags: [],
     isBigMatch: importance >= 8,
     status: f.status,
-    // Fix the score assignments with explicit type handling
-    homeScore: typeof f.homeScore === 'number' ? f.homeScore : 0,
-    awayScore: typeof f.awayScore === 'number' ? f.awayScore : 0,
+    homeScore: f.homeScore ?? 0,  // Fix: Use nullish coalescing
+    awayScore: f.awayScore ?? 0,  // Fix: Use nullish coalescing
   };
 }
 
