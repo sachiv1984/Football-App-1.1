@@ -22,7 +22,7 @@ jobs:
         run: npm ci
 
       - name: Compile scraper
-        run: npx tsc scripts/scrapeFixtures.ts --outDir scripts/dist
+        run: npx tsc scripts/scrapeFixtures.ts tsconfig.scripts.json
 
       - name: Run compiled scraper
         env:
