@@ -21,18 +21,18 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// ---------- Fixture type ----------
+// ---------- Fixture types ----------
 interface RawFixture {
   id: string;
-  dateTime: string;
-  homeTeam: string;
-  awayTeam: string;
-  homeScore?: number;
-  awayScore?: number;
+  datetime: string;  // Changed from dateTime to match DB
+  hometeam: string;  // Changed from homeTeam to match DB
+  awayteam: string;  // Changed from awayTeam to match DB
+  homescore?: number; // Changed from homeScore to match DB
+  awayscore?: number; // Changed from awayScore to match DB
   status: 'scheduled' | 'live' | 'finished' | 'postponed' | 'upcoming';
   venue?: string;
-  matchWeek?: number;
-  matchUrl?: string;
+  matchweek?: number; // Changed from matchWeek to match DB
+  matchurl?: string;  // Changed from matchUrl to match DB
 }
 
 // ---------- Helpers ----------
@@ -129,15 +129,15 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
 
     fixtures.push({
       id: `fbref-${homeTeam}-${awayTeam}-${dateStr}`.replace(/\s+/g, '-'),
-      dateTime: new Date(dateStr).toISOString(),
-      homeTeam,
-      awayTeam,
-      homeScore,
-      awayScore,
+      datetime: new Date(dateStr).toISOString(), // Changed from dateTime
+      hometeam: homeTeam,     // Changed from homeTeam
+      awayteam: awayTeam,     // Changed from awayTeam
+      homescore: homeScore,   // Changed from homeScore
+      awayscore: awayScore,   // Changed from awayScore
       status,
-      matchUrl: fullMatchUrl,
+      matchurl: fullMatchUrl, // Changed from matchUrl
       venue,
-      matchWeek: undefined,
+      matchweek: undefined,   // Changed from matchWeek
     });
   });
 
@@ -145,9 +145,38 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
   return fixtures;
 }
 
+// ---------- Check table schema ----------
+async function checkTableSchema() {
+  try {
+    // Try to get table info by selecting with limit 0
+    const { data, error } = await supabase
+      .from('fixtures')
+      .select('*')
+      .limit(0);
+    
+    if (error) {
+      console.error('❌ Error checking table schema:', error);
+      return null;
+    }
+    
+    console.log('✅ Table exists and is accessible');
+    return true;
+  } catch (err) {
+    console.error('❌ Failed to check table schema:', err);
+    return null;
+  }
+}
+
 // ---------- Push to Supabase ----------
 async function saveToSupabase(fixtures: RawFixture[]) {
   console.log(`Preparing to upsert ${fixtures.length} fixtures to Supabase...`);
+  
+  // Check table schema first
+  const schemaCheck = await checkTableSchema();
+  if (!schemaCheck) {
+    console.error('❌ Cannot proceed - table schema check failed');
+    return;
+  }
   
   // Check Supabase connection
   try {
@@ -167,10 +196,28 @@ async function saveToSupabase(fixtures: RawFixture[]) {
 
   // Perform the upsert
   try {
+    // Try with just the first fixture to test
+    const testFixture = fixtures.slice(0, 1);
+    console.log('Testing with single fixture:', JSON.stringify(testFixture[0], null, 2));
+    
+    const { data: testData, error: testError } = await supabase
+      .from('fixtures')
+      .upsert(testFixture, { onConflict: 'id' })
+      .select();
+
+    if (testError) {
+      console.error('❌ Error with single fixture test:', testError);
+      console.error('This suggests a column mismatch. Please check your Supabase table schema.');
+      return;
+    }
+    
+    console.log('✅ Single fixture test successful, proceeding with all fixtures...');
+
+    // If test passed, do the full upsert
     const { data, error } = await supabase
       .from('fixtures')
       .upsert(fixtures, { onConflict: 'id' })
-      .select(); // Add select() to return the upserted data
+      .select();
 
     if (error) {
       console.error('❌ Error saving to Supabase:', error);
