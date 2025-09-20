@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
-    /* Basic Options */
-    "target": "ES6",
+    /* Basic Options - Updated for Vite */
+    "target": "ES2020",
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "allowJs": true,
     "skipLibCheck": true,
@@ -12,7 +12,7 @@
     "noEmit": true,
     "isolatedModules": true,
     "module": "ESNext",
-    "moduleResolution": "Node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "jsx": "react-jsx",
 
@@ -29,8 +29,16 @@
     "strictBindCallApply": true,
     "noImplicitThis": true,
     "alwaysStrict": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+
+    /* Vite-specific types */
+    "types": ["vite/client"]
   },
-  "include": ["src"],
-  "exclude": ["node_modules", "build"]
+  "include": [
+    "src",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/vite-env.d.ts"
+  ],
+  "exclude": ["node_modules", "build", "dist"]
 }
