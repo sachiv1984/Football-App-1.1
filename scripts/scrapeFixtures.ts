@@ -85,28 +85,40 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
   const rows = table.find('tbody > tr');
   console.log(`Found ${rows.length} rows in fixtures table`);
 
-  // Debug: Check what columns are available in the first few rows
-  console.log('Debugging available columns...');
-  table.find('tbody > tr').slice(0, 3).each((debugIndex, debugRow) => {
-    const $debugRow = $(debugRow);
-    if ($debugRow.hasClass('thead')) return;
-    
-    console.log(`Row ${debugIndex} columns:`);
-    $debugRow.find('td').each((colIndex, cell) => {
-      const $cell = $(cell);
-      const dataStat = $cell.attr('data-stat');
-      const text = $cell.text()?.trim();
-      console.log(`  Column ${colIndex}: data-stat="${dataStat}", text="${text}"`);
-    });
+  // Look for matchweek info in section headers or other elements
+  console.log('Looking for matchweek indicators...');
+  
+  // Check for any elements containing "Matchweek", "Week", "Wk", "Round"
+  const matchweekElements = $('*:contains("Matchweek"), *:contains("Week"), *:contains("Wk"), *:contains("Round")');
+  console.log(`Found ${matchweekElements.length} elements with week-related text`);
+  matchweekElements.slice(0, 5).each((i, el) => {
+    console.log(`  Week element ${i}: "${$(el).text().trim().substring(0, 100)}"`);
   });
 
-  let currentMatchWeek: number | undefined = undefined; // Track current matchweek
+  // Check for thead rows or section dividers that might contain matchweek info
+  const theadRows = table.find('tr.thead');
+  console.log(`Found ${theadRows.length} thead rows`);
+  theadRows.each((i, el) => {
+    console.log(`  Thead ${i}: "${$(el).text().trim()}"`);
+  });
+
+  let currentMatchWeek: number | undefined = undefined;
 
   table.find('tbody > tr').each((index, row) => {
     const $row = $(row);
+    
+    // Check if this is a section header row (thead class or similar)
     if ($row.hasClass('thead')) {
-      console.log(`Skipping header row ${index}`);
-      return;
+      const headerText = $row.text().trim();
+      console.log(`Found header row ${index}: "${headerText}"`);
+      
+      // Try to extract matchweek from header text
+      const wkMatch = headerText.match(/(?:Matchweek|Week|Wk|Round)\s*(\d+)/i);
+      if (wkMatch) {
+        currentMatchWeek = parseInt(wkMatch[1], 10);
+        console.log(`✅ Extracted matchweek ${currentMatchWeek} from header: "${headerText}"`);
+      }
+      return; // Skip processing this row as data
     }
 
     const dateStr = $row.find('td[data-stat="date"]').text()?.trim() ?? '';
@@ -116,35 +128,21 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
     const venue = $row.find('td[data-stat="venue"]').text()?.trim() ?? '';
     const matchUrl = $row.find('td[data-stat="match_report"] a').attr('href');
     const fullMatchUrl = matchUrl ? `https://fbref.com${matchUrl}` : undefined;
-    
-    // Try multiple possible column names for matchweek
-    let wkStr = '';
-    const possibleWkColumns = ['round', 'matchweek', 'gameweek', 'wk'];
-    for (const colName of possibleWkColumns) {
-      const tempWkStr = $row.find(`td[data-stat="${colName}"]`).text()?.trim() ?? '';
-      if (tempWkStr && tempWkStr !== '') {
-        wkStr = tempWkStr;
-        if (index < 5) console.log(`Found matchweek data in column "${colName}": "${wkStr}"`);
-        break;
-      }
-    }
-    
-    if (wkStr && wkStr !== '') {
-      // Extract number from strings like "1", "2", "Matchweek 1", "MD 1", etc.
-      const wkMatch = wkStr.match(/(\d+)/);
-      if (wkMatch) {
-        currentMatchWeek = parseInt(wkMatch[1], 10);
-        console.log(`Found new matchweek: ${currentMatchWeek} (from "${wkStr}")`);
-      }
-    }
 
-    // Debug log for first few rows
-    if (index < 5) {
-      console.log(`Row ${index}: date="${dateStr}", home="${homeTeam}", away="${awayTeam}", score="${scoreStr}", wk="${wkStr}", currentWk=${currentMatchWeek}`);
+    // Debug log for first few rows - show all columns
+    if (index < 3) {
+      console.log(`Row ${index} columns:`);
+      $row.find('td').each((colIndex, col) => {
+        const $col = $(col);
+        const dataStat = $col.attr('data-stat');
+        const text = $col.text().trim();
+        console.log(`  Column ${colIndex}: data-stat="${dataStat}", text="${text}"`);
+      });
+      console.log(`  Parsed: date="${dateStr}", home="${homeTeam}", away="${awayTeam}", score="${scoreStr}", currentWk=${currentMatchWeek}`);
     }
 
     if (!dateStr || !homeTeam || !awayTeam) {
-      if (index < 10) { // Only log first 10 skipped rows to avoid spam
+      if (index < 10) {
         console.log(`Skipping row ${index}: missing data (date="${dateStr}", home="${homeTeam}", away="${awayTeam}")`);
       }
       return;
