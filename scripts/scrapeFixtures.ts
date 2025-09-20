@@ -76,12 +76,13 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
         const matchweekStr = getText('td[data-stat="gameweek"]');
         const matchurl = getLink('td[data-stat="match_report"] a');
 
-        let datetimeIso = '';
-        if (dateStr) {
-          const dt = timeStr ? `${dateStr} ${timeStr}` : dateStr;
-          const parsed = new Date(dt);
-          if (!isNaN(parsed.getTime())) datetimeIso = parsed.toISOString();
-        }
+        let datetimeIso: string | null = null;
+if (dateStr) {
+  const dt = timeStr ? `${dateStr} ${timeStr}` : dateStr;
+  const parsed = new Date(dt);
+  if (!isNaN(parsed.getTime())) datetimeIso = parsed.toISOString();
+}
+
 
         let homeScore: number | undefined;
         let awayScore: number | undefined;
