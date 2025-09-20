@@ -78,7 +78,7 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
         const scoreStr = getText('td[data-stat="score"]');
         const venue = getText('td[data-stat="venue"]');
         const matchweekStr = getText('td[data-stat="gameweek"]');
-        const matchUrl = getLink('td[data-stat="match_report"] a');
+        const matchurl = getLink('td[data-stat="match_report"] a');
 
         let datetimeIso = '';
         if (dateStr) {
