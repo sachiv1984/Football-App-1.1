@@ -48,19 +48,13 @@ const LEAGUE_FIXTURES_URL =
 async function scrapeFixtures(): Promise<RawFixture[]> {
   console.log('Fetching fixtures from FBref...');
   
-  let res;
-  try {
-    res = await axios.get(LEAGUE_FIXTURES_URL, {
-      timeout: 10000,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-      }
-    });
-    console.log(`✅ Successfully fetched page (${res.data.length} bytes)`);
-  } catch (httpError) {
-    console.error('❌ Failed to fetch fixtures page:', httpError);
-    throw httpError;
-  }
+  const res = await axios.get(LEAGUE_FIXTURES_URL, {
+    timeout: 10000,
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    }
+  });
+  console.log(`✅ Successfully fetched page (${res.data.length} bytes)`);
 
   const $ = cheerio.load(res.data);
   const fixtures: RawFixture[] = [];
@@ -70,57 +64,26 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
     throw new Error('Fixtures table not found');
   }
 
-  let currentMatchWeek: number | undefined = undefined;
-
-  function calculateMatchweek(dateStr: string): number {
-    const matchDate = new Date(dateStr);
-    const seasonStart = new Date('2025-08-15'); // adjust season start as needed
-    const daysDiff = Math.floor((matchDate.getTime() - seasonStart.getTime()) / (1000 * 60 * 60 * 24));
-    const estimatedWeek = Math.max(1, Math.floor(daysDiff / 7) + 1);
-    return Math.min(38, estimatedWeek);
-  }
-
   table.find('tbody > tr').each((index, row) => {
     const $row = $(row);
 
     // Skip header rows
-    if ($row.hasClass('thead') || $row.attr('class')?.includes('thead')) {
-      const headerText = $row.text().trim();
-      const wkMatch = headerText.match(/(?:Matchweek|Week|Wk|Round)\s*(\d+)/i);
-      if (wkMatch) {
-        currentMatchWeek = parseInt(wkMatch[1], 10);
-      }
-      return;
-    }
+    if ($row.hasClass('thead') || $row.attr('class')?.includes('thead')) return;
 
+    // Extract date + time
     const dateStr = $row.find('td[data-stat="date"]').text()?.trim() ?? '';
-    const timeStr = $row.find('td[data-stat="start_time"]').text()?.trim() ?? '00:00'; // fallback
-    const homeTeam = normalizeTeamName($row.find('td[data-stat="home_team"]').text() ?? '');
-    const awayTeam = normalizeTeamName($row.find('td[data-stat="away_team"]').text() ?? '');
-    const scoreStr = $row.find('td[data-stat="score"]').text()?.trim() ?? '';
-    const venue = $row.find('td[data-stat="venue"]').text()?.trim() ?? '';
-    const matchUrl = $row.find('td[data-stat="match_report"] a').attr('href');
-    const fullMatchUrl = matchUrl ? `https://fbref.com${matchUrl}` : undefined;
-
-    let matchweek: number | undefined;
-    const gameweekStr = $row.find('td[data-stat="gameweek"]').text()?.trim() ?? '';
-    if (gameweekStr && gameweekStr !== '') {
-      const weekNum = parseInt(gameweekStr, 10);
-      if (!isNaN(weekNum)) {
-        matchweek = weekNum;
-        currentMatchWeek = weekNum;
-      }
-    } else if (currentMatchWeek) {
-      matchweek = currentMatchWeek;
-    } else if (dateStr) {
-      matchweek = calculateMatchweek(dateStr);
-    }
-
-    if (!dateStr || !homeTeam || !awayTeam) return;
-
-    // Combine date + time for ISO datetime
+    const timeStr = $row.find('td[data-stat="start_time"]').text()?.trim() ?? '00:00';
     const datetime = new Date(`${dateStr} ${timeStr}`).toISOString();
 
+    // Extract teams
+    const homeTeam = normalizeTeamName($row.find('td[data-stat="home_team"]').text() ?? '');
+    const awayTeam = normalizeTeamName($row.find('td[data-stat="away_team"]').text() ?? '');
+
+    // Skip incomplete rows
+    if (!dateStr || !homeTeam || !awayTeam) return;
+
+    // Extract score
+    const scoreStr = $row.find('td[data-stat="score"]').text()?.trim() ?? '';
     let homeScore: number | undefined;
     let awayScore: number | undefined;
     let status: RawFixture['status'] = 'scheduled';
@@ -136,6 +99,22 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
       status = 'postponed';
     }
 
+    // Extract venue
+    const venue = $row.find('td[data-stat="venue"]').text()?.trim() ?? '';
+
+    // Extract match URL
+    const matchUrl = $row.find('td[data-stat="match_report"] a').attr('href');
+    const fullMatchUrl = matchUrl ? `https://fbref.com${matchUrl}` : undefined;
+
+    // Extract matchweek directly from FBref
+    const gameweekStr = $row.find('td[data-stat="gameweek"]').text()?.trim();
+    let matchweek: number | undefined;
+    if (gameweekStr) {
+      const weekNum = parseInt(gameweekStr, 10);
+      if (!isNaN(weekNum)) matchweek = weekNum;
+    }
+
+    // Push fixture
     fixtures.push({
       id: `fbref-${homeTeam}-${awayTeam}-${dateStr}`.replace(/\s+/g, '-'),
       datetime,
