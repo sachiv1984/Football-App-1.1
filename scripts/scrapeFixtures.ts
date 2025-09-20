@@ -23,7 +23,7 @@ const supabase = createClient(
 // ---------- Fixture type ----------
 interface RawFixture {
   id: string;
-  datetime: string;
+  datetime: string | null;
   hometeam: string;
   awayteam: string;
   homescore?: number;
@@ -82,8 +82,7 @@ if (dateStr) {
   const parsed = new Date(dt);
   if (!isNaN(parsed.getTime())) datetimeIso = parsed.toISOString();
 }
-
-
+        
         let homeScore: number | undefined;
         let awayScore: number | undefined;
         let status: RawFixture['status'] = 'scheduled';
