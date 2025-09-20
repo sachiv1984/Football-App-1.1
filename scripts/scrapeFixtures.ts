@@ -85,6 +85,21 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
   const rows = table.find('tbody > tr');
   console.log(`Found ${rows.length} rows in fixtures table`);
 
+  // Debug: Check what columns are available in the first few rows
+  console.log('Debugging available columns...');
+  table.find('tbody > tr').slice(0, 3).each((debugIndex, debugRow) => {
+    const $debugRow = $(debugRow);
+    if ($debugRow.hasClass('thead')) return;
+    
+    console.log(`Row ${debugIndex} columns:`);
+    $debugRow.find('td').each((colIndex, cell) => {
+      const $cell = $(cell);
+      const dataStat = $cell.attr('data-stat');
+      const text = $cell.text()?.trim();
+      console.log(`  Column ${colIndex}: data-stat="${dataStat}", text="${text}"`);
+    });
+  });
+
   let currentMatchWeek: number | undefined = undefined; // Track current matchweek
 
   table.find('tbody > tr').each((index, row) => {
@@ -102,19 +117,29 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
     const matchUrl = $row.find('td[data-stat="match_report"] a').attr('href');
     const fullMatchUrl = matchUrl ? `https://fbref.com${matchUrl}` : undefined;
     
-    // Check for matchweek - it might be in a "Wk" column
-    const wkStr = $row.find('td[data-stat="round"]').text()?.trim() ?? '';
+    // Try multiple possible column names for matchweek
+    let wkStr = '';
+    const possibleWkColumns = ['round', 'matchweek', 'gameweek', 'wk'];
+    for (const colName of possibleWkColumns) {
+      const tempWkStr = $row.find(`td[data-stat="${colName}"]`).text()?.trim() ?? '';
+      if (tempWkStr && tempWkStr !== '') {
+        wkStr = tempWkStr;
+        if (index < 5) console.log(`Found matchweek data in column "${colName}": "${wkStr}"`);
+        break;
+      }
+    }
+    
     if (wkStr && wkStr !== '') {
-      // Extract number from strings like "1", "2", "Matchweek 1", etc.
+      // Extract number from strings like "1", "2", "Matchweek 1", "MD 1", etc.
       const wkMatch = wkStr.match(/(\d+)/);
       if (wkMatch) {
         currentMatchWeek = parseInt(wkMatch[1], 10);
-        console.log(`Found new matchweek: ${currentMatchWeek}`);
+        console.log(`Found new matchweek: ${currentMatchWeek} (from "${wkStr}")`);
       }
     }
 
     // Debug log for first few rows
-    if (index < 3) {
+    if (index < 5) {
       console.log(`Row ${index}: date="${dateStr}", home="${homeTeam}", away="${awayTeam}", score="${scoreStr}", wk="${wkStr}", currentWk=${currentMatchWeek}`);
     }
 
