@@ -61,11 +61,24 @@ const AVAILABLE_STATS = [
   { key: 'misc', name: 'Miscellaneous', tableName: 'team_misc_stats' }
 ];
 
-// ------------------ TEST CONFIGURATION ------------------ //
-// Can scrape a single team or all teams
-const SCRAPE_MODE = 'single'; // 'single' or 'all'
-const SINGLE_TEAM_INDEX = 2; // Only used if SCRAPE_MODE = 'single'
-const TEST_STAT_INDEX = 0;   // Which stat to scrape for all teams
+// ------------------ Test / Scraper Configuration ------------------
+
+// Define allowed scrape modes
+const SCRAPE_MODES = {
+  SINGLE: 'single',
+  ALL: 'all',
+} as const;
+
+// Type for the mode
+type ScrapeMode = typeof SCRAPE_MODES[keyof typeof SCRAPE_MODES];
+
+// Pick current mode
+const SCRAPE_MODE: ScrapeMode = SCRAPE_MODES.SINGLE; // or SCRAPE_MODES.ALL
+
+// Team/stat selection for single mode
+const SINGLE_TEAM_INDEX = 2; // Arsenal
+const TEST_STAT_INDEX = 0;   // Shooting
+
 
 // ------------------ Rate Limiting Configuration ------------------ //
 const RATE_LIMIT = {
@@ -255,19 +268,19 @@ class ScraperManager {
   private teamsToScrape: typeof AVAILABLE_TEAMS;
   private statToScrape: typeof AVAILABLE_STATS[0];
 
-  constructor() {
-    this.scraper = new DebugScraper();
-    this.statToScrape = AVAILABLE_STATS[TEST_STAT_INDEX];
+constructor() {
+  this.scraper = new DebugScraper();
+  this.statToScrape = AVAILABLE_STATS[TEST_STAT_INDEX];
 
-    if (SCRAPE_MODE === SCRAPE_MODES.ALL) {
-      this.teamsToScrape = AVAILABLE_TEAMS;
-    } else {
-      if (SINGLE_TEAM_INDEX < 0 || SINGLE_TEAM_INDEX >= AVAILABLE_TEAMS.length) {
-        throw new Error(`SINGLE_TEAM_INDEX ${SINGLE_TEAM_INDEX} is out of bounds`);
-      }
-      this.teamsToScrape = [AVAILABLE_TEAMS[SINGLE_TEAM_INDEX]];
+  if (SCRAPE_MODE === SCRAPE_MODES.ALL) {
+    this.teamsToScrape = AVAILABLE_TEAMS;
+  } else {
+    if (SINGLE_TEAM_INDEX < 0 || SINGLE_TEAM_INDEX >= AVAILABLE_TEAMS.length) {
+      throw new Error(`SINGLE_TEAM_INDEX ${SINGLE_TEAM_INDEX} is out of bounds`);
     }
+    this.teamsToScrape = [AVAILABLE_TEAMS[SINGLE_TEAM_INDEX]];
   }
+}
 
   async run() {
     console.log(`🔄 Starting scraping mode: ${SCRAPE_MODE}`);
