@@ -209,8 +209,8 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
         const normalizeTeamName = (name: string) =>
           name.trim().replace(/\s+/g, ' ');
 
-        const results = rows
-          .map((row, index) => {
+        const results = (rows as HTMLTableRowElement[])
+          .map((row: HTMLTableRowElement, index: number) => {
             // Check if this row is a matchweek header row
             const matchweekHeader = row.querySelector('th[data-stat="gameweek"]');
             if (matchweekHeader) {
@@ -264,7 +264,7 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
               const cells = row.querySelectorAll('td');
               if (debug && index < 5 && !row.querySelector('th[data-stat="gameweek"]')) {
                 console.log(`  Found ${cells.length} cells`);
-                cells.forEach((cell, i) => {
+                Array.from(cells).forEach((cell: Element, i: number) => {
                   console.log(`    Cell ${i}: "${cell.textContent?.trim()}" [data-stat="${cell.getAttribute('data-stat')}"]`);
                 });
               }
@@ -272,7 +272,7 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
 
             // Debug matchweek parsing
             if (debug && index < 5 && !row.querySelector('th[data-stat="gameweek"]')) {
-              console.log(`  Current matchweek: ${matchweek}`);
+              console.log(`  Current matchweek: ${currentMatchweek}`);
             }
 
             if (!homeTeam || !awayTeam) {
@@ -318,7 +318,7 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
               status,
               matchurl,
               venue,
-              matchweek,
+              matchweek: matchweekValue,
             };
 
             if (debug && index < 5 && !row.querySelector('th[data-stat="gameweek"]')) {
@@ -327,7 +327,7 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
 
             return fixture;
           })
-          .filter(f => f !== null) as RawFixture[];
+          .filter((f: any) => f !== null) as RawFixture[];
 
         console.log(`Filtered results: ${results.length} fixtures`);
         return results;
