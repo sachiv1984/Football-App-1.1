@@ -36,7 +36,7 @@ const AVAILABLE_TEAMS = [
   { id: 'manchester-united', name: 'Manchester United', fbrefId: '19538871' },
   { id: 'newcastle-united', name: 'Newcastle United', fbrefId: 'b2b47a98' },
   { id: 'nottingham-forest', name: "Nottingham Forest", fbrefId: 'e4a775cb' },
-  { id: 'sunderland', name: 'Sunderland', fbrefId: '4a2215db' },
+  { id: 'sunderland', name: 'Sunderland', fbrefId: '8ef52968' },
   { id: 'tottenham', name: 'Tottenham Hotspur', fbrefId: '361ca564' },
   { id: 'west-ham', name: 'West Ham United', fbrefId: '7c21e445' },
   { id: 'wolves', name: 'Wolverhampton Wanderers', fbrefId: '8cec06e1' }
