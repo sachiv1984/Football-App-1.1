@@ -29,3 +29,10 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: node dist/debugTeamStats.js
+
+      - name: Upload debug data
+        uses: actions/upload-artifact@v3
+        with:
+          name: fbref-debug-data
+          path: data/*
+
