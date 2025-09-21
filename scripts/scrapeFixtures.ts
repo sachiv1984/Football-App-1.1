@@ -86,8 +86,8 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
       console.log('No schedule tables found, trying alternative selectors...');
       
       // Check for any table that might contain fixtures
-      const tableIds = await page.$$eval('table', tables => 
-        tables.map(t => t.id).filter(id => id)
+      const tableIds = await page.$$eval('table', (tables: Element[]) => 
+        tables.map((t: Element) => (t as HTMLElement).id).filter((id: string) => id)
       );
       console.log('All table IDs found:', tableIds);
 
@@ -131,12 +131,12 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
     }
 
     // Log the HTML structure for debugging
-    const tableHTML = await page.$eval(tableSelector, el => el.outerHTML.substring(0, 1000));
+    const tableHTML = await page.$eval(tableSelector, (el: Element) => el.outerHTML.substring(0, 1000));
     console.log('Table HTML preview:', tableHTML);
 
     // Get table headers to understand the structure
-    const headers = await page.$eval(`${tableSelector} thead th`, ths => 
-      ths.map(th => ({
+    const headers = await page.$$eval(`${tableSelector} thead th`, (ths: Element[]) => 
+      ths.map((th: Element) => ({
         text: th.textContent?.trim() || '',
         dataStat: th.getAttribute('data-stat') || '',
         index: Array.from(th.parentElement?.children || []).indexOf(th)
@@ -145,7 +145,7 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
     console.log('Table headers:', headers);
 
     // Find matchweek column index
-    const matchweekHeader = headers.find(h => 
+    const matchweekHeader = headers.find((h: any) => 
       h.text.toLowerCase().includes('week') || 
       h.text.toLowerCase().includes('round') ||
       h.dataStat.includes('week') ||
@@ -154,10 +154,16 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
     console.log('Matchweek header found:', matchweekHeader);
 
     // Extract fixture data with enhanced debugging
-    const fixtures: RawFixture[] = await page.$eval(
-      `${tableSelector} tbody tr`,
-      (rows, debug, matchweekHeaderInfo) => {
+    const fixtures: RawFixture[] = await page.evaluate(
+      (tableSelector: string, debug: boolean) => {
+        const table = document.querySelector(tableSelector);
+        if (!table) return [];
+        
+        const rows = Array.from(table.querySelectorAll('tbody tr'));
         console.log(`Processing ${rows.length} rows`);
+        
+        // Track current matchweek as we iterate through rows
+        let currentMatchweek: number | undefined;
         
         const parseDateTime = (dateStr: string, timeStr: string): string | null => {
           try {
@@ -209,8 +215,8 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
         const normalizeTeamName = (name: string) =>
           name.trim().replace(/\s+/g, ' ');
 
-        const results = (rows as HTMLTableRowElement[])
-          .map((row: HTMLTableRowElement, index: number) => {
+        const results = rows
+          .map((row: Element, index: number) => {
             // Check if this row is a matchweek header row
             const matchweekHeader = row.querySelector('th[data-stat="gameweek"]');
             if (matchweekHeader) {
@@ -249,10 +255,6 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
             const awayTeam = normalizeTeamName(getText('td[data-stat="away_team"]'));
             const scoreStr = getText('td[data-stat="score"]');
             const venue = getText('td[data-stat="venue"]');
-            
-            // Use the current matchweek from the most recent header
-            const matchweek = currentMatchweek;
-            
             const matchurl = getLink('td[data-stat="match_report"] a');
 
             // If no data-stat attributes, try alternative selectors
@@ -270,7 +272,7 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
               }
             }
 
-            // Debug matchweek parsing
+            // Debug current matchweek
             if (debug && index < 5 && !row.querySelector('th[data-stat="gameweek"]')) {
               console.log(`  Current matchweek: ${currentMatchweek}`);
             }
@@ -292,11 +294,11 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
 
             let homeScore: number | undefined;
             let awayScore: number | undefined;
-            let status: RawFixture['status'] = 'scheduled';
+            let status: 'scheduled' | 'live' | 'finished' | 'postponed' | 'upcoming' = 'scheduled';
 
             if (scoreStr.includes('–') || scoreStr.includes('-')) {
               const separator = scoreStr.includes('–') ? '–' : '-';
-              const [h, a] = scoreStr.split(separator).map(s => parseInt(s.trim(), 10));
+              const [h, a] = scoreStr.split(separator).map((s: string) => parseInt(s.trim(), 10));
               if (!isNaN(h) && !isNaN(a)) {
                 homeScore = h;
                 awayScore = a;
@@ -305,8 +307,6 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
             } else if (scoreStr.toLowerCase().includes('postponed')) {
               status = 'postponed';
             }
-
-            const matchweek = matchweekStr ? parseInt(matchweekStr, 10) : undefined;
 
             const fixture = {
               id: `fbref-${homeTeam}-${awayTeam}-${dateStr}`.replace(/\s+/g, '-'),
@@ -318,7 +318,7 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
               status,
               matchurl,
               venue,
-              matchweek: matchweekValue,
+              matchweek: currentMatchweek,
             };
 
             if (debug && index < 5 && !row.querySelector('th[data-stat="gameweek"]')) {
@@ -327,13 +327,13 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
 
             return fixture;
           })
-          .filter((f: any) => f !== null) as RawFixture[];
+          .filter((f: any) => f !== null);
 
         console.log(`Filtered results: ${results.length} fixtures`);
         return results;
       },
-      true, // Pass debug flag
-      matchweekHeader // Pass matchweek header info
+      tableSelector,
+      true // debug flag
     );
 
     console.log(`✅ Scraped ${fixtures.length} fixtures`);
