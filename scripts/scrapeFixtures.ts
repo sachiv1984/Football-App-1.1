@@ -69,19 +69,25 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
     console.log('Page loaded');
 
     // ---------- Click "Wk" header to populate gameweek numbers ----------
-    try {
-      console.log('Trying to click "Wk" column header to populate gameweek numbers...');
-      const wkHeader = await page.$('table thead th[data-stat="gameweek"]');
-      if (wkHeader) {
-        await wkHeader.click();
-        console.log('Clicked "Wk" header, waiting for table to update...');
-        await page.waitForTimeout(1000); // wait to ensure numbers appear
-      } else {
-        console.log('⚠️ "Wk" header not found, skipping click');
-      }
-    } catch (err) {
-      console.log('Error clicking "Wk" header:', err);
-    }
+try {
+  console.log('Trying to click "Wk" column header to populate gameweek numbers...');
+  const wkHeader = await page.$('table thead th[data-stat="gameweek"]');
+  if (wkHeader) {
+    await wkHeader.click();
+    console.log('Clicked "Wk" header, waiting for table to populate gameweeks...');
+    
+    // Wait until at least one cell in the gameweek column has a number
+    await page.waitForFunction(() => {
+      const cells = Array.from(document.querySelectorAll('td[data-stat="gameweek"]'));
+      return cells.some(cell => cell.textContent?.trim() !== '');
+    }, { timeout: 5000 }); // wait max 5s
+  } else {
+    console.log('⚠️ "Wk" header not found, skipping click');
+  }
+} catch (err) {
+  console.log('Error clicking "Wk" header or waiting for gameweeks:', err);
+}
+
 
     // ---------- Take screenshot ----------
     const screenshotPath = path.join(__dirname, '../debug_page.png') as `${string}.png`;
