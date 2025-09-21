@@ -255,44 +255,31 @@ class ScraperManager {
   private teamsToScrape: typeof AVAILABLE_TEAMS;
   private statToScrape: typeof AVAILABLE_STATS[0];
 
-// Define allowed modes as a constant object
-const SCRAPE_MODES = {
-  SINGLE: 'single',
-  ALL: 'all',
-} as const;
+  constructor() {
+    this.scraper = new DebugScraper();
+    this.statToScrape = AVAILABLE_STATS[TEST_STAT_INDEX];
 
-// Type of SCRAPE_MODE is now exactly 'single' | 'all'
-type ScrapeMode = typeof SCRAPE_MODES[keyof typeof SCRAPE_MODES];
-
-// Set the mode
-const SCRAPE_MODE: ScrapeMode = SCRAPE_MODES.SINGLE; // or SCRAPE_MODES.ALL
-
-// Use in constructor
-constructor() {
-  this.scraper = new DebugScraper();
-  this.statToScrape = AVAILABLE_STATS[TEST_STAT_INDEX];
-
-  if (SCRAPE_MODE === SCRAPE_MODES.ALL) {
-    this.teamsToScrape = AVAILABLE_TEAMS;
-  } else {
-    if (SINGLE_TEAM_INDEX < 0 || SINGLE_TEAM_INDEX >= AVAILABLE_TEAMS.length) {
-      throw new Error(`SINGLE_TEAM_INDEX ${SINGLE_TEAM_INDEX} is out of bounds`);
+    if (SCRAPE_MODE === SCRAPE_MODES.ALL) {
+      this.teamsToScrape = AVAILABLE_TEAMS;
+    } else {
+      if (SINGLE_TEAM_INDEX < 0 || SINGLE_TEAM_INDEX >= AVAILABLE_TEAMS.length) {
+        throw new Error(`SINGLE_TEAM_INDEX ${SINGLE_TEAM_INDEX} is out of bounds`);
+      }
+      this.teamsToScrape = [AVAILABLE_TEAMS[SINGLE_TEAM_INDEX]];
     }
-    this.teamsToScrape = [AVAILABLE_TEAMS[SINGLE_TEAM_INDEX]];
   }
-}
 
   async run() {
-    console.log(`\n🔄 Starting scraping in mode: ${SCRAPE_MODE}`);
-    console.log(`📋 Total teams: ${this.teamsToScrape.length}\n`);
+    console.log(`🔄 Starting scraping mode: ${SCRAPE_MODE}`);
+    console.log(`📋 Total teams: ${this.teamsToScrape.length}`);
 
     for (let i = 0; i < this.teamsToScrape.length; i++) {
       const team = this.teamsToScrape[i];
-      console.log(`\n⏱ Scraping team ${i + 1} of ${this.teamsToScrape.length}: ${team.name}`);
 
       let attempts = 0;
       let success = false;
 
+      // -------------------- Retry loop --------------------
       while (!success && attempts <= RATE_LIMIT.maxRetries) {
         try {
           await this.scraper.debugScrape(team, this.statToScrape);
@@ -306,6 +293,7 @@ constructor() {
 
       if (!success) console.error(`❌ Failed to scrape ${team.name} after ${RATE_LIMIT.maxRetries} retries`);
 
+      // -------------------- Rate limiting delay --------------------
       if (i < this.teamsToScrape.length - 1) {
         console.log(`⏳ Waiting ${RATE_LIMIT.delayBetweenRequests / 1000}s before next scrape...`);
         await new Promise(res => setTimeout(res, RATE_LIMIT.delayBetweenRequests));
@@ -315,6 +303,7 @@ constructor() {
     console.log('\n🎉 All scraping complete!');
   }
 }
+
 
 /* ------------------ Main Execution ------------------ */
 async function main() {
