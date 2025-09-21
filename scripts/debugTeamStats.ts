@@ -1,7 +1,7 @@
 // scripts/debugTeamStats.ts
 /**
- * Debug version - scrape single/all teams and save to one file
- * TypeScript compatible
+ * Debug scraper - all teams or single team, single output file
+ * Preserves original FBref parsing logic
  */
 
 import fs from 'fs';
@@ -55,20 +55,19 @@ const AVAILABLE_STATS = [
 /* ------------------ Test Configuration ------------------ */
 const SCRAPE_MODES = { SINGLE: 'single', ALL: 'all' } as const;
 type ScrapeMode = typeof SCRAPE_MODES[keyof typeof SCRAPE_MODES];
-const SCRAPE_MODE: ScrapeMode = SCRAPE_MODES.ALL; // or SCRAPE_MODES.SINGLE
-
-const SINGLE_TEAM_INDEX = 0; // used only if SCRAPE_MODE === SINGLE
+const SCRAPE_MODE: ScrapeMode = SCRAPE_MODES.SINGLE; // or SCRAPE_MODES.SINGLE
+const SINGLE_TEAM_INDEX = 0; // used if single mode
 const TEST_STAT_INDEX = 0;   // shooting, keeper, etc.
 
-/* ------------------ Rate Limiting Configuration ------------------ */
+/* ------------------ Rate Limiting ------------------ */
 const RATE_LIMIT = {
   requestsPerMinute: 10,
-  delayBetweenRequests: 6000, // 6s
-  retryDelay: 30000,          // 30s
+  delayBetweenRequests: 6000,
+  retryDelay: 30000,
   maxRetries: 3
 };
 
-/* ------------------ Helper Scraper ------------------ */
+/* ------------------ DebugScraper ------------------ */
 class DebugScraper {
   private ensureDataDir() {
     if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -84,26 +83,63 @@ class DebugScraper {
     return `${FBREF_BASE_URL}/${team.fbrefId}/${SEASON}/matchlogs/c9/${statType.key}/${teamNameSlug}-Match-Logs-Premier-League`;
   }
 
-  parseStatsTable(html: string, statType: string): any[] {
+  parseStatsTable(html: string, statType: any): any[] {
+    // FBref tables inside comments
     const cleanHtml = html.replace(/<!--/g, '').replace(/-->/g, '');
     const $ = cheerio.load(cleanHtml);
-    const matchLogs: any[] = [];
-    const table = $(`table[id*="${statType}"]`).first();
 
-    if (!table || table.length === 0) return [];
+    const tableSelectors = [
+      `#stats_${statType.key}_for`,
+      `#matchlogs_for_${statType.key}`,
+      `table[id*="matchlogs"]`,
+      `table[id*="${statType.key}"]`,
+      'table.stats_table'
+    ];
+
+    let selectedTable: cheerio.Cheerio | null = null;
+    for (const sel of tableSelectors) {
+      const t = $(sel).first();
+      if (t.length > 0) {
+        selectedTable = t;
+        break;
+      }
+    }
+
+    if (!selectedTable || selectedTable.length === 0) {
+      console.warn(`❌ No table found for ${statType.key}`);
+      return [];
+    }
 
     const headers: string[] = [];
-    table.find('thead tr:last-child th').each((i, th) => {
-      headers.push($(th).text().trim());
-    });
+    const headerSelectors = ['thead tr:last-child th', 'thead tr th', 'tr:first-child th', 'tr:first-child td'];
+    for (const sel of headerSelectors) {
+      const ths = selectedTable.find(sel);
+      if (ths.length > 0) {
+        ths.each((i, th) => {
+          const h = $(th).text().trim();
+          if (h) headers.push(h);
+        });
+        if (headers.length > 0) break;
+      }
+    }
 
-    table.find('tbody tr').each((i, tr) => {
+    if (headers.length === 0) {
+      console.warn('❌ No headers found');
+      return [];
+    }
+
+    const matchLogs: any[] = [];
+    selectedTable.find('tbody tr').each((i, tr) => {
       const row: Record<string, any> = {};
+      let hasData = false;
       $(tr).find('td, th').each((j, td) => {
         const val = $(td).text().trim();
-        if (headers[j] && val !== '') row[headers[j]] = val;
+        if (headers[j] && val !== '') {
+          row[headers[j]] = val;
+          hasData = true;
+        }
       });
-      if (Object.keys(row).length > 0) matchLogs.push(row);
+      if (hasData) matchLogs.push(row);
     });
 
     return matchLogs;
@@ -111,15 +147,15 @@ class DebugScraper {
 
   async debugScrape(team: any, statType: any): Promise<any> {
     const url = this.buildUrl(team, statType);
+
     const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0',
-        'Accept': 'text/html',
-      }
+      headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'text/html' }
     });
+
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const html = await response.text();
-    const matchLogs = this.parseStatsTable(html, statType.key);
+
+    const matchLogs = this.parseStatsTable(html, statType);
 
     return {
       teamId: team.id,
@@ -134,7 +170,7 @@ class DebugScraper {
   }
 }
 
-/* ------------------ Scraper Manager ------------------ */
+/* ------------------ ScraperManager ------------------ */
 class ScraperManager {
   private scraper = new DebugScraper();
   private teamsToScrape: typeof AVAILABLE_TEAMS;
@@ -177,7 +213,6 @@ class ScraperManager {
       }
     }
 
-    // Save a single file for all teams
     const filename = `Team${this.statToScrape.name.replace(/\s+/g, '')}Stats.json`;
     this.scraper.saveFile(filename, JSON.stringify(allResults, null, 2));
     console.log(`\n💾 All data saved to data/${filename}`);
