@@ -131,11 +131,11 @@ class DebugScraper {
         success: matchLogs.length > 0
       };
 
-      // Build dynamic filename
-      const statName =
-        TEST_STAT.key.charAt(0).toUpperCase() + TEST_STAT.key.slice(1);
+      // ------------------ Updated: dynamic file name ------------------
+      const statName = TEST_STAT.key.charAt(0).toUpperCase() + TEST_STAT.key.slice(1);
       const filename = `Team${statName}Stats.json`;
 
+      // Save only one file (no sample/debug files)
       this.saveFile(filename, JSON.stringify(result, null, 2));
 
       console.log(`🎉 Debug completed! Extracted ${matchLogs.length} rows`);
