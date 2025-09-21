@@ -1,20 +1,4 @@
-// Wait a bit longer and check if content is loading dynamically
-    console.log('Waiting for content to fully load...');
-    await page.waitForTimeout(3000);
-    
-    // Check if there are any loading indicators or if content changed
-    const finalRowCount = await page.$eval(`${tableSelector} tbody tr`, (rows: Element[]) => rows.length);
-    console.log(`Final row count after waiting: ${finalRowCount}`);
-
-    // Log the HTML structure for debugging
-    const tableHTML = await page.$eval(tableSelector, (el: Element) => el.outerHTML.substring(0, 1500));
-    console.log('Table HTML preview:', tableHTML);    // Log the HTML structure for debugging
-    const tableHTML = await page.$eval(tableSelector, (el: Element) => el.outerHTML.substring(0, 1000));
-    console.log('Table HTML preview:', tableHTML);
-
-    // Get row count for debugging
-    const rowCount = await page.$eval(`${tableSelector} tbody tr`, (rows: Element[]) => rows.length);
-    console.log(`Found ${rowCount} rows in selected table`);import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -146,46 +130,42 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
       }
     }
 
-    // Check what season we're looking at
+    // Check what season we're looking at and get more details
     const seasonInfo = await page.$eval(tableSelector, (el: Element) => {
       const caption = el.querySelector('caption');
       return caption ? caption.textContent?.trim() || '' : '';
     });
     console.log('Season info from table:', seasonInfo);
 
-    // If we're looking at 2025-2026 (future season), try to find 2024-2025 table
-    if (seasonInfo.includes('2025-2026')) {
-      console.log('Found 2025-2026 season table, looking for current season...');
+    // Get initial row count and sample row data for debugging
+    const initialRowCount = await page.$$eval(`${tableSelector} tbody tr`, (rows: Element[]) => {
+      console.log(`Found ${rows.length} rows in tbody`);
       
-      // Look for a season selector or try to find 2024-2025 table
-      const allScheduleTables = await page.$('table[id*="sched_"]');
-      console.log(`Found ${allScheduleTables.length} schedule tables`);
+      // Log first few rows to see their structure
+      rows.slice(0, 5).forEach((row, index) => {
+        console.log(`Row ${index} structure:`, {
+          tagName: row.tagName,
+          innerHTML: row.innerHTML.substring(0, 200) + '...',
+          cellCount: row.querySelectorAll('td, th').length,
+          hasDataStat: !!row.querySelector('[data-stat]')
+        });
+      });
       
-      for (let i = 0; i < allScheduleTables.length; i++) {
-        const tableInfo = await page.evaluate((index: number) => {
-          const tables = document.querySelectorAll('table[id*="sched_"]');
-          if (tables[index]) {
-            const caption = tables[index].querySelector('caption');
-            const id = tables[index].id;
-            return {
-              id,
-              caption: caption ? caption.textContent?.trim() || '' : '',
-              rowCount: tables[index].querySelectorAll('tbody tr').length
-            };
-          }
-          return null;
-        }, i);
-        
-        console.log(`Table ${i}:`, tableInfo);
-        
-        // If we find a table with 2024-2025 or one with actual fixtures, use that
-        if (tableInfo && (tableInfo.caption.includes('2024-2025') || tableInfo.rowCount > 10)) {
-          tableSelector = `#${tableInfo.id}`;
-          console.log(`Switching to table: ${tableSelector}`);
-          break;
-        }
-      }
-    }
+      return rows.length;
+    });
+    console.log(`Found ${initialRowCount} rows in selected table`);
+
+    // Wait a bit longer and check if content is loading dynamically
+    console.log('Waiting for content to fully load...');
+    await page.waitForTimeout(3000);
+    
+    // Check if there are any loading indicators or if content changed
+    const finalRowCount = await page.$$eval(`${tableSelector} tbody tr`, (rows: Element[]) => rows.length);
+    console.log(`Final row count after waiting: ${finalRowCount}`);
+
+    // Log the HTML structure for debugging
+    const tableHTML = await page.$eval(tableSelector, (el: Element) => el.outerHTML.substring(0, 1500));
+    console.log('Table HTML preview:', tableHTML);
 
     // Get table headers to understand the structure
     const headers = await page.$$eval(`${tableSelector} thead th`, (ths: Element[]) => 
@@ -214,8 +194,6 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
         
         const rows = Array.from(table.querySelectorAll('tbody tr'));
         console.log(`Processing ${rows.length} rows`);
-        
-        // Remove the currentMatchweek tracking since it's not needed anymore
         
         const parseDateTime = (dateStr: string, timeStr: string): string | null => {
           try {
@@ -307,7 +285,7 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
             const awayTeam = normalizeTeamName(getText('td[data-stat="away_team"]'));
             const scoreStr = getText('td[data-stat="score"]');
             const venue = getText('td[data-stat="venue"]');
-            const matchweekStr = getText('td[data-stat="gameweek"]'); // Now it's a regular column
+            const matchweekStr = getText('td[data-stat="gameweek"]');
             const matchurl = getLink('td[data-stat="match_report"] a');
 
             // If no data-stat attributes, try alternative selectors
