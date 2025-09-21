@@ -428,12 +428,12 @@ async function saveToSupabaseScraped(fixtures: RawFixture[]) {
 
   // Ask Supabase to return the inserted rows so `data` is an array
   const { data, error } = await supabase
-    .from('scraped_fixtures')
+    .from('fixtures')
     .insert(fixtures)
     .select(); // <- important: ask for returned rows
 
   if (error) {
-    console.error('❌ Supabase error (scraped_fixtures):', error);
+    console.error('❌ Supabase error (fixtures):', error);
     return;
   }
 
