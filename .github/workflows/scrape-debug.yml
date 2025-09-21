@@ -8,14 +8,12 @@ on:
 jobs:
   scrape:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # needed to push changes
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 
-
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+          fetch-depth: 0
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -45,5 +43,3 @@ jobs:
             git commit -m "chore: update scraped data [skip ci]"
             git push
           fi
-
-
