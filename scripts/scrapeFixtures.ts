@@ -19,7 +19,7 @@
 import fs from 'fs';
 import path from 'path';
 import { createClient } from '@supabase/supabase-js';
-import cheerio, { Element } from 'cheerio';
+import * as cheerio from 'cheerio';
 
 /* ------------------ Configuration Section ------------------ */
 // FBref URL for Premier League fixtures
@@ -123,10 +123,10 @@ async function scrapeAndUpload() {
     const table = $('table#sched_2025-2026_9_1');
 
     const rows: RawRow[] = [];
-  table.find('tbody tr').each((_: number, tr: Element) => {
-  const row: RawRow = [];
-  $(tr).find('td, th').each((_: number, cell: Element) => {
-    const $cell = $(cell);
+    table.find('tbody tr').each((_: number, tr: cheerio.Element) => {
+    const row: RawRow = [];
+    $(tr).find('td, th').each((_: number, cell: cheerio.Element) => {
+        const $cell = $(cell);
         const text = $cell.text().trim();
         const link = $cell.find('a').attr('href');
         if (link) {
