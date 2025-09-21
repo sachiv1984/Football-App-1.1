@@ -157,7 +157,7 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
 
     // Wait a bit longer and check if content is loading dynamically
     console.log('Waiting for content to fully load...');
-    await page.waitForTimeout(3000);
+    await new Promise(resolve => setTimeout(resolve, 3000));
     
     // Check if there are any loading indicators or if content changed
     const finalRowCount = await page.$$eval(`${tableSelector} tbody tr`, (rows: Element[]) => rows.length);
