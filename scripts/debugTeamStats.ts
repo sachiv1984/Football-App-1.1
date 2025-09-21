@@ -257,9 +257,16 @@ class ScraperManager {
 
   constructor() {
     this.scraper = new DebugScraper();
-    // Set the teams to scrape depending on configuration
-    this.teamsToScrape = SCRAPE_MODE === 'all' ? AVAILABLE_TEAMS : [AVAILABLE_TEAMS[SINGLE_TEAM_INDEX]];
     this.statToScrape = AVAILABLE_STATS[TEST_STAT_INDEX];
+
+    if (SCRAPE_MODE === 'all') {
+      this.teamsToScrape = AVAILABLE_TEAMS;
+    } else {
+      if (SINGLE_TEAM_INDEX < 0 || SINGLE_TEAM_INDEX >= AVAILABLE_TEAMS.length) {
+        throw new Error(`SINGLE_TEAM_INDEX ${SINGLE_TEAM_INDEX} is out of bounds`);
+      }
+      this.teamsToScrape = [AVAILABLE_TEAMS[SINGLE_TEAM_INDEX]]; // Wrap in array explicitly
+    }
   }
 
   async run() {
@@ -295,7 +302,6 @@ class ScraperManager {
     console.log('\n🎉 All scraping complete!');
   }
 }
-
 
 /* ------------------ Main Execution ------------------ */
 async function main() {
