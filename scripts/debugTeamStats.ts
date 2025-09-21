@@ -56,7 +56,17 @@ const TEST_STAT = AVAILABLE_STATS[TEST_STAT_INDEX];
 
 /* ------------------ Debug Scraper ------------------ */
 class DebugScraper {
-  
+  private dataDir = path.join(process.cwd(), 'data');
+
+  private ensureDataDir() {
+    fs.mkdirSync(this.dataDir, { recursive: true });
+  }
+
+  private saveFile(filename: string, content: string) {
+    this.ensureDataDir();
+    fs.writeFileSync(path.join(this.dataDir, filename), content);
+  }
+
   private buildUrl(team: any, statType: any): string {
     const teamNameSlug = team.name.replace(/\s+/g, '-').replace(/[^\w-]/g, '');
     const url = `${FBREF_BASE_URL}/${team.fbrefId}/${SEASON}/matchlogs/all_comps/${statType.key}/${teamNameSlug}-Match-Logs-All-Competitions`;
@@ -134,8 +144,8 @@ class DebugScraper {
     if (!selectedTable || selectedTable.length === 0) {
       console.log('❌ No suitable table found');
       // Save HTML for debugging
-      fs.writeFileSync('debug-page.html', html);
-      console.log('💾 Saved HTML to debug-page.html for inspection');
+      this.saveFile('debug-page.html', html);
+      console.log('💾 Saved HTML to data/debug-page.html for inspection');
       return [];
     }
 
@@ -221,12 +231,8 @@ class DebugScraper {
         allColumns: Object.keys(matchLogs[0])
       };
       
-      // Create debug directory
-      const debugDir = path.join(process.cwd(), 'debug-output');
-      fs.mkdirSync(debugDir, { recursive: true });
-      
-      fs.writeFileSync(path.join(debugDir, 'debug-sample-data.json'), JSON.stringify(sampleData, null, 2));
-      console.log('💾 Saved sample data to debug-output/debug-sample-data.json');
+      this.saveFile('debug-sample-data.json', JSON.stringify(sampleData, null, 2));
+      console.log('💾 Saved sample data to data/debug-sample-data.json');
       console.log('📊 Columns found:', Object.keys(matchLogs[0]).length);
       
       // Output first few rows to console for immediate viewing
@@ -284,14 +290,12 @@ class DebugScraper {
 
       if (isBlocked) {
         console.log('🚫 Likely blocked or rate limited');
-        const debugDir = path.join(process.cwd(), 'debug-output');
-        fs.mkdirSync(debugDir, { recursive: true });
-        fs.writeFileSync(path.join(debugDir, 'debug-blocked.html'), html);
-        console.log('💾 Saved blocked response to debug-output/debug-blocked.html');
+        this.saveFile('debug-blocked.html', html);
+        console.log('💾 Saved blocked response to data/debug-blocked.html');
         console.log('\n❌ BLOCKING DETECTED:');
         console.log(`   Status: BLOCKED`);
         console.log(`   Response length: ${html.length} chars`);
-        console.log(`   Check debug-output/debug-blocked.html for details`);
+        console.log(`   Check data/debug-blocked.html for details`);
         return;
       }
 
@@ -303,10 +307,8 @@ class DebugScraper {
 
       if (!isFbref) {
         console.log('⚠️  Page doesn\'t look like FBref');
-        const debugDir = path.join(process.cwd(), 'debug-output');
-        fs.mkdirSync(debugDir, { recursive: true });
-        fs.writeFileSync(path.join(debugDir, 'debug-wrong-page.html'), html.substring(0, 10000));
-        console.log('💾 Saved first 10k chars to debug-output/debug-wrong-page.html');
+        this.saveFile('debug-wrong-page.html', html.substring(0, 10000));
+        console.log('💾 Saved first 10k chars to data/debug-wrong-page.html');
         console.log('\n⚠️  WRONG PAGE DETECTED:');
         console.log(`   Expected: FBref page`);
         console.log(`   Got: Unknown page type`);
@@ -326,12 +328,9 @@ class DebugScraper {
         success: matchLogs.length > 0
       };
 
-      // Create debug directory and save full result
-      const debugDir = path.join(process.cwd(), 'debug-output');
-      fs.mkdirSync(debugDir, { recursive: true });
-      
-      fs.writeFileSync(path.join(debugDir, 'debug-full-result.json'), JSON.stringify(result, null, 2));
-      console.log('💾 Saved full result to debug-output/debug-full-result.json');
+      // Save full result
+      this.saveFile('debug-full-result.json', JSON.stringify(result, null, 2));
+      console.log('💾 Saved full result to data/debug-full-result.json');
 
       console.log(`\n🎉 Debug completed!`);
       console.log(`📊 Found ${matchLogs.length} match records`);
@@ -353,7 +352,7 @@ class DebugScraper {
       } else {
         console.log('❌ No data extracted');
         console.log(`   Status: FAILED ❌`);
-        console.log('🔧 Check debug files in debug-output/ folder');
+        console.log('🔧 Check debug files in data/ folder');
       }
 
     } catch (error) {
@@ -396,7 +395,7 @@ async function main() {
   
   console.log('\n📋 Next steps:');
   console.log('1. If successful, apply fixes to main scraper');
-  console.log('2. If no data, check debug-*.html files');
+  console.log('2. If no data, check debug-*.html files in data/ folder');
   console.log('3. Change TEST_TEAM_INDEX/TEST_STAT_INDEX to test others');
   console.log('4. Test different combinations before running full scraper');
 }
