@@ -425,16 +425,32 @@ async function saveToSupabase(fixtures: RawFixture[]) {
 // ---------- Supabase insert (raw scraped fixtures) ----------
 async function saveToSupabaseScraped(fixtures: RawFixture[]) {
   console.log(`Inserting ${fixtures.length} raw fixtures into Supabase (scraped_fixtures)...`);
+
+  // Ask Supabase to return the inserted rows so `data` is an array
   const { data, error } = await supabase
     .from('scraped_fixtures')
-    .insert(fixtures);
+    .insert(fixtures)
+    .select(); // <- important: ask for returned rows
 
   if (error) {
     console.error('❌ Supabase error (scraped_fixtures):', error);
+    return;
+  }
+
+  // Robust logging: only read .length if data is an array
+  if (Array.isArray(data)) {
+    console.log(`✅ Successfully inserted ${data.length} raw fixtures into scraped_fixtures`);
+  } else if (data && typeof (data as any).count === 'number') {
+    // Some responses may include a count property
+    console.log(`✅ Successfully inserted ${(data as any).count} raw fixtures into scraped_fixtures`);
+  } else if (data) {
+    // Fallback: print the returned object for debugging
+    console.log('✅ Insert completed; Supabase returned:', data);
   } else {
-    console.log(`✅ Successfully inserted ${data?.length || 0} raw fixtures into scraped_fixtures`);
+    console.log('✅ Insert completed; no data returned from Supabase.');
   }
 }
+
 
 // ---------- Run ----------
 (async () => {
