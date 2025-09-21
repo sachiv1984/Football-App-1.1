@@ -2,16 +2,18 @@ name: Scrape FBref Fixtures
 
 on:
   schedule:
-    - cron: "15 22 * * *"
+    - cron: "30 22 * * *"
   workflow_dispatch:
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: write   # needed to push changes
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -29,3 +31,15 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: node dist/scrapeFixtures.js
+
+      - name: Commit scraped data
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/
+          if git diff --cached --quiet; then
+            echo "No changes in data/ to commit"
+          else
+            git commit -m "chore: update scraped data [skip ci]"
+            git push
+          fi
