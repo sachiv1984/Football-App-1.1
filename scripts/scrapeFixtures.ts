@@ -46,13 +46,13 @@ type RawRow = (string | CellData)[];
 
 // Fixture object matching Supabase schema
 interface Fixture {
-  id: string; // unique primary key
+  id: string;          // primary key
   datetime: string;
   hometeam: string;
   awayteam: string;
   homescore: number | null;
   awayscore: number | null;
-  status: string; // 'scheduled' or 'finished'
+  status: string;
   venue: string;
   matchweek: number | null;
   matchurl: string | null;
@@ -105,18 +105,18 @@ function cleanRow(row: RawRow): Fixture | null {
   // generate unique ID for primary key
   const id = `${datetime}_${hometeam}_${awayteam}`.replace(/\s+/g, '_');
 
-  return {
-    id,
-    datetime,
-    hometeam,
-    awayteam,
-    homescore,
-    awayscore,
-    status,
-    venue,
-    matchweek,
-    matchurl,
-  };
+return {
+  id,
+  datetime,
+  hometeam,
+  awayteam,
+  homescore,
+  awayscore,
+  status,
+  venue,
+  matchweek,
+  matchurl,
+};
 }
 
 /* ------------------ Main Scrape & Upload Function ------------------ */
