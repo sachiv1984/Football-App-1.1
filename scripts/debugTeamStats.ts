@@ -1,7 +1,7 @@
 // scripts/debugTeamStats.ts
 /**
  * Debug version - tests single team/stat combination
- * Use this to debug parsing issues before running full scraper
+ * TypeScript compatible version
  */
 
 import fs from 'fs';
@@ -72,10 +72,14 @@ class DebugScraper {
 
     // Log all tables found on the page
     console.log('\n📊 All tables found on page:');
-    $('table').each((i: number, table: any) => {
-      const tableId = $(table).attr('id') || 'no-id';
-      const tableClass = $(table).attr('class') || 'no-class';
-      const rowCount = $(table).find('tr').length;
+    const allTables = $('table');
+    console.log(`Found ${allTables.length} tables total`);
+    
+    allTables.each(function(i) {
+      const table = $(this);
+      const tableId = table.attr('id') || 'no-id';
+      const tableClass = table.attr('class') || 'no-class';
+      const rowCount = table.find('tr').length;
       console.log(`  Table ${i + 1}: id="${tableId}", class="${tableClass}", rows=${rowCount}`);
     });
 
@@ -91,40 +95,44 @@ class DebugScraper {
       'table'
     ];
 
-    let table: cheerio.Cheerio<any> | null = null;
+    let selectedTable: any = null;
     let usedSelector = '';
 
     for (const selector of tableSelectors) {
+      console.log(`Trying selector: ${selector}`);
       const found = $(selector);
+      console.log(`  Found ${found.length} matches`);
+      
       if (found.length > 0) {
-        // For generic selectors, try to find the most relevant table
         if (selector === 'table') {
-          // Look for table with most data rows
+          // For generic selectors, find the table with most data rows
           let bestTable = found.first();
           let maxRows = 0;
           
-          found.each((_, t) => {
-            const rows = $(t).find('tbody tr').length;
+          found.each(function() {
+            const table = $(this);
+            const rows = table.find('tbody tr').length;
+            console.log(`    Table has ${rows} data rows`);
             if (rows > maxRows) {
               maxRows = rows;
-              bestTable = $(t);
+              bestTable = table;
             }
           });
           
           if (maxRows > 0) {
-            table = bestTable;
+            selectedTable = bestTable;
             usedSelector = `${selector} (${maxRows} rows)`;
             break;
           }
         } else {
-          table = found.first();
+          selectedTable = found.first();
           usedSelector = selector;
           break;
         }
       }
     }
 
-    if (!table || table.length === 0) {
+    if (!selectedTable || selectedTable.length === 0) {
       console.log('❌ No suitable table found');
       // Save HTML for debugging
       fs.writeFileSync('debug-page.html', html);
@@ -147,12 +155,14 @@ class DebugScraper {
     ];
 
     for (const headerSelector of headerSelectors) {
-      const headerCells = table.find(headerSelector);
+      const headerCells = selectedTable.find(headerSelector);
+      console.log(`  Trying header selector: ${headerSelector} - found ${headerCells.length} cells`);
+      
       if (headerCells.length > 0) {
-        console.log(`  Using header selector: ${headerSelector} (${headerCells.length} cells)`);
+        console.log(`  Using header selector: ${headerSelector}`);
         
-        headerCells.each((index: number, th: any) => {
-          const header = $(th).text().trim();
+        headerCells.each(function(index) {
+          const header = $(this).text().trim();
           console.log(`    Header ${index}: "${header}"`);
           if (header && header !== '') {
             headers.push(header);
@@ -167,20 +177,21 @@ class DebugScraper {
       return [];
     }
 
-    console.log(`✅ Found ${headers.length} headers:`, headers);
+    console.log(`✅ Found ${headers.length} headers:`, headers.slice(0, 10)); // Show first 10
 
     // Extract data rows with detailed logging
     console.log('\n📊 Extracting data rows:');
     
-    const dataRows = table.find('tbody tr');
+    const dataRows = selectedTable.find('tbody tr');
     console.log(`Found ${dataRows.length} potential data rows`);
 
-    dataRows.each((rowIndex: number, tr: any) => {
+    dataRows.each(function(rowIndex) {
+      const tr = $(this);
       const row: Record<string, any> = {};
       let hasData = false;
 
-      $(tr).find('td, th').each((cellIndex: number, cell: any) => {
-        const value = $(cell).text().trim();
+      tr.find('td, th').each(function(cellIndex) {
+        const value = $(this).text().trim();
         const header = headers[cellIndex];
         
         if (header && value !== '') {
@@ -194,7 +205,8 @@ class DebugScraper {
         
         // Log first few rows for debugging
         if (rowIndex < 3) {
-          console.log(`  Row ${rowIndex + 1}:`, Object.keys(row).slice(0, 5), '...');
+          console.log(`  Row ${rowIndex + 1}: ${Object.keys(row).length} fields`);
+          console.log(`    Sample data:`, Object.keys(row).slice(0, 5).map(key => `${key}: ${row[key]}`));
         }
       }
     });
@@ -203,12 +215,17 @@ class DebugScraper {
 
     // Save sample data for inspection
     if (matchLogs.length > 0) {
-      fs.writeFileSync('debug-sample-data.json', JSON.stringify({
+      const sampleData = {
+        url: this.buildUrl(TEST_TEAM, TEST_STAT),
         headers,
         sampleRows: matchLogs.slice(0, 3),
-        totalRows: matchLogs.length
-      }, null, 2));
+        totalRows: matchLogs.length,
+        allColumns: Object.keys(matchLogs[0])
+      };
+      
+      fs.writeFileSync('debug-sample-data.json', JSON.stringify(sampleData, null, 2));
       console.log('💾 Saved sample data to debug-sample-data.json');
+      console.log('📊 Columns found:', Object.keys(matchLogs[0]).length);
     }
 
     return matchLogs;
@@ -230,7 +247,6 @@ class DebugScraper {
       });
 
       console.log(`📡 Response status: ${response.status} ${response.statusText}`);
-      console.log(`📡 Response headers:`, Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -239,17 +255,38 @@ class DebugScraper {
       const html = await response.text();
       console.log(`📄 Received HTML (${html.length} characters)`);
 
-      // Check if we got blocked or redirected
-      if (html.includes('Access Denied') || html.includes('403 Forbidden') || html.includes('rate limit')) {
+      // Check for common blocking patterns
+      const blockingPatterns = [
+        'Access Denied',
+        '403 Forbidden', 
+        'rate limit',
+        'Rate Limited',
+        'blocked',
+        'captcha',
+        'security check'
+      ];
+
+      const isBlocked = blockingPatterns.some(pattern => 
+        html.toLowerCase().includes(pattern.toLowerCase())
+      );
+
+      if (isBlocked) {
         console.log('🚫 Likely blocked or rate limited');
         fs.writeFileSync('debug-blocked.html', html);
+        console.log('💾 Saved blocked response to debug-blocked.html');
         return;
       }
 
       // Check if page looks like FBref
-      if (!html.includes('fbref') && !html.includes('FBref')) {
+      const fbrefIndicators = ['fbref', 'FBref', 'sports-reference', 'matchlogs'];
+      const isFbref = fbrefIndicators.some(indicator => 
+        html.includes(indicator)
+      );
+
+      if (!isFbref) {
         console.log('⚠️  Page doesn\'t look like FBref');
-        fs.writeFileSync('debug-wrong-page.html', html.substring(0, 5000));
+        fs.writeFileSync('debug-wrong-page.html', html.substring(0, 10000));
+        console.log('💾 Saved first 10k chars to debug-wrong-page.html');
       }
 
       const matchLogs = this.parseStatsTable(html, TEST_STAT.key);
@@ -261,20 +298,28 @@ class DebugScraper {
         season: SEASON,
         url: url,
         matchLogs,
-        scrapedAt: new Date().toISOString()
+        scrapedAt: new Date().toISOString(),
+        success: matchLogs.length > 0
       };
 
       // Save full result
       fs.writeFileSync('debug-full-result.json', JSON.stringify(result, null, 2));
       console.log('💾 Saved full result to debug-full-result.json');
 
-      console.log(`\n🎉 Debug completed! Found ${matchLogs.length} match records`);
+      console.log(`\n🎉 Debug completed!`);
+      console.log(`📊 Found ${matchLogs.length} match records`);
       
       if (matchLogs.length > 0) {
-        console.log('✅ Sample record keys:', Object.keys(matchLogs[0]));
-        console.log('✅ Sample record:', matchLogs[0]);
+        console.log('✅ Sample record keys:', Object.keys(matchLogs[0]).slice(0, 8));
+        if (matchLogs[0].Date) console.log('✅ Sample date:', matchLogs[0].Date);
+        if (matchLogs[0].Opponent) console.log('✅ Sample opponent:', matchLogs[0].Opponent);
+        console.log('✅ Success! Data structure looks good');
       } else {
-        console.log('❌ No data extracted - check debug files for troubleshooting');
+        console.log('❌ No data extracted');
+        console.log('🔧 Check debug files:');
+        console.log('   - debug-page.html (raw HTML)');
+        console.log('   - debug-sample-data.json (parsed structure)');
+        console.log('   - debug-full-result.json (complete result)');
       }
 
     } catch (error) {
@@ -284,7 +329,7 @@ class DebugScraper {
         console.error('Error details:', {
           name: error.name,
           message: error.message,
-          stack: error.stack?.split('\n').slice(0, 5)
+          stack: error.stack?.split('\n').slice(0, 3)
         });
       }
     }
@@ -316,10 +361,10 @@ async function main() {
   await scraper.debugScrape();
   
   console.log('\n📋 Next steps:');
-  console.log('1. Check debug-*.json files for extracted data');
-  console.log('2. Check debug-*.html files if no data found');
-  console.log('3. Verify table selectors work with FBref structure');
-  console.log('4. Change TEST_TEAM_INDEX or TEST_STAT_INDEX to test others');
+  console.log('1. If successful, apply fixes to main scraper');
+  console.log('2. If no data, check debug-*.html files');
+  console.log('3. Change TEST_TEAM_INDEX/TEST_STAT_INDEX to test others');
+  console.log('4. Test different combinations before running full scraper');
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
