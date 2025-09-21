@@ -356,8 +356,6 @@ class DebugScraper {
         });
       }
     }
-  }
-
 
 /* ------------------ Main Execution ------------------ */
 async function main() {
