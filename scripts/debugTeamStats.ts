@@ -251,9 +251,16 @@ class DebugScraper {
 
 /* ------------------ Scraper Manager (All Teams Handling) ------------------ */
 class ScraperManager {
-  private scraper = new DebugScraper();
-  private teamsToScrape = SCRAPE_MODE === 'all' ? AVAILABLE_TEAMS : [AVAILABLE_TEAMS[SINGLE_TEAM_INDEX]];
-  private statToScrape = AVAILABLE_STATS[TEST_STAT_INDEX];
+  private scraper: DebugScraper;
+  private teamsToScrape: typeof AVAILABLE_TEAMS;
+  private statToScrape: typeof AVAILABLE_STATS[0];
+
+  constructor() {
+    this.scraper = new DebugScraper();
+    // Set the teams to scrape depending on configuration
+    this.teamsToScrape = SCRAPE_MODE === 'all' ? AVAILABLE_TEAMS : [AVAILABLE_TEAMS[SINGLE_TEAM_INDEX]];
+    this.statToScrape = AVAILABLE_STATS[TEST_STAT_INDEX];
+  }
 
   async run() {
     console.log(`\n🔄 Starting scraping in mode: ${SCRAPE_MODE}`);
@@ -279,7 +286,6 @@ class ScraperManager {
 
       if (!success) console.error(`❌ Failed to scrape ${team.name} after ${RATE_LIMIT.maxRetries} retries`);
 
-      // Rate limiting delay
       if (i < this.teamsToScrape.length - 1) {
         console.log(`⏳ Waiting ${RATE_LIMIT.delayBetweenRequests / 1000}s before next scrape...`);
         await new Promise(res => setTimeout(res, RATE_LIMIT.delayBetweenRequests));
@@ -289,6 +295,7 @@ class ScraperManager {
     console.log('\n🎉 All scraping complete!');
   }
 }
+
 
 /* ------------------ Main Execution ------------------ */
 async function main() {
