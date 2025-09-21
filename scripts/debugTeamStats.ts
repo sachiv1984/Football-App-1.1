@@ -240,123 +240,125 @@ class DebugScraper {
   }
 
   async debugScrape(): Promise<void> {
-    const url = this.buildUrl(TEST_TEAM, TEST_STAT);
+  const url = this.buildUrl(TEST_TEAM, TEST_STAT);
 
-    try {
-      console.log(`🔍 Debug scraping ${TEST_STAT.name} for ${TEST_TEAM.name}...`);
+  try {
+    console.log(`🔍 Debug scraping ${TEST_STAT.name} for ${TEST_TEAM.name}...`);
 
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.9',
-          'Cache-Control': 'no-cache',
-        }
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Cache-Control': 'no-cache',
+      }
+    });
+
+    console.log(`📡 Response status: ${response.status} ${response.statusText}`);
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const html = await response.text();
+    console.log(`📄 Received HTML (${html.length} characters)`);
+
+    // Check for common blocking patterns
+    const blockingPatterns = [
+      'Access Denied',
+      '403 Forbidden',
+      'rate limit',
+      'Rate Limited',
+      'blocked',
+      'captcha',
+      'security check'
+    ];
+
+    const isBlocked = blockingPatterns.some(pattern =>
+      html.toLowerCase().includes(pattern.toLowerCase())
+    );
+
+    if (isBlocked) {
+      console.log('🚫 Likely blocked or rate limited');
+      this.saveFile('debug-blocked.html', html);
+      console.log('💾 Saved blocked response to data/debug-blocked.html');
+      console.log('\n❌ BLOCKING DETECTED:');
+      console.log(`   Status: BLOCKED`);
+      console.log(`   Response length: ${html.length} chars`);
+      console.log(`   Check data/debug-blocked.html for details`);
+      return;
+    }
+
+    // Check if page looks like FBref
+    const fbrefIndicators = ['fbref', 'FBref', 'sports-reference', 'matchlogs'];
+    const isFbref = fbrefIndicators.some(indicator =>
+      html.includes(indicator)
+    );
+
+    if (!isFbref) {
+      console.log('⚠️  Page doesn\'t look like FBref');
+      this.saveFile('debug-wrong-page.html', html.substring(0, 10000));
+      console.log('💾 Saved first 10k chars to data/debug-wrong-page.html');
+      console.log('\n⚠️  WRONG PAGE DETECTED:');
+      console.log(`   Expected: FBref page`);
+      console.log(`   Got: Unknown page type`);
+      console.log(`   Response length: ${html.length} chars`);
+    }
+
+    const matchLogs = this.parseStatsTable(html, TEST_STAT.key);
+
+    const result = {
+      teamId: TEST_TEAM.id,
+      teamName: TEST_TEAM.name,
+      statType: TEST_STAT.key,
+      season: SEASON,
+      url: url,
+      matchLogs,
+      scrapedAt: new Date().toISOString(),
+      success: matchLogs.length > 0
+    };
+
+    // Dynamic filename based on stat type
+    const statNameCapitalized = TEST_STAT.name.replace(/\s+/g, '');
+    const filename = `Team${statNameCapitalized}Stats.json`;
+    this.saveFile(filename, JSON.stringify(result, null, 2));
+    console.log(`💾 Saved full result to data/${filename}`);
+
+    console.log(`\n🎉 Debug completed!`);
+    console.log(`📊 Found ${matchLogs.length} match records`);
+
+    if (matchLogs.length > 0) {
+      console.log('✅ Sample record keys:', Object.keys(matchLogs[0]).slice(0, 8));
+      if (matchLogs[0].Date) console.log('✅ Sample date:', matchLogs[0].Date);
+      if (matchLogs[0].Opponent) console.log('✅ Sample opponent:', matchLogs[0].Opponent);
+      console.log('✅ Success! Data structure looks good');
+
+      // Output summary to console
+      console.log('\n📋 EXTRACTION SUMMARY:');
+      console.log(`   Team: ${TEST_TEAM.name}`);
+      console.log(`   Stat Type: ${TEST_STAT.name}`);
+      console.log(`   Total Records: ${matchLogs.length}`);
+      console.log(`   Columns: ${Object.keys(matchLogs[0]).length}`);
+      console.log(`   Status: SUCCESS ✅`);
+
+    } else {
+      console.log('❌ No data extracted');
+      console.log(`   Status: FAILED ❌`);
+      console.log('🔧 Check debug files in data/ folder');
+    }
+
+  } catch (error) {
+    console.error('💥 Debug scrape failed:', error);
+
+    if (error instanceof Error) {
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack?.split('\n').slice(0, 3)
       });
-
-      console.log(`📡 Response status: ${response.status} ${response.statusText}`);
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const html = await response.text();
-      console.log(`📄 Received HTML (${html.length} characters)`);
-
-      // Check for common blocking patterns
-      const blockingPatterns = [
-        'Access Denied',
-        '403 Forbidden',
-        'rate limit',
-        'Rate Limited',
-        'blocked',
-        'captcha',
-        'security check'
-      ];
-
-      const isBlocked = blockingPatterns.some(pattern =>
-        html.toLowerCase().includes(pattern.toLowerCase())
-      );
-
-      if (isBlocked) {
-        console.log('🚫 Likely blocked or rate limited');
-        this.saveFile('debug-blocked.html', html);
-        console.log('💾 Saved blocked response to data/debug-blocked.html');
-        console.log('\n❌ BLOCKING DETECTED:');
-        console.log(`   Status: BLOCKED`);
-        console.log(`   Response length: ${html.length} chars`);
-        console.log(`   Check data/debug-blocked.html for details`);
-        return;
-      }
-
-      // Check if page looks like FBref
-      const fbrefIndicators = ['fbref', 'FBref', 'sports-reference', 'matchlogs'];
-      const isFbref = fbrefIndicators.some(indicator =>
-        html.includes(indicator)
-      );
-
-      if (!isFbref) {
-        console.log('⚠️  Page doesn\'t look like FBref');
-        this.saveFile('debug-wrong-page.html', html.substring(0, 10000));
-        console.log('💾 Saved first 10k chars to data/debug-wrong-page.html');
-        console.log('\n⚠️  WRONG PAGE DETECTED:');
-        console.log(`   Expected: FBref page`);
-        console.log(`   Got: Unknown page type`);
-        console.log(`   Response length: ${html.length} chars`);
-      }
-
-      const matchLogs = this.parseStatsTable(html, TEST_STAT.key);
-
-      const result = {
-        teamId: TEST_TEAM.id,
-        teamName: TEST_TEAM.name,
-        statType: TEST_STAT.key,
-        season: SEASON,
-        url: url,
-        matchLogs,
-        scrapedAt: new Date().toISOString(),
-        success: matchLogs.length > 0
-      };
-
-      // Save full result
-      this.saveFile('debug-full-result.json', JSON.stringify(result, null, 2));
-      console.log('💾 Saved full result to data/debug-full-result.json');
-
-      console.log(`\n🎉 Debug completed!`);
-      console.log(`📊 Found ${matchLogs.length} match records`);
-
-      if (matchLogs.length > 0) {
-        console.log('✅ Sample record keys:', Object.keys(matchLogs[0]).slice(0, 8));
-        if (matchLogs[0].Date) console.log('✅ Sample date:', matchLogs[0].Date);
-        if (matchLogs[0].Opponent) console.log('✅ Sample opponent:', matchLogs[0].Opponent);
-        console.log('✅ Success! Data structure looks good');
-
-        // Output summary to console
-        console.log('\n📋 EXTRACTION SUMMARY:');
-        console.log(`   Team: ${TEST_TEAM.name}`);
-        console.log(`   Stat Type: ${TEST_STAT.name}`);
-        console.log(`   Total Records: ${matchLogs.length}`);
-        console.log(`   Columns: ${Object.keys(matchLogs[0]).length}`);
-        console.log(`   Status: SUCCESS ✅`);
-
-      } else {
-        console.log('❌ No data extracted');
-        console.log(`   Status: FAILED ❌`);
-        console.log('🔧 Check debug files in data/ folder');
-      }
-
-    } catch (error) {
-      console.error('💥 Debug scrape failed:', error);
-
-      if (error instanceof Error) {
-        console.error('Error details:', {
-          name: error.name,
-          message: error.message,
-          stack: error.stack?.split('\n').slice(0, 3)
-        });
-      }
     }
   }
+}
 }
 
 /* ------------------ Main Execution ------------------ */
