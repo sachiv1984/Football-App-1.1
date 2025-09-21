@@ -62,7 +62,8 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
     console.log('Page loaded');
 
     // Take a screenshot for debugging
-    await page.screenshot({ path: path.join(__dirname, '../debug_page.png'), fullPage: true });
+    const screenshotPath = path.join(__dirname, '../debug_page.png') as `${string}.png`;
+    await page.screenshot({ path: screenshotPath, fullPage: true });
     console.log('Screenshot saved to debug_page.png');
 
     // Check if we can find any tables at all
