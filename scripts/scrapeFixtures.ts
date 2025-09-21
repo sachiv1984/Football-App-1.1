@@ -131,7 +131,7 @@ async function scrapeAndUpload() {
 
     console.log('Uploading to Supabase...');
     const { error } = await supabase.from('fixtures').upsert(fixtures, {
-      onConflict: ['id'], // now uses unique primary key
+      onConflict: 'id', // now uses unique primary key
       defaultToNull: true,
     });
 
