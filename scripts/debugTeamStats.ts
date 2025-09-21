@@ -8,12 +8,6 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import * as cheerio from 'cheerio';
-import fetch from 'node-fetch';   // ensure fetch works in Node (you installed node-fetch)
-
-/* ------------------ Path Setup ------------------ */
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const DATA_DIR = path.join(__dirname, '..', 'data');
 
 /* ------------------ Configuration ------------------ */
 const FBREF_BASE_URL = 'https://fbref.com/en/squads';
@@ -62,204 +56,46 @@ const TEST_STAT = AVAILABLE_STATS[TEST_STAT_INDEX];
 
 /* ------------------ Debug Scraper ------------------ */
 class DebugScraper {
-  private ensureDataDir() {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
-      console.log(`📂 Created data directory: ${DATA_DIR}`);
-    }
-  }
 
-  private saveFile(filename: string, content: string) {
-    this.ensureDataDir();
-    const filePath = path.join(DATA_DIR, filename);
-    fs.writeFileSync(filePath, content, 'utf8');
+  private saveFile(filename: string, content: string): void {
+    const dataDir = path.join(process.cwd(), 'data');
+    fs.mkdirSync(dataDir, { recursive: true });
+    const filePath = path.join(dataDir, filename);
+    fs.writeFileSync(filePath, content);
     console.log(`💾 Saved file: ${filePath}`);
   }
 
   private buildUrl(team: any, statType: any): string {
     const teamNameSlug = team.name.replace(/\s+/g, '-').replace(/[^\w-]/g, '');
-    const url = `${FBREF_BASE_URL}/${team.fbrefId}/${SEASON}/matchlogs/c9/${statType.key}/${teamNameSlug}-Match-Logs-Premier-League`;
+    const url = `${FBREF_BASE_URL}/${team.fbrefId}/${SEASON}/matchlogs/all_comps/${statType.key}/${teamNameSlug}-Match-Logs-All-Competitions`;
     console.log('🔗 Built URL:', url);
     return url;
   }
 
   private parseStatsTable(html: string, statType: string): any[] {
-    // FBref often places the desired tables inside HTML comments. Remove comment delimiters
-    // so Cheerio can see them. This mirrors previous scraping patterns.
-    const cleanHtml = html.replace(/<!--/g, '').replace(/-->/g, '');
-    const $ = cheerio.load(cleanHtml);
-
-    console.log('📄 HTML length:', html.length);
-    console.log('📄 Clean HTML length (after uncomment):', cleanHtml.length);
-    console.log('🔍 Looking for stat type:', statType);
-
-    // Log all tables found on the page
-    console.log('\n📊 All tables found on page:');
-    const allTables = $('table');
-    console.log(`Found ${allTables.length} tables total`);
-
-    allTables.each((i: number, table: any) => {
-      const tableId = $(table).attr('id') || 'no-id';
-      const tableClass = $(table).attr('class') || 'no-class';
-      const rowCount = $(table).find('tr').length;
-      console.log(`  Table ${i + 1}: id="${tableId}", class="${tableClass}", rows=${rowCount}`);
-    });
+    const $ = cheerio.load(html);
 
     const matchLogs: any[] = [];
 
-    // Try multiple table selection strategies (include stats_ id pattern)
-    const tableSelectors = [
-      `#stats_${statType}_for`,            // e.g. stats_shooting_for
-      `#matchlogs_for_${statType}`,        // original pattern
-      `table[id*="matchlogs"]`,
-      `table[id*="${statType}"]`,
-      `table[id*="stats_${statType}"]`,
-      `table.stats_table`,
-      `div[id*="matchlogs"] table`,
-      'table'
-    ];
-
-    let selectedTable: any = null;
-    let usedSelector = '';
-
-    for (const selector of tableSelectors) {
-      console.log(`Trying selector: ${selector}`);
-      const found = $(selector);
-      console.log(`  Found ${found.length} matches`);
-
-      if (found.length > 0) {
-        if (selector === 'table') {
-          // For generic selectors, find the table with most data rows
-          let bestTable = found.first();
-          let maxRows = 0;
-
-          found.each((_: number, tableEl: any) => {
-            const table = $(tableEl);
-            const rows = table.find('tbody tr').length;
-            console.log(`    Table has ${rows} data rows`);
-            if (rows > maxRows) {
-              maxRows = rows;
-              bestTable = table;
-            }
-          });
-
-          if (maxRows > 0) {
-            selectedTable = bestTable;
-            usedSelector = `${selector} (${maxRows} rows)`;
-            break;
-          }
-        } else {
-          selectedTable = found.first();
-          usedSelector = selector;
-          break;
-        }
-      }
-    }
-
-    if (!selectedTable || selectedTable.length === 0) {
+    const table = $(`table[id*="${statType}"]`).first();
+    if (!table || table.length === 0) {
       console.log('❌ No suitable table found');
-      // Save the raw HTML for inspection (so you can examine in workflow artifacts)
-      this.saveFile('debug-page.html', html);
-      console.log('💾 Saved HTML to data/debug-page.html for inspection');
       return [];
     }
 
-    console.log(`✅ Using table with selector: ${usedSelector}`);
-
-    // Extract headers with detailed logging
     const headers: string[] = [];
-    console.log('\n📋 Extracting headers:');
-
-    // Try different header row strategies
-    const headerSelectors = [
-      'thead tr:last-child th',
-      'thead tr th',
-      'tr:first-child th',
-      'tr:first-child td'
-    ];
-
-    for (const headerSelector of headerSelectors) {
-      const headerCells = selectedTable.find(headerSelector);
-      console.log(`  Trying header selector: ${headerSelector} - found ${headerCells.length} cells`);
-
-      if (headerCells.length > 0) {
-        console.log(`  Using header selector: ${headerSelector}`);
-
-        headerCells.each((index: number, th: any) => {
-          const header = $(th).text().trim();
-          console.log(`    Header ${index}: "${header}"`);
-          if (header && header !== '') {
-            headers.push(header);
-          }
-        });
-        break;
-      }
-    }
-
-    if (headers.length === 0) {
-      console.log('❌ No headers found');
-      return [];
-    }
-
-    console.log(`✅ Found ${headers.length} headers:`, headers.slice(0, 10)); // Show first 10
-
-    // Extract data rows with detailed logging
-    console.log('\n📊 Extracting data rows:');
-
-    const dataRows = selectedTable.find('tbody tr');
-    console.log(`Found ${dataRows.length} potential data rows`);
-
-    dataRows.each((rowIndex: number, tr: any) => {
-      const row: Record<string, any> = {};
-      let hasData = false;
-
-      $(tr).find('td, th').each((cellIndex: number, cell: any) => {
-        const value = $(cell).text().trim();
-        const header = headers[cellIndex];
-
-        if (header && value !== '') {
-          row[header] = value;
-          hasData = true;
-        }
-      });
-
-      if (hasData && Object.keys(row).length > 0) {
-        matchLogs.push(row);
-
-        // Log first few rows for debugging
-        if (rowIndex < 3) {
-          console.log(`  Row ${rowIndex + 1}: ${Object.keys(row).length} fields`);
-          console.log(`    Sample data:`, Object.keys(row).slice(0, 5).map(key => `${key}: ${row[key]}`));
-        }
-      }
+    table.find('thead tr:last-child th').each((_: number, th: any) => {
+      headers.push($(th).text().trim());
     });
 
-    console.log(`✅ Extracted ${matchLogs.length} data rows`);
-
-    // Save sample data for inspection
-    if (matchLogs.length > 0) {
-      const sampleData = {
-        url: this.buildUrl(TEST_TEAM, TEST_STAT),
-        headers,
-        sampleRows: matchLogs.slice(0, 3),
-        totalRows: matchLogs.length,
-        allColumns: Object.keys(matchLogs[0])
-      };
-
-      this.saveFile('debug-sample-data.json', JSON.stringify(sampleData, null, 2));
-      console.log('💾 Saved sample data to data/debug-sample-data.json');
-      console.log('📊 Columns found:', Object.keys(matchLogs[0]).length);
-
-      // Output first few rows to console for immediate viewing
-      console.log('\n🔍 SAMPLE DATA (first 2 rows):');
-      console.log('Columns:', Object.keys(matchLogs[0]).join(', '));
-      matchLogs.slice(0, 2).forEach((row, i) => {
-        console.log(`\nRow ${i + 1}:`);
-        Object.entries(row).slice(0, 8).forEach(([key, value]) => {
-          console.log(`  ${key}: ${value}`);
-        });
+    table.find('tbody tr').each((_: number, tr: any) => {
+      const row: Record<string, any> = {};
+      $(tr).find('td, th').each((i: number, cell: any) => {
+        const value = $(cell).text().trim();
+        if (headers[i]) row[headers[i]] = value;
       });
-    }
+      if (Object.keys(row).length > 0) matchLogs.push(row);
+    });
 
     return matchLogs;
   }
@@ -272,64 +108,16 @@ class DebugScraper {
 
       const response = await fetch(url, {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.9',
-          'Cache-Control': 'no-cache',
+          'User-Agent': 'Mozilla/5.0',
+          'Accept': 'text/html',
         }
       });
-
-      console.log(`📡 Response status: ${response.status} ${response.statusText}`);
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       const html = await response.text();
-      console.log(`📄 Received HTML (${html.length} characters)`);
-
-      // Check for common blocking patterns
-      const blockingPatterns = [
-        'Access Denied',
-        '403 Forbidden',
-        'rate limit',
-        'Rate Limited',
-        'blocked',
-        'captcha',
-        'security check'
-      ];
-
-      const isBlocked = blockingPatterns.some(pattern =>
-        html.toLowerCase().includes(pattern.toLowerCase())
-      );
-
-      if (isBlocked) {
-        console.log('🚫 Likely blocked or rate limited');
-        this.saveFile('debug-blocked.html', html);
-        console.log('💾 Saved blocked response to data/debug-blocked.html');
-        console.log('\n❌ BLOCKING DETECTED:');
-        console.log(`   Status: BLOCKED`);
-        console.log(`   Response length: ${html.length} chars`);
-        console.log(`   Check data/debug-blocked.html for details`);
-        return;
-      }
-
-      // Check if page looks like FBref
-      const fbrefIndicators = ['fbref', 'FBref', 'sports-reference', 'matchlogs'];
-      const isFbref = fbrefIndicators.some(indicator =>
-        html.includes(indicator)
-      );
-
-      if (!isFbref) {
-        console.log('⚠️  Page doesn\'t look like FBref');
-        this.saveFile('debug-wrong-page.html', html.substring(0, 10000));
-        console.log('💾 Saved first 10k chars to data/debug-wrong-page.html');
-        console.log('\n⚠️  WRONG PAGE DETECTED:');
-        console.log(`   Expected: FBref page`);
-        console.log(`   Got: Unknown page type`);
-        console.log(`   Response length: ${html.length} chars`);
-      }
-
       const matchLogs = this.parseStatsTable(html, TEST_STAT.key);
 
       const result = {
@@ -337,49 +125,23 @@ class DebugScraper {
         teamName: TEST_TEAM.name,
         statType: TEST_STAT.key,
         season: SEASON,
-        url: url,
+        url,
         matchLogs,
         scrapedAt: new Date().toISOString(),
         success: matchLogs.length > 0
       };
 
-      // Save full result
-      this.saveFile('debug-full-result.json', JSON.stringify(result, null, 2));
-      console.log('💾 Saved full result to data/debug-full-result.json');
+      // Build dynamic filename
+      const statName =
+        TEST_STAT.key.charAt(0).toUpperCase() + TEST_STAT.key.slice(1);
+      const filename = `Team${statName}Stats.json`;
 
-      console.log(`\n🎉 Debug completed!`);
-      console.log(`📊 Found ${matchLogs.length} match records`);
+      this.saveFile(filename, JSON.stringify(result, null, 2));
 
-      if (matchLogs.length > 0) {
-        console.log('✅ Sample record keys:', Object.keys(matchLogs[0]).slice(0, 8));
-        if (matchLogs[0].Date) console.log('✅ Sample date:', matchLogs[0].Date);
-        if (matchLogs[0].Opponent) console.log('✅ Sample opponent:', matchLogs[0].Opponent);
-        console.log('✅ Success! Data structure looks good');
-
-        // Output summary to console
-        console.log('\n📋 EXTRACTION SUMMARY:');
-        console.log(`   Team: ${TEST_TEAM.name}`);
-        console.log(`   Stat Type: ${TEST_STAT.name}`);
-        console.log(`   Total Records: ${matchLogs.length}`);
-        console.log(`   Columns: ${Object.keys(matchLogs[0]).length}`);
-        console.log(`   Status: SUCCESS ✅`);
-
-      } else {
-        console.log('❌ No data extracted');
-        console.log(`   Status: FAILED ❌`);
-        console.log('🔧 Check debug files in data/ folder');
-      }
+      console.log(`🎉 Debug completed! Extracted ${matchLogs.length} rows`);
 
     } catch (error) {
       console.error('💥 Debug scrape failed:', error);
-
-      if (error instanceof Error) {
-        console.error('Error details:', {
-          name: error.name,
-          message: error.message,
-          stack: error.stack?.split('\n').slice(0, 3)
-        });
-      }
     }
   }
 }
@@ -387,32 +149,11 @@ class DebugScraper {
 /* ------------------ Main Execution ------------------ */
 async function main() {
   console.log('🐛 Starting debug scraper...');
-  console.log(`\n📋 Current test configuration:`);
-  console.log(`   Team: ${TEST_TEAM.name} (index ${TEST_TEAM_INDEX})`);
-  console.log(`   Stat: ${TEST_STAT.name} (index ${TEST_STAT_INDEX})`);
-
-  console.log(`\n📋 Available teams (change TEST_TEAM_INDEX):`);
-  AVAILABLE_TEAMS.forEach((team, index) => {
-    const marker = index === TEST_TEAM_INDEX ? '→' : ' ';
-    console.log(`   ${marker} ${index}: ${team.name}`);
-  });
-
-  console.log(`\n📋 Available stats (change TEST_STAT_INDEX):`);
-  AVAILABLE_STATS.forEach((stat, index) => {
-    const marker = index === TEST_STAT_INDEX ? '→' : ' ';
-    console.log(`   ${marker} ${index}: ${stat.name}`);
-  });
-
-  console.log(`\n🔄 Starting scrape test...`);
+  console.log(`   Team: ${TEST_TEAM.name}`);
+  console.log(`   Stat: ${TEST_STAT.name}`);
 
   const scraper = new DebugScraper();
   await scraper.debugScrape();
-
-  console.log('\n📋 Next steps:');
-  console.log('1. If successful, apply fixes to main scraper');
-  console.log('2. If no data, check debug-*.html files in data/ folder');
-  console.log('3. Change TEST_TEAM_INDEX/TEST_STAT_INDEX to test others');
-  console.log('4. Test different combinations before running full scraper');
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
