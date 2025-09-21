@@ -407,18 +407,32 @@ function saveToFile(fixtures: RawFixture[]) {
   console.log(`✅ Saved ${fixtures.length} fixtures to ${OUTPUT_FILE}`);
 }
 
-// ---------- Supabase upsert ----------
+// ---------- Supabase upsert (main fixtures) ----------
 async function saveToSupabase(fixtures: RawFixture[]) {
-  console.log(`Upserting ${fixtures.length} fixtures to Supabase...`);
+  console.log(`Upserting ${fixtures.length} fixtures to Supabase (fixtures)...`);
   const { data, error } = await supabase
     .from('fixtures')
     .upsert(fixtures, { onConflict: 'id' })
     .select();
 
   if (error) {
-    console.error('❌ Supabase error:', error);
+    console.error('❌ Supabase error (fixtures):', error);
   } else {
-    console.log(`✅ Successfully upserted ${data?.length || 0} fixtures`);
+    console.log(`✅ Successfully upserted ${data?.length || 0} fixtures into fixtures`);
+  }
+}
+
+// ---------- Supabase insert (raw scraped fixtures) ----------
+async function saveToSupabaseScraped(fixtures: RawFixture[]) {
+  console.log(`Inserting ${fixtures.length} raw fixtures into Supabase (scraped_fixtures)...`);
+  const { data, error } = await supabase
+    .from('scraped_fixtures')
+    .insert(fixtures);
+
+  if (error) {
+    console.error('❌ Supabase error (scraped_fixtures):', error);
+  } else {
+    console.log(`✅ Successfully inserted ${data?.length || 0} raw fixtures into scraped_fixtures`);
   }
 }
 
@@ -435,6 +449,7 @@ async function saveToSupabase(fixtures: RawFixture[]) {
 
     saveToFile(fixtures);
     await saveToSupabase(fixtures);
+    await saveToSupabaseScraped(fixtures); // 👈 NEW LINE
   } catch (err) {
     console.error('Scraper error:', err);
   }
