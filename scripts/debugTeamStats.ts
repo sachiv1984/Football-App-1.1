@@ -356,6 +356,7 @@ class DebugScraper {
         });
       }
     }
+  }
 }
 
 /* ------------------ Main Execution ------------------ */
