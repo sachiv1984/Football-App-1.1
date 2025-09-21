@@ -256,19 +256,18 @@ class ScraperManager {
   private statToScrape: typeof AVAILABLE_STATS[0];
 
   constructor() {
-    this.scraper = new DebugScraper();
-    this.statToScrape = AVAILABLE_STATS[TEST_STAT_INDEX];
+  this.scraper = new DebugScraper();
+  this.statToScrape = AVAILABLE_STATS[TEST_STAT_INDEX];
 
-    if (SCRAPE_MODE === 'all') {
-      this.teamsToScrape = AVAILABLE_TEAMS;
-    } else {
-      if (SINGLE_TEAM_INDEX < 0 || SINGLE_TEAM_INDEX >= AVAILABLE_TEAMS.length) {
-        throw new Error(`SINGLE_TEAM_INDEX ${SINGLE_TEAM_INDEX} is out of bounds`);
-      }
-      this.teamsToScrape = [AVAILABLE_TEAMS[SINGLE_TEAM_INDEX]]; // Wrap in array explicitly
+  if (SCRAPE_MODE === 'all') {
+    this.teamsToScrape = AVAILABLE_TEAMS;
+  } else {
+    if (SINGLE_TEAM_INDEX < 0 || SINGLE_TEAM_INDEX >= AVAILABLE_TEAMS.length) {
+      throw new Error(`SINGLE_TEAM_INDEX ${SINGLE_TEAM_INDEX} is out of bounds`);
     }
+    this.teamsToScrape = [AVAILABLE_TEAMS[SINGLE_TEAM_INDEX]];
   }
-
+}
   async run() {
     console.log(`\n🔄 Starting scraping in mode: ${SCRAPE_MODE}`);
     console.log(`📋 Total teams: ${this.teamsToScrape.length}\n`);
