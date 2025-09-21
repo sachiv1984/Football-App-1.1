@@ -1,4 +1,20 @@
-import puppeteer from 'puppeteer';
+// Wait a bit longer and check if content is loading dynamically
+    console.log('Waiting for content to fully load...');
+    await page.waitForTimeout(3000);
+    
+    // Check if there are any loading indicators or if content changed
+    const finalRowCount = await page.$eval(`${tableSelector} tbody tr`, (rows: Element[]) => rows.length);
+    console.log(`Final row count after waiting: ${finalRowCount}`);
+
+    // Log the HTML structure for debugging
+    const tableHTML = await page.$eval(tableSelector, (el: Element) => el.outerHTML.substring(0, 1500));
+    console.log('Table HTML preview:', tableHTML);    // Log the HTML structure for debugging
+    const tableHTML = await page.$eval(tableSelector, (el: Element) => el.outerHTML.substring(0, 1000));
+    console.log('Table HTML preview:', tableHTML);
+
+    // Get row count for debugging
+    const rowCount = await page.$eval(`${tableSelector} tbody tr`, (rows: Element[]) => rows.length);
+    console.log(`Found ${rowCount} rows in selected table`);import puppeteer from 'puppeteer';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -130,9 +146,46 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
       }
     }
 
-    // Log the HTML structure for debugging
-    const tableHTML = await page.$eval(tableSelector, (el: Element) => el.outerHTML.substring(0, 1000));
-    console.log('Table HTML preview:', tableHTML);
+    // Check what season we're looking at
+    const seasonInfo = await page.$eval(tableSelector, (el: Element) => {
+      const caption = el.querySelector('caption');
+      return caption ? caption.textContent?.trim() || '' : '';
+    });
+    console.log('Season info from table:', seasonInfo);
+
+    // If we're looking at 2025-2026 (future season), try to find 2024-2025 table
+    if (seasonInfo.includes('2025-2026')) {
+      console.log('Found 2025-2026 season table, looking for current season...');
+      
+      // Look for a season selector or try to find 2024-2025 table
+      const allScheduleTables = await page.$('table[id*="sched_"]');
+      console.log(`Found ${allScheduleTables.length} schedule tables`);
+      
+      for (let i = 0; i < allScheduleTables.length; i++) {
+        const tableInfo = await page.evaluate((index: number) => {
+          const tables = document.querySelectorAll('table[id*="sched_"]');
+          if (tables[index]) {
+            const caption = tables[index].querySelector('caption');
+            const id = tables[index].id;
+            return {
+              id,
+              caption: caption ? caption.textContent?.trim() || '' : '',
+              rowCount: tables[index].querySelectorAll('tbody tr').length
+            };
+          }
+          return null;
+        }, i);
+        
+        console.log(`Table ${i}:`, tableInfo);
+        
+        // If we find a table with 2024-2025 or one with actual fixtures, use that
+        if (tableInfo && (tableInfo.caption.includes('2024-2025') || tableInfo.rowCount > 10)) {
+          tableSelector = `#${tableInfo.id}`;
+          console.log(`Switching to table: ${tableSelector}`);
+          break;
+        }
+      }
+    }
 
     // Get table headers to understand the structure
     const headers = await page.$$eval(`${tableSelector} thead th`, (ths: Element[]) => 
@@ -162,8 +215,7 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
         const rows = Array.from(table.querySelectorAll('tbody tr'));
         console.log(`Processing ${rows.length} rows`);
         
-        // Track current matchweek as we iterate through rows
-        let currentMatchweek: number | undefined;
+        // Remove the currentMatchweek tracking since it's not needed anymore
         
         const parseDateTime = (dateStr: string, timeStr: string): string | null => {
           try {
@@ -217,28 +269,28 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
 
         const results = rows
           .map((row: Element, index: number) => {
-            // Check if this row is a matchweek header row
-            const matchweekHeader = row.querySelector('th[data-stat="gameweek"]');
-            if (matchweekHeader) {
-              const matchweekText = matchweekHeader.textContent?.trim();
-              if (matchweekText) {
-                currentMatchweek = parseInt(matchweekText, 10);
-                if (debug) {
-                  console.log(`Found matchweek header: ${currentMatchweek}`);
-                }
+            // Log each row's HTML for the first few rows to understand structure
+            if (debug && index < 10) {
+              console.log(`\n=== Row ${index} ===`);
+              console.log('HTML:', row.outerHTML.substring(0, 300) + '...');
+              console.log('Tag:', row.tagName);
+              console.log('Classes:', row.className);
+              
+              // Check if this might be a header or separator row
+              const cells = row.querySelectorAll('td, th');
+              console.log(`Cell count: ${cells.length}`);
+              
+              if (cells.length > 0) {
+                Array.from(cells).slice(0, 5).forEach((cell, cellIndex) => {
+                  console.log(`  Cell ${cellIndex}: "${cell.textContent?.trim()}" [${cell.tagName}] [data-stat="${cell.getAttribute('data-stat')}"]`);
+                });
               }
-              return null; // Skip header rows
-            }
-
-            // Log each row's HTML for the first few rows
-            if (debug && index < 5) {
-              console.log(`Row ${index} HTML:`, row.outerHTML.substring(0, 500));
             }
 
             const getText = (selector: string) => {
               const el = row.querySelector(selector);
               const text = el ? el.textContent?.trim() || '' : '';
-              if (debug && index < 5 && !row.querySelector('th[data-stat="gameweek"]')) {
+              if (debug && index < 10) {
                 console.log(`  ${selector}: "${text}"`);
               }
               return text;
@@ -255,16 +307,35 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
             const awayTeam = normalizeTeamName(getText('td[data-stat="away_team"]'));
             const scoreStr = getText('td[data-stat="score"]');
             const venue = getText('td[data-stat="venue"]');
+            const matchweekStr = getText('td[data-stat="gameweek"]'); // Now it's a regular column
             const matchurl = getLink('td[data-stat="match_report"] a');
 
             // If no data-stat attributes, try alternative selectors
             if (!dateStr && !homeTeam && !awayTeam) {
-              if (debug && index < 5 && !row.querySelector('th[data-stat="gameweek"]')) {
+              if (debug && index < 10) {
                 console.log(`Row ${index}: No data-stat attributes found, trying alternative selectors...`);
               }
+              
+              // Check if this is a spacer row, header row, or empty row
+              const allText = row.textContent?.trim() || '';
+              const cellCount = row.querySelectorAll('td, th').length;
+              
+              if (debug && index < 10) {
+                console.log(`  All text: "${allText}"`);
+                console.log(`  Cell count: ${cellCount}`);
+              }
+              
+              // Skip rows that are clearly not fixture data
+              if (cellCount === 0 || allText === '' || allText.length < 10) {
+                if (debug && index < 10) {
+                  console.log(`  Skipping empty/header row`);
+                }
+                return null;
+              }
+              
               // Try by column position (this is brittle but sometimes necessary)
               const cells = row.querySelectorAll('td');
-              if (debug && index < 5 && !row.querySelector('th[data-stat="gameweek"]')) {
+              if (debug && index < 10) {
                 console.log(`  Found ${cells.length} cells`);
                 Array.from(cells).forEach((cell: Element, i: number) => {
                   console.log(`    Cell ${i}: "${cell.textContent?.trim()}" [data-stat="${cell.getAttribute('data-stat')}"]`);
@@ -272,22 +343,22 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
               }
             }
 
-            // Debug current matchweek
-            if (debug && index < 5 && !row.querySelector('th[data-stat="gameweek"]')) {
-              console.log(`  Current matchweek: ${currentMatchweek}`);
+            // Debug matchweek parsing
+            if (debug && index < 10) {
+              console.log(`  Matchweek: "${matchweekStr}"`);
             }
 
             if (!homeTeam || !awayTeam) {
-              if (debug && index < 5 && !row.querySelector('th[data-stat="gameweek"]')) {
-                console.log(`Row ${index}: Missing team data, skipping`);
+              if (debug && index < 10) {
+                console.log(`Row ${index}: Missing team data (home: "${homeTeam}", away: "${awayTeam}"), skipping`);
               }
               return null;
             }
 
             const datetimeIso = parseDateTime(dateStr, timeStr);
             if (!datetimeIso) {
-              if (debug && index < 5 && !row.querySelector('th[data-stat="gameweek"]')) {
-                console.log(`Row ${index}: Invalid datetime, skipping`);
+              if (debug && index < 10) {
+                console.log(`Row ${index}: Invalid datetime (date: "${dateStr}", time: "${timeStr}"), skipping`);
               }
               return null;
             }
@@ -308,6 +379,8 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
               status = 'postponed';
             }
 
+            const matchweekNum = matchweekStr ? parseInt(matchweekStr, 10) : undefined;
+
             const fixture = {
               id: `fbref-${homeTeam}-${awayTeam}-${dateStr}`.replace(/\s+/g, '-'),
               datetime: datetimeIso,
@@ -318,10 +391,10 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
               status,
               matchurl,
               venue,
-              matchweek: currentMatchweek,
+              matchweek: matchweekNum,
             };
 
-            if (debug && index < 5 && !row.querySelector('th[data-stat="gameweek"]')) {
+            if (debug && index < 10) {
               console.log(`Row ${index} parsed:`, fixture);
             }
 
