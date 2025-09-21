@@ -236,31 +236,6 @@ class DebugScraper {
 
     console.log(`✅ Extracted ${matchLogs.length} data rows`);
 
-    // Save sample data for inspection
-    if (matchLogs.length > 0) {
-      const sampleData = {
-        url: this.buildUrl(TEST_TEAM, TEST_STAT),
-        headers,
-        sampleRows: matchLogs.slice(0, 3),
-        totalRows: matchLogs.length,
-        allColumns: Object.keys(matchLogs[0])
-      };
-
-      this.saveFile('debug-sample-data.json', JSON.stringify(sampleData, null, 2));
-      console.log('💾 Saved sample data to data/debug-sample-data.json');
-      console.log('📊 Columns found:', Object.keys(matchLogs[0]).length);
-
-      // Output first few rows to console for immediate viewing
-      console.log('\n🔍 SAMPLE DATA (first 2 rows):');
-      console.log('Columns:', Object.keys(matchLogs[0]).join(', '));
-      matchLogs.slice(0, 2).forEach((row, i) => {
-        console.log(`\nRow ${i + 1}:`);
-        Object.entries(row).slice(0, 8).forEach(([key, value]) => {
-          console.log(`  ${key}: ${value}`);
-        });
-      });
-    }
-
     return matchLogs;
   }
 
@@ -382,7 +357,7 @@ class DebugScraper {
       }
     }
   }
-}
+
 
 /* ------------------ Main Execution ------------------ */
 async function main() {
