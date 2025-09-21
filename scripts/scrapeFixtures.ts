@@ -1,7 +1,7 @@
 // scripts/scrapeFixtures.ts
 /**
  * ===============================================================
- * Production-ready FBref Fixtures Scraper - FIXED VERSION
+ * Production-ready FBref Fixtures Scraper
  *
  * Key fixes:
  * 1. Proper datetime parsing and formatting for PostgreSQL
@@ -199,9 +199,10 @@ function cleanRow(row: RawRow, rowIndex: number): Fixture | null {
       matchurl = homeCell.link;
     }
     
-    // Generate unique ID
-    const cleanHometeam = hometeam.replace(/\s+/g, '_');
-    const cleanAwayteam = awayteam.replace(/\s+/g, '_');
+    // Generate CONSISTENT unique ID that doesn't change when match details update
+    // Use a combination that will remain the same regardless of status/score changes
+    const cleanHometeam = hometeam.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+    const cleanAwayteam = awayteam.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
     const dateId = datetime.split('T')[0]; // Use date part only for ID
     const id = `${dateId}_${cleanHometeam}_vs_${cleanAwayteam}`;
     
@@ -320,11 +321,13 @@ async function scrapeAndUpload() {
       
       console.log('Supabase connection successful, proceeding with upsert...');
       
+      // The upsert will automatically handle updates to existing records
+      // based on the primary key (id). This prevents duplicates.
       const { data, error } = await supabase
         .from('fixtures')
         .upsert(fixtures, {
-          onConflict: 'id',
-          defaultToNull: false,
+          onConflict: 'id', // This tells Supabase to update existing records with same ID
+          ignoreDuplicates: false, // We want to update, not ignore
         })
         .select(); // This will return the upserted data
 
