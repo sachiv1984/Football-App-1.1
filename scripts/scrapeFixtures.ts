@@ -1,5 +1,4 @@
 // scripts/scrapeFixtures.ts
-
 /**
  * ===============================================================
  * Production-ready FBref Fixtures Scraper
@@ -23,7 +22,8 @@ import * as cheerio from 'cheerio';
 
 /* ------------------ Configuration Section ------------------ */
 // FBref URL for Premier League fixtures
-const FBREF_URL = 'https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures';
+const FBREF_URL =
+  'https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures';
 
 // JSON file path (saved locally)
 const JSON_PATH = path.join(process.cwd(), 'data', 'fixtures.json');
@@ -41,7 +41,7 @@ interface CellData {
 }
 
 // Raw row from the table (array of strings or CellData)
-interface RawRow extends Array<string | CellData> {}
+type RawRow = (string | CellData)[];
 
 // Cleaned fixture object to match Supabase schema
 interface Fixture {
@@ -123,9 +123,9 @@ async function scrapeAndUpload() {
     const table = $('table#sched_2025-2026_9_1');
 
     const rows: RawRow[] = [];
-    table.find('tbody tr').each((_: number, tr: cheerio.Element) => {
-    const row: RawRow = [];
-    $(tr).find('td, th').each((_: number, cell: cheerio.Element) => {
+    table.find('tbody tr').each((_, tr) => {
+      const row: RawRow = [];
+      $(tr).find('td, th').each((_, cell) => {
         const $cell = $(cell);
         const text = $cell.text().trim();
         const link = $cell.find('a').attr('href');
@@ -147,7 +147,8 @@ async function scrapeAndUpload() {
 
     console.log('Uploading to Supabase...');
     const { error } = await supabase.from('fixtures').upsert(fixtures, {
-      onConflict: ['datetime'] as unknown as string, // Use datetime as conflict key
+      onConflict: 'datetime', // conflict key must be a single string column
+      defaultToNull: true,
     });
     if (error) throw error;
 
