@@ -146,16 +146,19 @@ async function scrapeAndUpload() {
     fs.writeFileSync(JSON_PATH, JSON.stringify(fixtures, null, 2), 'utf-8');
 
     console.log('Uploading to Supabase...');
-    const { error } = await supabase.from('fixtures').upsert(fixtures, {
-      onConflict: 'datetime', // conflict key must be a single string column
-      defaultToNull: true,
-    });
-    if (error) throw error;
 
-    console.log('Scrape and upload complete!');
-  } catch (err) {
-    console.error('Error:', err);
-  }
+// Composite conflict key: datetime + hometeam + awayteam
+// Make sure your Supabase table has a UNIQUE constraint on these 3 columns
+const { error } = await supabase.from('fixtures').upsert(fixtures, {
+  onConflict: ['datetime', 'hometeam', 'awayteam'],
+  defaultToNull: true, // optional, ensures missing fields default to null
+});
+
+if (error) {
+  console.error('Supabase upsert error:', error);
+} else {
+  console.log(`Successfully upserted ${fixtures.length} fixtures.`);
+}
 }
 
 /* ------------------ Run Script ------------------ */
