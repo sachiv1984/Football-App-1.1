@@ -31,8 +31,9 @@ jobs:
         run: node dist/debugTeamStats.js
 
       - name: Upload debug data
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: fbref-debug-data
           path: data/*
+          overwrite: true
 
