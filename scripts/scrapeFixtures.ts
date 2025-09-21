@@ -134,10 +134,29 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
     const tableHTML = await page.$eval(tableSelector, el => el.outerHTML.substring(0, 1000));
     console.log('Table HTML preview:', tableHTML);
 
+    // Get table headers to understand the structure
+    const headers = await page.$eval(`${tableSelector} thead th`, ths => 
+      ths.map(th => ({
+        text: th.textContent?.trim() || '',
+        dataStat: th.getAttribute('data-stat') || '',
+        index: Array.from(th.parentElement?.children || []).indexOf(th)
+      }))
+    );
+    console.log('Table headers:', headers);
+
+    // Find matchweek column index
+    const matchweekHeader = headers.find(h => 
+      h.text.toLowerCase().includes('week') || 
+      h.text.toLowerCase().includes('round') ||
+      h.dataStat.includes('week') ||
+      h.dataStat.includes('round')
+    );
+    console.log('Matchweek header found:', matchweekHeader);
+
     // Extract fixture data with enhanced debugging
-    const fixtures: RawFixture[] = await page.$$eval(
+    const fixtures: RawFixture[] = await page.$eval(
       `${tableSelector} tbody tr`,
-      (rows, debug) => {
+      (rows, debug, matchweekHeaderInfo) => {
         console.log(`Processing ${rows.length} rows`);
         
         const parseDateTime = (dateStr: string, timeStr: string): string | null => {
@@ -192,15 +211,28 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
 
         const results = rows
           .map((row, index) => {
+            // Check if this row is a matchweek header row
+            const matchweekHeader = row.querySelector('th[data-stat="gameweek"]');
+            if (matchweekHeader) {
+              const matchweekText = matchweekHeader.textContent?.trim();
+              if (matchweekText) {
+                currentMatchweek = parseInt(matchweekText, 10);
+                if (debug) {
+                  console.log(`Found matchweek header: ${currentMatchweek}`);
+                }
+              }
+              return null; // Skip header rows
+            }
+
             // Log each row's HTML for the first few rows
-            if (debug && index < 3) {
+            if (debug && index < 5) {
               console.log(`Row ${index} HTML:`, row.outerHTML.substring(0, 500));
             }
 
             const getText = (selector: string) => {
               const el = row.querySelector(selector);
               const text = el ? el.textContent?.trim() || '' : '';
-              if (debug && index < 3) {
+              if (debug && index < 5 && !row.querySelector('th[data-stat="gameweek"]')) {
                 console.log(`  ${selector}: "${text}"`);
               }
               return text;
@@ -217,26 +249,34 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
             const awayTeam = normalizeTeamName(getText('td[data-stat="away_team"]'));
             const scoreStr = getText('td[data-stat="score"]');
             const venue = getText('td[data-stat="venue"]');
-            const matchweekStr = getText('td[data-stat="gameweek"]');
+            
+            // Use the current matchweek from the most recent header
+            const matchweek = currentMatchweek;
+            
             const matchurl = getLink('td[data-stat="match_report"] a');
 
             // If no data-stat attributes, try alternative selectors
             if (!dateStr && !homeTeam && !awayTeam) {
-              if (debug && index < 3) {
+              if (debug && index < 5 && !row.querySelector('th[data-stat="gameweek"]')) {
                 console.log(`Row ${index}: No data-stat attributes found, trying alternative selectors...`);
               }
               // Try by column position (this is brittle but sometimes necessary)
               const cells = row.querySelectorAll('td');
-              if (debug && index < 3) {
+              if (debug && index < 5 && !row.querySelector('th[data-stat="gameweek"]')) {
                 console.log(`  Found ${cells.length} cells`);
                 cells.forEach((cell, i) => {
-                  console.log(`    Cell ${i}: "${cell.textContent?.trim()}"`);
+                  console.log(`    Cell ${i}: "${cell.textContent?.trim()}" [data-stat="${cell.getAttribute('data-stat')}"]`);
                 });
               }
             }
 
+            // Debug matchweek parsing
+            if (debug && index < 5 && !row.querySelector('th[data-stat="gameweek"]')) {
+              console.log(`  Current matchweek: ${matchweek}`);
+            }
+
             if (!homeTeam || !awayTeam) {
-              if (debug && index < 3) {
+              if (debug && index < 5 && !row.querySelector('th[data-stat="gameweek"]')) {
                 console.log(`Row ${index}: Missing team data, skipping`);
               }
               return null;
@@ -244,7 +284,7 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
 
             const datetimeIso = parseDateTime(dateStr, timeStr);
             if (!datetimeIso) {
-              if (debug && index < 3) {
+              if (debug && index < 5 && !row.querySelector('th[data-stat="gameweek"]')) {
                 console.log(`Row ${index}: Invalid datetime, skipping`);
               }
               return null;
@@ -281,7 +321,7 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
               matchweek,
             };
 
-            if (debug && index < 3) {
+            if (debug && index < 5 && !row.querySelector('th[data-stat="gameweek"]')) {
               console.log(`Row ${index} parsed:`, fixture);
             }
 
@@ -292,7 +332,8 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
         console.log(`Filtered results: ${results.length} fixtures`);
         return results;
       },
-      true // Pass debug flag
+      true, // Pass debug flag
+      matchweekHeader // Pass matchweek header info
     );
 
     console.log(`✅ Scraped ${fixtures.length} fixtures`);
