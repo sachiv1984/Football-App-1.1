@@ -255,11 +255,24 @@ class ScraperManager {
   private teamsToScrape: typeof AVAILABLE_TEAMS;
   private statToScrape: typeof AVAILABLE_STATS[0];
 
-  constructor() {
+// Define allowed modes as a constant object
+const SCRAPE_MODES = {
+  SINGLE: 'single',
+  ALL: 'all',
+} as const;
+
+// Type of SCRAPE_MODE is now exactly 'single' | 'all'
+type ScrapeMode = typeof SCRAPE_MODES[keyof typeof SCRAPE_MODES];
+
+// Set the mode
+const SCRAPE_MODE: ScrapeMode = SCRAPE_MODES.SINGLE; // or SCRAPE_MODES.ALL
+
+// Use in constructor
+constructor() {
   this.scraper = new DebugScraper();
   this.statToScrape = AVAILABLE_STATS[TEST_STAT_INDEX];
 
-  if (SCRAPE_MODE === 'all') {
+  if (SCRAPE_MODE === SCRAPE_MODES.ALL) {
     this.teamsToScrape = AVAILABLE_TEAMS;
   } else {
     if (SINGLE_TEAM_INDEX < 0 || SINGLE_TEAM_INDEX >= AVAILABLE_TEAMS.length) {
@@ -268,6 +281,7 @@ class ScraperManager {
     this.teamsToScrape = [AVAILABLE_TEAMS[SINGLE_TEAM_INDEX]];
   }
 }
+
   async run() {
     console.log(`\n🔄 Starting scraping in mode: ${SCRAPE_MODE}`);
     console.log(`📋 Total teams: ${this.teamsToScrape.length}\n`);
