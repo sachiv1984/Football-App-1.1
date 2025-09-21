@@ -75,11 +75,10 @@ class DebugScraper {
     const allTables = $('table');
     console.log(`Found ${allTables.length} tables total`);
     
-    allTables.each(function(i) {
-      const table = $(this);
-      const tableId = table.attr('id') || 'no-id';
-      const tableClass = table.attr('class') || 'no-class';
-      const rowCount = table.find('tr').length;
+    allTables.each((i: number, table: any) => {
+      const tableId = $(table).attr('id') || 'no-id';
+      const tableClass = $(table).attr('class') || 'no-class';
+      const rowCount = $(table).find('tr').length;
       console.log(`  Table ${i + 1}: id="${tableId}", class="${tableClass}", rows=${rowCount}`);
     });
 
@@ -109,8 +108,8 @@ class DebugScraper {
           let bestTable = found.first();
           let maxRows = 0;
           
-          found.each(function() {
-            const table = $(this);
+          found.each((_: number, tableEl: any) => {
+            const table = $(tableEl);
             const rows = table.find('tbody tr').length;
             console.log(`    Table has ${rows} data rows`);
             if (rows > maxRows) {
@@ -161,8 +160,8 @@ class DebugScraper {
       if (headerCells.length > 0) {
         console.log(`  Using header selector: ${headerSelector}`);
         
-        headerCells.each(function(index) {
-          const header = $(this).text().trim();
+        headerCells.each((index: number, th: any) => {
+          const header = $(th).text().trim();
           console.log(`    Header ${index}: "${header}"`);
           if (header && header !== '') {
             headers.push(header);
@@ -185,13 +184,12 @@ class DebugScraper {
     const dataRows = selectedTable.find('tbody tr');
     console.log(`Found ${dataRows.length} potential data rows`);
 
-    dataRows.each(function(rowIndex) {
-      const tr = $(this);
+    dataRows.each((rowIndex: number, tr: any) => {
       const row: Record<string, any> = {};
       let hasData = false;
 
-      tr.find('td, th').each(function(cellIndex) {
-        const value = $(this).text().trim();
+      $(tr).find('td, th').each((cellIndex: number, cell: any) => {
+        const value = $(cell).text().trim();
         const header = headers[cellIndex];
         
         if (header && value !== '') {
