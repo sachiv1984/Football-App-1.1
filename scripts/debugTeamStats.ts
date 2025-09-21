@@ -78,7 +78,7 @@ class DebugScraper {
 
   private buildUrl(team: any, statType: any): string {
     const teamNameSlug = team.name.replace(/\s+/g, '-').replace(/[^\w-]/g, '');
-    const url = `${FBREF_BASE_URL}/${team.fbrefId}/${SEASON}/matchlogs/all_comps/${statType.key}/${teamNameSlug}-Match-Logs-All-Competitions`;
+    const url = `${FBREF_BASE_URL}/${team.fbrefId}/${SEASON}/matchlogs/c9/${statType.key}/${teamNameSlug}-Match-Logs-Premier-League`;
     console.log('🔗 Built URL:', url);
     return url;
   }
