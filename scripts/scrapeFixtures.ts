@@ -47,8 +47,15 @@ const LEAGUE_FIXTURES_URL =
 async function scrapeFixtures(): Promise<RawFixture[]> {
   console.log('Launching Puppeteer...');
   const browser = await puppeteer.launch({
-    headless: false, // Set to false for debugging
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    headless: true, // Must be true for CI/server environments
+    args: [
+      '--no-sandbox', 
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      '--disable-web-security',
+      '--disable-features=VizDisplayCompositor'
+    ],
   });
 
   try {
@@ -297,9 +304,8 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
 
     return fixtures;
   } finally {
-    // Keep browser open for debugging if needed
-    // await browser.close();
-    console.log('Browser left open for debugging. Close manually when done.');
+    await browser.close();
+    console.log('Browser closed.');
   }
 }
 
