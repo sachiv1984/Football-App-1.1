@@ -327,7 +327,7 @@ async function scrapeFixtures(): Promise<RawFixture[]> {
 
             return fixture;
           })
-          .filter((f: any) => f !== null);
+          .filter((f: any) => f !== null) as RawFixture[];
 
         console.log(`Filtered results: ${results.length} fixtures`);
         return results;
