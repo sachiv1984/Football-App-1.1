@@ -243,21 +243,66 @@ private async refreshCache(): Promise<void> {
     return this.fixturesCache;
   }
 
+  // FIXED: Use matchweek-based logic instead of time-based
   async getCurrentGameWeekFixtures(): Promise<FeaturedFixtureWithImportance[]> {
-  if (!this.isCacheValid()) await this.refreshCache();
-  const now = Date.now();
-  return this.fixturesCache.filter(f => {
-    const t = new Date(f.dateTime).getTime(); // dateTime is already converted in transform
-    return t >= now && t <= now + 7 * 24 * 60 * 60 * 1000;
-  });
-}
+    if (!this.isCacheValid()) await this.refreshCache();
+    
+    // Find current gameweek: first gameweek with unfinished games
+    const gameweekStats: Record<number, { total: number; finished: number }> = {};
+    
+    this.fixturesCache.forEach(fixture => {
+      const gw = fixture.matchWeek;
+      if (!gameweekStats[gw]) gameweekStats[gw] = { total: 0, finished: 0 };
+      gameweekStats[gw].total++;
+      if (fixture.status === 'finished') gameweekStats[gw].finished++;
+    });
+
+    // Find first gameweek with unfinished games
+    let currentGameweek = 1;
+    for (const [gw, stats] of Object.entries(gameweekStats)) {
+      const gameweek = parseInt(gw);
+      if (stats.finished < stats.total) {
+        currentGameweek = gameweek;
+        break;
+      }
+    }
+
+    console.log(`Current gameweek: ${currentGameweek}`);
+    
+    return this.fixturesCache
+      .filter(f => f.matchWeek === currentGameweek)
+      .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime());
+  }
+
+  // FIXED: Use current gameweek fixtures for accurate stats
   async getGameWeekInfo() {
     if (!this.isCacheValid()) await this.refreshCache();
-    const fixtures = await this.getCurrentGameWeekFixtures();
-    const currentWeek = fixtures[0]?.matchWeek ?? 1;
-    const finishedGames = fixtures.filter(f => f.status === 'finished').length;
-    const upcomingGames = fixtures.filter(f => f.status !== 'finished').length;
-    return { currentWeek, isComplete: finishedGames === fixtures.length, totalGames: fixtures.length, finishedGames, upcomingGames };
+    
+    const currentWeekFixtures = await this.getCurrentGameWeekFixtures();
+    
+    if (currentWeekFixtures.length === 0) {
+      return { 
+        currentWeek: 1, 
+        isComplete: false, 
+        totalGames: 0, 
+        finishedGames: 0, 
+        upcomingGames: 0 
+      };
+    }
+
+    const currentWeek = currentWeekFixtures[0].matchWeek;
+    const totalGames = currentWeekFixtures.length;
+    const finishedGames = currentWeekFixtures.filter(f => f.status === 'finished').length;
+    const upcomingGames = totalGames - finishedGames;
+    const isComplete = finishedGames === totalGames;
+
+    return { 
+      currentWeek, 
+      isComplete, 
+      totalGames, 
+      finishedGames, 
+      upcomingGames 
+    };
   }
 
   async getTeamStats(teamName: string): Promise<TeamSeasonStats | null> {
@@ -278,19 +323,19 @@ private async refreshCache(): Promise<void> {
     return { name: 'premierLeague', urls: {} };
   }
 
-async getFeaturedFixtures(limit = 8): Promise<FeaturedFixtureWithImportance[]> {
-  if (!this.isCacheValid()) await this.refreshCache();
-  const now = Date.now();
+  async getFeaturedFixtures(limit = 8): Promise<FeaturedFixtureWithImportance[]> {
+    if (!this.isCacheValid()) await this.refreshCache();
+    const now = Date.now();
 
-  const upcoming = this.fixturesCache
-    .filter(f => new Date(f.dateTime).getTime() >= now) // future fixtures
-    .sort((a, b) => {
-      if (b.importance !== a.importance) return b.importance - a.importance; // highest importance first
-      return new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime(); // then earliest date
-    });
+    const upcoming = this.fixturesCache
+      .filter(f => new Date(f.dateTime).getTime() >= now) // future fixtures
+      .sort((a, b) => {
+        if (b.importance !== a.importance) return b.importance - a.importance; // highest importance first
+        return new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime(); // then earliest date
+      });
 
-  return upcoming.slice(0, limit);
-}
+    return upcoming.slice(0, limit);
+  }
 }
 
 export const fbrefFixtureService = new SupabaseFixtureService();
