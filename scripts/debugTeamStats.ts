@@ -221,9 +221,23 @@ class DebugScraper {
         allColumns: Object.keys(matchLogs[0])
       };
       
-      fs.writeFileSync('debug-sample-data.json', JSON.stringify(sampleData, null, 2));
-      console.log('💾 Saved sample data to debug-sample-data.json');
+      // Create debug directory
+      const debugDir = path.join(process.cwd(), 'debug-output');
+      fs.mkdirSync(debugDir, { recursive: true });
+      
+      fs.writeFileSync(path.join(debugDir, 'debug-sample-data.json'), JSON.stringify(sampleData, null, 2));
+      console.log('💾 Saved sample data to debug-output/debug-sample-data.json');
       console.log('📊 Columns found:', Object.keys(matchLogs[0]).length);
+      
+      // Output first few rows to console for immediate viewing
+      console.log('\n🔍 SAMPLE DATA (first 2 rows):');
+      console.log('Columns:', Object.keys(matchLogs[0]).join(', '));
+      matchLogs.slice(0, 2).forEach((row, i) => {
+        console.log(`\nRow ${i + 1}:`);
+        Object.entries(row).slice(0, 8).forEach(([key, value]) => {
+          console.log(`  ${key}: ${value}`);
+        });
+      });
     }
 
     return matchLogs;
@@ -270,8 +284,14 @@ class DebugScraper {
 
       if (isBlocked) {
         console.log('🚫 Likely blocked or rate limited');
-        fs.writeFileSync('debug-blocked.html', html);
-        console.log('💾 Saved blocked response to debug-blocked.html');
+        const debugDir = path.join(process.cwd(), 'debug-output');
+        fs.mkdirSync(debugDir, { recursive: true });
+        fs.writeFileSync(path.join(debugDir, 'debug-blocked.html'), html);
+        console.log('💾 Saved blocked response to debug-output/debug-blocked.html');
+        console.log('\n❌ BLOCKING DETECTED:');
+        console.log(`   Status: BLOCKED`);
+        console.log(`   Response length: ${html.length} chars`);
+        console.log(`   Check debug-output/debug-blocked.html for details`);
         return;
       }
 
@@ -283,8 +303,14 @@ class DebugScraper {
 
       if (!isFbref) {
         console.log('⚠️  Page doesn\'t look like FBref');
-        fs.writeFileSync('debug-wrong-page.html', html.substring(0, 10000));
-        console.log('💾 Saved first 10k chars to debug-wrong-page.html');
+        const debugDir = path.join(process.cwd(), 'debug-output');
+        fs.mkdirSync(debugDir, { recursive: true });
+        fs.writeFileSync(path.join(debugDir, 'debug-wrong-page.html'), html.substring(0, 10000));
+        console.log('💾 Saved first 10k chars to debug-output/debug-wrong-page.html');
+        console.log('\n⚠️  WRONG PAGE DETECTED:');
+        console.log(`   Expected: FBref page`);
+        console.log(`   Got: Unknown page type`);
+        console.log(`   Response length: ${html.length} chars`);
       }
 
       const matchLogs = this.parseStatsTable(html, TEST_STAT.key);
@@ -300,9 +326,12 @@ class DebugScraper {
         success: matchLogs.length > 0
       };
 
-      // Save full result
-      fs.writeFileSync('debug-full-result.json', JSON.stringify(result, null, 2));
-      console.log('💾 Saved full result to debug-full-result.json');
+      // Create debug directory and save full result
+      const debugDir = path.join(process.cwd(), 'debug-output');
+      fs.mkdirSync(debugDir, { recursive: true });
+      
+      fs.writeFileSync(path.join(debugDir, 'debug-full-result.json'), JSON.stringify(result, null, 2));
+      console.log('💾 Saved full result to debug-output/debug-full-result.json');
 
       console.log(`\n🎉 Debug completed!`);
       console.log(`📊 Found ${matchLogs.length} match records`);
@@ -312,12 +341,19 @@ class DebugScraper {
         if (matchLogs[0].Date) console.log('✅ Sample date:', matchLogs[0].Date);
         if (matchLogs[0].Opponent) console.log('✅ Sample opponent:', matchLogs[0].Opponent);
         console.log('✅ Success! Data structure looks good');
+        
+        // Output summary to console
+        console.log('\n📋 EXTRACTION SUMMARY:');
+        console.log(`   Team: ${TEST_TEAM.name}`);
+        console.log(`   Stat Type: ${TEST_STAT.name}`);
+        console.log(`   Total Records: ${matchLogs.length}`);
+        console.log(`   Columns: ${Object.keys(matchLogs[0]).length}`);
+        console.log(`   Status: SUCCESS ✅`);
+        
       } else {
         console.log('❌ No data extracted');
-        console.log('🔧 Check debug files:');
-        console.log('   - debug-page.html (raw HTML)');
-        console.log('   - debug-sample-data.json (parsed structure)');
-        console.log('   - debug-full-result.json (complete result)');
+        console.log(`   Status: FAILED ❌`);
+        console.log('🔧 Check debug files in debug-output/ folder');
       }
 
     } catch (error) {
