@@ -1,7 +1,7 @@
 // scripts/debugTeamStats.ts
 /**
- * Debug scraper - all teams or single team, single output file
- * Preserves original FBref parsing logic
+ * Enhanced Debug scraper - scrapes both team stats AND opponent stats from match logs
+ * Handles hidden tables and generates correct match report URLs
  */
 
 import fs from 'fs';
@@ -55,9 +55,9 @@ const AVAILABLE_STATS = [
 /* ------------------ Test Configuration ------------------ */
 const SCRAPE_MODES = { SINGLE: 'single', ALL: 'all' } as const;
 type ScrapeMode = typeof SCRAPE_MODES[keyof typeof SCRAPE_MODES];
-const SCRAPE_MODE: ScrapeMode = SCRAPE_MODES.ALL; // or SCRAPE_MODES.SINGLE
-const SINGLE_TEAM_INDEX = 0; // used if single mode
-const TEST_STAT_INDEX = 3;   // shooting, keeper, etc.
+const SCRAPE_MODE: ScrapeMode = SCRAPE_MODES.SINGLE; // Change to ALL for all teams
+const SINGLE_TEAM_INDEX = 0; // Arsenal
+const TEST_STAT_INDEX = 6;   // misc stats (includes corners)
 
 /* ------------------ Rate Limiting ------------------ */
 const RATE_LIMIT = {
@@ -67,7 +67,7 @@ const RATE_LIMIT = {
   maxRetries: 3
 };
 
-/* ------------------ DebugScraper ------------------ */
+/* ------------------ Enhanced DebugScraper ------------------ */
 class DebugScraper {
   private ensureDataDir() {
     if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -83,37 +83,73 @@ class DebugScraper {
     return `${FBREF_BASE_URL}/${team.fbrefId}/${SEASON}/matchlogs/c9/${statType.key}/${teamNameSlug}-Match-Logs-Premier-League`;
   }
 
-  parseStatsTable(html: string, statType: any): any[] {
-    // FBref tables inside comments
+  /**
+   * Extract match report URL from a table cell
+   */
+  extractMatchReportUrl($: cheerio.CheerioAPI, cell: cheerio.Element): string | null {
+    const link = $(cell).find('a').first();
+    if (link.length > 0) {
+      const href = link.attr('href');
+      if (href && href.includes('/matches/')) {
+        return href.startsWith('http') ? href : `https://fbref.com${href}`;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Enhanced table parsing that extracts both team and opponent stats
+   */
+  parseMatchLogsTable(html: string, statType: any, teamName: string): any[] {
+    // Remove HTML comments to reveal hidden tables
     const cleanHtml = html.replace(/<!--/g, '').replace(/-->/g, '');
     const $ = cheerio.load(cleanHtml);
 
+    // Find the main matchlogs table
     const tableSelectors = [
-      `#stats_${statType.key}_for`,
       `#matchlogs_for_${statType.key}`,
-      `table[id*="matchlogs"]`,
+      `table[id*="matchlogs_for"]`,
       `table[id*="${statType.key}"]`,
       'table.stats_table'
     ];
 
-    let selectedTable: cheerio.Cheerio | null = null;
+    let teamTable: cheerio.Cheerio | null = null;
     for (const sel of tableSelectors) {
       const t = $(sel).first();
       if (t.length > 0) {
-        selectedTable = t;
+        teamTable = t;
+        console.log(`✅ Found team table with selector: ${sel}`);
         break;
       }
     }
 
-    if (!selectedTable || selectedTable.length === 0) {
-      console.warn(`❌ No table found for ${statType.key}`);
+    // Also look for opponent table
+    const opponentSelectors = [
+      `#matchlogs_against_${statType.key}`,
+      `table[id*="matchlogs_against"]`,
+      `table[id*="against_${statType.key}"]`
+    ];
+
+    let opponentTable: cheerio.Cheerio | null = null;
+    for (const sel of opponentSelectors) {
+      const t = $(sel).first();
+      if (t.length > 0) {
+        opponentTable = t;
+        console.log(`✅ Found opponent table with selector: ${sel}`);
+        break;
+      }
+    }
+
+    if (!teamTable || teamTable.length === 0) {
+      console.warn(`❌ No team table found for ${statType.key}`);
       return [];
     }
 
+    // Extract headers from team table
     const headers: string[] = [];
     const headerSelectors = ['thead tr:last-child th', 'thead tr th', 'tr:first-child th', 'tr:first-child td'];
     for (const sel of headerSelectors) {
-      const ths = selectedTable.find(sel);
+      const ths = teamTable.find(sel);
       if (ths.length > 0) {
         ths.each((i, th) => {
           const h = $(th).text().trim();
@@ -128,34 +164,122 @@ class DebugScraper {
       return [];
     }
 
-    const matchLogs: any[] = [];
-    selectedTable.find('tbody tr').each((i, tr) => {
+    console.log(`📋 Headers found: ${headers.slice(0, 10).join(', ')}...`);
+
+    // Extract opponent headers if opponent table exists
+    let opponentHeaders: string[] = [];
+    if (opponentTable) {
+      for (const sel of headerSelectors) {
+        const ths = opponentTable.find(sel);
+        if (ths.length > 0) {
+          ths.each((i, th) => {
+            const h = $(th).text().trim();
+            if (h) opponentHeaders.push(h);
+          });
+          if (opponentHeaders.length > 0) break;
+        }
+      }
+    }
+
+    // Parse team data
+    const teamData: any[] = [];
+    teamTable.find('tbody tr').each((i, tr) => {
       const row: Record<string, any> = {};
       let hasData = false;
+      let matchReportUrl: string | null = null;
+
       $(tr).find('td, th').each((j, td) => {
         const val = $(td).text().trim();
         if (headers[j] && val !== '') {
           row[headers[j]] = val;
           hasData = true;
         }
+
+        // Look for match report link (usually in Date column)
+        if (headers[j] === 'Date' || j === 0) {
+          const url = this.extractMatchReportUrl($, td);
+          if (url) matchReportUrl = url;
+        }
       });
-      if (hasData) matchLogs.push(row);
+
+      if (hasData) {
+        row.matchReportUrl = matchReportUrl;
+        row.teamName = teamName;
+        teamData.push(row);
+      }
     });
 
-    return matchLogs;
+    // Parse opponent data if available
+    const opponentData: any[] = [];
+    if (opponentTable && opponentHeaders.length > 0) {
+      opponentTable.find('tbody tr').each((i, tr) => {
+        const row: Record<string, any> = {};
+        let hasData = false;
+
+        $(tr).find('td, th').each((j, td) => {
+          const val = $(td).text().trim();
+          if (opponentHeaders[j] && val !== '') {
+            row[opponentHeaders[j]] = val;
+            hasData = true;
+          }
+        });
+
+        if (hasData) {
+          opponentData.push(row);
+        }
+      });
+    }
+
+    // Combine team and opponent data
+    const combinedData: any[] = [];
+    teamData.forEach((teamMatch, index) => {
+      const combined = {
+        ...teamMatch,
+        team: {
+          name: teamName,
+          stats: { ...teamMatch }
+        }
+      };
+
+      // Add opponent data if available
+      if (opponentData[index]) {
+        combined.opponent = {
+          stats: { ...opponentData[index] }
+        };
+      }
+
+      // Try to extract opponent name from team data
+      if (teamMatch.Opponent) {
+        combined.opponent = {
+          name: teamMatch.Opponent,
+          stats: opponentData[index] || {}
+        };
+      }
+
+      combinedData.push(combined);
+    });
+
+    return combinedData;
   }
 
   async debugScrape(team: any, statType: any): Promise<any> {
     const url = this.buildUrl(team, statType);
+    console.log(`🔗 Fetching: ${url}`);
 
     const response = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'text/html' }
+      headers: { 
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate',
+        'Connection': 'keep-alive'
+      }
     });
 
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     const html = await response.text();
 
-    const matchLogs = this.parseStatsTable(html, statType);
+    const matchLogs = this.parseMatchLogsTable(html, statType, team.name);
 
     return {
       teamId: team.id,
@@ -165,7 +289,8 @@ class DebugScraper {
       url,
       matchLogs,
       scrapedAt: new Date().toISOString(),
-      success: matchLogs.length > 0
+      success: matchLogs.length > 0,
+      matchCount: matchLogs.length
     };
   }
 }
@@ -183,6 +308,7 @@ class ScraperManager {
 
   async run() {
     console.log(`🔄 Scraping mode: ${SCRAPE_MODE}`);
+    console.log(`📊 Stat type: ${this.statToScrape.name} (${this.statToScrape.key})`);
     console.log(`📋 Total teams: ${this.teamsToScrape.length}`);
 
     const allResults: any[] = [];
@@ -198,14 +324,49 @@ class ScraperManager {
           const result = await this.scraper.debugScrape(team, this.statToScrape);
           allResults.push(result);
           success = true;
+
+          console.log(`✅ Success! Found ${result.matchCount} matches for ${team.name}`);
+          
+          // Log sample data for debugging
+          if (result.matchLogs.length > 0) {
+            const sampleMatch = result.matchLogs[0];
+            console.log(`📋 Sample match data keys: ${Object.keys(sampleMatch).slice(0, 10).join(', ')}`);
+            
+            if (sampleMatch.matchReportUrl) {
+              console.log(`🔗 Sample match report URL: ${sampleMatch.matchReportUrl}`);
+            }
+            
+            if (sampleMatch.opponent) {
+              console.log(`🆚 Sample opponent: ${sampleMatch.opponent.name || 'Unknown'}`);
+            }
+          }
+          
         } catch (err) {
           attempts++;
-          console.warn(`⚠️ Attempt ${attempts} failed for ${team.name}. Retrying in ${RATE_LIMIT.retryDelay / 1000}s...`);
-          await new Promise(res => setTimeout(res, RATE_LIMIT.retryDelay));
+          console.warn(`⚠️ Attempt ${attempts} failed for ${team.name}: ${err}`);
+          if (attempts <= RATE_LIMIT.maxRetries) {
+            console.log(`Retrying in ${RATE_LIMIT.retryDelay / 1000}s...`);
+            await new Promise(res => setTimeout(res, RATE_LIMIT.retryDelay));
+          }
         }
       }
 
-      if (!success) console.error(`❌ Failed to scrape ${team.name} after ${RATE_LIMIT.maxRetries} retries`);
+      if (!success) {
+        console.error(`❌ Failed to scrape ${team.name} after ${RATE_LIMIT.maxRetries} retries`);
+        // Add empty result to maintain consistency
+        allResults.push({
+          teamId: team.id,
+          teamName: team.name,
+          statType: this.statToScrape.key,
+          season: SEASON,
+          url: this.scraper.buildUrl(team, this.statToScrape),
+          matchLogs: [],
+          scrapedAt: new Date().toISOString(),
+          success: false,
+          matchCount: 0,
+          error: 'Failed after retries'
+        });
+      }
 
       if (i < this.teamsToScrape.length - 1) {
         console.log(`⏳ Waiting ${RATE_LIMIT.delayBetweenRequests / 1000}s before next scrape...`);
@@ -213,15 +374,22 @@ class ScraperManager {
       }
     }
 
-    const filename = `Team${this.statToScrape.name.replace(/\s+/g, '')}Stats.json`;
+    const filename = `Team${this.statToScrape.name.replace(/\s+/g, '')}StatsWithOpponents.json`;
     this.scraper.saveFile(filename, JSON.stringify(allResults, null, 2));
     console.log(`\n💾 All data saved to data/${filename}`);
+
+    // Generate summary
+    const totalMatches = allResults.reduce((sum, result) => sum + result.matchCount, 0);
+    const successfulTeams = allResults.filter(r => r.success).length;
+    console.log(`\n📊 Summary:`);
+    console.log(`   Teams scraped successfully: ${successfulTeams}/${this.teamsToScrape.length}`);
+    console.log(`   Total matches found: ${totalMatches}`);
   }
 }
 
 /* ------------------ Main ------------------ */
 async function main() {
-  console.log('🐛 Starting debug scraper...');
+  console.log('🐛 Starting enhanced team vs opponent scraper...');
   const manager = new ScraperManager();
   await manager.run();
 }
