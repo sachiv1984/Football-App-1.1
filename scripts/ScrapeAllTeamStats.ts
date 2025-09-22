@@ -99,7 +99,8 @@ class Scraper {
   }
 
   parseMatchLogsTable(html: string, statType: any, teamName: string): any[] {
-    const cleanHtml = html.replace(//g, '');
+    // Remove HTML comments to reveal hidden tables
+    const cleanHtml = html.replace(/<!--/g, '').replace(/-->/g, '');
     const $ = cheerio.load(cleanHtml);
 
     const tableSelectors = [ `#matchlogs_for_${statType.key}`, `table[id*="matchlogs_for"]`, `table[id*="${statType.key}"]`, 'table.stats_table'];
