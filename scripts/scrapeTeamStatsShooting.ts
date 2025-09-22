@@ -344,7 +344,7 @@ class ScraperManager {
       let success = false;
       while (!success && attempts <= RATE_LIMIT.maxRetries) {
         try {
-          const result = await this.scraper.debugScrape(team, this.statToScrape);
+          const result = await this.scraper.Scrape(team, this.statToScrape);
           allResults.push(result);
           success = true;
 
