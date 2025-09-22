@@ -68,7 +68,7 @@ const SCRAPE_MODES = { SINGLE: 'single', ALL: 'all' } as const;
 type ScrapeMode = typeof SCRAPE_MODES[keyof typeof SCRAPE_MODES];
 const SCRAPE_MODE: ScrapeMode = SCRAPE_MODES.ALL; // Change to ALL for all teams
 const SINGLE_TEAM_INDEX = 0; // Arsenal
-const TEST_STAT_INDEX = 0;   
+const TEST_STAT_INDEX = 6;   
 
 /* ------------------ Rate Limiting ------------------ */
 const RATE_LIMIT = {
@@ -114,7 +114,7 @@ class DebugScraper {
    */
   parseMatchLogsTable(html: string, statType: any, teamName: string): any[] {
     // Remove HTML comments to reveal hidden tables
-    const cleanHtml = html.replace(/<!--/g, '').replace(/-->/g, '');
+    const cleanHtml = html.replace(//g, '');
     const $ = cheerio.load(cleanHtml);
 
     // Find the main matchlogs table
@@ -445,3 +445,4 @@ async function main() {
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main();
 }
+
