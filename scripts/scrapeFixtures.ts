@@ -14,8 +14,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import cheerio from 'cheerio';
-import type { CheerioAPI, Element } from 'cheerio';
+import * as cheerio from 'cheerio';
 import fetch from 'node-fetch';
 
 /* ------------------ Path Setup ------------------ */
@@ -67,7 +66,7 @@ class Scraper {
     return response.text();
   }
 
-  private parseFixtures($: CheerioAPI): any[] {
+  private parseFixtures($: cheerio.CheerioAPI): any[] {
     const fixturesTable = $('#sched_2025-2026_9_1_fixtures_and_results').first();
     const fixtures: any[] = [];
 
@@ -77,7 +76,7 @@ class Scraper {
     }
 
     const rows = fixturesTable.find('tbody tr');
-    rows.each((i: number, row: Element) => {
+    rows.each((i: number, row: cheerio.Element) => {
       const cells = $(row).find('td');
       const date = $(cells[0]).text().trim();
       const time = $(cells[1]).text().trim();
