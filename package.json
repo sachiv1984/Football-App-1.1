@@ -6,6 +6,7 @@
   "dependencies": {
     "@heroicons/react": "^2.2.0",
     "@supabase/supabase-js": "^2.57.4",
+    "@types/cheerio": "^1.0.0",
     "@upstash/redis": "^1.35.3",
     "axios": "^1.11.0",
     "cheerio": "^1.0.0",
