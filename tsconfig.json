@@ -38,7 +38,8 @@
     "src",
     "src/**/*.ts",
     "src/**/*.tsx",
-    "src/vite-env.d.ts"
+    "src/vite-env.d.ts",
+    "scripts/**/*.ts"
   ],
   "exclude": ["node_modules", "build", "dist"]
 }
