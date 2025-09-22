@@ -114,8 +114,9 @@ class DebugScraper {
    */
   parseMatchLogsTable(html: string, statType: any, teamName: string): any[] {
     // Remove HTML comments to reveal hidden tables
-    const cleanHtml = html.replace(//g, '');
+    const cleanHtml = html.replace(/<!--/g, '').replace(/-->/g, '');
     const $ = cheerio.load(cleanHtml);
+
 
     // Find the main matchlogs table
     const tableSelectors = [
