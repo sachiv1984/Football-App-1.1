@@ -87,7 +87,7 @@ class Scraper {
     return `${FBREF_BASE_URL}/${team.fbrefId}/${SEASON}/matchlogs/c9/${statType.key}/${teamNameSlug}-Match-Logs-Premier-League`;
   }
 
-  extractMatchReportUrl($: cheerio.Root, cell: cheerio.Element): string | null {
+  extractMatchReportUrl($: cheerio.CheerioAPI, cell: cheerio.Element): string | null {
     const link = $(cell).find('a').first();
     if (link.length > 0) {
       const href = link.attr('href');
@@ -99,19 +99,18 @@ class Scraper {
   }
 
   parseMatchLogsTable(html: string, statType: any, teamName: string): any[] {
-    // Remove HTML comments to reveal hidden tables
-    const cleanHtml = html.replace(/<!--/g, '').replace(/-->/g, '');
+    const cleanHtml = html.replace(//g, '');
     const $ = cheerio.load(cleanHtml);
 
     const tableSelectors = [ `#matchlogs_for_${statType.key}`, `table[id*="matchlogs_for"]`, `table[id*="${statType.key}"]`, 'table.stats_table'];
-    let teamTable: cheerio.Cheerio | null = null;
+    let teamTable: cheerio.Cheerio<cheerio.AnyNode> | null = null;
     for (const sel of tableSelectors) {
       const t = $(sel).first();
       if (t.length > 0) { teamTable = t; console.log(`✅ Found team table with selector: ${sel}`); break; }
     }
 
     const opponentSelectors = [ `#matchlogs_against_${statType.key}`, `table[id*="matchlogs_against"]`, `table[id*="against_${statType.key}"]`];
-    let opponentTable: cheerio.Cheerio | null = null;
+    let opponentTable: cheerio.Cheerio<cheerio.AnyNode> | null = null;
     for (const sel of opponentSelectors) {
       const t = $(sel).first();
       if (t.length > 0) { opponentTable = t; console.log(`✅ Found opponent table with selector: ${sel}`); break; }
@@ -127,7 +126,7 @@ class Scraper {
     for (const sel of headerSelectors) {
       const ths = teamTable.find(sel);
       if (ths.length > 0) {
-        ths.each((i, th) => { const h = $(th).text().trim(); if (h) headers.push(h); });
+        ths.each((i: number, th: cheerio.Element) => { const h = $(th).text().trim(); if (h) headers.push(h); });
         if (headers.length > 0) break;
       }
     }
@@ -140,16 +139,16 @@ class Scraper {
       for (const sel of headerSelectors) {
         const ths = opponentTable.find(sel);
         if (ths.length > 0) {
-          ths.each((i, th) => { const h = $(th).text().trim(); if (h) opponentHeaders.push(h); });
+          ths.each((i: number, th: cheerio.Element) => { const h = $(th).text().trim(); if (h) opponentHeaders.push(h); });
           if (opponentHeaders.length > 0) break;
         }
       }
     }
 
     const teamData: any[] = [];
-    teamTable.find('tbody tr').each((i, tr) => {
+    teamTable.find('tbody tr').each((i: number, tr: cheerio.Element) => {
       const row: Record<string, any> = {}; let hasData = false; let matchReportUrl: string | null = null;
-      $(tr).find('td, th').each((j, td) => {
+      $(tr).find('td, th').each((j: number, td: cheerio.Element) => {
         const val = $(td).text().trim();
         if (headers[j] && val !== '') { row[headers[j]] = val; hasData = true; }
         if (headers[j] === 'Date' || j === 0) { const url = this.extractMatchReportUrl($, td); if (url) matchReportUrl = url; }
@@ -159,9 +158,9 @@ class Scraper {
 
     const opponentData: any[] = [];
     if (opponentTable && opponentHeaders.length > 0) {
-      opponentTable.find('tbody tr').each((i, tr) => {
+      opponentTable.find('tbody tr').each((i: number, tr: cheerio.Element) => {
         const row: Record<string, any> = {}; let hasData = false;
-        $(tr).find('td, th').each((j, td) => {
+        $(tr).find('td, th').each((j: number, td: cheerio.Element) => {
           const val = $(td).text().trim();
           if (opponentHeaders[j] && val !== '') { row[opponentHeaders[j]] = val; hasData = true; }
         });
@@ -170,7 +169,7 @@ class Scraper {
     }
 
     const combinedData: any[] = [];
-    teamData.forEach((teamMatch, index) => {
+    teamData.forEach((teamMatch: any, index: number) => {
       const coreMatchData: Record<string, any> = {}; const teamStats: Record<string, any> = {};
       Object.entries(teamMatch).forEach(([key, value]) => {
         if (['Date', 'Time', 'Comp', 'Round', 'Day', 'Venue', 'Result', 'GF', 'GA', 'Opponent', 'Poss', 'matchReportUrl', 'teamName', 'Match Report'].includes(key)) {
@@ -290,4 +289,3 @@ async function main() {
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main();
 }
-
