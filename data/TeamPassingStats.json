@@ -1,0 +1,5142 @@
+[
+  {
+    "teamId": "arsenal",
+    "teamName": "Arsenal",
+    "statType": "passing",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/18bb7c10/2025-2026/matchlogs/c9/passing/Arsenal-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-17",
+        "Time": "16:30",
+        "Round": "Matchweek 1",
+        "Day": "Sun",
+        "Venue": "Away",
+        "Result": "W",
+        "GF": "1",
+        "GA": "0",
+        "Opponent": "Manchester Utd",
+        "matchReportUrl": "https://fbref.com/en/matches/643d26fd/Manchester-United-Arsenal-August-17-2025-Premier-League",
+        "teamName": "Arsenal",
+        "team": {
+          "name": "Arsenal",
+          "stats": {
+            "Cmp": "24",
+            "Att": "57",
+            "Cmp%": "42.1",
+            "TotDist": "4153",
+            "PrgDist": "1845",
+            "Ast": "0",
+            "xAG": "0.3",
+            "xA": "0.5",
+            "KP": "5",
+            "1/3": "14",
+            "PPA": "5",
+            "CrsPA": "0",
+            "PrgP": "24"
+          }
+        },
+        "opponent": {
+          "name": "Manchester Utd",
+          "stats": {
+            "Cmp": "57",
+            "Att": "89",
+            "Cmp%": "64.0",
+            "TotDist": "7571",
+            "PrgDist": "2672",
+            "Ast": "0",
+            "xAG": "1.1",
+            "xA": "0.9",
+            "KP": "17",
+            "1/3": "33",
+            "PPA": "12",
+            "CrsPA": "3",
+            "PrgP": "48"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-23",
+        "Time": "17:30",
+        "Round": "Matchweek 2",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "5",
+        "GA": "0",
+        "Opponent": "Leeds United",
+        "matchReportUrl": "https://fbref.com/en/matches/e8724659/Arsenal-Leeds-United-August-23-2025-Premier-League",
+        "teamName": "Arsenal",
+        "team": {
+          "name": "Arsenal",
+          "stats": {
+            "Cmp": "53",
+            "Att": "69",
+            "Cmp%": "76.8",
+            "TotDist": "10575",
+            "PrgDist": "2813",
+            "Ast": "4",
+            "xAG": "1.3",
+            "xA": "0.9",
+            "KP": "12",
+            "1/3": "36",
+            "PPA": "9",
+            "CrsPA": "3",
+            "PrgP": "43"
+          }
+        },
+        "opponent": {
+          "name": "Leeds United",
+          "stats": {
+            "Cmp": "17",
+            "Att": "42",
+            "Cmp%": "40.5",
+            "TotDist": "3551",
+            "PrgDist": "1250",
+            "Ast": "0",
+            "xAG": "0.2",
+            "xA": "0.1",
+            "KP": "3",
+            "1/3": "6",
+            "PPA": "1",
+            "CrsPA": "0",
+            "PrgP": "9"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-31",
+        "Time": "16:30",
+        "Round": "Matchweek 3",
+        "Day": "Sun",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "0",
+        "GA": "1",
+        "Opponent": "Liverpool",
+        "matchReportUrl": "https://fbref.com/en/matches/b0005978/Liverpool-Arsenal-August-31-2025-Premier-League",
+        "teamName": "Arsenal",
+        "team": {
+          "name": "Arsenal",
+          "stats": {
+            "Cmp": "35",
+            "Att": "71",
+            "Cmp%": "49.3",
+            "TotDist": "5988",
+            "PrgDist": "2054",
+            "Ast": "0",
+            "xAG": "0.3",
+            "xA": "0.4",
+            "KP": "5",
+            "1/3": "23",
+            "PPA": "3",
+            "CrsPA": "0",
+            "PrgP": "28"
+          }
+        },
+        "opponent": {
+          "name": "Liverpool",
+          "stats": {
+            "Cmp": "45",
+            "Att": "82",
+            "Cmp%": "54.9",
+            "TotDist": "7509",
+            "PrgDist": "2422",
+            "Ast": "0",
+            "xAG": "0.4",
+            "xA": "0.2",
+            "KP": "7",
+            "1/3": "31",
+            "PPA": "6",
+            "CrsPA": "1",
+            "PrgP": "28"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-13",
+        "Time": "12:30",
+        "Round": "Matchweek 4",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "3",
+        "GA": "0",
+        "Opponent": "Nott'ham Forest",
+        "matchReportUrl": "https://fbref.com/en/matches/4fe3e679/Arsenal-Nottingham-Forest-September-13-2025-Premier-League",
+        "teamName": "Arsenal",
+        "team": {
+          "name": "Arsenal",
+          "stats": {
+            "Cmp": "33",
+            "Att": "57",
+            "Cmp%": "57.9",
+            "TotDist": "7834",
+            "PrgDist": "2592",
+            "Ast": "2",
+            "xAG": "1.5",
+            "xA": "1.7",
+            "KP": "12",
+            "1/3": "35",
+            "PPA": "8",
+            "CrsPA": "0",
+            "PrgP": "50"
+          }
+        },
+        "opponent": {
+          "name": "Nott'ham Forest",
+          "stats": {
+            "Cmp": "27",
+            "Att": "59",
+            "Cmp%": "45.8",
+            "TotDist": "6117",
+            "PrgDist": "2061",
+            "Ast": "0",
+            "xAG": "0.2",
+            "xA": "0.2",
+            "KP": "5",
+            "1/3": "31",
+            "PPA": "4",
+            "CrsPA": "1",
+            "PrgP": "25"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-21",
+        "Time": "16:30",
+        "Round": "Matchweek 5",
+        "Day": "Sun",
+        "Venue": "Home",
+        "Result": "D",
+        "GF": "1",
+        "GA": "1",
+        "Opponent": "Manchester City",
+        "matchReportUrl": "https://fbref.com/en/matches/2045939c/Arsenal-Manchester-City-September-21-2025-Premier-League",
+        "teamName": "Arsenal",
+        "team": {
+          "name": "Arsenal",
+          "stats": {
+            "Cmp": "43",
+            "Att": "75",
+            "Cmp%": "57.3",
+            "TotDist": "9779",
+            "PrgDist": "2713",
+            "Ast": "1",
+            "xAG": "0.6",
+            "xA": "1.0",
+            "KP": "8",
+            "1/3": "40",
+            "PPA": "10",
+            "CrsPA": "1",
+            "PrgP": "49"
+          }
+        },
+        "opponent": {
+          "name": "Manchester City",
+          "stats": {
+            "Cmp": "25",
+            "Att": "53",
+            "Cmp%": "47.2",
+            "TotDist": "4126",
+            "PrgDist": "1671",
+            "Ast": "1",
+            "xAG": "0.9",
+            "xA": "0.3",
+            "KP": "5",
+            "1/3": "20",
+            "PPA": "2",
+            "CrsPA": "0",
+            "PrgP": "20"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:06:54.574Z",
+    "success": true,
+    "matchCount": 5
+  },
+  {
+    "teamId": "aston-villa",
+    "teamName": "Aston Villa",
+    "statType": "passing",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/8602292d/2025-2026/matchlogs/c9/passing/Aston-Villa-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-16",
+        "Time": "12:30",
+        "Round": "Matchweek 1",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "D",
+        "GF": "0",
+        "GA": "0",
+        "Opponent": "Newcastle Utd",
+        "matchReportUrl": "https://fbref.com/en/matches/bbdf4739/Aston-Villa-Newcastle-United-August-16-2025-Premier-League",
+        "teamName": "Aston Villa",
+        "team": {
+          "name": "Aston Villa",
+          "stats": {
+            "Cmp": "29",
+            "Att": "76",
+            "Cmp%": "38.2",
+            "TotDist": "4562",
+            "PrgDist": "1832",
+            "Ast": "0",
+            "xAG": "0.2",
+            "xA": "0.2",
+            "KP": "3",
+            "1/3": "19",
+            "PPA": "5",
+            "CrsPA": "2",
+            "PrgP": "35"
+          }
+        },
+        "opponent": {
+          "name": "Newcastle Utd",
+          "stats": {
+            "Cmp": "34",
+            "Att": "69",
+            "Cmp%": "49.3",
+            "TotDist": "6777",
+            "PrgDist": "2293",
+            "Ast": "0",
+            "xAG": "1.4",
+            "xA": "0.9",
+            "KP": "14",
+            "1/3": "30",
+            "PPA": "7",
+            "CrsPA": "3",
+            "PrgP": "51"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-23",
+        "Time": "15:00",
+        "Round": "Matchweek 2",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "0",
+        "GA": "1",
+        "Opponent": "Brentford",
+        "matchReportUrl": "https://fbref.com/en/matches/860c7af2/Brentford-Aston-Villa-August-23-2025-Premier-League",
+        "teamName": "Aston Villa",
+        "team": {
+          "name": "Aston Villa",
+          "stats": {
+            "Cmp": "53",
+            "Att": "79",
+            "Cmp%": "67.1",
+            "TotDist": "8955",
+            "PrgDist": "2944",
+            "Ast": "0",
+            "xAG": "1.0",
+            "xA": "1.5",
+            "KP": "12",
+            "1/3": "51",
+            "PPA": "10",
+            "CrsPA": "4",
+            "PrgP": "48"
+          }
+        },
+        "opponent": {
+          "name": "Brentford",
+          "stats": {
+            "Cmp": "31",
+            "Att": "64",
+            "Cmp%": "48.4",
+            "TotDist": "2918",
+            "PrgDist": "1668",
+            "Ast": "0",
+            "xAG": "0.9",
+            "xA": "0.4",
+            "KP": "5",
+            "1/3": "14",
+            "PPA": "5",
+            "CrsPA": "2",
+            "PrgP": "16"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-31",
+        "Time": "19:00",
+        "Round": "Matchweek 3",
+        "Day": "Sun",
+        "Venue": "Home",
+        "Result": "L",
+        "GF": "0",
+        "GA": "3",
+        "Opponent": "Crystal Palace",
+        "matchReportUrl": "https://fbref.com/en/matches/cd51ed93/Aston-Villa-Crystal-Palace-August-31-2025-Premier-League",
+        "teamName": "Aston Villa",
+        "team": {
+          "name": "Aston Villa",
+          "stats": {
+            "Cmp": "55",
+            "Att": "84",
+            "Cmp%": "65.5",
+            "TotDist": "9808",
+            "PrgDist": "2812",
+            "Ast": "0",
+            "xAG": "0.9",
+            "xA": "0.7",
+            "KP": "10",
+            "1/3": "53",
+            "PPA": "9",
+            "CrsPA": "1",
+            "PrgP": "51"
+          }
+        },
+        "opponent": {
+          "name": "Crystal Palace",
+          "stats": {
+            "Cmp": "34",
+            "Att": "58",
+            "Cmp%": "58.6",
+            "TotDist": "6228",
+            "PrgDist": "2202",
+            "Ast": "1",
+            "xAG": "1.8",
+            "xA": "1.2",
+            "KP": "4",
+            "1/3": "26",
+            "PPA": "5",
+            "CrsPA": "0",
+            "PrgP": "24"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-13",
+        "Time": "15:00",
+        "Round": "Matchweek 4",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "D",
+        "GF": "0",
+        "GA": "0",
+        "Opponent": "Everton",
+        "matchReportUrl": "https://fbref.com/en/matches/a624dc89/Everton-Aston-Villa-September-13-2025-Premier-League",
+        "teamName": "Aston Villa",
+        "team": {
+          "name": "Aston Villa",
+          "stats": {
+            "Cmp": "28",
+            "Att": "61",
+            "Cmp%": "45.9",
+            "TotDist": "5400",
+            "PrgDist": "1833",
+            "Ast": "0",
+            "xAG": "0.3",
+            "xA": "0.4",
+            "KP": "4",
+            "1/3": "24",
+            "PPA": "4",
+            "CrsPA": "1",
+            "PrgP": "30"
+          }
+        },
+        "opponent": {
+          "name": "Everton",
+          "stats": {
+            "Cmp": "34",
+            "Att": "65",
+            "Cmp%": "52.3",
+            "TotDist": "5766",
+            "PrgDist": "2344",
+            "Ast": "0",
+            "xAG": "1.6",
+            "xA": "1.2",
+            "KP": "17",
+            "1/3": "35",
+            "PPA": "8",
+            "CrsPA": "3",
+            "PrgP": "39"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-21",
+        "Time": "14:00",
+        "Round": "Matchweek 5",
+        "Day": "Sun",
+        "Venue": "Away",
+        "Result": "D",
+        "GF": "1",
+        "GA": "1",
+        "Opponent": "Sunderland",
+        "matchReportUrl": "https://fbref.com/en/matches/4e615d10/Sunderland-Aston-Villa-September-21-2025-Premier-League",
+        "teamName": "Aston Villa",
+        "team": {
+          "name": "Aston Villa",
+          "stats": {
+            "Cmp": "28",
+            "Att": "60",
+            "Cmp%": "46.7",
+            "TotDist": "8377",
+            "PrgDist": "2405",
+            "Ast": "1",
+            "xAG": "0.5",
+            "xA": "0.9",
+            "KP": "7",
+            "1/3": "51",
+            "PPA": "15",
+            "CrsPA": "3",
+            "PrgP": "49"
+          }
+        },
+        "opponent": {
+          "name": "Sunderland",
+          "stats": {
+            "Cmp": "22",
+            "Att": "61",
+            "Cmp%": "36.1",
+            "TotDist": "3073",
+            "PrgDist": "1307",
+            "Ast": "1",
+            "xAG": "0.6",
+            "xA": "0.4",
+            "KP": "10",
+            "1/3": "10",
+            "PPA": "3",
+            "CrsPA": "1",
+            "PrgP": "8"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:07:01.364Z",
+    "success": true,
+    "matchCount": 5
+  },
+  {
+    "teamId": "bournemouth",
+    "teamName": "Bournemouth",
+    "statType": "passing",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/4ba7cbea/2025-2026/matchlogs/c9/passing/Bournemouth-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-15",
+        "Time": "20:00",
+        "Round": "Matchweek 1",
+        "Day": "Fri",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "2",
+        "GA": "4",
+        "Opponent": "Liverpool",
+        "matchReportUrl": "https://fbref.com/en/matches/a071faa8/Liverpool-Bournemouth-August-15-2025-Premier-League",
+        "teamName": "Bournemouth",
+        "team": {
+          "name": "Bournemouth",
+          "stats": {
+            "Cmp": "35",
+            "Att": "86",
+            "Cmp%": "40.7",
+            "TotDist": "4460",
+            "PrgDist": "1770",
+            "Ast": "2",
+            "xAG": "1.6",
+            "xA": "0.6",
+            "KP": "8",
+            "1/3": "9",
+            "PPA": "11",
+            "CrsPA": "4",
+            "PrgP": "19"
+          }
+        },
+        "opponent": {
+          "name": "Liverpool",
+          "stats": {
+            "Cmp": "48",
+            "Att": "75",
+            "Cmp%": "64.0",
+            "TotDist": "7367",
+            "PrgDist": "3039",
+            "Ast": "3",
+            "xAG": "2.0",
+            "xA": "1.1",
+            "KP": "15",
+            "1/3": "36",
+            "PPA": "9",
+            "CrsPA": "2",
+            "PrgP": "40"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-23",
+        "Time": "15:00",
+        "Round": "Matchweek 2",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "1",
+        "GA": "0",
+        "Opponent": "Wolves",
+        "matchReportUrl": "https://fbref.com/en/matches/a515fb3a/Bournemouth-Wolverhampton-Wanderers-August-23-2025-Premier-League",
+        "teamName": "Bournemouth",
+        "team": {
+          "name": "Bournemouth",
+          "stats": {
+            "Cmp": "40",
+            "Att": "79",
+            "Cmp%": "50.6",
+            "TotDist": "7309",
+            "PrgDist": "2290",
+            "Ast": "1",
+            "xAG": "1.2",
+            "xA": "1.1",
+            "KP": "13",
+            "1/3": "49",
+            "PPA": "8",
+            "CrsPA": "3",
+            "PrgP": "42"
+          }
+        },
+        "opponent": {
+          "name": "Wolves",
+          "stats": {
+            "Cmp": "38",
+            "Att": "75",
+            "Cmp%": "50.7",
+            "TotDist": "5366",
+            "PrgDist": "2193",
+            "Ast": "0",
+            "xAG": "0.3",
+            "xA": "0.4",
+            "KP": "4",
+            "1/3": "24",
+            "PPA": "6",
+            "CrsPA": "3",
+            "PrgP": "21"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-30",
+        "Time": "15:00",
+        "Round": "Matchweek 3",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "W",
+        "GF": "1",
+        "GA": "0",
+        "Opponent": "Tottenham",
+        "matchReportUrl": "https://fbref.com/en/matches/0e30cf4b/Tottenham-Hotspur-Bournemouth-August-30-2025-Premier-League",
+        "teamName": "Bournemouth",
+        "team": {
+          "name": "Bournemouth",
+          "stats": {
+            "Cmp": "26",
+            "Att": "71",
+            "Cmp%": "36.6",
+            "TotDist": "4201",
+            "PrgDist": "1978",
+            "Ast": "1",
+            "xAG": "1.1",
+            "xA": "0.8",
+            "KP": "13",
+            "1/3": "24",
+            "PPA": "14",
+            "CrsPA": "3",
+            "PrgP": "34"
+          }
+        },
+        "opponent": {
+          "name": "Tottenham",
+          "stats": {
+            "Cmp": "34",
+            "Att": "79",
+            "Cmp%": "43.0",
+            "TotDist": "8233",
+            "PrgDist": "2900",
+            "Ast": "0",
+            "xAG": "0.1",
+            "xA": "0.3",
+            "KP": "3",
+            "1/3": "30",
+            "PPA": "7",
+            "CrsPA": "1",
+            "PrgP": "41"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-13",
+        "Time": "15:00",
+        "Round": "Matchweek 4",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "2",
+        "GA": "1",
+        "Opponent": "Brighton",
+        "matchReportUrl": "https://fbref.com/en/matches/8398bbef/Bournemouth-Brighton-and-Hove-Albion-September-13-2025-Premier-League",
+        "teamName": "Bournemouth",
+        "team": {
+          "name": "Bournemouth",
+          "stats": {
+            "Cmp": "38",
+            "Att": "79",
+            "Cmp%": "48.1",
+            "TotDist": "5663",
+            "PrgDist": "2227",
+            "Ast": "1",
+            "xAG": "0.5",
+            "xA": "0.9",
+            "KP": "9",
+            "1/3": "27",
+            "PPA": "7",
+            "CrsPA": "3",
+            "PrgP": "32"
+          }
+        },
+        "opponent": {
+          "name": "Brighton",
+          "stats": {
+            "Cmp": "34",
+            "Att": "65",
+            "Cmp%": "52.3",
+            "TotDist": "5677",
+            "PrgDist": "2449",
+            "Ast": "1",
+            "xAG": "0.5",
+            "xA": "0.4",
+            "KP": "4",
+            "1/3": "26",
+            "PPA": "6",
+            "CrsPA": "2",
+            "PrgP": "31"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-21",
+        "Time": "14:00",
+        "Round": "Matchweek 5",
+        "Day": "Sun",
+        "Venue": "Home",
+        "Result": "D",
+        "GF": "0",
+        "GA": "0",
+        "Opponent": "Newcastle Utd",
+        "matchReportUrl": "https://fbref.com/en/matches/f55b1b65/Bournemouth-Newcastle-United-September-21-2025-Premier-League",
+        "teamName": "Bournemouth",
+        "team": {
+          "name": "Bournemouth",
+          "stats": {
+            "Cmp": "33",
+            "Att": "83",
+            "Cmp%": "39.8",
+            "TotDist": "7455",
+            "PrgDist": "2220",
+            "Ast": "0",
+            "xAG": "0.3",
+            "xA": "0.3",
+            "KP": "6",
+            "1/3": "35",
+            "PPA": "2",
+            "CrsPA": "0",
+            "PrgP": "41"
+          }
+        },
+        "opponent": {
+          "name": "Newcastle Utd",
+          "stats": {
+            "Cmp": "33",
+            "Att": "81",
+            "Cmp%": "40.7",
+            "TotDist": "5894",
+            "PrgDist": "2160",
+            "Ast": "0",
+            "xAG": "0.2",
+            "xA": "0.4",
+            "KP": "3",
+            "1/3": "28",
+            "PPA": "7",
+            "CrsPA": "1",
+            "PrgP": "36"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:07:07.828Z",
+    "success": true,
+    "matchCount": 5
+  },
+  {
+    "teamId": "brentford",
+    "teamName": "Brentford",
+    "statType": "passing",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/cd051869/2025-2026/matchlogs/c9/passing/Brentford-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-17",
+        "Time": "14:00",
+        "Round": "Matchweek 1",
+        "Day": "Sun",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "1",
+        "GA": "3",
+        "Opponent": "Nott'ham Forest",
+        "matchReportUrl": "https://fbref.com/en/matches/855f8b5e/Nottingham-Forest-Brentford-August-17-2025-Premier-League",
+        "teamName": "Brentford",
+        "team": {
+          "name": "Brentford",
+          "stats": {
+            "Cmp": "36",
+            "Att": "73",
+            "Cmp%": "49.3",
+            "TotDist": "5730",
+            "PrgDist": "2243",
+            "Ast": "0",
+            "xAG": "0.6",
+            "xA": "0.3",
+            "KP": "7",
+            "1/3": "19",
+            "PPA": "2",
+            "CrsPA": "0",
+            "PrgP": "22"
+          }
+        },
+        "opponent": {
+          "name": "Nott'ham Forest",
+          "stats": {
+            "Cmp": "29",
+            "Att": "73",
+            "Cmp%": "39.7",
+            "TotDist": "6517",
+            "PrgDist": "2195",
+            "Ast": "2",
+            "xAG": "1.7",
+            "xA": "1.0",
+            "KP": "9",
+            "1/3": "33",
+            "PPA": "13",
+            "CrsPA": "5",
+            "PrgP": "41"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-23",
+        "Time": "15:00",
+        "Round": "Matchweek 2",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "1",
+        "GA": "0",
+        "Opponent": "Aston Villa",
+        "matchReportUrl": "https://fbref.com/en/matches/860c7af2/Brentford-Aston-Villa-August-23-2025-Premier-League",
+        "teamName": "Brentford",
+        "team": {
+          "name": "Brentford",
+          "stats": {
+            "Cmp": "31",
+            "Att": "64",
+            "Cmp%": "48.4",
+            "TotDist": "2918",
+            "PrgDist": "1668",
+            "Ast": "0",
+            "xAG": "0.9",
+            "xA": "0.4",
+            "KP": "5",
+            "1/3": "14",
+            "PPA": "5",
+            "CrsPA": "2",
+            "PrgP": "16"
+          }
+        },
+        "opponent": {
+          "name": "Aston Villa",
+          "stats": {
+            "Cmp": "53",
+            "Att": "79",
+            "Cmp%": "67.1",
+            "TotDist": "8955",
+            "PrgDist": "2944",
+            "Ast": "0",
+            "xAG": "1.0",
+            "xA": "1.5",
+            "KP": "12",
+            "1/3": "51",
+            "PPA": "10",
+            "CrsPA": "4",
+            "PrgP": "48"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-30",
+        "Time": "15:00",
+        "Round": "Matchweek 3",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "1",
+        "GA": "2",
+        "Opponent": "Sunderland",
+        "matchReportUrl": "https://fbref.com/en/matches/f03152d1/Sunderland-Brentford-August-30-2025-Premier-League",
+        "teamName": "Brentford",
+        "team": {
+          "name": "Brentford",
+          "stats": {
+            "Cmp": "28",
+            "Att": "67",
+            "Cmp%": "41.8",
+            "TotDist": "5186",
+            "PrgDist": "1845",
+            "Ast": "1",
+            "xAG": "0.4",
+            "xA": "0.8",
+            "KP": "4",
+            "1/3": "19",
+            "PPA": "5",
+            "CrsPA": "3",
+            "PrgP": "24"
+          }
+        },
+        "opponent": {
+          "name": "Sunderland",
+          "stats": {
+            "Cmp": "36",
+            "Att": "80",
+            "Cmp%": "45.0",
+            "TotDist": "6647",
+            "PrgDist": "2436",
+            "Ast": "1",
+            "xAG": "0.4",
+            "xA": "0.4",
+            "KP": "5",
+            "1/3": "34",
+            "PPA": "6",
+            "CrsPA": "3",
+            "PrgP": "39"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-13",
+        "Time": "20:00",
+        "Round": "Matchweek 4",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "D",
+        "GF": "2",
+        "GA": "2",
+        "Opponent": "Chelsea",
+        "matchReportUrl": "https://fbref.com/en/matches/d8104c65/Brentford-Chelsea-September-13-2025-Premier-League",
+        "teamName": "Brentford",
+        "team": {
+          "name": "Brentford",
+          "stats": {
+            "Cmp": "36",
+            "Att": "66",
+            "Cmp%": "54.5",
+            "TotDist": "4736",
+            "PrgDist": "1931",
+            "Ast": "2",
+            "xAG": "1.4",
+            "xA": "0.8",
+            "KP": "7",
+            "1/3": "18",
+            "PPA": "5",
+            "CrsPA": "2",
+            "PrgP": "17"
+          }
+        },
+        "opponent": {
+          "name": "Chelsea",
+          "stats": {
+            "Cmp": "42",
+            "Att": "66",
+            "Cmp%": "63.6",
+            "TotDist": "8819",
+            "PrgDist": "2635",
+            "Ast": "1",
+            "xAG": "1.1",
+            "xA": "1.0",
+            "KP": "13",
+            "1/3": "54",
+            "PPA": "12",
+            "CrsPA": "2",
+            "PrgP": "48"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-20",
+        "Time": "20:00",
+        "Round": "Matchweek 5",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "1",
+        "GA": "3",
+        "Opponent": "Fulham",
+        "matchReportUrl": "https://fbref.com/en/matches/295b388b/Fulham-Brentford-September-20-2025-Premier-League",
+        "teamName": "Brentford",
+        "team": {
+          "name": "Brentford",
+          "stats": {
+            "Cmp": "32",
+            "Att": "77",
+            "Cmp%": "41.6",
+            "TotDist": "6343",
+            "PrgDist": "2165",
+            "Ast": "0",
+            "xAG": "0.3",
+            "xA": "0.4",
+            "KP": "4",
+            "1/3": "21",
+            "PPA": "3",
+            "CrsPA": "1",
+            "PrgP": "32"
+          }
+        },
+        "opponent": {
+          "name": "Fulham",
+          "stats": {
+            "Cmp": "37",
+            "Att": "67",
+            "Cmp%": "55.2",
+            "TotDist": "6962",
+            "PrgDist": "2449",
+            "Ast": "2",
+            "xAG": "0.9",
+            "xA": "0.6",
+            "KP": "11",
+            "1/3": "21",
+            "PPA": "8",
+            "CrsPA": "2",
+            "PrgP": "33"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:07:14.353Z",
+    "success": true,
+    "matchCount": 5
+  },
+  {
+    "teamId": "brighton",
+    "teamName": "Brighton & Hove Albion",
+    "statType": "passing",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/d07537b9/2025-2026/matchlogs/c9/passing/Brighton--Hove-Albion-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-16",
+        "Time": "15:00",
+        "Round": "Matchweek 1",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "D",
+        "GF": "1",
+        "GA": "1",
+        "Opponent": "Fulham",
+        "matchReportUrl": "https://fbref.com/en/matches/57c49bae/Brighton-and-Hove-Albion-Fulham-August-16-2025-Premier-League",
+        "teamName": "Brighton & Hove Albion",
+        "team": {
+          "name": "Brighton & Hove Albion",
+          "stats": {
+            "Cmp": "42",
+            "Att": "62",
+            "Cmp%": "67.7",
+            "TotDist": "7078",
+            "PrgDist": "2554",
+            "Ast": "0",
+            "xAG": "0.6",
+            "xA": "0.6",
+            "KP": "7",
+            "1/3": "30",
+            "PPA": "8",
+            "CrsPA": "1",
+            "PrgP": "38"
+          }
+        },
+        "opponent": {
+          "name": "Fulham",
+          "stats": {
+            "Cmp": "45",
+            "Att": "77",
+            "Cmp%": "58.4",
+            "TotDist": "6786",
+            "PrgDist": "2615",
+            "Ast": "0",
+            "xAG": "0.5",
+            "xA": "0.5",
+            "KP": "5",
+            "1/3": "24",
+            "PPA": "9",
+            "CrsPA": "2",
+            "PrgP": "32"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-24",
+        "Time": "14:00",
+        "Round": "Matchweek 2",
+        "Day": "Sun",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "0",
+        "GA": "2",
+        "Opponent": "Everton",
+        "matchReportUrl": "https://fbref.com/en/matches/0bad74e2/Everton-Brighton-and-Hove-Albion-August-24-2025-Premier-League",
+        "teamName": "Brighton & Hove Albion",
+        "team": {
+          "name": "Brighton & Hove Albion",
+          "stats": {
+            "Cmp": "25",
+            "Att": "59",
+            "Cmp%": "42.4",
+            "TotDist": "7454",
+            "PrgDist": "2216",
+            "Ast": "0",
+            "xAG": "1.2",
+            "xA": "0.9",
+            "KP": "10",
+            "1/3": "27",
+            "PPA": "5",
+            "CrsPA": "3",
+            "PrgP": "30"
+          }
+        },
+        "opponent": {
+          "name": "Everton",
+          "stats": {
+            "Cmp": "47",
+            "Att": "84",
+            "Cmp%": "56.0",
+            "TotDist": "5813",
+            "PrgDist": "2453",
+            "Ast": "2",
+            "xAG": "1.6",
+            "xA": "1.0",
+            "KP": "10",
+            "1/3": "31",
+            "PPA": "4",
+            "CrsPA": "1",
+            "PrgP": "21"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-31",
+        "Time": "14:00",
+        "Round": "Matchweek 3",
+        "Day": "Sun",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "2",
+        "GA": "1",
+        "Opponent": "Manchester City",
+        "matchReportUrl": "https://fbref.com/en/matches/810d81e7/Brighton-and-Hove-Albion-Manchester-City-August-31-2025-Premier-League",
+        "teamName": "Brighton & Hove Albion",
+        "team": {
+          "name": "Brighton & Hove Albion",
+          "stats": {
+            "Cmp": "22",
+            "Att": "64",
+            "Cmp%": "34.4",
+            "TotDist": "4575",
+            "PrgDist": "1654",
+            "Ast": "1",
+            "xAG": "1.2",
+            "xA": "0.7",
+            "KP": "9",
+            "1/3": "19",
+            "PPA": "4",
+            "CrsPA": "0",
+            "PrgP": "17"
+          }
+        },
+        "opponent": {
+          "name": "Manchester City",
+          "stats": {
+            "Cmp": "29",
+            "Att": "52",
+            "Cmp%": "55.8",
+            "TotDist": "8490",
+            "PrgDist": "2699",
+            "Ast": "1",
+            "xAG": "1.4",
+            "xA": "1.5",
+            "KP": "8",
+            "1/3": "31",
+            "PPA": "5",
+            "CrsPA": "0",
+            "PrgP": "42"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-13",
+        "Time": "15:00",
+        "Round": "Matchweek 4",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "1",
+        "GA": "2",
+        "Opponent": "Bournemouth",
+        "matchReportUrl": "https://fbref.com/en/matches/8398bbef/Bournemouth-Brighton-and-Hove-Albion-September-13-2025-Premier-League",
+        "teamName": "Brighton & Hove Albion",
+        "team": {
+          "name": "Brighton & Hove Albion",
+          "stats": {
+            "Cmp": "34",
+            "Att": "65",
+            "Cmp%": "52.3",
+            "TotDist": "5677",
+            "PrgDist": "2449",
+            "Ast": "1",
+            "xAG": "0.5",
+            "xA": "0.4",
+            "KP": "4",
+            "1/3": "26",
+            "PPA": "6",
+            "CrsPA": "2",
+            "PrgP": "31"
+          }
+        },
+        "opponent": {
+          "name": "Bournemouth",
+          "stats": {
+            "Cmp": "38",
+            "Att": "79",
+            "Cmp%": "48.1",
+            "TotDist": "5663",
+            "PrgDist": "2227",
+            "Ast": "1",
+            "xAG": "0.5",
+            "xA": "0.9",
+            "KP": "9",
+            "1/3": "27",
+            "PPA": "7",
+            "CrsPA": "3",
+            "PrgP": "32"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-20",
+        "Time": "15:00",
+        "Round": "Matchweek 5",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "D",
+        "GF": "2",
+        "GA": "2",
+        "Opponent": "Tottenham",
+        "matchReportUrl": "https://fbref.com/en/matches/fa03feeb/Brighton-and-Hove-Albion-Tottenham-Hotspur-September-20-2025-Premier-League",
+        "teamName": "Brighton & Hove Albion",
+        "team": {
+          "name": "Brighton & Hove Albion",
+          "stats": {
+            "Cmp": "27",
+            "Att": "62",
+            "Cmp%": "43.5",
+            "TotDist": "4595",
+            "PrgDist": "1928",
+            "Ast": "1",
+            "xAG": "1.2",
+            "xA": "0.3",
+            "KP": "9",
+            "1/3": "25",
+            "PPA": "4",
+            "CrsPA": "1",
+            "PrgP": "25"
+          }
+        },
+        "opponent": {
+          "name": "Tottenham",
+          "stats": {
+            "Cmp": "44",
+            "Att": "77",
+            "Cmp%": "57.1",
+            "TotDist": "8695",
+            "PrgDist": "3132",
+            "Ast": "1",
+            "xAG": "1.1",
+            "xA": "0.9",
+            "KP": "10",
+            "1/3": "48",
+            "PPA": "10",
+            "CrsPA": "1",
+            "PrgP": "59"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:07:20.866Z",
+    "success": true,
+    "matchCount": 5
+  },
+  {
+    "teamId": "burnley",
+    "teamName": "Burnley",
+    "statType": "passing",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/943e8050/2025-2026/matchlogs/c9/passing/Burnley-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-16",
+        "Time": "15:00",
+        "Round": "Matchweek 1",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "0",
+        "GA": "3",
+        "Opponent": "Tottenham",
+        "matchReportUrl": "https://fbref.com/en/matches/d41bb8b3/Tottenham-Hotspur-Burnley-August-16-2025-Premier-League",
+        "teamName": "Burnley",
+        "team": {
+          "name": "Burnley",
+          "stats": {
+            "Cmp": "29",
+            "Att": "63",
+            "Cmp%": "46.0",
+            "TotDist": "3566",
+            "PrgDist": "1532",
+            "Ast": "0",
+            "xAG": "0.9",
+            "xA": "1.0",
+            "KP": "12",
+            "1/3": "14",
+            "PPA": "6",
+            "CrsPA": "2",
+            "PrgP": "17"
+          }
+        },
+        "opponent": {
+          "name": "Tottenham",
+          "stats": {
+            "Cmp": "44",
+            "Att": "81",
+            "Cmp%": "54.3",
+            "TotDist": "8717",
+            "PrgDist": "2731",
+            "Ast": "3",
+            "xAG": "1.8",
+            "xA": "1.3",
+            "KP": "12",
+            "1/3": "40",
+            "PPA": "8",
+            "CrsPA": "5",
+            "PrgP": "31"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-23",
+        "Time": "15:00",
+        "Round": "Matchweek 2",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "2",
+        "GA": "0",
+        "Opponent": "Sunderland",
+        "matchReportUrl": "https://fbref.com/en/matches/4e287736/Burnley-Sunderland-August-23-2025-Premier-League",
+        "teamName": "Burnley",
+        "team": {
+          "name": "Burnley",
+          "stats": {
+            "Cmp": "24",
+            "Att": "71",
+            "Cmp%": "33.8",
+            "TotDist": "6102",
+            "PrgDist": "1976",
+            "Ast": "2",
+            "xAG": "1.0",
+            "xA": "0.5",
+            "KP": "6",
+            "1/3": "27",
+            "PPA": "5",
+            "CrsPA": "2",
+            "PrgP": "39"
+          }
+        },
+        "opponent": {
+          "name": "Sunderland",
+          "stats": {
+            "Cmp": "47",
+            "Att": "84",
+            "Cmp%": "56.0",
+            "TotDist": "9301",
+            "PrgDist": "2590",
+            "Ast": "0",
+            "xAG": "0.7",
+            "xA": "0.6",
+            "KP": "7",
+            "1/3": "42",
+            "PPA": "7",
+            "CrsPA": "3",
+            "PrgP": "49"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-30",
+        "Time": "15:00",
+        "Round": "Matchweek 3",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "2",
+        "GA": "3",
+        "Opponent": "Manchester Utd",
+        "matchReportUrl": "https://fbref.com/en/matches/0050df89/Manchester-United-Burnley-August-30-2025-Premier-League",
+        "teamName": "Burnley",
+        "team": {
+          "name": "Burnley",
+          "stats": {
+            "Cmp": "29",
+            "Att": "69",
+            "Cmp%": "42.0",
+            "TotDist": "4331",
+            "PrgDist": "1894",
+            "Ast": "1",
+            "xAG": "0.6",
+            "xA": "0.5",
+            "KP": "2",
+            "1/3": "15",
+            "PPA": "4",
+            "CrsPA": "1",
+            "PrgP": "22"
+          }
+        },
+        "opponent": {
+          "name": "Manchester Utd",
+          "stats": {
+            "Cmp": "46",
+            "Att": "76",
+            "Cmp%": "60.5",
+            "TotDist": "7714",
+            "PrgDist": "2815",
+            "Ast": "1",
+            "xAG": "2.4",
+            "xA": "1.9",
+            "KP": "19",
+            "1/3": "37",
+            "PPA": "9",
+            "CrsPA": "7",
+            "PrgP": "48"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-14",
+        "Time": "14:00",
+        "Round": "Matchweek 4",
+        "Day": "Sun",
+        "Venue": "Home",
+        "Result": "L",
+        "GF": "0",
+        "GA": "1",
+        "Opponent": "Liverpool",
+        "matchReportUrl": "https://fbref.com/en/matches/fed27aaa/Burnley-Liverpool-September-14-2025-Premier-League",
+        "teamName": "Burnley",
+        "team": {
+          "name": "Burnley",
+          "stats": {
+            "Cmp": "13",
+            "Att": "59",
+            "Cmp%": "22.0",
+            "TotDist": "1725",
+            "PrgDist": "1009",
+            "Ast": "0",
+            "xAG": "0.1",
+            "xA": "0.0",
+            "KP": "2",
+            "1/3": "11",
+            "PPA": "0",
+            "CrsPA": "0",
+            "PrgP": "11"
+          }
+        },
+        "opponent": {
+          "name": "Liverpool",
+          "stats": {
+            "Cmp": "37",
+            "Att": "69",
+            "Cmp%": "53.6",
+            "TotDist": "9779",
+            "PrgDist": "2911",
+            "Ast": "0",
+            "xAG": "1.6",
+            "xA": "1.8",
+            "KP": "21",
+            "1/3": "73",
+            "PPA": "20",
+            "CrsPA": "6",
+            "PrgP": "81"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-20",
+        "Time": "15:00",
+        "Round": "Matchweek 5",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "D",
+        "GF": "1",
+        "GA": "1",
+        "Opponent": "Nott'ham Forest",
+        "matchReportUrl": "https://fbref.com/en/matches/e523c1cd/Burnley-Nottingham-Forest-September-20-2025-Premier-League",
+        "teamName": "Burnley",
+        "team": {
+          "name": "Burnley",
+          "stats": {
+            "Cmp": "27",
+            "Att": "64",
+            "Cmp%": "42.2",
+            "TotDist": "4914",
+            "PrgDist": "1788",
+            "Ast": "1",
+            "xAG": "0.8",
+            "xA": "0.8",
+            "KP": "10",
+            "1/3": "26",
+            "PPA": "11",
+            "CrsPA": "6",
+            "PrgP": "33"
+          }
+        },
+        "opponent": {
+          "name": "Nott'ham Forest",
+          "stats": {
+            "Cmp": "33",
+            "Att": "59",
+            "Cmp%": "55.9",
+            "TotDist": "9514",
+            "PrgDist": "2851",
+            "Ast": "0",
+            "xAG": "0.8",
+            "xA": "0.8",
+            "KP": "13",
+            "1/3": "58",
+            "PPA": "12",
+            "CrsPA": "2",
+            "PrgP": "52"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:07:27.539Z",
+    "success": true,
+    "matchCount": 5
+  },
+  {
+    "teamId": "chelsea",
+    "teamName": "Chelsea",
+    "statType": "passing",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/cff3d9bb/2025-2026/matchlogs/c9/passing/Chelsea-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-17",
+        "Time": "14:00",
+        "Round": "Matchweek 1",
+        "Day": "Sun",
+        "Venue": "Home",
+        "Result": "D",
+        "GF": "0",
+        "GA": "0",
+        "Opponent": "Crystal Palace",
+        "matchReportUrl": "https://fbref.com/en/matches/2185fc64/Chelsea-Crystal-Palace-August-17-2025-Premier-League",
+        "teamName": "Chelsea",
+        "team": {
+          "name": "Chelsea",
+          "stats": {
+            "Cmp": "34",
+            "Att": "64",
+            "Cmp%": "53.1",
+            "TotDist": "9207",
+            "PrgDist": "2470",
+            "Ast": "0",
+            "xAG": "0.9",
+            "xA": "1.3",
+            "KP": "10",
+            "1/3": "43",
+            "PPA": "11",
+            "CrsPA": "1",
+            "PrgP": "58"
+          }
+        },
+        "opponent": {
+          "name": "Crystal Palace",
+          "stats": {
+            "Cmp": "26",
+            "Att": "56",
+            "Cmp%": "46.4",
+            "TotDist": "3617",
+            "PrgDist": "1736",
+            "Ast": "0",
+            "xAG": "0.3",
+            "xA": "0.1",
+            "KP": "5",
+            "1/3": "12",
+            "PPA": "1",
+            "CrsPA": "0",
+            "PrgP": "16"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-22",
+        "Time": "20:00",
+        "Round": "Matchweek 2",
+        "Day": "Fri",
+        "Venue": "Away",
+        "Result": "W",
+        "GF": "5",
+        "GA": "1",
+        "Opponent": "West Ham",
+        "matchReportUrl": "https://fbref.com/en/matches/57b35843/West-Ham-United-Chelsea-August-22-2025-Premier-League",
+        "teamName": "Chelsea",
+        "team": {
+          "name": "Chelsea",
+          "stats": {
+            "Cmp": "32",
+            "Att": "66",
+            "Cmp%": "48.5",
+            "TotDist": "9073",
+            "PrgDist": "2773",
+            "Ast": "4",
+            "xAG": "2.3",
+            "xA": "1.5",
+            "KP": "7",
+            "1/3": "37",
+            "PPA": "5",
+            "CrsPA": "0",
+            "PrgP": "29"
+          }
+        },
+        "opponent": {
+          "name": "West Ham",
+          "stats": {
+            "Cmp": "27",
+            "Att": "51",
+            "Cmp%": "52.9",
+            "TotDist": "5982",
+            "PrgDist": "2231",
+            "Ast": "1",
+            "xAG": "0.5",
+            "xA": "0.7",
+            "KP": "10",
+            "1/3": "26",
+            "PPA": "6",
+            "CrsPA": "2",
+            "PrgP": "28"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-30",
+        "Time": "12:30",
+        "Round": "Matchweek 3",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "2",
+        "GA": "0",
+        "Opponent": "Fulham",
+        "matchReportUrl": "https://fbref.com/en/matches/2dbd7fbd/Chelsea-Fulham-August-30-2025-Premier-League",
+        "teamName": "Chelsea",
+        "team": {
+          "name": "Chelsea",
+          "stats": {
+            "Cmp": "31",
+            "Att": "63",
+            "Cmp%": "49.2",
+            "TotDist": "8046",
+            "PrgDist": "2665",
+            "Ast": "1",
+            "xAG": "1.3",
+            "xA": "0.8",
+            "KP": "11",
+            "1/3": "43",
+            "PPA": "5",
+            "CrsPA": "1",
+            "PrgP": "40"
+          }
+        },
+        "opponent": {
+          "name": "Fulham",
+          "stats": {
+            "Cmp": "38",
+            "Att": "72",
+            "Cmp%": "52.8",
+            "TotDist": "6603",
+            "PrgDist": "2297",
+            "Ast": "0",
+            "xAG": "1.0",
+            "xA": "0.5",
+            "KP": "9",
+            "1/3": "24",
+            "PPA": "10",
+            "CrsPA": "2",
+            "PrgP": "33"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-13",
+        "Time": "20:00",
+        "Round": "Matchweek 4",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "D",
+        "GF": "2",
+        "GA": "2",
+        "Opponent": "Brentford",
+        "matchReportUrl": "https://fbref.com/en/matches/d8104c65/Brentford-Chelsea-September-13-2025-Premier-League",
+        "teamName": "Chelsea",
+        "team": {
+          "name": "Chelsea",
+          "stats": {
+            "Cmp": "42",
+            "Att": "66",
+            "Cmp%": "63.6",
+            "TotDist": "8819",
+            "PrgDist": "2635",
+            "Ast": "1",
+            "xAG": "1.1",
+            "xA": "1.0",
+            "KP": "13",
+            "1/3": "54",
+            "PPA": "12",
+            "CrsPA": "2",
+            "PrgP": "48"
+          }
+        },
+        "opponent": {
+          "name": "Brentford",
+          "stats": {
+            "Cmp": "36",
+            "Att": "66",
+            "Cmp%": "54.5",
+            "TotDist": "4736",
+            "PrgDist": "1931",
+            "Ast": "2",
+            "xAG": "1.4",
+            "xA": "0.8",
+            "KP": "7",
+            "1/3": "18",
+            "PPA": "5",
+            "CrsPA": "2",
+            "PrgP": "17"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-20",
+        "Time": "17:30",
+        "Round": "Matchweek 5",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "1",
+        "GA": "2",
+        "Opponent": "Manchester Utd",
+        "matchReportUrl": "https://fbref.com/en/matches/a562da13/Manchester-United-Chelsea-September-20-2025-Premier-League",
+        "teamName": "Chelsea",
+        "team": {
+          "name": "Chelsea",
+          "stats": {
+            "Cmp": "32",
+            "Att": "59",
+            "Cmp%": "54.2",
+            "TotDist": "7980",
+            "PrgDist": "2332",
+            "Ast": "1",
+            "xAG": "0.4",
+            "xA": "0.3",
+            "KP": "4",
+            "1/3": "33",
+            "PPA": "6",
+            "CrsPA": "1",
+            "PrgP": "39"
+          }
+        },
+        "opponent": {
+          "name": "Manchester Utd",
+          "stats": {
+            "Cmp": "29",
+            "Att": "74",
+            "Cmp%": "39.2",
+            "TotDist": "5732",
+            "PrgDist": "1772",
+            "Ast": "2",
+            "xAG": "1.5",
+            "xA": "1.1",
+            "KP": "6",
+            "1/3": "24",
+            "PPA": "10",
+            "CrsPA": "7",
+            "PrgP": "42"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:07:34.259Z",
+    "success": true,
+    "matchCount": 5
+  },
+  {
+    "teamId": "crystal-palace",
+    "teamName": "Crystal Palace",
+    "statType": "passing",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/47c64c55/2025-2026/matchlogs/c9/passing/Crystal-Palace-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-17",
+        "Time": "14:00",
+        "Round": "Matchweek 1",
+        "Day": "Sun",
+        "Venue": "Away",
+        "Result": "D",
+        "GF": "0",
+        "GA": "0",
+        "Opponent": "Chelsea",
+        "matchReportUrl": "https://fbref.com/en/matches/2185fc64/Chelsea-Crystal-Palace-August-17-2025-Premier-League",
+        "teamName": "Crystal Palace",
+        "team": {
+          "name": "Crystal Palace",
+          "stats": {
+            "Cmp": "26",
+            "Att": "56",
+            "Cmp%": "46.4",
+            "TotDist": "3617",
+            "PrgDist": "1736",
+            "Ast": "0",
+            "xAG": "0.3",
+            "xA": "0.1",
+            "KP": "5",
+            "1/3": "12",
+            "PPA": "1",
+            "CrsPA": "0",
+            "PrgP": "16"
+          }
+        },
+        "opponent": {
+          "name": "Chelsea",
+          "stats": {
+            "Cmp": "34",
+            "Att": "64",
+            "Cmp%": "53.1",
+            "TotDist": "9207",
+            "PrgDist": "2470",
+            "Ast": "0",
+            "xAG": "0.9",
+            "xA": "1.3",
+            "KP": "10",
+            "1/3": "43",
+            "PPA": "11",
+            "CrsPA": "1",
+            "PrgP": "58"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-24",
+        "Time": "14:00",
+        "Round": "Matchweek 2",
+        "Day": "Sun",
+        "Venue": "Home",
+        "Result": "D",
+        "GF": "1",
+        "GA": "1",
+        "Opponent": "Nott'ham Forest",
+        "matchReportUrl": "https://fbref.com/en/matches/a3984be1/Crystal-Palace-Nottingham-Forest-August-24-2025-Premier-League",
+        "teamName": "Crystal Palace",
+        "team": {
+          "name": "Crystal Palace",
+          "stats": {
+            "Cmp": "21",
+            "Att": "62",
+            "Cmp%": "33.9",
+            "TotDist": "5078",
+            "PrgDist": "1797",
+            "Ast": "1",
+            "xAG": "1.0",
+            "xA": "0.9",
+            "KP": "7",
+            "1/3": "20",
+            "PPA": "10",
+            "CrsPA": "4",
+            "PrgP": "34"
+          }
+        },
+        "opponent": {
+          "name": "Nott'ham Forest",
+          "stats": {
+            "Cmp": "42",
+            "Att": "83",
+            "Cmp%": "50.6",
+            "TotDist": "8235",
+            "PrgDist": "2897",
+            "Ast": "1",
+            "xAG": "0.7",
+            "xA": "0.8",
+            "KP": "6",
+            "1/3": "39",
+            "PPA": "7",
+            "CrsPA": "3",
+            "PrgP": "46"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-31",
+        "Time": "19:00",
+        "Round": "Matchweek 3",
+        "Day": "Sun",
+        "Venue": "Away",
+        "Result": "W",
+        "GF": "3",
+        "GA": "0",
+        "Opponent": "Aston Villa",
+        "matchReportUrl": "https://fbref.com/en/matches/cd51ed93/Aston-Villa-Crystal-Palace-August-31-2025-Premier-League",
+        "teamName": "Crystal Palace",
+        "team": {
+          "name": "Crystal Palace",
+          "stats": {
+            "Cmp": "34",
+            "Att": "58",
+            "Cmp%": "58.6",
+            "TotDist": "6228",
+            "PrgDist": "2202",
+            "Ast": "1",
+            "xAG": "1.8",
+            "xA": "1.2",
+            "KP": "4",
+            "1/3": "26",
+            "PPA": "5",
+            "CrsPA": "0",
+            "PrgP": "24"
+          }
+        },
+        "opponent": {
+          "name": "Aston Villa",
+          "stats": {
+            "Cmp": "55",
+            "Att": "84",
+            "Cmp%": "65.5",
+            "TotDist": "9808",
+            "PrgDist": "2812",
+            "Ast": "0",
+            "xAG": "0.9",
+            "xA": "0.7",
+            "KP": "10",
+            "1/3": "53",
+            "PPA": "9",
+            "CrsPA": "1",
+            "PrgP": "51"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-13",
+        "Time": "15:00",
+        "Round": "Matchweek 4",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "D",
+        "GF": "0",
+        "GA": "0",
+        "Opponent": "Sunderland",
+        "matchReportUrl": "https://fbref.com/en/matches/e3cade07/Crystal-Palace-Sunderland-September-13-2025-Premier-League",
+        "teamName": "Crystal Palace",
+        "team": {
+          "name": "Crystal Palace",
+          "stats": {
+            "Cmp": "46",
+            "Att": "86",
+            "Cmp%": "53.5",
+            "TotDist": "8307",
+            "PrgDist": "2572",
+            "Ast": "0",
+            "xAG": "1.0",
+            "xA": "1.0",
+            "KP": "8",
+            "1/3": "20",
+            "PPA": "7",
+            "CrsPA": "3",
+            "PrgP": "40"
+          }
+        },
+        "opponent": {
+          "name": "Sunderland",
+          "stats": {
+            "Cmp": "41",
+            "Att": "79",
+            "Cmp%": "51.9",
+            "TotDist": "6683",
+            "PrgDist": "2300",
+            "Ast": "0",
+            "xAG": "0.4",
+            "xA": "0.5",
+            "KP": "6",
+            "1/3": "26",
+            "PPA": "7",
+            "CrsPA": "3",
+            "PrgP": "30"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-20",
+        "Time": "15:00",
+        "Round": "Matchweek 5",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "W",
+        "GF": "2",
+        "GA": "1",
+        "Opponent": "West Ham",
+        "matchReportUrl": "https://fbref.com/en/matches/15b707b3/West-Ham-United-Crystal-Palace-September-20-2025-Premier-League",
+        "teamName": "Crystal Palace",
+        "team": {
+          "name": "Crystal Palace",
+          "stats": {
+            "Cmp": "41",
+            "Att": "74",
+            "Cmp%": "55.4",
+            "TotDist": "5963",
+            "PrgDist": "2394",
+            "Ast": "0",
+            "xAG": "1.3",
+            "xA": "1.3",
+            "KP": "13",
+            "1/3": "25",
+            "PPA": "10",
+            "CrsPA": "4",
+            "PrgP": "35"
+          }
+        },
+        "opponent": {
+          "name": "West Ham",
+          "stats": {
+            "Cmp": "38",
+            "Att": "75",
+            "Cmp%": "50.7",
+            "TotDist": "7314",
+            "PrgDist": "2187",
+            "Ast": "1",
+            "xAG": "0.6",
+            "xA": "1.2",
+            "KP": "8",
+            "1/3": "28",
+            "PPA": "8",
+            "CrsPA": "2",
+            "PrgP": "40"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:07:40.761Z",
+    "success": true,
+    "matchCount": 5
+  },
+  {
+    "teamId": "everton",
+    "teamName": "Everton",
+    "statType": "passing",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/d3fd31cc/2025-2026/matchlogs/c9/passing/Everton-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-18",
+        "Time": "20:00",
+        "Round": "Matchweek 1",
+        "Day": "Mon",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "0",
+        "GA": "1",
+        "Opponent": "Leeds United",
+        "matchReportUrl": "https://fbref.com/en/matches/0701e218/Leeds-United-Everton-August-18-2025-Premier-League",
+        "teamName": "Everton",
+        "team": {
+          "name": "Everton",
+          "stats": {
+            "Cmp": "37",
+            "Att": "69",
+            "Cmp%": "53.6",
+            "TotDist": "6733",
+            "PrgDist": "2297",
+            "Ast": "0",
+            "xAG": "0.3",
+            "xA": "0.4",
+            "KP": "3",
+            "1/3": "25",
+            "PPA": "4",
+            "CrsPA": "2",
+            "PrgP": "28"
+          }
+        },
+        "opponent": {
+          "name": "Leeds United",
+          "stats": {
+            "Cmp": "41",
+            "Att": "72",
+            "Cmp%": "56.9",
+            "TotDist": "7183",
+            "PrgDist": "2300",
+            "Ast": "0",
+            "xAG": "1.0",
+            "xA": "0.8",
+            "KP": "12",
+            "1/3": "38",
+            "PPA": "6",
+            "CrsPA": "3",
+            "PrgP": "44"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-24",
+        "Time": "14:00",
+        "Round": "Matchweek 2",
+        "Day": "Sun",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "2",
+        "GA": "0",
+        "Opponent": "Brighton",
+        "matchReportUrl": "https://fbref.com/en/matches/0bad74e2/Everton-Brighton-and-Hove-Albion-August-24-2025-Premier-League",
+        "teamName": "Everton",
+        "team": {
+          "name": "Everton",
+          "stats": {
+            "Cmp": "47",
+            "Att": "84",
+            "Cmp%": "56.0",
+            "TotDist": "5813",
+            "PrgDist": "2453",
+            "Ast": "2",
+            "xAG": "1.6",
+            "xA": "1.0",
+            "KP": "10",
+            "1/3": "31",
+            "PPA": "4",
+            "CrsPA": "1",
+            "PrgP": "21"
+          }
+        },
+        "opponent": {
+          "name": "Brighton",
+          "stats": {
+            "Cmp": "25",
+            "Att": "59",
+            "Cmp%": "42.4",
+            "TotDist": "7454",
+            "PrgDist": "2216",
+            "Ast": "0",
+            "xAG": "1.2",
+            "xA": "0.9",
+            "KP": "10",
+            "1/3": "27",
+            "PPA": "5",
+            "CrsPA": "3",
+            "PrgP": "30"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-30",
+        "Time": "15:00",
+        "Round": "Matchweek 3",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "W",
+        "GF": "3",
+        "GA": "2",
+        "Opponent": "Wolves",
+        "matchReportUrl": "https://fbref.com/en/matches/3c399f5e/Wolverhampton-Wanderers-Everton-August-30-2025-Premier-League",
+        "teamName": "Everton",
+        "team": {
+          "name": "Everton",
+          "stats": {
+            "Cmp": "34",
+            "Att": "81",
+            "Cmp%": "42.0",
+            "TotDist": "5647",
+            "PrgDist": "2101",
+            "Ast": "3",
+            "xAG": "1.9",
+            "xA": "1.4",
+            "KP": "9",
+            "1/3": "20",
+            "PPA": "8",
+            "CrsPA": "0",
+            "PrgP": "35"
+          }
+        },
+        "opponent": {
+          "name": "Wolves",
+          "stats": {
+            "Cmp": "41",
+            "Att": "88",
+            "Cmp%": "46.6",
+            "TotDist": "8605",
+            "PrgDist": "2636",
+            "Ast": "2",
+            "xAG": "0.9",
+            "xA": "0.5",
+            "KP": "9",
+            "1/3": "32",
+            "PPA": "12",
+            "CrsPA": "6",
+            "PrgP": "38"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-13",
+        "Time": "15:00",
+        "Round": "Matchweek 4",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "D",
+        "GF": "0",
+        "GA": "0",
+        "Opponent": "Aston Villa",
+        "matchReportUrl": "https://fbref.com/en/matches/a624dc89/Everton-Aston-Villa-September-13-2025-Premier-League",
+        "teamName": "Everton",
+        "team": {
+          "name": "Everton",
+          "stats": {
+            "Cmp": "34",
+            "Att": "65",
+            "Cmp%": "52.3",
+            "TotDist": "5766",
+            "PrgDist": "2344",
+            "Ast": "0",
+            "xAG": "1.6",
+            "xA": "1.2",
+            "KP": "17",
+            "1/3": "35",
+            "PPA": "8",
+            "CrsPA": "3",
+            "PrgP": "39"
+          }
+        },
+        "opponent": {
+          "name": "Aston Villa",
+          "stats": {
+            "Cmp": "28",
+            "Att": "61",
+            "Cmp%": "45.9",
+            "TotDist": "5400",
+            "PrgDist": "1833",
+            "Ast": "0",
+            "xAG": "0.3",
+            "xA": "0.4",
+            "KP": "4",
+            "1/3": "24",
+            "PPA": "4",
+            "CrsPA": "1",
+            "PrgP": "30"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-20",
+        "Time": "12:30",
+        "Round": "Matchweek 5",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "1",
+        "GA": "2",
+        "Opponent": "Liverpool",
+        "matchReportUrl": "https://fbref.com/en/matches/5da72d0e/Merseyside-Derby-Liverpool-Everton-September-20-2025-Premier-League",
+        "teamName": "Everton",
+        "team": {
+          "name": "Everton",
+          "stats": {
+            "Cmp": "38",
+            "Att": "82",
+            "Cmp%": "46.3",
+            "TotDist": "5301",
+            "PrgDist": "1734",
+            "Ast": "1",
+            "xAG": "0.7",
+            "xA": "0.6",
+            "KP": "8",
+            "1/3": "23",
+            "PPA": "11",
+            "CrsPA": "3",
+            "PrgP": "38"
+          }
+        },
+        "opponent": {
+          "name": "Liverpool",
+          "stats": {
+            "Cmp": "24",
+            "Att": "55",
+            "Cmp%": "43.6",
+            "TotDist": "7075",
+            "PrgDist": "2477",
+            "Ast": "2",
+            "xAG": "0.7",
+            "xA": "0.8",
+            "KP": "7",
+            "1/3": "29",
+            "PPA": "14",
+            "CrsPA": "1",
+            "PrgP": "42"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:07:47.589Z",
+    "success": true,
+    "matchCount": 5
+  },
+  {
+    "teamId": "fulham",
+    "teamName": "Fulham",
+    "statType": "passing",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/fd962109/2025-2026/matchlogs/c9/passing/Fulham-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-16",
+        "Time": "15:00",
+        "Round": "Matchweek 1",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "D",
+        "GF": "1",
+        "GA": "1",
+        "Opponent": "Brighton",
+        "matchReportUrl": "https://fbref.com/en/matches/57c49bae/Brighton-and-Hove-Albion-Fulham-August-16-2025-Premier-League",
+        "teamName": "Fulham",
+        "team": {
+          "name": "Fulham",
+          "stats": {
+            "Cmp": "45",
+            "Att": "77",
+            "Cmp%": "58.4",
+            "TotDist": "6786",
+            "PrgDist": "2615",
+            "Ast": "0",
+            "xAG": "0.5",
+            "xA": "0.5",
+            "KP": "5",
+            "1/3": "24",
+            "PPA": "9",
+            "CrsPA": "2",
+            "PrgP": "32"
+          }
+        },
+        "opponent": {
+          "name": "Brighton",
+          "stats": {
+            "Cmp": "42",
+            "Att": "62",
+            "Cmp%": "67.7",
+            "TotDist": "7078",
+            "PrgDist": "2554",
+            "Ast": "0",
+            "xAG": "0.6",
+            "xA": "0.6",
+            "KP": "7",
+            "1/3": "30",
+            "PPA": "8",
+            "CrsPA": "1",
+            "PrgP": "38"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-24",
+        "Time": "16:30",
+        "Round": "Matchweek 2",
+        "Day": "Sun",
+        "Venue": "Home",
+        "Result": "D",
+        "GF": "1",
+        "GA": "1",
+        "Opponent": "Manchester Utd",
+        "matchReportUrl": "https://fbref.com/en/matches/fc45a8b2/Fulham-Manchester-United-August-24-2025-Premier-League",
+        "teamName": "Fulham",
+        "team": {
+          "name": "Fulham",
+          "stats": {
+            "Cmp": "37",
+            "Att": "67",
+            "Cmp%": "55.2",
+            "TotDist": "6666",
+            "PrgDist": "2393",
+            "Ast": "1",
+            "xAG": "1.5",
+            "xA": "2.1",
+            "KP": "9",
+            "1/3": "29",
+            "PPA": "17",
+            "CrsPA": "3",
+            "PrgP": "40"
+          }
+        },
+        "opponent": {
+          "name": "Manchester Utd",
+          "stats": {
+            "Cmp": "38",
+            "Att": "76",
+            "Cmp%": "50.0",
+            "TotDist": "5977",
+            "PrgDist": "1921",
+            "Ast": "0",
+            "xAG": "0.8",
+            "xA": "0.7",
+            "KP": "9",
+            "1/3": "29",
+            "PPA": "8",
+            "CrsPA": "1",
+            "PrgP": "30"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-30",
+        "Time": "12:30",
+        "Round": "Matchweek 3",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "0",
+        "GA": "2",
+        "Opponent": "Chelsea",
+        "matchReportUrl": "https://fbref.com/en/matches/2dbd7fbd/Chelsea-Fulham-August-30-2025-Premier-League",
+        "teamName": "Fulham",
+        "team": {
+          "name": "Fulham",
+          "stats": {
+            "Cmp": "38",
+            "Att": "72",
+            "Cmp%": "52.8",
+            "TotDist": "6603",
+            "PrgDist": "2297",
+            "Ast": "0",
+            "xAG": "1.0",
+            "xA": "0.5",
+            "KP": "9",
+            "1/3": "24",
+            "PPA": "10",
+            "CrsPA": "2",
+            "PrgP": "33"
+          }
+        },
+        "opponent": {
+          "name": "Chelsea",
+          "stats": {
+            "Cmp": "31",
+            "Att": "63",
+            "Cmp%": "49.2",
+            "TotDist": "8046",
+            "PrgDist": "2665",
+            "Ast": "1",
+            "xAG": "1.3",
+            "xA": "0.8",
+            "KP": "11",
+            "1/3": "43",
+            "PPA": "5",
+            "CrsPA": "1",
+            "PrgP": "40"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-13",
+        "Time": "15:00",
+        "Round": "Matchweek 4",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "1",
+        "GA": "0",
+        "Opponent": "Leeds United",
+        "matchReportUrl": "https://fbref.com/en/matches/ab8543fb/Fulham-Leeds-United-September-13-2025-Premier-League",
+        "teamName": "Fulham",
+        "team": {
+          "name": "Fulham",
+          "stats": {
+            "Cmp": "34",
+            "Att": "63",
+            "Cmp%": "54.0",
+            "TotDist": "7507",
+            "PrgDist": "2337",
+            "Ast": "0",
+            "xAG": "0.8",
+            "xA": "0.6",
+            "KP": "4",
+            "1/3": "47",
+            "PPA": "8",
+            "CrsPA": "3",
+            "PrgP": "41"
+          }
+        },
+        "opponent": {
+          "name": "Leeds United",
+          "stats": {
+            "Cmp": "39",
+            "Att": "78",
+            "Cmp%": "50.0",
+            "TotDist": "6256",
+            "PrgDist": "2273",
+            "Ast": "0",
+            "xAG": "0.5",
+            "xA": "0.6",
+            "KP": "4",
+            "1/3": "24",
+            "PPA": "4",
+            "CrsPA": "0",
+            "PrgP": "26"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-20",
+        "Time": "20:00",
+        "Round": "Matchweek 5",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "3",
+        "GA": "1",
+        "Opponent": "Brentford",
+        "matchReportUrl": "https://fbref.com/en/matches/295b388b/Fulham-Brentford-September-20-2025-Premier-League",
+        "teamName": "Fulham",
+        "team": {
+          "name": "Fulham",
+          "stats": {
+            "Cmp": "37",
+            "Att": "67",
+            "Cmp%": "55.2",
+            "TotDist": "6962",
+            "PrgDist": "2449",
+            "Ast": "2",
+            "xAG": "0.9",
+            "xA": "0.6",
+            "KP": "11",
+            "1/3": "21",
+            "PPA": "8",
+            "CrsPA": "2",
+            "PrgP": "33"
+          }
+        },
+        "opponent": {
+          "name": "Brentford",
+          "stats": {
+            "Cmp": "32",
+            "Att": "77",
+            "Cmp%": "41.6",
+            "TotDist": "6343",
+            "PrgDist": "2165",
+            "Ast": "0",
+            "xAG": "0.3",
+            "xA": "0.4",
+            "KP": "4",
+            "1/3": "21",
+            "PPA": "3",
+            "CrsPA": "1",
+            "PrgP": "32"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:07:54.162Z",
+    "success": true,
+    "matchCount": 5
+  },
+  {
+    "teamId": "leeds-united",
+    "teamName": "Leeds United",
+    "statType": "passing",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/5bfb9659/2025-2026/matchlogs/c9/passing/Leeds-United-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-18",
+        "Time": "20:00",
+        "Round": "Matchweek 1",
+        "Day": "Mon",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "1",
+        "GA": "0",
+        "Opponent": "Everton",
+        "matchReportUrl": "https://fbref.com/en/matches/0701e218/Leeds-United-Everton-August-18-2025-Premier-League",
+        "teamName": "Leeds United",
+        "team": {
+          "name": "Leeds United",
+          "stats": {
+            "Cmp": "41",
+            "Att": "72",
+            "Cmp%": "56.9",
+            "TotDist": "7183",
+            "PrgDist": "2300",
+            "Ast": "0",
+            "xAG": "1.0",
+            "xA": "0.8",
+            "KP": "12",
+            "1/3": "38",
+            "PPA": "6",
+            "CrsPA": "3",
+            "PrgP": "44"
+          }
+        },
+        "opponent": {
+          "name": "Everton",
+          "stats": {
+            "Cmp": "37",
+            "Att": "69",
+            "Cmp%": "53.6",
+            "TotDist": "6733",
+            "PrgDist": "2297",
+            "Ast": "0",
+            "xAG": "0.3",
+            "xA": "0.4",
+            "KP": "3",
+            "1/3": "25",
+            "PPA": "4",
+            "CrsPA": "2",
+            "PrgP": "28"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-23",
+        "Time": "17:30",
+        "Round": "Matchweek 2",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "0",
+        "GA": "5",
+        "Opponent": "Arsenal",
+        "matchReportUrl": "https://fbref.com/en/matches/e8724659/Arsenal-Leeds-United-August-23-2025-Premier-League",
+        "teamName": "Leeds United",
+        "team": {
+          "name": "Leeds United",
+          "stats": {
+            "Cmp": "17",
+            "Att": "42",
+            "Cmp%": "40.5",
+            "TotDist": "3551",
+            "PrgDist": "1250",
+            "Ast": "0",
+            "xAG": "0.2",
+            "xA": "0.1",
+            "KP": "3",
+            "1/3": "6",
+            "PPA": "1",
+            "CrsPA": "0",
+            "PrgP": "9"
+          }
+        },
+        "opponent": {
+          "name": "Arsenal",
+          "stats": {
+            "Cmp": "53",
+            "Att": "69",
+            "Cmp%": "76.8",
+            "TotDist": "10575",
+            "PrgDist": "2813",
+            "Ast": "4",
+            "xAG": "1.3",
+            "xA": "0.9",
+            "KP": "12",
+            "1/3": "36",
+            "PPA": "9",
+            "CrsPA": "3",
+            "PrgP": "43"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-30",
+        "Time": "17:30",
+        "Round": "Matchweek 3",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "D",
+        "GF": "0",
+        "GA": "0",
+        "Opponent": "Newcastle Utd",
+        "matchReportUrl": "https://fbref.com/en/matches/bc110e0b/Leeds-United-Newcastle-United-August-30-2025-Premier-League",
+        "teamName": "Leeds United",
+        "team": {
+          "name": "Leeds United",
+          "stats": {
+            "Cmp": "34",
+            "Att": "85",
+            "Cmp%": "40.0",
+            "TotDist": "5903",
+            "PrgDist": "1944",
+            "Ast": "0",
+            "xAG": "0.7",
+            "xA": "0.3",
+            "KP": "9",
+            "1/3": "27",
+            "PPA": "6",
+            "CrsPA": "1",
+            "PrgP": "30"
+          }
+        },
+        "opponent": {
+          "name": "Newcastle Utd",
+          "stats": {
+            "Cmp": "49",
+            "Att": "88",
+            "Cmp%": "55.7",
+            "TotDist": "9158",
+            "PrgDist": "3232",
+            "Ast": "0",
+            "xAG": "0.4",
+            "xA": "0.3",
+            "KP": "7",
+            "1/3": "39",
+            "PPA": "5",
+            "CrsPA": "1",
+            "PrgP": "52"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-13",
+        "Time": "15:00",
+        "Round": "Matchweek 4",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "0",
+        "GA": "1",
+        "Opponent": "Fulham",
+        "matchReportUrl": "https://fbref.com/en/matches/ab8543fb/Fulham-Leeds-United-September-13-2025-Premier-League",
+        "teamName": "Leeds United",
+        "team": {
+          "name": "Leeds United",
+          "stats": {
+            "Cmp": "39",
+            "Att": "78",
+            "Cmp%": "50.0",
+            "TotDist": "6256",
+            "PrgDist": "2273",
+            "Ast": "0",
+            "xAG": "0.5",
+            "xA": "0.6",
+            "KP": "4",
+            "1/3": "24",
+            "PPA": "4",
+            "CrsPA": "0",
+            "PrgP": "26"
+          }
+        },
+        "opponent": {
+          "name": "Fulham",
+          "stats": {
+            "Cmp": "34",
+            "Att": "63",
+            "Cmp%": "54.0",
+            "TotDist": "7507",
+            "PrgDist": "2337",
+            "Ast": "0",
+            "xAG": "0.8",
+            "xA": "0.6",
+            "KP": "4",
+            "1/3": "47",
+            "PPA": "8",
+            "CrsPA": "3",
+            "PrgP": "41"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-20",
+        "Time": "15:00",
+        "Round": "Matchweek 5",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "W",
+        "GF": "3",
+        "GA": "1",
+        "Opponent": "Wolves",
+        "matchReportUrl": "https://fbref.com/en/matches/45650a33/Wolverhampton-Wanderers-Leeds-United-September-20-2025-Premier-League",
+        "teamName": "Leeds United",
+        "team": {
+          "name": "Leeds United",
+          "stats": {
+            "Cmp": "26",
+            "Att": "58",
+            "Cmp%": "44.8",
+            "TotDist": "7080",
+            "PrgDist": "2385",
+            "Ast": "1",
+            "xAG": "0.2",
+            "xA": "0.4",
+            "KP": "2",
+            "1/3": "23",
+            "PPA": "4",
+            "CrsPA": "0",
+            "PrgP": "28"
+          }
+        },
+        "opponent": {
+          "name": "Wolves",
+          "stats": {
+            "Cmp": "48",
+            "Att": "83",
+            "Cmp%": "57.8",
+            "TotDist": "9007",
+            "PrgDist": "2958",
+            "Ast": "1",
+            "xAG": "1.5",
+            "xA": "1.3",
+            "KP": "14",
+            "1/3": "48",
+            "PPA": "18",
+            "CrsPA": "12",
+            "PrgP": "48"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:08:00.755Z",
+    "success": true,
+    "matchCount": 5
+  },
+  {
+    "teamId": "liverpool",
+    "teamName": "Liverpool",
+    "statType": "passing",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/822bd0ba/2025-2026/matchlogs/c9/passing/Liverpool-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-15",
+        "Time": "20:00",
+        "Round": "Matchweek 1",
+        "Day": "Fri",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "4",
+        "GA": "2",
+        "Opponent": "Bournemouth",
+        "matchReportUrl": "https://fbref.com/en/matches/a071faa8/Liverpool-Bournemouth-August-15-2025-Premier-League",
+        "teamName": "Liverpool",
+        "team": {
+          "name": "Liverpool",
+          "stats": {
+            "Cmp": "48",
+            "Att": "75",
+            "Cmp%": "64.0",
+            "TotDist": "7367",
+            "PrgDist": "3039",
+            "Ast": "3",
+            "xAG": "2.0",
+            "xA": "1.1",
+            "KP": "15",
+            "1/3": "36",
+            "PPA": "9",
+            "CrsPA": "2",
+            "PrgP": "40"
+          }
+        },
+        "opponent": {
+          "name": "Bournemouth",
+          "stats": {
+            "Cmp": "35",
+            "Att": "86",
+            "Cmp%": "40.7",
+            "TotDist": "4460",
+            "PrgDist": "1770",
+            "Ast": "2",
+            "xAG": "1.6",
+            "xA": "0.6",
+            "KP": "8",
+            "1/3": "9",
+            "PPA": "11",
+            "CrsPA": "4",
+            "PrgP": "19"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-25",
+        "Time": "20:00",
+        "Round": "Matchweek 2",
+        "Day": "Mon",
+        "Venue": "Away",
+        "Result": "W",
+        "GF": "3",
+        "GA": "2",
+        "Opponent": "Newcastle Utd",
+        "matchReportUrl": "https://fbref.com/en/matches/2c75d21a/Newcastle-United-Liverpool-August-25-2025-Premier-League",
+        "teamName": "Liverpool",
+        "team": {
+          "name": "Liverpool",
+          "stats": {
+            "Cmp": "30",
+            "Att": "66",
+            "Cmp%": "45.5",
+            "TotDist": "6903",
+            "PrgDist": "2384",
+            "Ast": "3",
+            "xAG": "0.7",
+            "xA": "0.5",
+            "KP": "5",
+            "1/3": "29",
+            "PPA": "7",
+            "CrsPA": "1",
+            "PrgP": "37"
+          }
+        },
+        "opponent": {
+          "name": "Newcastle Utd",
+          "stats": {
+            "Cmp": "20",
+            "Att": "66",
+            "Cmp%": "30.3",
+            "TotDist": "3294",
+            "PrgDist": "1313",
+            "Ast": "1",
+            "xAG": "0.5",
+            "xA": "0.9",
+            "KP": "7",
+            "1/3": "17",
+            "PPA": "7",
+            "CrsPA": "5",
+            "PrgP": "25"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-31",
+        "Time": "16:30",
+        "Round": "Matchweek 3",
+        "Day": "Sun",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "1",
+        "GA": "0",
+        "Opponent": "Arsenal",
+        "matchReportUrl": "https://fbref.com/en/matches/b0005978/Liverpool-Arsenal-August-31-2025-Premier-League",
+        "teamName": "Liverpool",
+        "team": {
+          "name": "Liverpool",
+          "stats": {
+            "Cmp": "45",
+            "Att": "82",
+            "Cmp%": "54.9",
+            "TotDist": "7509",
+            "PrgDist": "2422",
+            "Ast": "0",
+            "xAG": "0.4",
+            "xA": "0.2",
+            "KP": "7",
+            "1/3": "31",
+            "PPA": "6",
+            "CrsPA": "1",
+            "PrgP": "28"
+          }
+        },
+        "opponent": {
+          "name": "Arsenal",
+          "stats": {
+            "Cmp": "35",
+            "Att": "71",
+            "Cmp%": "49.3",
+            "TotDist": "5988",
+            "PrgDist": "2054",
+            "Ast": "0",
+            "xAG": "0.3",
+            "xA": "0.4",
+            "KP": "5",
+            "1/3": "23",
+            "PPA": "3",
+            "CrsPA": "0",
+            "PrgP": "28"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-14",
+        "Time": "14:00",
+        "Round": "Matchweek 4",
+        "Day": "Sun",
+        "Venue": "Away",
+        "Result": "W",
+        "GF": "1",
+        "GA": "0",
+        "Opponent": "Burnley",
+        "matchReportUrl": "https://fbref.com/en/matches/fed27aaa/Burnley-Liverpool-September-14-2025-Premier-League",
+        "teamName": "Liverpool",
+        "team": {
+          "name": "Liverpool",
+          "stats": {
+            "Cmp": "37",
+            "Att": "69",
+            "Cmp%": "53.6",
+            "TotDist": "9779",
+            "PrgDist": "2911",
+            "Ast": "0",
+            "xAG": "1.6",
+            "xA": "1.8",
+            "KP": "21",
+            "1/3": "73",
+            "PPA": "20",
+            "CrsPA": "6",
+            "PrgP": "81"
+          }
+        },
+        "opponent": {
+          "name": "Burnley",
+          "stats": {
+            "Cmp": "13",
+            "Att": "59",
+            "Cmp%": "22.0",
+            "TotDist": "1725",
+            "PrgDist": "1009",
+            "Ast": "0",
+            "xAG": "0.1",
+            "xA": "0.0",
+            "KP": "2",
+            "1/3": "11",
+            "PPA": "0",
+            "CrsPA": "0",
+            "PrgP": "11"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-20",
+        "Time": "12:30",
+        "Round": "Matchweek 5",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "2",
+        "GA": "1",
+        "Opponent": "Everton",
+        "matchReportUrl": "https://fbref.com/en/matches/5da72d0e/Merseyside-Derby-Liverpool-Everton-September-20-2025-Premier-League",
+        "teamName": "Liverpool",
+        "team": {
+          "name": "Liverpool",
+          "stats": {
+            "Cmp": "24",
+            "Att": "55",
+            "Cmp%": "43.6",
+            "TotDist": "7075",
+            "PrgDist": "2477",
+            "Ast": "2",
+            "xAG": "0.7",
+            "xA": "0.8",
+            "KP": "7",
+            "1/3": "29",
+            "PPA": "14",
+            "CrsPA": "1",
+            "PrgP": "42"
+          }
+        },
+        "opponent": {
+          "name": "Everton",
+          "stats": {
+            "Cmp": "38",
+            "Att": "82",
+            "Cmp%": "46.3",
+            "TotDist": "5301",
+            "PrgDist": "1734",
+            "Ast": "1",
+            "xAG": "0.7",
+            "xA": "0.6",
+            "KP": "8",
+            "1/3": "23",
+            "PPA": "11",
+            "CrsPA": "3",
+            "PrgP": "38"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:08:07.524Z",
+    "success": true,
+    "matchCount": 5
+  },
+  {
+    "teamId": "manchester-city",
+    "teamName": "Manchester City",
+    "statType": "passing",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/b8fd03ef/2025-2026/matchlogs/c9/passing/Manchester-City-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-16",
+        "Time": "17:30",
+        "Round": "Matchweek 1",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "W",
+        "GF": "4",
+        "GA": "0",
+        "Opponent": "Wolves",
+        "matchReportUrl": "https://fbref.com/en/matches/8613020d/Wolverhampton-Wanderers-Manchester-City-August-16-2025-Premier-League",
+        "teamName": "Manchester City",
+        "team": {
+          "name": "Manchester City",
+          "stats": {
+            "Cmp": "26",
+            "Att": "48",
+            "Cmp%": "54.2",
+            "TotDist": "8244",
+            "PrgDist": "2571",
+            "Ast": "3",
+            "xAG": "2.2",
+            "xA": "1.5",
+            "KP": "9",
+            "1/3": "39",
+            "PPA": "10",
+            "CrsPA": "1",
+            "PrgP": "51"
+          }
+        },
+        "opponent": {
+          "name": "Wolves",
+          "stats": {
+            "Cmp": "39",
+            "Att": "69",
+            "Cmp%": "56.5",
+            "TotDist": "6710",
+            "PrgDist": "2280",
+            "Ast": "0",
+            "xAG": "0.4",
+            "xA": "0.3",
+            "KP": "7",
+            "1/3": "23",
+            "PPA": "9",
+            "CrsPA": "3",
+            "PrgP": "23"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-23",
+        "Time": "12:30",
+        "Round": "Matchweek 2",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "L",
+        "GF": "0",
+        "GA": "2",
+        "Opponent": "Tottenham",
+        "matchReportUrl": "https://fbref.com/en/matches/f7e2c9c7/Manchester-City-Tottenham-Hotspur-August-23-2025-Premier-League",
+        "teamName": "Manchester City",
+        "team": {
+          "name": "Manchester City",
+          "stats": {
+            "Cmp": "29",
+            "Att": "61",
+            "Cmp%": "47.5",
+            "TotDist": "7864",
+            "PrgDist": "2493",
+            "Ast": "0",
+            "xAG": "1.5",
+            "xA": "1.6",
+            "KP": "8",
+            "1/3": "29",
+            "PPA": "8",
+            "CrsPA": "3",
+            "PrgP": "44"
+          }
+        },
+        "opponent": {
+          "name": "Tottenham",
+          "stats": {
+            "Cmp": "31",
+            "Att": "74",
+            "Cmp%": "41.9",
+            "TotDist": "5578",
+            "PrgDist": "2013",
+            "Ast": "1",
+            "xAG": "0.7",
+            "xA": "0.4",
+            "KP": "7",
+            "1/3": "19",
+            "PPA": "5",
+            "CrsPA": "3",
+            "PrgP": "22"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-31",
+        "Time": "14:00",
+        "Round": "Matchweek 3",
+        "Day": "Sun",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "1",
+        "GA": "2",
+        "Opponent": "Brighton",
+        "matchReportUrl": "https://fbref.com/en/matches/810d81e7/Brighton-and-Hove-Albion-Manchester-City-August-31-2025-Premier-League",
+        "teamName": "Manchester City",
+        "team": {
+          "name": "Manchester City",
+          "stats": {
+            "Cmp": "29",
+            "Att": "52",
+            "Cmp%": "55.8",
+            "TotDist": "8490",
+            "PrgDist": "2699",
+            "Ast": "1",
+            "xAG": "1.4",
+            "xA": "1.5",
+            "KP": "8",
+            "1/3": "31",
+            "PPA": "5",
+            "CrsPA": "0",
+            "PrgP": "42"
+          }
+        },
+        "opponent": {
+          "name": "Brighton",
+          "stats": {
+            "Cmp": "22",
+            "Att": "64",
+            "Cmp%": "34.4",
+            "TotDist": "4575",
+            "PrgDist": "1654",
+            "Ast": "1",
+            "xAG": "1.2",
+            "xA": "0.7",
+            "KP": "9",
+            "1/3": "19",
+            "PPA": "4",
+            "CrsPA": "0",
+            "PrgP": "17"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-14",
+        "Time": "16:30",
+        "Round": "Matchweek 4",
+        "Day": "Sun",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "3",
+        "GA": "0",
+        "Opponent": "Manchester Utd",
+        "matchReportUrl": "https://fbref.com/en/matches/f2b1061a/Manchester-Derby-Manchester-City-Manchester-United-September-14-2025-Premier-League",
+        "teamName": "Manchester City",
+        "team": {
+          "name": "Manchester City",
+          "stats": {
+            "Cmp": "27",
+            "Att": "63",
+            "Cmp%": "42.9",
+            "TotDist": "5908",
+            "PrgDist": "2169",
+            "Ast": "3",
+            "xAG": "2.6",
+            "xA": "1.6",
+            "KP": "10",
+            "1/3": "22",
+            "PPA": "5",
+            "CrsPA": "1",
+            "PrgP": "24"
+          }
+        },
+        "opponent": {
+          "name": "Manchester Utd",
+          "stats": {
+            "Cmp": "53",
+            "Att": "83",
+            "Cmp%": "63.9",
+            "TotDist": "7882",
+            "PrgDist": "2657",
+            "Ast": "0",
+            "xAG": "1.3",
+            "xA": "1.3",
+            "KP": "9",
+            "1/3": "46",
+            "PPA": "14",
+            "CrsPA": "3",
+            "PrgP": "54"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-21",
+        "Time": "16:30",
+        "Round": "Matchweek 5",
+        "Day": "Sun",
+        "Venue": "Away",
+        "Result": "D",
+        "GF": "1",
+        "GA": "1",
+        "Opponent": "Arsenal",
+        "matchReportUrl": "https://fbref.com/en/matches/2045939c/Arsenal-Manchester-City-September-21-2025-Premier-League",
+        "teamName": "Manchester City",
+        "team": {
+          "name": "Manchester City",
+          "stats": {
+            "Cmp": "25",
+            "Att": "53",
+            "Cmp%": "47.2",
+            "TotDist": "4126",
+            "PrgDist": "1671",
+            "Ast": "1",
+            "xAG": "0.9",
+            "xA": "0.3",
+            "KP": "5",
+            "1/3": "20",
+            "PPA": "2",
+            "CrsPA": "0",
+            "PrgP": "20"
+          }
+        },
+        "opponent": {
+          "name": "Arsenal",
+          "stats": {
+            "Cmp": "43",
+            "Att": "75",
+            "Cmp%": "57.3",
+            "TotDist": "9779",
+            "PrgDist": "2713",
+            "Ast": "1",
+            "xAG": "0.6",
+            "xA": "1.0",
+            "KP": "8",
+            "1/3": "40",
+            "PPA": "10",
+            "CrsPA": "1",
+            "PrgP": "49"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:08:14.267Z",
+    "success": true,
+    "matchCount": 5
+  },
+  {
+    "teamId": "manchester-united",
+    "teamName": "Manchester United",
+    "statType": "passing",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/19538871/2025-2026/matchlogs/c9/passing/Manchester-United-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-17",
+        "Time": "16:30",
+        "Round": "Matchweek 1",
+        "Day": "Sun",
+        "Venue": "Home",
+        "Result": "L",
+        "GF": "0",
+        "GA": "1",
+        "Opponent": "Arsenal",
+        "matchReportUrl": "https://fbref.com/en/matches/643d26fd/Manchester-United-Arsenal-August-17-2025-Premier-League",
+        "teamName": "Manchester United",
+        "team": {
+          "name": "Manchester United",
+          "stats": {
+            "Cmp": "57",
+            "Att": "89",
+            "Cmp%": "64.0",
+            "TotDist": "7571",
+            "PrgDist": "2672",
+            "Ast": "0",
+            "xAG": "1.1",
+            "xA": "0.9",
+            "KP": "17",
+            "1/3": "33",
+            "PPA": "12",
+            "CrsPA": "3",
+            "PrgP": "48"
+          }
+        },
+        "opponent": {
+          "name": "Arsenal",
+          "stats": {
+            "Cmp": "24",
+            "Att": "57",
+            "Cmp%": "42.1",
+            "TotDist": "4153",
+            "PrgDist": "1845",
+            "Ast": "0",
+            "xAG": "0.3",
+            "xA": "0.5",
+            "KP": "5",
+            "1/3": "14",
+            "PPA": "5",
+            "CrsPA": "0",
+            "PrgP": "24"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-24",
+        "Time": "16:30",
+        "Round": "Matchweek 2",
+        "Day": "Sun",
+        "Venue": "Away",
+        "Result": "D",
+        "GF": "1",
+        "GA": "1",
+        "Opponent": "Fulham",
+        "matchReportUrl": "https://fbref.com/en/matches/fc45a8b2/Fulham-Manchester-United-August-24-2025-Premier-League",
+        "teamName": "Manchester United",
+        "team": {
+          "name": "Manchester United",
+          "stats": {
+            "Cmp": "38",
+            "Att": "76",
+            "Cmp%": "50.0",
+            "TotDist": "5977",
+            "PrgDist": "1921",
+            "Ast": "0",
+            "xAG": "0.8",
+            "xA": "0.7",
+            "KP": "9",
+            "1/3": "29",
+            "PPA": "8",
+            "CrsPA": "1",
+            "PrgP": "30"
+          }
+        },
+        "opponent": {
+          "name": "Fulham",
+          "stats": {
+            "Cmp": "37",
+            "Att": "67",
+            "Cmp%": "55.2",
+            "TotDist": "6666",
+            "PrgDist": "2393",
+            "Ast": "1",
+            "xAG": "1.5",
+            "xA": "2.1",
+            "KP": "9",
+            "1/3": "29",
+            "PPA": "17",
+            "CrsPA": "3",
+            "PrgP": "40"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-30",
+        "Time": "15:00",
+        "Round": "Matchweek 3",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "3",
+        "GA": "2",
+        "Opponent": "Burnley",
+        "matchReportUrl": "https://fbref.com/en/matches/0050df89/Manchester-United-Burnley-August-30-2025-Premier-League",
+        "teamName": "Manchester United",
+        "team": {
+          "name": "Manchester United",
+          "stats": {
+            "Cmp": "46",
+            "Att": "76",
+            "Cmp%": "60.5",
+            "TotDist": "7714",
+            "PrgDist": "2815",
+            "Ast": "1",
+            "xAG": "2.4",
+            "xA": "1.9",
+            "KP": "19",
+            "1/3": "37",
+            "PPA": "9",
+            "CrsPA": "7",
+            "PrgP": "48"
+          }
+        },
+        "opponent": {
+          "name": "Burnley",
+          "stats": {
+            "Cmp": "29",
+            "Att": "69",
+            "Cmp%": "42.0",
+            "TotDist": "4331",
+            "PrgDist": "1894",
+            "Ast": "1",
+            "xAG": "0.6",
+            "xA": "0.5",
+            "KP": "2",
+            "1/3": "15",
+            "PPA": "4",
+            "CrsPA": "1",
+            "PrgP": "22"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-14",
+        "Time": "16:30",
+        "Round": "Matchweek 4",
+        "Day": "Sun",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "0",
+        "GA": "3",
+        "Opponent": "Manchester City",
+        "matchReportUrl": "https://fbref.com/en/matches/f2b1061a/Manchester-Derby-Manchester-City-Manchester-United-September-14-2025-Premier-League",
+        "teamName": "Manchester United",
+        "team": {
+          "name": "Manchester United",
+          "stats": {
+            "Cmp": "53",
+            "Att": "83",
+            "Cmp%": "63.9",
+            "TotDist": "7882",
+            "PrgDist": "2657",
+            "Ast": "0",
+            "xAG": "1.3",
+            "xA": "1.3",
+            "KP": "9",
+            "1/3": "46",
+            "PPA": "14",
+            "CrsPA": "3",
+            "PrgP": "54"
+          }
+        },
+        "opponent": {
+          "name": "Manchester City",
+          "stats": {
+            "Cmp": "27",
+            "Att": "63",
+            "Cmp%": "42.9",
+            "TotDist": "5908",
+            "PrgDist": "2169",
+            "Ast": "3",
+            "xAG": "2.6",
+            "xA": "1.6",
+            "KP": "10",
+            "1/3": "22",
+            "PPA": "5",
+            "CrsPA": "1",
+            "PrgP": "24"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-20",
+        "Time": "17:30",
+        "Round": "Matchweek 5",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "2",
+        "GA": "1",
+        "Opponent": "Chelsea",
+        "matchReportUrl": "https://fbref.com/en/matches/a562da13/Manchester-United-Chelsea-September-20-2025-Premier-League",
+        "teamName": "Manchester United",
+        "team": {
+          "name": "Manchester United",
+          "stats": {
+            "Cmp": "29",
+            "Att": "74",
+            "Cmp%": "39.2",
+            "TotDist": "5732",
+            "PrgDist": "1772",
+            "Ast": "2",
+            "xAG": "1.5",
+            "xA": "1.1",
+            "KP": "6",
+            "1/3": "24",
+            "PPA": "10",
+            "CrsPA": "7",
+            "PrgP": "42"
+          }
+        },
+        "opponent": {
+          "name": "Chelsea",
+          "stats": {
+            "Cmp": "32",
+            "Att": "59",
+            "Cmp%": "54.2",
+            "TotDist": "7980",
+            "PrgDist": "2332",
+            "Ast": "1",
+            "xAG": "0.4",
+            "xA": "0.3",
+            "KP": "4",
+            "1/3": "33",
+            "PPA": "6",
+            "CrsPA": "1",
+            "PrgP": "39"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:08:21.090Z",
+    "success": true,
+    "matchCount": 5
+  },
+  {
+    "teamId": "newcastle-united",
+    "teamName": "Newcastle United",
+    "statType": "passing",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/b2b47a98/2025-2026/matchlogs/c9/passing/Newcastle-United-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-16",
+        "Time": "12:30",
+        "Round": "Matchweek 1",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "D",
+        "GF": "0",
+        "GA": "0",
+        "Opponent": "Aston Villa",
+        "matchReportUrl": "https://fbref.com/en/matches/bbdf4739/Aston-Villa-Newcastle-United-August-16-2025-Premier-League",
+        "teamName": "Newcastle United",
+        "team": {
+          "name": "Newcastle United",
+          "stats": {
+            "Cmp": "34",
+            "Att": "69",
+            "Cmp%": "49.3",
+            "TotDist": "6777",
+            "PrgDist": "2293",
+            "Ast": "0",
+            "xAG": "1.4",
+            "xA": "0.9",
+            "KP": "14",
+            "1/3": "30",
+            "PPA": "7",
+            "CrsPA": "3",
+            "PrgP": "51"
+          }
+        },
+        "opponent": {
+          "name": "Aston Villa",
+          "stats": {
+            "Cmp": "29",
+            "Att": "76",
+            "Cmp%": "38.2",
+            "TotDist": "4562",
+            "PrgDist": "1832",
+            "Ast": "0",
+            "xAG": "0.2",
+            "xA": "0.2",
+            "KP": "3",
+            "1/3": "19",
+            "PPA": "5",
+            "CrsPA": "2",
+            "PrgP": "35"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-25",
+        "Time": "20:00",
+        "Round": "Matchweek 2",
+        "Day": "Mon",
+        "Venue": "Home",
+        "Result": "L",
+        "GF": "2",
+        "GA": "3",
+        "Opponent": "Liverpool",
+        "matchReportUrl": "https://fbref.com/en/matches/2c75d21a/Newcastle-United-Liverpool-August-25-2025-Premier-League",
+        "teamName": "Newcastle United",
+        "team": {
+          "name": "Newcastle United",
+          "stats": {
+            "Cmp": "20",
+            "Att": "66",
+            "Cmp%": "30.3",
+            "TotDist": "3294",
+            "PrgDist": "1313",
+            "Ast": "1",
+            "xAG": "0.5",
+            "xA": "0.9",
+            "KP": "7",
+            "1/3": "17",
+            "PPA": "7",
+            "CrsPA": "5",
+            "PrgP": "25"
+          }
+        },
+        "opponent": {
+          "name": "Liverpool",
+          "stats": {
+            "Cmp": "30",
+            "Att": "66",
+            "Cmp%": "45.5",
+            "TotDist": "6903",
+            "PrgDist": "2384",
+            "Ast": "3",
+            "xAG": "0.7",
+            "xA": "0.5",
+            "KP": "5",
+            "1/3": "29",
+            "PPA": "7",
+            "CrsPA": "1",
+            "PrgP": "37"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-30",
+        "Time": "17:30",
+        "Round": "Matchweek 3",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "D",
+        "GF": "0",
+        "GA": "0",
+        "Opponent": "Leeds United",
+        "matchReportUrl": "https://fbref.com/en/matches/bc110e0b/Leeds-United-Newcastle-United-August-30-2025-Premier-League",
+        "teamName": "Newcastle United",
+        "team": {
+          "name": "Newcastle United",
+          "stats": {
+            "Cmp": "49",
+            "Att": "88",
+            "Cmp%": "55.7",
+            "TotDist": "9158",
+            "PrgDist": "3232",
+            "Ast": "0",
+            "xAG": "0.4",
+            "xA": "0.3",
+            "KP": "7",
+            "1/3": "39",
+            "PPA": "5",
+            "CrsPA": "1",
+            "PrgP": "52"
+          }
+        },
+        "opponent": {
+          "name": "Leeds United",
+          "stats": {
+            "Cmp": "34",
+            "Att": "85",
+            "Cmp%": "40.0",
+            "TotDist": "5903",
+            "PrgDist": "1944",
+            "Ast": "0",
+            "xAG": "0.7",
+            "xA": "0.3",
+            "KP": "9",
+            "1/3": "27",
+            "PPA": "6",
+            "CrsPA": "1",
+            "PrgP": "30"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-13",
+        "Time": "15:00",
+        "Round": "Matchweek 4",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "1",
+        "GA": "0",
+        "Opponent": "Wolves",
+        "matchReportUrl": "https://fbref.com/en/matches/55fbbbe6/Newcastle-United-Wolverhampton-Wanderers-September-13-2025-Premier-League",
+        "teamName": "Newcastle United",
+        "team": {
+          "name": "Newcastle United",
+          "stats": {
+            "Cmp": "45",
+            "Att": "79",
+            "Cmp%": "57.0",
+            "TotDist": "7445",
+            "PrgDist": "2819",
+            "Ast": "1",
+            "xAG": "1.4",
+            "xA": "1.0",
+            "KP": "12",
+            "1/3": "41",
+            "PPA": "9",
+            "CrsPA": "2",
+            "PrgP": "51"
+          }
+        },
+        "opponent": {
+          "name": "Wolves",
+          "stats": {
+            "Cmp": "30",
+            "Att": "76",
+            "Cmp%": "39.5",
+            "TotDist": "5513",
+            "PrgDist": "1905",
+            "Ast": "0",
+            "xAG": "0.3",
+            "xA": "0.6",
+            "KP": "5",
+            "1/3": "24",
+            "PPA": "7",
+            "CrsPA": "2",
+            "PrgP": "21"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-21",
+        "Time": "14:00",
+        "Round": "Matchweek 5",
+        "Day": "Sun",
+        "Venue": "Away",
+        "Result": "D",
+        "GF": "0",
+        "GA": "0",
+        "Opponent": "Bournemouth",
+        "matchReportUrl": "https://fbref.com/en/matches/f55b1b65/Bournemouth-Newcastle-United-September-21-2025-Premier-League",
+        "teamName": "Newcastle United",
+        "team": {
+          "name": "Newcastle United",
+          "stats": {
+            "Cmp": "33",
+            "Att": "81",
+            "Cmp%": "40.7",
+            "TotDist": "5894",
+            "PrgDist": "2160",
+            "Ast": "0",
+            "xAG": "0.2",
+            "xA": "0.4",
+            "KP": "3",
+            "1/3": "28",
+            "PPA": "7",
+            "CrsPA": "1",
+            "PrgP": "36"
+          }
+        },
+        "opponent": {
+          "name": "Bournemouth",
+          "stats": {
+            "Cmp": "33",
+            "Att": "83",
+            "Cmp%": "39.8",
+            "TotDist": "7455",
+            "PrgDist": "2220",
+            "Ast": "0",
+            "xAG": "0.3",
+            "xA": "0.3",
+            "KP": "6",
+            "1/3": "35",
+            "PPA": "2",
+            "CrsPA": "0",
+            "PrgP": "41"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:08:28.805Z",
+    "success": true,
+    "matchCount": 5
+  },
+  {
+    "teamId": "nottingham-forest",
+    "teamName": "Nottingham Forest",
+    "statType": "passing",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/e4a775cb/2025-2026/matchlogs/c9/passing/Nottingham-Forest-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-17",
+        "Time": "14:00",
+        "Round": "Matchweek 1",
+        "Day": "Sun",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "3",
+        "GA": "1",
+        "Opponent": "Brentford",
+        "matchReportUrl": "https://fbref.com/en/matches/855f8b5e/Nottingham-Forest-Brentford-August-17-2025-Premier-League",
+        "teamName": "Nottingham Forest",
+        "team": {
+          "name": "Nottingham Forest",
+          "stats": {
+            "Cmp": "29",
+            "Att": "73",
+            "Cmp%": "39.7",
+            "TotDist": "6517",
+            "PrgDist": "2195",
+            "Ast": "2",
+            "xAG": "1.7",
+            "xA": "1.0",
+            "KP": "9",
+            "1/3": "33",
+            "PPA": "13",
+            "CrsPA": "5",
+            "PrgP": "41"
+          }
+        },
+        "opponent": {
+          "name": "Brentford",
+          "stats": {
+            "Cmp": "36",
+            "Att": "73",
+            "Cmp%": "49.3",
+            "TotDist": "5730",
+            "PrgDist": "2243",
+            "Ast": "0",
+            "xAG": "0.6",
+            "xA": "0.3",
+            "KP": "7",
+            "1/3": "19",
+            "PPA": "2",
+            "CrsPA": "0",
+            "PrgP": "22"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-24",
+        "Time": "14:00",
+        "Round": "Matchweek 2",
+        "Day": "Sun",
+        "Venue": "Away",
+        "Result": "D",
+        "GF": "1",
+        "GA": "1",
+        "Opponent": "Crystal Palace",
+        "matchReportUrl": "https://fbref.com/en/matches/a3984be1/Crystal-Palace-Nottingham-Forest-August-24-2025-Premier-League",
+        "teamName": "Nottingham Forest",
+        "team": {
+          "name": "Nottingham Forest",
+          "stats": {
+            "Cmp": "42",
+            "Att": "83",
+            "Cmp%": "50.6",
+            "TotDist": "8235",
+            "PrgDist": "2897",
+            "Ast": "1",
+            "xAG": "0.7",
+            "xA": "0.8",
+            "KP": "6",
+            "1/3": "39",
+            "PPA": "7",
+            "CrsPA": "3",
+            "PrgP": "46"
+          }
+        },
+        "opponent": {
+          "name": "Crystal Palace",
+          "stats": {
+            "Cmp": "21",
+            "Att": "62",
+            "Cmp%": "33.9",
+            "TotDist": "5078",
+            "PrgDist": "1797",
+            "Ast": "1",
+            "xAG": "1.0",
+            "xA": "0.9",
+            "KP": "7",
+            "1/3": "20",
+            "PPA": "10",
+            "CrsPA": "4",
+            "PrgP": "34"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-31",
+        "Time": "14:00",
+        "Round": "Matchweek 3",
+        "Day": "Sun",
+        "Venue": "Home",
+        "Result": "L",
+        "GF": "0",
+        "GA": "3",
+        "Opponent": "West Ham",
+        "matchReportUrl": "https://fbref.com/en/matches/299beb27/Nottingham-Forest-West-Ham-United-August-31-2025-Premier-League",
+        "teamName": "Nottingham Forest",
+        "team": {
+          "name": "Nottingham Forest",
+          "stats": {
+            "Cmp": "21",
+            "Att": "54",
+            "Cmp%": "38.9",
+            "TotDist": "8002",
+            "PrgDist": "2596",
+            "Ast": "0",
+            "xAG": "0.7",
+            "xA": "0.8",
+            "KP": "8",
+            "1/3": "53",
+            "PPA": "8",
+            "CrsPA": "1",
+            "PrgP": "59"
+          }
+        },
+        "opponent": {
+          "name": "West Ham",
+          "stats": {
+            "Cmp": "31",
+            "Att": "63",
+            "Cmp%": "49.2",
+            "TotDist": "5612",
+            "PrgDist": "1952",
+            "Ast": "2",
+            "xAG": "1.6",
+            "xA": "0.5",
+            "KP": "11",
+            "1/3": "14",
+            "PPA": "5",
+            "CrsPA": "2",
+            "PrgP": "23"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-13",
+        "Time": "12:30",
+        "Round": "Matchweek 4",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "0",
+        "GA": "3",
+        "Opponent": "Arsenal",
+        "matchReportUrl": "https://fbref.com/en/matches/4fe3e679/Arsenal-Nottingham-Forest-September-13-2025-Premier-League",
+        "teamName": "Nottingham Forest",
+        "team": {
+          "name": "Nottingham Forest",
+          "stats": {
+            "Cmp": "27",
+            "Att": "59",
+            "Cmp%": "45.8",
+            "TotDist": "6117",
+            "PrgDist": "2061",
+            "Ast": "0",
+            "xAG": "0.2",
+            "xA": "0.2",
+            "KP": "5",
+            "1/3": "31",
+            "PPA": "4",
+            "CrsPA": "1",
+            "PrgP": "25"
+          }
+        },
+        "opponent": {
+          "name": "Arsenal",
+          "stats": {
+            "Cmp": "33",
+            "Att": "57",
+            "Cmp%": "57.9",
+            "TotDist": "7834",
+            "PrgDist": "2592",
+            "Ast": "2",
+            "xAG": "1.5",
+            "xA": "1.7",
+            "KP": "12",
+            "1/3": "35",
+            "PPA": "8",
+            "CrsPA": "0",
+            "PrgP": "50"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-20",
+        "Time": "15:00",
+        "Round": "Matchweek 5",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "D",
+        "GF": "1",
+        "GA": "1",
+        "Opponent": "Burnley",
+        "matchReportUrl": "https://fbref.com/en/matches/e523c1cd/Burnley-Nottingham-Forest-September-20-2025-Premier-League",
+        "teamName": "Nottingham Forest",
+        "team": {
+          "name": "Nottingham Forest",
+          "stats": {
+            "Cmp": "33",
+            "Att": "59",
+            "Cmp%": "55.9",
+            "TotDist": "9514",
+            "PrgDist": "2851",
+            "Ast": "0",
+            "xAG": "0.8",
+            "xA": "0.8",
+            "KP": "13",
+            "1/3": "58",
+            "PPA": "12",
+            "CrsPA": "2",
+            "PrgP": "52"
+          }
+        },
+        "opponent": {
+          "name": "Burnley",
+          "stats": {
+            "Cmp": "27",
+            "Att": "64",
+            "Cmp%": "42.2",
+            "TotDist": "4914",
+            "PrgDist": "1788",
+            "Ast": "1",
+            "xAG": "0.8",
+            "xA": "0.8",
+            "KP": "10",
+            "1/3": "26",
+            "PPA": "11",
+            "CrsPA": "6",
+            "PrgP": "33"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:08:35.644Z",
+    "success": true,
+    "matchCount": 5
+  },
+  {
+    "teamId": "sunderland",
+    "teamName": "Sunderland",
+    "statType": "passing",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/8ef52968/2025-2026/matchlogs/c9/passing/Sunderland-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-16",
+        "Time": "15:00",
+        "Round": "Matchweek 1",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "3",
+        "GA": "0",
+        "Opponent": "West Ham",
+        "matchReportUrl": "https://fbref.com/en/matches/e1058522/Sunderland-West-Ham-United-August-16-2025-Premier-League",
+        "teamName": "Sunderland",
+        "team": {
+          "name": "Sunderland",
+          "stats": {
+            "Cmp": "30",
+            "Att": "65",
+            "Cmp%": "46.2",
+            "TotDist": "4585",
+            "PrgDist": "1705",
+            "Ast": "2",
+            "xAG": "0.5",
+            "xA": "0.3",
+            "KP": "7",
+            "1/3": "25",
+            "PPA": "3",
+            "CrsPA": "1",
+            "PrgP": "23"
+          }
+        },
+        "opponent": {
+          "name": "West Ham",
+          "stats": {
+            "Cmp": "37",
+            "Att": "76",
+            "Cmp%": "48.7",
+            "TotDist": "8462",
+            "PrgDist": "2756",
+            "Ast": "0",
+            "xAG": "0.4",
+            "xA": "0.5",
+            "KP": "7",
+            "1/3": "47",
+            "PPA": "12",
+            "CrsPA": "4",
+            "PrgP": "50"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-23",
+        "Time": "15:00",
+        "Round": "Matchweek 2",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "0",
+        "GA": "2",
+        "Opponent": "Burnley",
+        "matchReportUrl": "https://fbref.com/en/matches/4e287736/Burnley-Sunderland-August-23-2025-Premier-League",
+        "teamName": "Sunderland",
+        "team": {
+          "name": "Sunderland",
+          "stats": {
+            "Cmp": "47",
+            "Att": "84",
+            "Cmp%": "56.0",
+            "TotDist": "9301",
+            "PrgDist": "2590",
+            "Ast": "0",
+            "xAG": "0.7",
+            "xA": "0.6",
+            "KP": "7",
+            "1/3": "42",
+            "PPA": "7",
+            "CrsPA": "3",
+            "PrgP": "49"
+          }
+        },
+        "opponent": {
+          "name": "Burnley",
+          "stats": {
+            "Cmp": "24",
+            "Att": "71",
+            "Cmp%": "33.8",
+            "TotDist": "6102",
+            "PrgDist": "1976",
+            "Ast": "2",
+            "xAG": "1.0",
+            "xA": "0.5",
+            "KP": "6",
+            "1/3": "27",
+            "PPA": "5",
+            "CrsPA": "2",
+            "PrgP": "39"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-30",
+        "Time": "15:00",
+        "Round": "Matchweek 3",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "2",
+        "GA": "1",
+        "Opponent": "Brentford",
+        "matchReportUrl": "https://fbref.com/en/matches/f03152d1/Sunderland-Brentford-August-30-2025-Premier-League",
+        "teamName": "Sunderland",
+        "team": {
+          "name": "Sunderland",
+          "stats": {
+            "Cmp": "36",
+            "Att": "80",
+            "Cmp%": "45.0",
+            "TotDist": "6647",
+            "PrgDist": "2436",
+            "Ast": "1",
+            "xAG": "0.4",
+            "xA": "0.4",
+            "KP": "5",
+            "1/3": "34",
+            "PPA": "6",
+            "CrsPA": "3",
+            "PrgP": "39"
+          }
+        },
+        "opponent": {
+          "name": "Brentford",
+          "stats": {
+            "Cmp": "28",
+            "Att": "67",
+            "Cmp%": "41.8",
+            "TotDist": "5186",
+            "PrgDist": "1845",
+            "Ast": "1",
+            "xAG": "0.4",
+            "xA": "0.8",
+            "KP": "4",
+            "1/3": "19",
+            "PPA": "5",
+            "CrsPA": "3",
+            "PrgP": "24"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-13",
+        "Time": "15:00",
+        "Round": "Matchweek 4",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "D",
+        "GF": "0",
+        "GA": "0",
+        "Opponent": "Crystal Palace",
+        "matchReportUrl": "https://fbref.com/en/matches/e3cade07/Crystal-Palace-Sunderland-September-13-2025-Premier-League",
+        "teamName": "Sunderland",
+        "team": {
+          "name": "Sunderland",
+          "stats": {
+            "Cmp": "41",
+            "Att": "79",
+            "Cmp%": "51.9",
+            "TotDist": "6683",
+            "PrgDist": "2300",
+            "Ast": "0",
+            "xAG": "0.4",
+            "xA": "0.5",
+            "KP": "6",
+            "1/3": "26",
+            "PPA": "7",
+            "CrsPA": "3",
+            "PrgP": "30"
+          }
+        },
+        "opponent": {
+          "name": "Crystal Palace",
+          "stats": {
+            "Cmp": "46",
+            "Att": "86",
+            "Cmp%": "53.5",
+            "TotDist": "8307",
+            "PrgDist": "2572",
+            "Ast": "0",
+            "xAG": "1.0",
+            "xA": "1.0",
+            "KP": "8",
+            "1/3": "20",
+            "PPA": "7",
+            "CrsPA": "3",
+            "PrgP": "40"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-21",
+        "Time": "14:00",
+        "Round": "Matchweek 5",
+        "Day": "Sun",
+        "Venue": "Home",
+        "Result": "D",
+        "GF": "1",
+        "GA": "1",
+        "Opponent": "Aston Villa",
+        "matchReportUrl": "https://fbref.com/en/matches/4e615d10/Sunderland-Aston-Villa-September-21-2025-Premier-League",
+        "teamName": "Sunderland",
+        "team": {
+          "name": "Sunderland",
+          "stats": {
+            "Cmp": "22",
+            "Att": "61",
+            "Cmp%": "36.1",
+            "TotDist": "3073",
+            "PrgDist": "1307",
+            "Ast": "1",
+            "xAG": "0.6",
+            "xA": "0.4",
+            "KP": "10",
+            "1/3": "10",
+            "PPA": "3",
+            "CrsPA": "1",
+            "PrgP": "8"
+          }
+        },
+        "opponent": {
+          "name": "Aston Villa",
+          "stats": {
+            "Cmp": "28",
+            "Att": "60",
+            "Cmp%": "46.7",
+            "TotDist": "8377",
+            "PrgDist": "2405",
+            "Ast": "1",
+            "xAG": "0.5",
+            "xA": "0.9",
+            "KP": "7",
+            "1/3": "51",
+            "PPA": "15",
+            "CrsPA": "3",
+            "PrgP": "49"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:08:43.322Z",
+    "success": true,
+    "matchCount": 5
+  },
+  {
+    "teamId": "tottenham",
+    "teamName": "Tottenham Hotspur",
+    "statType": "passing",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/361ca564/2025-2026/matchlogs/c9/passing/Tottenham-Hotspur-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-16",
+        "Time": "15:00",
+        "Round": "Matchweek 1",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "3",
+        "GA": "0",
+        "Opponent": "Burnley",
+        "matchReportUrl": "https://fbref.com/en/matches/d41bb8b3/Tottenham-Hotspur-Burnley-August-16-2025-Premier-League",
+        "teamName": "Tottenham Hotspur",
+        "team": {
+          "name": "Tottenham Hotspur",
+          "stats": {
+            "Cmp": "44",
+            "Att": "81",
+            "Cmp%": "54.3",
+            "TotDist": "8717",
+            "PrgDist": "2731",
+            "Ast": "3",
+            "xAG": "1.8",
+            "xA": "1.3",
+            "KP": "12",
+            "1/3": "40",
+            "PPA": "8",
+            "CrsPA": "5",
+            "PrgP": "31"
+          }
+        },
+        "opponent": {
+          "name": "Burnley",
+          "stats": {
+            "Cmp": "29",
+            "Att": "63",
+            "Cmp%": "46.0",
+            "TotDist": "3566",
+            "PrgDist": "1532",
+            "Ast": "0",
+            "xAG": "0.9",
+            "xA": "1.0",
+            "KP": "12",
+            "1/3": "14",
+            "PPA": "6",
+            "CrsPA": "2",
+            "PrgP": "17"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-23",
+        "Time": "12:30",
+        "Round": "Matchweek 2",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "W",
+        "GF": "2",
+        "GA": "0",
+        "Opponent": "Manchester City",
+        "matchReportUrl": "https://fbref.com/en/matches/f7e2c9c7/Manchester-City-Tottenham-Hotspur-August-23-2025-Premier-League",
+        "teamName": "Tottenham Hotspur",
+        "team": {
+          "name": "Tottenham Hotspur",
+          "stats": {
+            "Cmp": "31",
+            "Att": "74",
+            "Cmp%": "41.9",
+            "TotDist": "5578",
+            "PrgDist": "2013",
+            "Ast": "1",
+            "xAG": "0.7",
+            "xA": "0.4",
+            "KP": "7",
+            "1/3": "19",
+            "PPA": "5",
+            "CrsPA": "3",
+            "PrgP": "22"
+          }
+        },
+        "opponent": {
+          "name": "Manchester City",
+          "stats": {
+            "Cmp": "29",
+            "Att": "61",
+            "Cmp%": "47.5",
+            "TotDist": "7864",
+            "PrgDist": "2493",
+            "Ast": "0",
+            "xAG": "1.5",
+            "xA": "1.6",
+            "KP": "8",
+            "1/3": "29",
+            "PPA": "8",
+            "CrsPA": "3",
+            "PrgP": "44"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-30",
+        "Time": "15:00",
+        "Round": "Matchweek 3",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "L",
+        "GF": "0",
+        "GA": "1",
+        "Opponent": "Bournemouth",
+        "matchReportUrl": "https://fbref.com/en/matches/0e30cf4b/Tottenham-Hotspur-Bournemouth-August-30-2025-Premier-League",
+        "teamName": "Tottenham Hotspur",
+        "team": {
+          "name": "Tottenham Hotspur",
+          "stats": {
+            "Cmp": "34",
+            "Att": "79",
+            "Cmp%": "43.0",
+            "TotDist": "8233",
+            "PrgDist": "2900",
+            "Ast": "0",
+            "xAG": "0.1",
+            "xA": "0.3",
+            "KP": "3",
+            "1/3": "30",
+            "PPA": "7",
+            "CrsPA": "1",
+            "PrgP": "41"
+          }
+        },
+        "opponent": {
+          "name": "Bournemouth",
+          "stats": {
+            "Cmp": "26",
+            "Att": "71",
+            "Cmp%": "36.6",
+            "TotDist": "4201",
+            "PrgDist": "1978",
+            "Ast": "1",
+            "xAG": "1.1",
+            "xA": "0.8",
+            "KP": "13",
+            "1/3": "24",
+            "PPA": "14",
+            "CrsPA": "3",
+            "PrgP": "34"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-13",
+        "Time": "17:30",
+        "Round": "Matchweek 4",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "W",
+        "GF": "3",
+        "GA": "0",
+        "Opponent": "West Ham",
+        "matchReportUrl": "https://fbref.com/en/matches/86c7261a/West-Ham-United-Tottenham-Hotspur-September-13-2025-Premier-League",
+        "teamName": "Tottenham Hotspur",
+        "team": {
+          "name": "Tottenham Hotspur",
+          "stats": {
+            "Cmp": "50",
+            "Att": "90",
+            "Cmp%": "55.6",
+            "TotDist": "8842",
+            "PrgDist": "2660",
+            "Ast": "3",
+            "xAG": "1.2",
+            "xA": "0.9",
+            "KP": "11",
+            "1/3": "41",
+            "PPA": "9",
+            "CrsPA": "2",
+            "PrgP": "44"
+          }
+        },
+        "opponent": {
+          "name": "West Ham",
+          "stats": {
+            "Cmp": "28",
+            "Att": "69",
+            "Cmp%": "40.6",
+            "TotDist": "4700",
+            "PrgDist": "1786",
+            "Ast": "0",
+            "xAG": "0.6",
+            "xA": "0.5",
+            "KP": "6",
+            "1/3": "20",
+            "PPA": "3",
+            "CrsPA": "2",
+            "PrgP": "20"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-20",
+        "Time": "15:00",
+        "Round": "Matchweek 5",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "D",
+        "GF": "2",
+        "GA": "2",
+        "Opponent": "Brighton",
+        "matchReportUrl": "https://fbref.com/en/matches/fa03feeb/Brighton-and-Hove-Albion-Tottenham-Hotspur-September-20-2025-Premier-League",
+        "teamName": "Tottenham Hotspur",
+        "team": {
+          "name": "Tottenham Hotspur",
+          "stats": {
+            "Cmp": "44",
+            "Att": "77",
+            "Cmp%": "57.1",
+            "TotDist": "8695",
+            "PrgDist": "3132",
+            "Ast": "1",
+            "xAG": "1.1",
+            "xA": "0.9",
+            "KP": "10",
+            "1/3": "48",
+            "PPA": "10",
+            "CrsPA": "1",
+            "PrgP": "59"
+          }
+        },
+        "opponent": {
+          "name": "Brighton",
+          "stats": {
+            "Cmp": "27",
+            "Att": "62",
+            "Cmp%": "43.5",
+            "TotDist": "4595",
+            "PrgDist": "1928",
+            "Ast": "1",
+            "xAG": "1.2",
+            "xA": "0.3",
+            "KP": "9",
+            "1/3": "25",
+            "PPA": "4",
+            "CrsPA": "1",
+            "PrgP": "25"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:08:50.070Z",
+    "success": true,
+    "matchCount": 5
+  },
+  {
+    "teamId": "west-ham",
+    "teamName": "West Ham United",
+    "statType": "passing",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/7c21e445/2025-2026/matchlogs/c9/passing/West-Ham-United-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-16",
+        "Time": "15:00",
+        "Round": "Matchweek 1",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "0",
+        "GA": "3",
+        "Opponent": "Sunderland",
+        "matchReportUrl": "https://fbref.com/en/matches/e1058522/Sunderland-West-Ham-United-August-16-2025-Premier-League",
+        "teamName": "West Ham United",
+        "team": {
+          "name": "West Ham United",
+          "stats": {
+            "Cmp": "37",
+            "Att": "76",
+            "Cmp%": "48.7",
+            "TotDist": "8462",
+            "PrgDist": "2756",
+            "Ast": "0",
+            "xAG": "0.4",
+            "xA": "0.5",
+            "KP": "7",
+            "1/3": "47",
+            "PPA": "12",
+            "CrsPA": "4",
+            "PrgP": "50"
+          }
+        },
+        "opponent": {
+          "name": "Sunderland",
+          "stats": {
+            "Cmp": "30",
+            "Att": "65",
+            "Cmp%": "46.2",
+            "TotDist": "4585",
+            "PrgDist": "1705",
+            "Ast": "2",
+            "xAG": "0.5",
+            "xA": "0.3",
+            "KP": "7",
+            "1/3": "25",
+            "PPA": "3",
+            "CrsPA": "1",
+            "PrgP": "23"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-22",
+        "Time": "20:00",
+        "Round": "Matchweek 2",
+        "Day": "Fri",
+        "Venue": "Home",
+        "Result": "L",
+        "GF": "1",
+        "GA": "5",
+        "Opponent": "Chelsea",
+        "matchReportUrl": "https://fbref.com/en/matches/57b35843/West-Ham-United-Chelsea-August-22-2025-Premier-League",
+        "teamName": "West Ham United",
+        "team": {
+          "name": "West Ham United",
+          "stats": {
+            "Cmp": "27",
+            "Att": "51",
+            "Cmp%": "52.9",
+            "TotDist": "5982",
+            "PrgDist": "2231",
+            "Ast": "1",
+            "xAG": "0.5",
+            "xA": "0.7",
+            "KP": "10",
+            "1/3": "26",
+            "PPA": "6",
+            "CrsPA": "2",
+            "PrgP": "28"
+          }
+        },
+        "opponent": {
+          "name": "Chelsea",
+          "stats": {
+            "Cmp": "32",
+            "Att": "66",
+            "Cmp%": "48.5",
+            "TotDist": "9073",
+            "PrgDist": "2773",
+            "Ast": "4",
+            "xAG": "2.3",
+            "xA": "1.5",
+            "KP": "7",
+            "1/3": "37",
+            "PPA": "5",
+            "CrsPA": "0",
+            "PrgP": "29"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-31",
+        "Time": "14:00",
+        "Round": "Matchweek 3",
+        "Day": "Sun",
+        "Venue": "Away",
+        "Result": "W",
+        "GF": "3",
+        "GA": "0",
+        "Opponent": "Nott'ham Forest",
+        "matchReportUrl": "https://fbref.com/en/matches/299beb27/Nottingham-Forest-West-Ham-United-August-31-2025-Premier-League",
+        "teamName": "West Ham United",
+        "team": {
+          "name": "West Ham United",
+          "stats": {
+            "Cmp": "31",
+            "Att": "63",
+            "Cmp%": "49.2",
+            "TotDist": "5612",
+            "PrgDist": "1952",
+            "Ast": "2",
+            "xAG": "1.6",
+            "xA": "0.5",
+            "KP": "11",
+            "1/3": "14",
+            "PPA": "5",
+            "CrsPA": "2",
+            "PrgP": "23"
+          }
+        },
+        "opponent": {
+          "name": "Nott'ham Forest",
+          "stats": {
+            "Cmp": "21",
+            "Att": "54",
+            "Cmp%": "38.9",
+            "TotDist": "8002",
+            "PrgDist": "2596",
+            "Ast": "0",
+            "xAG": "0.7",
+            "xA": "0.8",
+            "KP": "8",
+            "1/3": "53",
+            "PPA": "8",
+            "CrsPA": "1",
+            "PrgP": "59"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-13",
+        "Time": "17:30",
+        "Round": "Matchweek 4",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "L",
+        "GF": "0",
+        "GA": "3",
+        "Opponent": "Tottenham",
+        "matchReportUrl": "https://fbref.com/en/matches/86c7261a/West-Ham-United-Tottenham-Hotspur-September-13-2025-Premier-League",
+        "teamName": "West Ham United",
+        "team": {
+          "name": "West Ham United",
+          "stats": {
+            "Cmp": "28",
+            "Att": "69",
+            "Cmp%": "40.6",
+            "TotDist": "4700",
+            "PrgDist": "1786",
+            "Ast": "0",
+            "xAG": "0.6",
+            "xA": "0.5",
+            "KP": "6",
+            "1/3": "20",
+            "PPA": "3",
+            "CrsPA": "2",
+            "PrgP": "20"
+          }
+        },
+        "opponent": {
+          "name": "Tottenham",
+          "stats": {
+            "Cmp": "50",
+            "Att": "90",
+            "Cmp%": "55.6",
+            "TotDist": "8842",
+            "PrgDist": "2660",
+            "Ast": "3",
+            "xAG": "1.2",
+            "xA": "0.9",
+            "KP": "11",
+            "1/3": "41",
+            "PPA": "9",
+            "CrsPA": "2",
+            "PrgP": "44"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-20",
+        "Time": "15:00",
+        "Round": "Matchweek 5",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "L",
+        "GF": "1",
+        "GA": "2",
+        "Opponent": "Crystal Palace",
+        "matchReportUrl": "https://fbref.com/en/matches/15b707b3/West-Ham-United-Crystal-Palace-September-20-2025-Premier-League",
+        "teamName": "West Ham United",
+        "team": {
+          "name": "West Ham United",
+          "stats": {
+            "Cmp": "38",
+            "Att": "75",
+            "Cmp%": "50.7",
+            "TotDist": "7314",
+            "PrgDist": "2187",
+            "Ast": "1",
+            "xAG": "0.6",
+            "xA": "1.2",
+            "KP": "8",
+            "1/3": "28",
+            "PPA": "8",
+            "CrsPA": "2",
+            "PrgP": "40"
+          }
+        },
+        "opponent": {
+          "name": "Crystal Palace",
+          "stats": {
+            "Cmp": "41",
+            "Att": "74",
+            "Cmp%": "55.4",
+            "TotDist": "5963",
+            "PrgDist": "2394",
+            "Ast": "0",
+            "xAG": "1.3",
+            "xA": "1.3",
+            "KP": "13",
+            "1/3": "25",
+            "PPA": "10",
+            "CrsPA": "4",
+            "PrgP": "35"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:08:56.662Z",
+    "success": true,
+    "matchCount": 5
+  },
+  {
+    "teamId": "wolves",
+    "teamName": "Wolverhampton Wanderers",
+    "statType": "passing",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/8cec06e1/2025-2026/matchlogs/c9/passing/Wolverhampton-Wanderers-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-16",
+        "Time": "17:30",
+        "Round": "Matchweek 1",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "L",
+        "GF": "0",
+        "GA": "4",
+        "Opponent": "Manchester City",
+        "matchReportUrl": "https://fbref.com/en/matches/8613020d/Wolverhampton-Wanderers-Manchester-City-August-16-2025-Premier-League",
+        "teamName": "Wolverhampton Wanderers",
+        "team": {
+          "name": "Wolverhampton Wanderers",
+          "stats": {
+            "Cmp": "39",
+            "Att": "69",
+            "Cmp%": "56.5",
+            "TotDist": "6710",
+            "PrgDist": "2280",
+            "Ast": "0",
+            "xAG": "0.4",
+            "xA": "0.3",
+            "KP": "7",
+            "1/3": "23",
+            "PPA": "9",
+            "CrsPA": "3",
+            "PrgP": "23"
+          }
+        },
+        "opponent": {
+          "name": "Manchester City",
+          "stats": {
+            "Cmp": "26",
+            "Att": "48",
+            "Cmp%": "54.2",
+            "TotDist": "8244",
+            "PrgDist": "2571",
+            "Ast": "3",
+            "xAG": "2.2",
+            "xA": "1.5",
+            "KP": "9",
+            "1/3": "39",
+            "PPA": "10",
+            "CrsPA": "1",
+            "PrgP": "51"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-23",
+        "Time": "15:00",
+        "Round": "Matchweek 2",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "0",
+        "GA": "1",
+        "Opponent": "Bournemouth",
+        "matchReportUrl": "https://fbref.com/en/matches/a515fb3a/Bournemouth-Wolverhampton-Wanderers-August-23-2025-Premier-League",
+        "teamName": "Wolverhampton Wanderers",
+        "team": {
+          "name": "Wolverhampton Wanderers",
+          "stats": {
+            "Cmp": "38",
+            "Att": "75",
+            "Cmp%": "50.7",
+            "TotDist": "5366",
+            "PrgDist": "2193",
+            "Ast": "0",
+            "xAG": "0.3",
+            "xA": "0.4",
+            "KP": "4",
+            "1/3": "24",
+            "PPA": "6",
+            "CrsPA": "3",
+            "PrgP": "21"
+          }
+        },
+        "opponent": {
+          "name": "Bournemouth",
+          "stats": {
+            "Cmp": "40",
+            "Att": "79",
+            "Cmp%": "50.6",
+            "TotDist": "7309",
+            "PrgDist": "2290",
+            "Ast": "1",
+            "xAG": "1.2",
+            "xA": "1.1",
+            "KP": "13",
+            "1/3": "49",
+            "PPA": "8",
+            "CrsPA": "3",
+            "PrgP": "42"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-30",
+        "Time": "15:00",
+        "Round": "Matchweek 3",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "L",
+        "GF": "2",
+        "GA": "3",
+        "Opponent": "Everton",
+        "matchReportUrl": "https://fbref.com/en/matches/3c399f5e/Wolverhampton-Wanderers-Everton-August-30-2025-Premier-League",
+        "teamName": "Wolverhampton Wanderers",
+        "team": {
+          "name": "Wolverhampton Wanderers",
+          "stats": {
+            "Cmp": "41",
+            "Att": "88",
+            "Cmp%": "46.6",
+            "TotDist": "8605",
+            "PrgDist": "2636",
+            "Ast": "2",
+            "xAG": "0.9",
+            "xA": "0.5",
+            "KP": "9",
+            "1/3": "32",
+            "PPA": "12",
+            "CrsPA": "6",
+            "PrgP": "38"
+          }
+        },
+        "opponent": {
+          "name": "Everton",
+          "stats": {
+            "Cmp": "34",
+            "Att": "81",
+            "Cmp%": "42.0",
+            "TotDist": "5647",
+            "PrgDist": "2101",
+            "Ast": "3",
+            "xAG": "1.9",
+            "xA": "1.4",
+            "KP": "9",
+            "1/3": "20",
+            "PPA": "8",
+            "CrsPA": "0",
+            "PrgP": "35"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-13",
+        "Time": "15:00",
+        "Round": "Matchweek 4",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "0",
+        "GA": "1",
+        "Opponent": "Newcastle Utd",
+        "matchReportUrl": "https://fbref.com/en/matches/55fbbbe6/Newcastle-United-Wolverhampton-Wanderers-September-13-2025-Premier-League",
+        "teamName": "Wolverhampton Wanderers",
+        "team": {
+          "name": "Wolverhampton Wanderers",
+          "stats": {
+            "Cmp": "30",
+            "Att": "76",
+            "Cmp%": "39.5",
+            "TotDist": "5513",
+            "PrgDist": "1905",
+            "Ast": "0",
+            "xAG": "0.3",
+            "xA": "0.6",
+            "KP": "5",
+            "1/3": "24",
+            "PPA": "7",
+            "CrsPA": "2",
+            "PrgP": "21"
+          }
+        },
+        "opponent": {
+          "name": "Newcastle Utd",
+          "stats": {
+            "Cmp": "45",
+            "Att": "79",
+            "Cmp%": "57.0",
+            "TotDist": "7445",
+            "PrgDist": "2819",
+            "Ast": "1",
+            "xAG": "1.4",
+            "xA": "1.0",
+            "KP": "12",
+            "1/3": "41",
+            "PPA": "9",
+            "CrsPA": "2",
+            "PrgP": "51"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-20",
+        "Time": "15:00",
+        "Round": "Matchweek 5",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "L",
+        "GF": "1",
+        "GA": "3",
+        "Opponent": "Leeds United",
+        "matchReportUrl": "https://fbref.com/en/matches/45650a33/Wolverhampton-Wanderers-Leeds-United-September-20-2025-Premier-League",
+        "teamName": "Wolverhampton Wanderers",
+        "team": {
+          "name": "Wolverhampton Wanderers",
+          "stats": {
+            "Cmp": "48",
+            "Att": "83",
+            "Cmp%": "57.8",
+            "TotDist": "9007",
+            "PrgDist": "2958",
+            "Ast": "1",
+            "xAG": "1.5",
+            "xA": "1.3",
+            "KP": "14",
+            "1/3": "48",
+            "PPA": "18",
+            "CrsPA": "12",
+            "PrgP": "48"
+          }
+        },
+        "opponent": {
+          "name": "Leeds United",
+          "stats": {
+            "Cmp": "26",
+            "Att": "58",
+            "Cmp%": "44.8",
+            "TotDist": "7080",
+            "PrgDist": "2385",
+            "Ast": "1",
+            "xAG": "0.2",
+            "xA": "0.4",
+            "KP": "2",
+            "1/3": "23",
+            "PPA": "4",
+            "CrsPA": "0",
+            "PrgP": "28"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:09:03.341Z",
+    "success": true,
+    "matchCount": 5
+  }
+]

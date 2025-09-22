@@ -1,4 +1,4 @@
-// scripts/debugTeamStats.ts
+// scripts/scrapeTeamStatsShooting.ts
 /**
  * Enhanced Debug scraper - scrapes both team stats AND opponent stats from match logs
  * Handles hidden tables and generates correct match report URLs
@@ -57,7 +57,7 @@ const SCRAPE_MODES = { SINGLE: 'single', ALL: 'all' } as const;
 type ScrapeMode = typeof SCRAPE_MODES[keyof typeof SCRAPE_MODES];
 const SCRAPE_MODE: ScrapeMode = SCRAPE_MODES.ALL; // Change to ALL for all teams
 const SINGLE_TEAM_INDEX = 0; // Arsenal
-const TEST_STAT_INDEX = 6;   
+const TEST_STAT_INDEX = 0;   
 
 /* ------------------ Rate Limiting ------------------ */
 const RATE_LIMIT = {
@@ -67,8 +67,8 @@ const RATE_LIMIT = {
   maxRetries: 3
 };
 
-/* ------------------ Enhanced DebugScraper ------------------ */
-class DebugScraper {
+/* ------------------ Enhanced Scraper ------------------ */
+class Scraper {
   private ensureDataDir() {
     if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
   }
@@ -285,7 +285,7 @@ class DebugScraper {
     return combinedData;
   }
 
-  async debugScrape(team: any, statType: any): Promise<any> {
+  async Scrape(team: any, statType: any): Promise<any> {
     const url = this.buildUrl(team, statType);
     console.log(`🔗 Fetching: ${url}`);
 
@@ -320,7 +320,7 @@ class DebugScraper {
 
 /* ------------------ ScraperManager ------------------ */
 class ScraperManager {
-  private scraper = new DebugScraper();
+  private scraper = new Scraper();
   private teamsToScrape: typeof AVAILABLE_TEAMS;
   private statToScrape = AVAILABLE_STATS[TEST_STAT_INDEX];
 
@@ -344,7 +344,7 @@ class ScraperManager {
       let success = false;
       while (!success && attempts <= RATE_LIMIT.maxRetries) {
         try {
-          const result = await this.scraper.debugScrape(team, this.statToScrape);
+          const result = await this.scraper.Scrape(team, this.statToScrape);
           allResults.push(result);
           success = true;
 

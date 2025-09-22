@@ -1,0 +1,4142 @@
+[
+  {
+    "teamId": "arsenal",
+    "teamName": "Arsenal",
+    "statType": "gca",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/18bb7c10/2025-2026/matchlogs/c9/gca/Arsenal-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-17",
+        "Time": "16:30",
+        "Round": "Matchweek 1",
+        "Day": "Sun",
+        "Venue": "Away",
+        "Result": "W",
+        "GF": "1",
+        "GA": "0",
+        "Opponent": "Manchester Utd",
+        "matchReportUrl": "https://fbref.com/en/matches/643d26fd/Manchester-United-Arsenal-August-17-2025-Premier-League",
+        "teamName": "Arsenal",
+        "team": {
+          "name": "Arsenal",
+          "stats": {
+            "SCA": "14",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "1",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "1",
+            "GCA": "2"
+          }
+        },
+        "opponent": {
+          "name": "Manchester Utd",
+          "stats": {
+            "SCA": "42",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-23",
+        "Time": "17:30",
+        "Round": "Matchweek 2",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "5",
+        "GA": "0",
+        "Opponent": "Leeds United",
+        "matchReportUrl": "https://fbref.com/en/matches/e8724659/Arsenal-Leeds-United-August-23-2025-Premier-League",
+        "teamName": "Arsenal",
+        "team": {
+          "name": "Arsenal",
+          "stats": {
+            "SCA": "31",
+            "PassLive": "5",
+            "PassDead": "1",
+            "TO": "1",
+            "Sh": "1",
+            "Fld": "1",
+            "Def": "0",
+            "GCA": "9"
+          }
+        },
+        "opponent": {
+          "name": "Leeds United",
+          "stats": {
+            "SCA": "6",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-31",
+        "Time": "16:30",
+        "Round": "Matchweek 3",
+        "Day": "Sun",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "0",
+        "GA": "1",
+        "Opponent": "Liverpool",
+        "matchReportUrl": "https://fbref.com/en/matches/b0005978/Liverpool-Arsenal-August-31-2025-Premier-League",
+        "teamName": "Arsenal",
+        "team": {
+          "name": "Arsenal",
+          "stats": {
+            "SCA": "16",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        },
+        "opponent": {
+          "name": "Liverpool",
+          "stats": {
+            "SCA": "16",
+            "PassLive": "1",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "1",
+            "Def": "0",
+            "GCA": "2"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-13",
+        "Time": "12:30",
+        "Round": "Matchweek 4",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "3",
+        "GA": "0",
+        "Opponent": "Nott'ham Forest",
+        "matchReportUrl": "https://fbref.com/en/matches/4fe3e679/Arsenal-Nottingham-Forest-September-13-2025-Premier-League",
+        "teamName": "Arsenal",
+        "team": {
+          "name": "Arsenal",
+          "stats": {
+            "SCA": "28",
+            "PassLive": "4",
+            "PassDead": "0",
+            "TO": "1",
+            "Sh": "1",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "6"
+          }
+        },
+        "opponent": {
+          "name": "Nott'ham Forest",
+          "stats": {
+            "SCA": "9",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-21",
+        "Time": "16:30",
+        "Round": "Matchweek 5",
+        "Day": "Sun",
+        "Venue": "Home",
+        "Result": "D",
+        "GF": "1",
+        "GA": "1",
+        "Opponent": "Manchester City",
+        "matchReportUrl": "https://fbref.com/en/matches/2045939c/Arsenal-Manchester-City-September-21-2025-Premier-League",
+        "teamName": "Arsenal",
+        "team": {
+          "name": "Arsenal",
+          "stats": {
+            "SCA": "22",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "2"
+          }
+        },
+        "opponent": {
+          "name": "Manchester City",
+          "stats": {
+            "SCA": "10",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "2"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:15:10.122Z",
+    "success": true,
+    "matchCount": 5
+  },
+  {
+    "teamId": "aston-villa",
+    "teamName": "Aston Villa",
+    "statType": "gca",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/8602292d/2025-2026/matchlogs/c9/gca/Aston-Villa-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-16",
+        "Time": "12:30",
+        "Round": "Matchweek 1",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "D",
+        "GF": "0",
+        "GA": "0",
+        "Opponent": "Newcastle Utd",
+        "matchReportUrl": "https://fbref.com/en/matches/bbdf4739/Aston-Villa-Newcastle-United-August-16-2025-Premier-League",
+        "teamName": "Aston Villa",
+        "team": {
+          "name": "Aston Villa",
+          "stats": {
+            "SCA": "6",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        },
+        "opponent": {
+          "name": "Newcastle Utd",
+          "stats": {
+            "SCA": "29",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-23",
+        "Time": "15:00",
+        "Round": "Matchweek 2",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "0",
+        "GA": "1",
+        "Opponent": "Brentford",
+        "matchReportUrl": "https://fbref.com/en/matches/860c7af2/Brentford-Aston-Villa-August-23-2025-Premier-League",
+        "teamName": "Aston Villa",
+        "team": {
+          "name": "Aston Villa",
+          "stats": {
+            "SCA": "31",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        },
+        "opponent": {
+          "name": "Brentford",
+          "stats": {
+            "SCA": "15",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "1",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "1"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-31",
+        "Time": "19:00",
+        "Round": "Matchweek 3",
+        "Day": "Sun",
+        "Venue": "Home",
+        "Result": "L",
+        "GF": "0",
+        "GA": "3",
+        "Opponent": "Crystal Palace",
+        "matchReportUrl": "https://fbref.com/en/matches/cd51ed93/Aston-Villa-Crystal-Palace-August-31-2025-Premier-League",
+        "teamName": "Aston Villa",
+        "team": {
+          "name": "Aston Villa",
+          "stats": {
+            "SCA": "23",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        },
+        "opponent": {
+          "name": "Crystal Palace",
+          "stats": {
+            "SCA": "12",
+            "PassLive": "4",
+            "PassDead": "1",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "1",
+            "Def": "0",
+            "GCA": "6"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-13",
+        "Time": "15:00",
+        "Round": "Matchweek 4",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "D",
+        "GF": "0",
+        "GA": "0",
+        "Opponent": "Everton",
+        "matchReportUrl": "https://fbref.com/en/matches/a624dc89/Everton-Aston-Villa-September-13-2025-Premier-League",
+        "teamName": "Aston Villa",
+        "team": {
+          "name": "Aston Villa",
+          "stats": {
+            "SCA": "11",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        },
+        "opponent": {
+          "name": "Everton",
+          "stats": {
+            "SCA": "37",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-21",
+        "Time": "14:00",
+        "Round": "Matchweek 5",
+        "Day": "Sun",
+        "Venue": "Away",
+        "Result": "D",
+        "GF": "1",
+        "GA": "1",
+        "Opponent": "Sunderland",
+        "matchReportUrl": "https://fbref.com/en/matches/4e615d10/Sunderland-Aston-Villa-September-21-2025-Premier-League",
+        "teamName": "Aston Villa",
+        "team": {
+          "name": "Aston Villa",
+          "stats": {
+            "SCA": "24",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "2"
+          }
+        },
+        "opponent": {
+          "name": "Sunderland",
+          "stats": {
+            "SCA": "22",
+            "PassLive": "1",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "1",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "2"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:15:17.024Z",
+    "success": true,
+    "matchCount": 5
+  },
+  {
+    "teamId": "bournemouth",
+    "teamName": "Bournemouth",
+    "statType": "gca",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/4ba7cbea/2025-2026/matchlogs/c9/gca/Bournemouth-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-15",
+        "Time": "20:00",
+        "Round": "Matchweek 1",
+        "Day": "Fri",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "2",
+        "GA": "4",
+        "Opponent": "Liverpool",
+        "matchReportUrl": "https://fbref.com/en/matches/a071faa8/Liverpool-Bournemouth-August-15-2025-Premier-League",
+        "teamName": "Bournemouth",
+        "team": {
+          "name": "Bournemouth",
+          "stats": {
+            "SCA": "18",
+            "PassLive": "3",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "3"
+          }
+        },
+        "opponent": {
+          "name": "Liverpool",
+          "stats": {
+            "SCA": "36",
+            "PassLive": "6",
+            "PassDead": "0",
+            "TO": "1",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "7"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-23",
+        "Time": "15:00",
+        "Round": "Matchweek 2",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "1",
+        "GA": "0",
+        "Opponent": "Wolves",
+        "matchReportUrl": "https://fbref.com/en/matches/a515fb3a/Bournemouth-Wolverhampton-Wanderers-August-23-2025-Premier-League",
+        "teamName": "Bournemouth",
+        "team": {
+          "name": "Bournemouth",
+          "stats": {
+            "SCA": "27",
+            "PassLive": "1",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "1",
+            "GCA": "2"
+          }
+        },
+        "opponent": {
+          "name": "Wolves",
+          "stats": {
+            "SCA": "11",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-30",
+        "Time": "15:00",
+        "Round": "Matchweek 3",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "W",
+        "GF": "1",
+        "GA": "0",
+        "Opponent": "Tottenham",
+        "matchReportUrl": "https://fbref.com/en/matches/0e30cf4b/Tottenham-Hotspur-Bournemouth-August-30-2025-Premier-League",
+        "teamName": "Bournemouth",
+        "team": {
+          "name": "Bournemouth",
+          "stats": {
+            "SCA": "36",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "2"
+          }
+        },
+        "opponent": {
+          "name": "Tottenham",
+          "stats": {
+            "SCA": "10",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-13",
+        "Time": "15:00",
+        "Round": "Matchweek 4",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "2",
+        "GA": "1",
+        "Opponent": "Brighton",
+        "matchReportUrl": "https://fbref.com/en/matches/8398bbef/Bournemouth-Brighton-and-Hove-Albion-September-13-2025-Premier-League",
+        "teamName": "Bournemouth",
+        "team": {
+          "name": "Bournemouth",
+          "stats": {
+            "SCA": "25",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "1",
+            "Sh": "0",
+            "Fld": "1",
+            "Def": "0",
+            "GCA": "4"
+          }
+        },
+        "opponent": {
+          "name": "Brighton",
+          "stats": {
+            "SCA": "12",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "2"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-21",
+        "Time": "14:00",
+        "Round": "Matchweek 5",
+        "Day": "Sun",
+        "Venue": "Home",
+        "Result": "D",
+        "GF": "0",
+        "GA": "0",
+        "Opponent": "Newcastle Utd",
+        "matchReportUrl": "https://fbref.com/en/matches/f55b1b65/Bournemouth-Newcastle-United-September-21-2025-Premier-League",
+        "teamName": "Bournemouth",
+        "team": {
+          "name": "Bournemouth",
+          "stats": {
+            "SCA": "17",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        },
+        "opponent": {
+          "name": "Newcastle Utd",
+          "stats": {
+            "SCA": "8",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:15:23.548Z",
+    "success": true,
+    "matchCount": 5
+  },
+  {
+    "teamId": "brentford",
+    "teamName": "Brentford",
+    "statType": "gca",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/cd051869/2025-2026/matchlogs/c9/gca/Brentford-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-17",
+        "Time": "14:00",
+        "Round": "Matchweek 1",
+        "Day": "Sun",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "1",
+        "GA": "3",
+        "Opponent": "Nott'ham Forest",
+        "matchReportUrl": "https://fbref.com/en/matches/855f8b5e/Nottingham-Forest-Brentford-August-17-2025-Premier-League",
+        "teamName": "Brentford",
+        "team": {
+          "name": "Brentford",
+          "stats": {
+            "SCA": "15",
+            "PassLive": "0",
+            "PassDead": "1",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "1"
+          }
+        },
+        "opponent": {
+          "name": "Nott'ham Forest",
+          "stats": {
+            "SCA": "21",
+            "PassLive": "5",
+            "PassDead": "0",
+            "TO": "1",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "6"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-23",
+        "Time": "15:00",
+        "Round": "Matchweek 2",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "1",
+        "GA": "0",
+        "Opponent": "Aston Villa",
+        "matchReportUrl": "https://fbref.com/en/matches/860c7af2/Brentford-Aston-Villa-August-23-2025-Premier-League",
+        "teamName": "Brentford",
+        "team": {
+          "name": "Brentford",
+          "stats": {
+            "SCA": "15",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "1",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "1"
+          }
+        },
+        "opponent": {
+          "name": "Aston Villa",
+          "stats": {
+            "SCA": "31",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-30",
+        "Time": "15:00",
+        "Round": "Matchweek 3",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "1",
+        "GA": "2",
+        "Opponent": "Sunderland",
+        "matchReportUrl": "https://fbref.com/en/matches/f03152d1/Sunderland-Brentford-August-30-2025-Premier-League",
+        "teamName": "Brentford",
+        "team": {
+          "name": "Brentford",
+          "stats": {
+            "SCA": "10",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "2"
+          }
+        },
+        "opponent": {
+          "name": "Sunderland",
+          "stats": {
+            "SCA": "19",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "2",
+            "Def": "0",
+            "GCA": "4"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-13",
+        "Time": "20:00",
+        "Round": "Matchweek 4",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "D",
+        "GF": "2",
+        "GA": "2",
+        "Opponent": "Chelsea",
+        "matchReportUrl": "https://fbref.com/en/matches/d8104c65/Brentford-Chelsea-September-13-2025-Premier-League",
+        "teamName": "Brentford",
+        "team": {
+          "name": "Brentford",
+          "stats": {
+            "SCA": "14",
+            "PassLive": "3",
+            "PassDead": "1",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "4"
+          }
+        },
+        "opponent": {
+          "name": "Chelsea",
+          "stats": {
+            "SCA": "31",
+            "PassLive": "4",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "4"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-20",
+        "Time": "20:00",
+        "Round": "Matchweek 5",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "1",
+        "GA": "3",
+        "Opponent": "Fulham",
+        "matchReportUrl": "https://fbref.com/en/matches/295b388b/Fulham-Brentford-September-20-2025-Premier-League",
+        "teamName": "Brentford",
+        "team": {
+          "name": "Brentford",
+          "stats": {
+            "SCA": "8",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        },
+        "opponent": {
+          "name": "Fulham",
+          "stats": {
+            "SCA": "23",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "1",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "3"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:15:30.210Z",
+    "success": true,
+    "matchCount": 5
+  },
+  {
+    "teamId": "brighton",
+    "teamName": "Brighton & Hove Albion",
+    "statType": "gca",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/d07537b9/2025-2026/matchlogs/c9/gca/Brighton--Hove-Albion-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-16",
+        "Time": "15:00",
+        "Round": "Matchweek 1",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "D",
+        "GF": "1",
+        "GA": "1",
+        "Opponent": "Fulham",
+        "matchReportUrl": "https://fbref.com/en/matches/57c49bae/Brighton-and-Hove-Albion-Fulham-August-16-2025-Premier-League",
+        "teamName": "Brighton & Hove Albion",
+        "team": {
+          "name": "Brighton & Hove Albion",
+          "stats": {
+            "SCA": "17",
+            "PassLive": "1",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "1",
+            "Def": "0",
+            "GCA": "2"
+          }
+        },
+        "opponent": {
+          "name": "Fulham",
+          "stats": {
+            "SCA": "12",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "1",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "1"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-24",
+        "Time": "14:00",
+        "Round": "Matchweek 2",
+        "Day": "Sun",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "0",
+        "GA": "2",
+        "Opponent": "Everton",
+        "matchReportUrl": "https://fbref.com/en/matches/0bad74e2/Everton-Brighton-and-Hove-Albion-August-24-2025-Premier-League",
+        "teamName": "Brighton & Hove Albion",
+        "team": {
+          "name": "Brighton & Hove Albion",
+          "stats": {
+            "SCA": "22",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        },
+        "opponent": {
+          "name": "Everton",
+          "stats": {
+            "SCA": "21",
+            "PassLive": "4",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "4"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-31",
+        "Time": "14:00",
+        "Round": "Matchweek 3",
+        "Day": "Sun",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "2",
+        "GA": "1",
+        "Opponent": "Manchester City",
+        "matchReportUrl": "https://fbref.com/en/matches/810d81e7/Brighton-and-Hove-Albion-Manchester-City-August-31-2025-Premier-League",
+        "teamName": "Brighton & Hove Albion",
+        "team": {
+          "name": "Brighton & Hove Albion",
+          "stats": {
+            "SCA": "19",
+            "PassLive": "1",
+            "PassDead": "0",
+            "TO": "1",
+            "Sh": "1",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "3"
+          }
+        },
+        "opponent": {
+          "name": "Manchester City",
+          "stats": {
+            "SCA": "21",
+            "PassLive": "1",
+            "PassDead": "0",
+            "TO": "1",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "2"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-13",
+        "Time": "15:00",
+        "Round": "Matchweek 4",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "1",
+        "GA": "2",
+        "Opponent": "Bournemouth",
+        "matchReportUrl": "https://fbref.com/en/matches/8398bbef/Bournemouth-Brighton-and-Hove-Albion-September-13-2025-Premier-League",
+        "teamName": "Brighton & Hove Albion",
+        "team": {
+          "name": "Brighton & Hove Albion",
+          "stats": {
+            "SCA": "12",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "2"
+          }
+        },
+        "opponent": {
+          "name": "Bournemouth",
+          "stats": {
+            "SCA": "25",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "1",
+            "Sh": "0",
+            "Fld": "1",
+            "Def": "0",
+            "GCA": "4"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-20",
+        "Time": "15:00",
+        "Round": "Matchweek 5",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "D",
+        "GF": "2",
+        "GA": "2",
+        "Opponent": "Tottenham",
+        "matchReportUrl": "https://fbref.com/en/matches/fa03feeb/Brighton-and-Hove-Albion-Tottenham-Hotspur-September-20-2025-Premier-League",
+        "teamName": "Brighton & Hove Albion",
+        "team": {
+          "name": "Brighton & Hove Albion",
+          "stats": {
+            "SCA": "21",
+            "PassLive": "1",
+            "PassDead": "0",
+            "TO": "1",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "2"
+          }
+        },
+        "opponent": {
+          "name": "Tottenham",
+          "stats": {
+            "SCA": "21",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "1",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "1"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:15:36.776Z",
+    "success": true,
+    "matchCount": 5
+  },
+  {
+    "teamId": "burnley",
+    "teamName": "Burnley",
+    "statType": "gca",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/943e8050/2025-2026/matchlogs/c9/gca/Burnley-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-16",
+        "Time": "15:00",
+        "Round": "Matchweek 1",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "0",
+        "GA": "3",
+        "Opponent": "Tottenham",
+        "matchReportUrl": "https://fbref.com/en/matches/d41bb8b3/Tottenham-Hotspur-Burnley-August-16-2025-Premier-League",
+        "teamName": "Burnley",
+        "team": {
+          "name": "Burnley",
+          "stats": {
+            "SCA": "24",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        },
+        "opponent": {
+          "name": "Tottenham",
+          "stats": {
+            "SCA": "29",
+            "PassLive": "4",
+            "PassDead": "0",
+            "TO": "2",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "6"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-23",
+        "Time": "15:00",
+        "Round": "Matchweek 2",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "2",
+        "GA": "0",
+        "Opponent": "Sunderland",
+        "matchReportUrl": "https://fbref.com/en/matches/4e287736/Burnley-Sunderland-August-23-2025-Premier-League",
+        "teamName": "Burnley",
+        "team": {
+          "name": "Burnley",
+          "stats": {
+            "SCA": "12",
+            "PassLive": "3",
+            "PassDead": "0",
+            "TO": "1",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "4"
+          }
+        },
+        "opponent": {
+          "name": "Sunderland",
+          "stats": {
+            "SCA": "18",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-30",
+        "Time": "15:00",
+        "Round": "Matchweek 3",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "2",
+        "GA": "3",
+        "Opponent": "Manchester Utd",
+        "matchReportUrl": "https://fbref.com/en/matches/0050df89/Manchester-United-Burnley-August-30-2025-Premier-League",
+        "teamName": "Burnley",
+        "team": {
+          "name": "Burnley",
+          "stats": {
+            "SCA": "8",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "1",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "3"
+          }
+        },
+        "opponent": {
+          "name": "Manchester Utd",
+          "stats": {
+            "SCA": "45",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "1",
+            "Sh": "0",
+            "Fld": "1",
+            "Def": "0",
+            "GCA": "4"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-14",
+        "Time": "14:00",
+        "Round": "Matchweek 4",
+        "Day": "Sun",
+        "Venue": "Home",
+        "Result": "L",
+        "GF": "0",
+        "GA": "1",
+        "Opponent": "Liverpool",
+        "matchReportUrl": "https://fbref.com/en/matches/fed27aaa/Burnley-Liverpool-September-14-2025-Premier-League",
+        "teamName": "Burnley",
+        "team": {
+          "name": "Burnley",
+          "stats": {
+            "SCA": "5",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        },
+        "opponent": {
+          "name": "Liverpool",
+          "stats": {
+            "SCA": "49",
+            "PassLive": "1",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "1"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-20",
+        "Time": "15:00",
+        "Round": "Matchweek 5",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "D",
+        "GF": "1",
+        "GA": "1",
+        "Opponent": "Nott'ham Forest",
+        "matchReportUrl": "https://fbref.com/en/matches/e523c1cd/Burnley-Nottingham-Forest-September-20-2025-Premier-League",
+        "teamName": "Burnley",
+        "team": {
+          "name": "Burnley",
+          "stats": {
+            "SCA": "21",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "1",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "1"
+          }
+        },
+        "opponent": {
+          "name": "Nott'ham Forest",
+          "stats": {
+            "SCA": "31",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "2"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:15:43.532Z",
+    "success": true,
+    "matchCount": 5
+  },
+  {
+    "teamId": "chelsea",
+    "teamName": "Chelsea",
+    "statType": "gca",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/cff3d9bb/2025-2026/matchlogs/c9/gca/Chelsea-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-17",
+        "Time": "14:00",
+        "Round": "Matchweek 1",
+        "Day": "Sun",
+        "Venue": "Home",
+        "Result": "D",
+        "GF": "0",
+        "GA": "0",
+        "Opponent": "Crystal Palace",
+        "matchReportUrl": "https://fbref.com/en/matches/2185fc64/Chelsea-Crystal-Palace-August-17-2025-Premier-League",
+        "teamName": "Chelsea",
+        "team": {
+          "name": "Chelsea",
+          "stats": {
+            "SCA": "31",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        },
+        "opponent": {
+          "name": "Crystal Palace",
+          "stats": {
+            "SCA": "15",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-22",
+        "Time": "20:00",
+        "Round": "Matchweek 2",
+        "Day": "Fri",
+        "Venue": "Away",
+        "Result": "W",
+        "GF": "5",
+        "GA": "1",
+        "Opponent": "West Ham",
+        "matchReportUrl": "https://fbref.com/en/matches/57b35843/West-Ham-United-Chelsea-August-22-2025-Premier-League",
+        "teamName": "Chelsea",
+        "team": {
+          "name": "Chelsea",
+          "stats": {
+            "SCA": "20",
+            "PassLive": "6",
+            "PassDead": "1",
+            "TO": "1",
+            "Sh": "1",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "9"
+          }
+        },
+        "opponent": {
+          "name": "West Ham",
+          "stats": {
+            "SCA": "20",
+            "PassLive": "1",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "1"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-30",
+        "Time": "12:30",
+        "Round": "Matchweek 3",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "2",
+        "GA": "0",
+        "Opponent": "Fulham",
+        "matchReportUrl": "https://fbref.com/en/matches/2dbd7fbd/Chelsea-Fulham-August-30-2025-Premier-League",
+        "teamName": "Chelsea",
+        "team": {
+          "name": "Chelsea",
+          "stats": {
+            "SCA": "21",
+            "PassLive": "1",
+            "PassDead": "1",
+            "TO": "0",
+            "Sh": "1",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "3"
+          }
+        },
+        "opponent": {
+          "name": "Fulham",
+          "stats": {
+            "SCA": "18",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-13",
+        "Time": "20:00",
+        "Round": "Matchweek 4",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "D",
+        "GF": "2",
+        "GA": "2",
+        "Opponent": "Brentford",
+        "matchReportUrl": "https://fbref.com/en/matches/d8104c65/Brentford-Chelsea-September-13-2025-Premier-League",
+        "teamName": "Chelsea",
+        "team": {
+          "name": "Chelsea",
+          "stats": {
+            "SCA": "31",
+            "PassLive": "4",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "4"
+          }
+        },
+        "opponent": {
+          "name": "Brentford",
+          "stats": {
+            "SCA": "14",
+            "PassLive": "3",
+            "PassDead": "1",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "4"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-20",
+        "Time": "17:30",
+        "Round": "Matchweek 5",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "1",
+        "GA": "2",
+        "Opponent": "Manchester Utd",
+        "matchReportUrl": "https://fbref.com/en/matches/a562da13/Manchester-United-Chelsea-September-20-2025-Premier-League",
+        "teamName": "Chelsea",
+        "team": {
+          "name": "Chelsea",
+          "stats": {
+            "SCA": "10",
+            "PassLive": "1",
+            "PassDead": "1",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "2"
+          }
+        },
+        "opponent": {
+          "name": "Manchester Utd",
+          "stats": {
+            "SCA": "17",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "1",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "3"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:15:50.292Z",
+    "success": true,
+    "matchCount": 5
+  },
+  {
+    "teamId": "crystal-palace",
+    "teamName": "Crystal Palace",
+    "statType": "gca",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/47c64c55/2025-2026/matchlogs/c9/gca/Crystal-Palace-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-17",
+        "Time": "14:00",
+        "Round": "Matchweek 1",
+        "Day": "Sun",
+        "Venue": "Away",
+        "Result": "D",
+        "GF": "0",
+        "GA": "0",
+        "Opponent": "Chelsea",
+        "matchReportUrl": "https://fbref.com/en/matches/2185fc64/Chelsea-Crystal-Palace-August-17-2025-Premier-League",
+        "teamName": "Crystal Palace",
+        "team": {
+          "name": "Crystal Palace",
+          "stats": {
+            "SCA": "15",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        },
+        "opponent": {
+          "name": "Chelsea",
+          "stats": {
+            "SCA": "31",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-24",
+        "Time": "14:00",
+        "Round": "Matchweek 2",
+        "Day": "Sun",
+        "Venue": "Home",
+        "Result": "D",
+        "GF": "1",
+        "GA": "1",
+        "Opponent": "Nott'ham Forest",
+        "matchReportUrl": "https://fbref.com/en/matches/a3984be1/Crystal-Palace-Nottingham-Forest-August-24-2025-Premier-League",
+        "teamName": "Crystal Palace",
+        "team": {
+          "name": "Crystal Palace",
+          "stats": {
+            "SCA": "15",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "2"
+          }
+        },
+        "opponent": {
+          "name": "Nott'ham Forest",
+          "stats": {
+            "SCA": "16",
+            "PassLive": "1",
+            "PassDead": "0",
+            "TO": "1",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "2"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-31",
+        "Time": "19:00",
+        "Round": "Matchweek 3",
+        "Day": "Sun",
+        "Venue": "Away",
+        "Result": "W",
+        "GF": "3",
+        "GA": "0",
+        "Opponent": "Aston Villa",
+        "matchReportUrl": "https://fbref.com/en/matches/cd51ed93/Aston-Villa-Crystal-Palace-August-31-2025-Premier-League",
+        "teamName": "Crystal Palace",
+        "team": {
+          "name": "Crystal Palace",
+          "stats": {
+            "SCA": "12",
+            "PassLive": "4",
+            "PassDead": "1",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "1",
+            "Def": "0",
+            "GCA": "6"
+          }
+        },
+        "opponent": {
+          "name": "Aston Villa",
+          "stats": {
+            "SCA": "23",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-13",
+        "Time": "15:00",
+        "Round": "Matchweek 4",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "D",
+        "GF": "0",
+        "GA": "0",
+        "Opponent": "Sunderland",
+        "matchReportUrl": "https://fbref.com/en/matches/e3cade07/Crystal-Palace-Sunderland-September-13-2025-Premier-League",
+        "teamName": "Crystal Palace",
+        "team": {
+          "name": "Crystal Palace",
+          "stats": {
+            "SCA": "23",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        },
+        "opponent": {
+          "name": "Sunderland",
+          "stats": {
+            "SCA": "11",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-20",
+        "Time": "15:00",
+        "Round": "Matchweek 5",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "W",
+        "GF": "2",
+        "GA": "1",
+        "Opponent": "West Ham",
+        "matchReportUrl": "https://fbref.com/en/matches/15b707b3/West-Ham-United-Crystal-Palace-September-20-2025-Premier-League",
+        "teamName": "Crystal Palace",
+        "team": {
+          "name": "Crystal Palace",
+          "stats": {
+            "SCA": "33",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "1",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "3"
+          }
+        },
+        "opponent": {
+          "name": "West Ham",
+          "stats": {
+            "SCA": "15",
+            "PassLive": "1",
+            "PassDead": "1",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "2"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:15:56.869Z",
+    "success": true,
+    "matchCount": 5
+  },
+  {
+    "teamId": "everton",
+    "teamName": "Everton",
+    "statType": "gca",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/d3fd31cc/2025-2026/matchlogs/c9/gca/Everton-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-18",
+        "Time": "20:00",
+        "Round": "Matchweek 1",
+        "Day": "Mon",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "0",
+        "GA": "1",
+        "Opponent": "Leeds United",
+        "matchReportUrl": "https://fbref.com/en/matches/0701e218/Leeds-United-Everton-August-18-2025-Premier-League",
+        "teamName": "Everton",
+        "team": {
+          "name": "Everton",
+          "stats": {
+            "SCA": "13",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        },
+        "opponent": {
+          "name": "Leeds United",
+          "stats": {
+            "SCA": "32",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "1",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "1"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-24",
+        "Time": "14:00",
+        "Round": "Matchweek 2",
+        "Day": "Sun",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "2",
+        "GA": "0",
+        "Opponent": "Brighton",
+        "matchReportUrl": "https://fbref.com/en/matches/0bad74e2/Everton-Brighton-and-Hove-Albion-August-24-2025-Premier-League",
+        "teamName": "Everton",
+        "team": {
+          "name": "Everton",
+          "stats": {
+            "SCA": "21",
+            "PassLive": "4",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "4"
+          }
+        },
+        "opponent": {
+          "name": "Brighton",
+          "stats": {
+            "SCA": "22",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-30",
+        "Time": "15:00",
+        "Round": "Matchweek 3",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "W",
+        "GF": "3",
+        "GA": "2",
+        "Opponent": "Wolves",
+        "matchReportUrl": "https://fbref.com/en/matches/3c399f5e/Wolverhampton-Wanderers-Everton-August-30-2025-Premier-League",
+        "teamName": "Everton",
+        "team": {
+          "name": "Everton",
+          "stats": {
+            "SCA": "19",
+            "PassLive": "6",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "6"
+          }
+        },
+        "opponent": {
+          "name": "Wolves",
+          "stats": {
+            "SCA": "19",
+            "PassLive": "4",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "4"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-13",
+        "Time": "15:00",
+        "Round": "Matchweek 4",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "D",
+        "GF": "0",
+        "GA": "0",
+        "Opponent": "Aston Villa",
+        "matchReportUrl": "https://fbref.com/en/matches/a624dc89/Everton-Aston-Villa-September-13-2025-Premier-League",
+        "teamName": "Everton",
+        "team": {
+          "name": "Everton",
+          "stats": {
+            "SCA": "37",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        },
+        "opponent": {
+          "name": "Aston Villa",
+          "stats": {
+            "SCA": "11",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-20",
+        "Time": "12:30",
+        "Round": "Matchweek 5",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "1",
+        "GA": "2",
+        "Opponent": "Liverpool",
+        "matchReportUrl": "https://fbref.com/en/matches/5da72d0e/Merseyside-Derby-Liverpool-Everton-September-20-2025-Premier-League",
+        "teamName": "Everton",
+        "team": {
+          "name": "Everton",
+          "stats": {
+            "SCA": "17",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "2"
+          }
+        },
+        "opponent": {
+          "name": "Liverpool",
+          "stats": {
+            "SCA": "16",
+            "PassLive": "4",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "4"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:16:03.704Z",
+    "success": true,
+    "matchCount": 5
+  },
+  {
+    "teamId": "fulham",
+    "teamName": "Fulham",
+    "statType": "gca",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/fd962109/2025-2026/matchlogs/c9/gca/Fulham-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-16",
+        "Time": "15:00",
+        "Round": "Matchweek 1",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "D",
+        "GF": "1",
+        "GA": "1",
+        "Opponent": "Brighton",
+        "matchReportUrl": "https://fbref.com/en/matches/57c49bae/Brighton-and-Hove-Albion-Fulham-August-16-2025-Premier-League",
+        "teamName": "Fulham",
+        "team": {
+          "name": "Fulham",
+          "stats": {
+            "SCA": "12",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "1",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "1"
+          }
+        },
+        "opponent": {
+          "name": "Brighton",
+          "stats": {
+            "SCA": "17",
+            "PassLive": "1",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "1",
+            "Def": "0",
+            "GCA": "2"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-24",
+        "Time": "16:30",
+        "Round": "Matchweek 2",
+        "Day": "Sun",
+        "Venue": "Home",
+        "Result": "D",
+        "GF": "1",
+        "GA": "1",
+        "Opponent": "Manchester Utd",
+        "matchReportUrl": "https://fbref.com/en/matches/fc45a8b2/Fulham-Manchester-United-August-24-2025-Premier-League",
+        "teamName": "Fulham",
+        "team": {
+          "name": "Fulham",
+          "stats": {
+            "SCA": "23",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "2"
+          }
+        },
+        "opponent": {
+          "name": "Manchester Utd",
+          "stats": {
+            "SCA": "19",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-30",
+        "Time": "12:30",
+        "Round": "Matchweek 3",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "0",
+        "GA": "2",
+        "Opponent": "Chelsea",
+        "matchReportUrl": "https://fbref.com/en/matches/2dbd7fbd/Chelsea-Fulham-August-30-2025-Premier-League",
+        "teamName": "Fulham",
+        "team": {
+          "name": "Fulham",
+          "stats": {
+            "SCA": "18",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        },
+        "opponent": {
+          "name": "Chelsea",
+          "stats": {
+            "SCA": "21",
+            "PassLive": "1",
+            "PassDead": "1",
+            "TO": "0",
+            "Sh": "1",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "3"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-13",
+        "Time": "15:00",
+        "Round": "Matchweek 4",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "1",
+        "GA": "0",
+        "Opponent": "Leeds United",
+        "matchReportUrl": "https://fbref.com/en/matches/ab8543fb/Fulham-Leeds-United-September-13-2025-Premier-League",
+        "teamName": "Fulham",
+        "team": {
+          "name": "Fulham",
+          "stats": {
+            "SCA": "10",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        },
+        "opponent": {
+          "name": "Leeds United",
+          "stats": {
+            "SCA": "16",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-20",
+        "Time": "20:00",
+        "Round": "Matchweek 5",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "3",
+        "GA": "1",
+        "Opponent": "Brentford",
+        "matchReportUrl": "https://fbref.com/en/matches/295b388b/Fulham-Brentford-September-20-2025-Premier-League",
+        "teamName": "Fulham",
+        "team": {
+          "name": "Fulham",
+          "stats": {
+            "SCA": "23",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "1",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "3"
+          }
+        },
+        "opponent": {
+          "name": "Brentford",
+          "stats": {
+            "SCA": "8",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:16:10.275Z",
+    "success": true,
+    "matchCount": 5
+  },
+  {
+    "teamId": "leeds-united",
+    "teamName": "Leeds United",
+    "statType": "gca",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/5bfb9659/2025-2026/matchlogs/c9/gca/Leeds-United-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-18",
+        "Time": "20:00",
+        "Round": "Matchweek 1",
+        "Day": "Mon",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "1",
+        "GA": "0",
+        "Opponent": "Everton",
+        "matchReportUrl": "https://fbref.com/en/matches/0701e218/Leeds-United-Everton-August-18-2025-Premier-League",
+        "teamName": "Leeds United",
+        "team": {
+          "name": "Leeds United",
+          "stats": {
+            "SCA": "32",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "1",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "1"
+          }
+        },
+        "opponent": {
+          "name": "Everton",
+          "stats": {
+            "SCA": "13",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-23",
+        "Time": "17:30",
+        "Round": "Matchweek 2",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "0",
+        "GA": "5",
+        "Opponent": "Arsenal",
+        "matchReportUrl": "https://fbref.com/en/matches/e8724659/Arsenal-Leeds-United-August-23-2025-Premier-League",
+        "teamName": "Leeds United",
+        "team": {
+          "name": "Leeds United",
+          "stats": {
+            "SCA": "6",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        },
+        "opponent": {
+          "name": "Arsenal",
+          "stats": {
+            "SCA": "31",
+            "PassLive": "5",
+            "PassDead": "1",
+            "TO": "1",
+            "Sh": "1",
+            "Fld": "1",
+            "Def": "0",
+            "GCA": "9"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-30",
+        "Time": "17:30",
+        "Round": "Matchweek 3",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "D",
+        "GF": "0",
+        "GA": "0",
+        "Opponent": "Newcastle Utd",
+        "matchReportUrl": "https://fbref.com/en/matches/bc110e0b/Leeds-United-Newcastle-United-August-30-2025-Premier-League",
+        "teamName": "Leeds United",
+        "team": {
+          "name": "Leeds United",
+          "stats": {
+            "SCA": "19",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        },
+        "opponent": {
+          "name": "Newcastle Utd",
+          "stats": {
+            "SCA": "15",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-13",
+        "Time": "15:00",
+        "Round": "Matchweek 4",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "0",
+        "GA": "1",
+        "Opponent": "Fulham",
+        "matchReportUrl": "https://fbref.com/en/matches/ab8543fb/Fulham-Leeds-United-September-13-2025-Premier-League",
+        "teamName": "Leeds United",
+        "team": {
+          "name": "Leeds United",
+          "stats": {
+            "SCA": "16",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        },
+        "opponent": {
+          "name": "Fulham",
+          "stats": {
+            "SCA": "10",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-20",
+        "Time": "15:00",
+        "Round": "Matchweek 5",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "W",
+        "GF": "3",
+        "GA": "1",
+        "Opponent": "Wolves",
+        "matchReportUrl": "https://fbref.com/en/matches/45650a33/Wolverhampton-Wanderers-Leeds-United-September-20-2025-Premier-League",
+        "teamName": "Leeds United",
+        "team": {
+          "name": "Leeds United",
+          "stats": {
+            "SCA": "10",
+            "PassLive": "4",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "1",
+            "Def": "1",
+            "GCA": "6"
+          }
+        },
+        "opponent": {
+          "name": "Wolves",
+          "stats": {
+            "SCA": "30",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "2"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:16:16.865Z",
+    "success": true,
+    "matchCount": 5
+  },
+  {
+    "teamId": "liverpool",
+    "teamName": "Liverpool",
+    "statType": "gca",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/822bd0ba/2025-2026/matchlogs/c9/gca/Liverpool-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-15",
+        "Time": "20:00",
+        "Round": "Matchweek 1",
+        "Day": "Fri",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "4",
+        "GA": "2",
+        "Opponent": "Bournemouth",
+        "matchReportUrl": "https://fbref.com/en/matches/a071faa8/Liverpool-Bournemouth-August-15-2025-Premier-League",
+        "teamName": "Liverpool",
+        "team": {
+          "name": "Liverpool",
+          "stats": {
+            "SCA": "36",
+            "PassLive": "6",
+            "PassDead": "0",
+            "TO": "1",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "7"
+          }
+        },
+        "opponent": {
+          "name": "Bournemouth",
+          "stats": {
+            "SCA": "18",
+            "PassLive": "3",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "3"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-25",
+        "Time": "20:00",
+        "Round": "Matchweek 2",
+        "Day": "Mon",
+        "Venue": "Away",
+        "Result": "W",
+        "GF": "3",
+        "GA": "2",
+        "Opponent": "Newcastle Utd",
+        "matchReportUrl": "https://fbref.com/en/matches/2c75d21a/Newcastle-United-Liverpool-August-25-2025-Premier-League",
+        "teamName": "Liverpool",
+        "team": {
+          "name": "Liverpool",
+          "stats": {
+            "SCA": "9",
+            "PassLive": "5",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "1",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "6"
+          }
+        },
+        "opponent": {
+          "name": "Newcastle Utd",
+          "stats": {
+            "SCA": "20",
+            "PassLive": "1",
+            "PassDead": "0",
+            "TO": "1",
+            "Sh": "0",
+            "Fld": "2",
+            "Def": "0",
+            "GCA": "4"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-31",
+        "Time": "16:30",
+        "Round": "Matchweek 3",
+        "Day": "Sun",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "1",
+        "GA": "0",
+        "Opponent": "Arsenal",
+        "matchReportUrl": "https://fbref.com/en/matches/b0005978/Liverpool-Arsenal-August-31-2025-Premier-League",
+        "teamName": "Liverpool",
+        "team": {
+          "name": "Liverpool",
+          "stats": {
+            "SCA": "16",
+            "PassLive": "1",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "1",
+            "Def": "0",
+            "GCA": "2"
+          }
+        },
+        "opponent": {
+          "name": "Arsenal",
+          "stats": {
+            "SCA": "16",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-14",
+        "Time": "14:00",
+        "Round": "Matchweek 4",
+        "Day": "Sun",
+        "Venue": "Away",
+        "Result": "W",
+        "GF": "1",
+        "GA": "0",
+        "Opponent": "Burnley",
+        "matchReportUrl": "https://fbref.com/en/matches/fed27aaa/Burnley-Liverpool-September-14-2025-Premier-League",
+        "teamName": "Liverpool",
+        "team": {
+          "name": "Liverpool",
+          "stats": {
+            "SCA": "49",
+            "PassLive": "1",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "1"
+          }
+        },
+        "opponent": {
+          "name": "Burnley",
+          "stats": {
+            "SCA": "5",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-20",
+        "Time": "12:30",
+        "Round": "Matchweek 5",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "2",
+        "GA": "1",
+        "Opponent": "Everton",
+        "matchReportUrl": "https://fbref.com/en/matches/5da72d0e/Merseyside-Derby-Liverpool-Everton-September-20-2025-Premier-League",
+        "teamName": "Liverpool",
+        "team": {
+          "name": "Liverpool",
+          "stats": {
+            "SCA": "16",
+            "PassLive": "4",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "4"
+          }
+        },
+        "opponent": {
+          "name": "Everton",
+          "stats": {
+            "SCA": "17",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "2"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:16:23.642Z",
+    "success": true,
+    "matchCount": 5
+  },
+  {
+    "teamId": "manchester-city",
+    "teamName": "Manchester City",
+    "statType": "gca",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/b8fd03ef/2025-2026/matchlogs/c9/gca/Manchester-City-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-16",
+        "Time": "17:30",
+        "Round": "Matchweek 1",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "W",
+        "GF": "4",
+        "GA": "0",
+        "Opponent": "Wolves",
+        "matchReportUrl": "https://fbref.com/en/matches/8613020d/Wolverhampton-Wanderers-Manchester-City-August-16-2025-Premier-League",
+        "teamName": "Manchester City",
+        "team": {
+          "name": "Manchester City",
+          "stats": {
+            "SCA": "25",
+            "PassLive": "7",
+            "PassDead": "0",
+            "TO": "1",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "8"
+          }
+        },
+        "opponent": {
+          "name": "Wolves",
+          "stats": {
+            "SCA": "18",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-23",
+        "Time": "12:30",
+        "Round": "Matchweek 2",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "L",
+        "GF": "0",
+        "GA": "2",
+        "Opponent": "Tottenham",
+        "matchReportUrl": "https://fbref.com/en/matches/f7e2c9c7/Manchester-City-Tottenham-Hotspur-August-23-2025-Premier-League",
+        "teamName": "Manchester City",
+        "team": {
+          "name": "Manchester City",
+          "stats": {
+            "SCA": "18",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        },
+        "opponent": {
+          "name": "Tottenham",
+          "stats": {
+            "SCA": "19",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "1",
+            "GCA": "3"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-31",
+        "Time": "14:00",
+        "Round": "Matchweek 3",
+        "Day": "Sun",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "1",
+        "GA": "2",
+        "Opponent": "Brighton",
+        "matchReportUrl": "https://fbref.com/en/matches/810d81e7/Brighton-and-Hove-Albion-Manchester-City-August-31-2025-Premier-League",
+        "teamName": "Manchester City",
+        "team": {
+          "name": "Manchester City",
+          "stats": {
+            "SCA": "21",
+            "PassLive": "1",
+            "PassDead": "0",
+            "TO": "1",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "2"
+          }
+        },
+        "opponent": {
+          "name": "Brighton",
+          "stats": {
+            "SCA": "19",
+            "PassLive": "1",
+            "PassDead": "0",
+            "TO": "1",
+            "Sh": "1",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "3"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-14",
+        "Time": "16:30",
+        "Round": "Matchweek 4",
+        "Day": "Sun",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "3",
+        "GA": "0",
+        "Opponent": "Manchester Utd",
+        "matchReportUrl": "https://fbref.com/en/matches/f2b1061a/Manchester-Derby-Manchester-City-Manchester-United-September-14-2025-Premier-League",
+        "teamName": "Manchester City",
+        "team": {
+          "name": "Manchester City",
+          "stats": {
+            "SCA": "23",
+            "PassLive": "4",
+            "PassDead": "0",
+            "TO": "1",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "5"
+          }
+        },
+        "opponent": {
+          "name": "Manchester Utd",
+          "stats": {
+            "SCA": "22",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-21",
+        "Time": "16:30",
+        "Round": "Matchweek 5",
+        "Day": "Sun",
+        "Venue": "Away",
+        "Result": "D",
+        "GF": "1",
+        "GA": "1",
+        "Opponent": "Arsenal",
+        "matchReportUrl": "https://fbref.com/en/matches/2045939c/Arsenal-Manchester-City-September-21-2025-Premier-League",
+        "teamName": "Manchester City",
+        "team": {
+          "name": "Manchester City",
+          "stats": {
+            "SCA": "10",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "2"
+          }
+        },
+        "opponent": {
+          "name": "Arsenal",
+          "stats": {
+            "SCA": "22",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "2"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:16:30.410Z",
+    "success": true,
+    "matchCount": 5
+  },
+  {
+    "teamId": "manchester-united",
+    "teamName": "Manchester United",
+    "statType": "gca",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/19538871/2025-2026/matchlogs/c9/gca/Manchester-United-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-17",
+        "Time": "16:30",
+        "Round": "Matchweek 1",
+        "Day": "Sun",
+        "Venue": "Home",
+        "Result": "L",
+        "GF": "0",
+        "GA": "1",
+        "Opponent": "Arsenal",
+        "matchReportUrl": "https://fbref.com/en/matches/643d26fd/Manchester-United-Arsenal-August-17-2025-Premier-League",
+        "teamName": "Manchester United",
+        "team": {
+          "name": "Manchester United",
+          "stats": {
+            "SCA": "42",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        },
+        "opponent": {
+          "name": "Arsenal",
+          "stats": {
+            "SCA": "14",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "1",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "1",
+            "GCA": "2"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-24",
+        "Time": "16:30",
+        "Round": "Matchweek 2",
+        "Day": "Sun",
+        "Venue": "Away",
+        "Result": "D",
+        "GF": "1",
+        "GA": "1",
+        "Opponent": "Fulham",
+        "matchReportUrl": "https://fbref.com/en/matches/fc45a8b2/Fulham-Manchester-United-August-24-2025-Premier-League",
+        "teamName": "Manchester United",
+        "team": {
+          "name": "Manchester United",
+          "stats": {
+            "SCA": "19",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        },
+        "opponent": {
+          "name": "Fulham",
+          "stats": {
+            "SCA": "23",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "2"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-30",
+        "Time": "15:00",
+        "Round": "Matchweek 3",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "3",
+        "GA": "2",
+        "Opponent": "Burnley",
+        "matchReportUrl": "https://fbref.com/en/matches/0050df89/Manchester-United-Burnley-August-30-2025-Premier-League",
+        "teamName": "Manchester United",
+        "team": {
+          "name": "Manchester United",
+          "stats": {
+            "SCA": "45",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "1",
+            "Sh": "0",
+            "Fld": "1",
+            "Def": "0",
+            "GCA": "4"
+          }
+        },
+        "opponent": {
+          "name": "Burnley",
+          "stats": {
+            "SCA": "8",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "1",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "3"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-14",
+        "Time": "16:30",
+        "Round": "Matchweek 4",
+        "Day": "Sun",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "0",
+        "GA": "3",
+        "Opponent": "Manchester City",
+        "matchReportUrl": "https://fbref.com/en/matches/f2b1061a/Manchester-Derby-Manchester-City-Manchester-United-September-14-2025-Premier-League",
+        "teamName": "Manchester United",
+        "team": {
+          "name": "Manchester United",
+          "stats": {
+            "SCA": "22",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        },
+        "opponent": {
+          "name": "Manchester City",
+          "stats": {
+            "SCA": "23",
+            "PassLive": "4",
+            "PassDead": "0",
+            "TO": "1",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "5"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-20",
+        "Time": "17:30",
+        "Round": "Matchweek 5",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "2",
+        "GA": "1",
+        "Opponent": "Chelsea",
+        "matchReportUrl": "https://fbref.com/en/matches/a562da13/Manchester-United-Chelsea-September-20-2025-Premier-League",
+        "teamName": "Manchester United",
+        "team": {
+          "name": "Manchester United",
+          "stats": {
+            "SCA": "17",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "1",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "3"
+          }
+        },
+        "opponent": {
+          "name": "Chelsea",
+          "stats": {
+            "SCA": "10",
+            "PassLive": "1",
+            "PassDead": "1",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "2"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:16:37.098Z",
+    "success": true,
+    "matchCount": 5
+  },
+  {
+    "teamId": "newcastle-united",
+    "teamName": "Newcastle United",
+    "statType": "gca",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/b2b47a98/2025-2026/matchlogs/c9/gca/Newcastle-United-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-16",
+        "Time": "12:30",
+        "Round": "Matchweek 1",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "D",
+        "GF": "0",
+        "GA": "0",
+        "Opponent": "Aston Villa",
+        "matchReportUrl": "https://fbref.com/en/matches/bbdf4739/Aston-Villa-Newcastle-United-August-16-2025-Premier-League",
+        "teamName": "Newcastle United",
+        "team": {
+          "name": "Newcastle United",
+          "stats": {
+            "SCA": "29",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        },
+        "opponent": {
+          "name": "Aston Villa",
+          "stats": {
+            "SCA": "6",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-25",
+        "Time": "20:00",
+        "Round": "Matchweek 2",
+        "Day": "Mon",
+        "Venue": "Home",
+        "Result": "L",
+        "GF": "2",
+        "GA": "3",
+        "Opponent": "Liverpool",
+        "matchReportUrl": "https://fbref.com/en/matches/2c75d21a/Newcastle-United-Liverpool-August-25-2025-Premier-League",
+        "teamName": "Newcastle United",
+        "team": {
+          "name": "Newcastle United",
+          "stats": {
+            "SCA": "20",
+            "PassLive": "1",
+            "PassDead": "0",
+            "TO": "1",
+            "Sh": "0",
+            "Fld": "2",
+            "Def": "0",
+            "GCA": "4"
+          }
+        },
+        "opponent": {
+          "name": "Liverpool",
+          "stats": {
+            "SCA": "9",
+            "PassLive": "5",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "1",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "6"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-30",
+        "Time": "17:30",
+        "Round": "Matchweek 3",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "D",
+        "GF": "0",
+        "GA": "0",
+        "Opponent": "Leeds United",
+        "matchReportUrl": "https://fbref.com/en/matches/bc110e0b/Leeds-United-Newcastle-United-August-30-2025-Premier-League",
+        "teamName": "Newcastle United",
+        "team": {
+          "name": "Newcastle United",
+          "stats": {
+            "SCA": "15",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        },
+        "opponent": {
+          "name": "Leeds United",
+          "stats": {
+            "SCA": "19",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-13",
+        "Time": "15:00",
+        "Round": "Matchweek 4",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "1",
+        "GA": "0",
+        "Opponent": "Wolves",
+        "matchReportUrl": "https://fbref.com/en/matches/55fbbbe6/Newcastle-United-Wolverhampton-Wanderers-September-13-2025-Premier-League",
+        "teamName": "Newcastle United",
+        "team": {
+          "name": "Newcastle United",
+          "stats": {
+            "SCA": "28",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "2"
+          }
+        },
+        "opponent": {
+          "name": "Wolves",
+          "stats": {
+            "SCA": "14",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-21",
+        "Time": "14:00",
+        "Round": "Matchweek 5",
+        "Day": "Sun",
+        "Venue": "Away",
+        "Result": "D",
+        "GF": "0",
+        "GA": "0",
+        "Opponent": "Bournemouth",
+        "matchReportUrl": "https://fbref.com/en/matches/f55b1b65/Bournemouth-Newcastle-United-September-21-2025-Premier-League",
+        "teamName": "Newcastle United",
+        "team": {
+          "name": "Newcastle United",
+          "stats": {
+            "SCA": "8",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        },
+        "opponent": {
+          "name": "Bournemouth",
+          "stats": {
+            "SCA": "17",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:16:43.830Z",
+    "success": true,
+    "matchCount": 5
+  },
+  {
+    "teamId": "nottingham-forest",
+    "teamName": "Nottingham Forest",
+    "statType": "gca",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/e4a775cb/2025-2026/matchlogs/c9/gca/Nottingham-Forest-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-17",
+        "Time": "14:00",
+        "Round": "Matchweek 1",
+        "Day": "Sun",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "3",
+        "GA": "1",
+        "Opponent": "Brentford",
+        "matchReportUrl": "https://fbref.com/en/matches/855f8b5e/Nottingham-Forest-Brentford-August-17-2025-Premier-League",
+        "teamName": "Nottingham Forest",
+        "team": {
+          "name": "Nottingham Forest",
+          "stats": {
+            "SCA": "21",
+            "PassLive": "5",
+            "PassDead": "0",
+            "TO": "1",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "6"
+          }
+        },
+        "opponent": {
+          "name": "Brentford",
+          "stats": {
+            "SCA": "15",
+            "PassLive": "0",
+            "PassDead": "1",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "1"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-24",
+        "Time": "14:00",
+        "Round": "Matchweek 2",
+        "Day": "Sun",
+        "Venue": "Away",
+        "Result": "D",
+        "GF": "1",
+        "GA": "1",
+        "Opponent": "Crystal Palace",
+        "matchReportUrl": "https://fbref.com/en/matches/a3984be1/Crystal-Palace-Nottingham-Forest-August-24-2025-Premier-League",
+        "teamName": "Nottingham Forest",
+        "team": {
+          "name": "Nottingham Forest",
+          "stats": {
+            "SCA": "16",
+            "PassLive": "1",
+            "PassDead": "0",
+            "TO": "1",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "2"
+          }
+        },
+        "opponent": {
+          "name": "Crystal Palace",
+          "stats": {
+            "SCA": "15",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "2"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-31",
+        "Time": "14:00",
+        "Round": "Matchweek 3",
+        "Day": "Sun",
+        "Venue": "Home",
+        "Result": "L",
+        "GF": "0",
+        "GA": "3",
+        "Opponent": "West Ham",
+        "matchReportUrl": "https://fbref.com/en/matches/299beb27/Nottingham-Forest-West-Ham-United-August-31-2025-Premier-League",
+        "teamName": "Nottingham Forest",
+        "team": {
+          "name": "Nottingham Forest",
+          "stats": {
+            "SCA": "21",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        },
+        "opponent": {
+          "name": "West Ham",
+          "stats": {
+            "SCA": "21",
+            "PassLive": "4",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "1",
+            "Def": "0",
+            "GCA": "5"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-13",
+        "Time": "12:30",
+        "Round": "Matchweek 4",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "0",
+        "GA": "3",
+        "Opponent": "Arsenal",
+        "matchReportUrl": "https://fbref.com/en/matches/4fe3e679/Arsenal-Nottingham-Forest-September-13-2025-Premier-League",
+        "teamName": "Nottingham Forest",
+        "team": {
+          "name": "Nottingham Forest",
+          "stats": {
+            "SCA": "9",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        },
+        "opponent": {
+          "name": "Arsenal",
+          "stats": {
+            "SCA": "28",
+            "PassLive": "4",
+            "PassDead": "0",
+            "TO": "1",
+            "Sh": "1",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "6"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-20",
+        "Time": "15:00",
+        "Round": "Matchweek 5",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "D",
+        "GF": "1",
+        "GA": "1",
+        "Opponent": "Burnley",
+        "matchReportUrl": "https://fbref.com/en/matches/e523c1cd/Burnley-Nottingham-Forest-September-20-2025-Premier-League",
+        "teamName": "Nottingham Forest",
+        "team": {
+          "name": "Nottingham Forest",
+          "stats": {
+            "SCA": "31",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "2"
+          }
+        },
+        "opponent": {
+          "name": "Burnley",
+          "stats": {
+            "SCA": "21",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "1",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "1"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:16:50.533Z",
+    "success": true,
+    "matchCount": 5
+  },
+  {
+    "teamId": "sunderland",
+    "teamName": "Sunderland",
+    "statType": "gca",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/8ef52968/2025-2026/matchlogs/c9/gca/Sunderland-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-16",
+        "Time": "15:00",
+        "Round": "Matchweek 1",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "3",
+        "GA": "0",
+        "Opponent": "West Ham",
+        "matchReportUrl": "https://fbref.com/en/matches/e1058522/Sunderland-West-Ham-United-August-16-2025-Premier-League",
+        "teamName": "Sunderland",
+        "team": {
+          "name": "Sunderland",
+          "stats": {
+            "SCA": "19",
+            "PassLive": "5",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "5"
+          }
+        },
+        "opponent": {
+          "name": "West Ham",
+          "stats": {
+            "SCA": "23",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-23",
+        "Time": "15:00",
+        "Round": "Matchweek 2",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "0",
+        "GA": "2",
+        "Opponent": "Burnley",
+        "matchReportUrl": "https://fbref.com/en/matches/4e287736/Burnley-Sunderland-August-23-2025-Premier-League",
+        "teamName": "Sunderland",
+        "team": {
+          "name": "Sunderland",
+          "stats": {
+            "SCA": "18",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        },
+        "opponent": {
+          "name": "Burnley",
+          "stats": {
+            "SCA": "12",
+            "PassLive": "3",
+            "PassDead": "0",
+            "TO": "1",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "4"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-30",
+        "Time": "15:00",
+        "Round": "Matchweek 3",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "2",
+        "GA": "1",
+        "Opponent": "Brentford",
+        "matchReportUrl": "https://fbref.com/en/matches/f03152d1/Sunderland-Brentford-August-30-2025-Premier-League",
+        "teamName": "Sunderland",
+        "team": {
+          "name": "Sunderland",
+          "stats": {
+            "SCA": "19",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "2",
+            "Def": "0",
+            "GCA": "4"
+          }
+        },
+        "opponent": {
+          "name": "Brentford",
+          "stats": {
+            "SCA": "10",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "2"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-13",
+        "Time": "15:00",
+        "Round": "Matchweek 4",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "D",
+        "GF": "0",
+        "GA": "0",
+        "Opponent": "Crystal Palace",
+        "matchReportUrl": "https://fbref.com/en/matches/e3cade07/Crystal-Palace-Sunderland-September-13-2025-Premier-League",
+        "teamName": "Sunderland",
+        "team": {
+          "name": "Sunderland",
+          "stats": {
+            "SCA": "11",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        },
+        "opponent": {
+          "name": "Crystal Palace",
+          "stats": {
+            "SCA": "23",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-21",
+        "Time": "14:00",
+        "Round": "Matchweek 5",
+        "Day": "Sun",
+        "Venue": "Home",
+        "Result": "D",
+        "GF": "1",
+        "GA": "1",
+        "Opponent": "Aston Villa",
+        "matchReportUrl": "https://fbref.com/en/matches/4e615d10/Sunderland-Aston-Villa-September-21-2025-Premier-League",
+        "teamName": "Sunderland",
+        "team": {
+          "name": "Sunderland",
+          "stats": {
+            "SCA": "22",
+            "PassLive": "1",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "1",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "2"
+          }
+        },
+        "opponent": {
+          "name": "Aston Villa",
+          "stats": {
+            "SCA": "24",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "2"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:16:57.193Z",
+    "success": true,
+    "matchCount": 5
+  },
+  {
+    "teamId": "tottenham",
+    "teamName": "Tottenham Hotspur",
+    "statType": "gca",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/361ca564/2025-2026/matchlogs/c9/gca/Tottenham-Hotspur-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-16",
+        "Time": "15:00",
+        "Round": "Matchweek 1",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "W",
+        "GF": "3",
+        "GA": "0",
+        "Opponent": "Burnley",
+        "matchReportUrl": "https://fbref.com/en/matches/d41bb8b3/Tottenham-Hotspur-Burnley-August-16-2025-Premier-League",
+        "teamName": "Tottenham Hotspur",
+        "team": {
+          "name": "Tottenham Hotspur",
+          "stats": {
+            "SCA": "29",
+            "PassLive": "4",
+            "PassDead": "0",
+            "TO": "2",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "6"
+          }
+        },
+        "opponent": {
+          "name": "Burnley",
+          "stats": {
+            "SCA": "24",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-23",
+        "Time": "12:30",
+        "Round": "Matchweek 2",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "W",
+        "GF": "2",
+        "GA": "0",
+        "Opponent": "Manchester City",
+        "matchReportUrl": "https://fbref.com/en/matches/f7e2c9c7/Manchester-City-Tottenham-Hotspur-August-23-2025-Premier-League",
+        "teamName": "Tottenham Hotspur",
+        "team": {
+          "name": "Tottenham Hotspur",
+          "stats": {
+            "SCA": "19",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "1",
+            "GCA": "3"
+          }
+        },
+        "opponent": {
+          "name": "Manchester City",
+          "stats": {
+            "SCA": "18",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-30",
+        "Time": "15:00",
+        "Round": "Matchweek 3",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "L",
+        "GF": "0",
+        "GA": "1",
+        "Opponent": "Bournemouth",
+        "matchReportUrl": "https://fbref.com/en/matches/0e30cf4b/Tottenham-Hotspur-Bournemouth-August-30-2025-Premier-League",
+        "teamName": "Tottenham Hotspur",
+        "team": {
+          "name": "Tottenham Hotspur",
+          "stats": {
+            "SCA": "10",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        },
+        "opponent": {
+          "name": "Bournemouth",
+          "stats": {
+            "SCA": "36",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "2"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-13",
+        "Time": "17:30",
+        "Round": "Matchweek 4",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "W",
+        "GF": "3",
+        "GA": "0",
+        "Opponent": "West Ham",
+        "matchReportUrl": "https://fbref.com/en/matches/86c7261a/West-Ham-United-Tottenham-Hotspur-September-13-2025-Premier-League",
+        "teamName": "Tottenham Hotspur",
+        "team": {
+          "name": "Tottenham Hotspur",
+          "stats": {
+            "SCA": "23",
+            "PassLive": "5",
+            "PassDead": "1",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "6"
+          }
+        },
+        "opponent": {
+          "name": "West Ham",
+          "stats": {
+            "SCA": "13",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-20",
+        "Time": "15:00",
+        "Round": "Matchweek 5",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "D",
+        "GF": "2",
+        "GA": "2",
+        "Opponent": "Brighton",
+        "matchReportUrl": "https://fbref.com/en/matches/fa03feeb/Brighton-and-Hove-Albion-Tottenham-Hotspur-September-20-2025-Premier-League",
+        "teamName": "Tottenham Hotspur",
+        "team": {
+          "name": "Tottenham Hotspur",
+          "stats": {
+            "SCA": "21",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "1",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "1"
+          }
+        },
+        "opponent": {
+          "name": "Brighton",
+          "stats": {
+            "SCA": "21",
+            "PassLive": "1",
+            "PassDead": "0",
+            "TO": "1",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "2"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:17:03.928Z",
+    "success": true,
+    "matchCount": 5
+  },
+  {
+    "teamId": "west-ham",
+    "teamName": "West Ham United",
+    "statType": "gca",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/7c21e445/2025-2026/matchlogs/c9/gca/West-Ham-United-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-16",
+        "Time": "15:00",
+        "Round": "Matchweek 1",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "0",
+        "GA": "3",
+        "Opponent": "Sunderland",
+        "matchReportUrl": "https://fbref.com/en/matches/e1058522/Sunderland-West-Ham-United-August-16-2025-Premier-League",
+        "teamName": "West Ham United",
+        "team": {
+          "name": "West Ham United",
+          "stats": {
+            "SCA": "23",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        },
+        "opponent": {
+          "name": "Sunderland",
+          "stats": {
+            "SCA": "19",
+            "PassLive": "5",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "5"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-22",
+        "Time": "20:00",
+        "Round": "Matchweek 2",
+        "Day": "Fri",
+        "Venue": "Home",
+        "Result": "L",
+        "GF": "1",
+        "GA": "5",
+        "Opponent": "Chelsea",
+        "matchReportUrl": "https://fbref.com/en/matches/57b35843/West-Ham-United-Chelsea-August-22-2025-Premier-League",
+        "teamName": "West Ham United",
+        "team": {
+          "name": "West Ham United",
+          "stats": {
+            "SCA": "20",
+            "PassLive": "1",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "1"
+          }
+        },
+        "opponent": {
+          "name": "Chelsea",
+          "stats": {
+            "SCA": "20",
+            "PassLive": "6",
+            "PassDead": "1",
+            "TO": "1",
+            "Sh": "1",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "9"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-31",
+        "Time": "14:00",
+        "Round": "Matchweek 3",
+        "Day": "Sun",
+        "Venue": "Away",
+        "Result": "W",
+        "GF": "3",
+        "GA": "0",
+        "Opponent": "Nott'ham Forest",
+        "matchReportUrl": "https://fbref.com/en/matches/299beb27/Nottingham-Forest-West-Ham-United-August-31-2025-Premier-League",
+        "teamName": "West Ham United",
+        "team": {
+          "name": "West Ham United",
+          "stats": {
+            "SCA": "21",
+            "PassLive": "4",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "1",
+            "Def": "0",
+            "GCA": "5"
+          }
+        },
+        "opponent": {
+          "name": "Nott'ham Forest",
+          "stats": {
+            "SCA": "21",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-13",
+        "Time": "17:30",
+        "Round": "Matchweek 4",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "L",
+        "GF": "0",
+        "GA": "3",
+        "Opponent": "Tottenham",
+        "matchReportUrl": "https://fbref.com/en/matches/86c7261a/West-Ham-United-Tottenham-Hotspur-September-13-2025-Premier-League",
+        "teamName": "West Ham United",
+        "team": {
+          "name": "West Ham United",
+          "stats": {
+            "SCA": "13",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        },
+        "opponent": {
+          "name": "Tottenham",
+          "stats": {
+            "SCA": "23",
+            "PassLive": "5",
+            "PassDead": "1",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "6"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-20",
+        "Time": "15:00",
+        "Round": "Matchweek 5",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "L",
+        "GF": "1",
+        "GA": "2",
+        "Opponent": "Crystal Palace",
+        "matchReportUrl": "https://fbref.com/en/matches/15b707b3/West-Ham-United-Crystal-Palace-September-20-2025-Premier-League",
+        "teamName": "West Ham United",
+        "team": {
+          "name": "West Ham United",
+          "stats": {
+            "SCA": "15",
+            "PassLive": "1",
+            "PassDead": "1",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "2"
+          }
+        },
+        "opponent": {
+          "name": "Crystal Palace",
+          "stats": {
+            "SCA": "33",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "1",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "3"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:17:10.602Z",
+    "success": true,
+    "matchCount": 5
+  },
+  {
+    "teamId": "wolves",
+    "teamName": "Wolverhampton Wanderers",
+    "statType": "gca",
+    "season": "2025-2026",
+    "url": "https://fbref.com/en/squads/8cec06e1/2025-2026/matchlogs/c9/gca/Wolverhampton-Wanderers-Match-Logs-Premier-League",
+    "matchLogs": [
+      {
+        "Date": "2025-08-16",
+        "Time": "17:30",
+        "Round": "Matchweek 1",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "L",
+        "GF": "0",
+        "GA": "4",
+        "Opponent": "Manchester City",
+        "matchReportUrl": "https://fbref.com/en/matches/8613020d/Wolverhampton-Wanderers-Manchester-City-August-16-2025-Premier-League",
+        "teamName": "Wolverhampton Wanderers",
+        "team": {
+          "name": "Wolverhampton Wanderers",
+          "stats": {
+            "SCA": "18",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        },
+        "opponent": {
+          "name": "Manchester City",
+          "stats": {
+            "SCA": "25",
+            "PassLive": "7",
+            "PassDead": "0",
+            "TO": "1",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "8"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-23",
+        "Time": "15:00",
+        "Round": "Matchweek 2",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "0",
+        "GA": "1",
+        "Opponent": "Bournemouth",
+        "matchReportUrl": "https://fbref.com/en/matches/a515fb3a/Bournemouth-Wolverhampton-Wanderers-August-23-2025-Premier-League",
+        "teamName": "Wolverhampton Wanderers",
+        "team": {
+          "name": "Wolverhampton Wanderers",
+          "stats": {
+            "SCA": "11",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        },
+        "opponent": {
+          "name": "Bournemouth",
+          "stats": {
+            "SCA": "27",
+            "PassLive": "1",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "1",
+            "GCA": "2"
+          }
+        }
+      },
+      {
+        "Date": "2025-08-30",
+        "Time": "15:00",
+        "Round": "Matchweek 3",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "L",
+        "GF": "2",
+        "GA": "3",
+        "Opponent": "Everton",
+        "matchReportUrl": "https://fbref.com/en/matches/3c399f5e/Wolverhampton-Wanderers-Everton-August-30-2025-Premier-League",
+        "teamName": "Wolverhampton Wanderers",
+        "team": {
+          "name": "Wolverhampton Wanderers",
+          "stats": {
+            "SCA": "19",
+            "PassLive": "4",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "4"
+          }
+        },
+        "opponent": {
+          "name": "Everton",
+          "stats": {
+            "SCA": "19",
+            "PassLive": "6",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "6"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-13",
+        "Time": "15:00",
+        "Round": "Matchweek 4",
+        "Day": "Sat",
+        "Venue": "Away",
+        "Result": "L",
+        "GF": "0",
+        "GA": "1",
+        "Opponent": "Newcastle Utd",
+        "matchReportUrl": "https://fbref.com/en/matches/55fbbbe6/Newcastle-United-Wolverhampton-Wanderers-September-13-2025-Premier-League",
+        "teamName": "Wolverhampton Wanderers",
+        "team": {
+          "name": "Wolverhampton Wanderers",
+          "stats": {
+            "SCA": "14",
+            "PassLive": "0",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "0"
+          }
+        },
+        "opponent": {
+          "name": "Newcastle Utd",
+          "stats": {
+            "SCA": "28",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "2"
+          }
+        }
+      },
+      {
+        "Date": "2025-09-20",
+        "Time": "15:00",
+        "Round": "Matchweek 5",
+        "Day": "Sat",
+        "Venue": "Home",
+        "Result": "L",
+        "GF": "1",
+        "GA": "3",
+        "Opponent": "Leeds United",
+        "matchReportUrl": "https://fbref.com/en/matches/45650a33/Wolverhampton-Wanderers-Leeds-United-September-20-2025-Premier-League",
+        "teamName": "Wolverhampton Wanderers",
+        "team": {
+          "name": "Wolverhampton Wanderers",
+          "stats": {
+            "SCA": "30",
+            "PassLive": "2",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "0",
+            "Def": "0",
+            "GCA": "2"
+          }
+        },
+        "opponent": {
+          "name": "Leeds United",
+          "stats": {
+            "SCA": "10",
+            "PassLive": "4",
+            "PassDead": "0",
+            "TO": "0",
+            "Sh": "0",
+            "Fld": "1",
+            "Def": "1",
+            "GCA": "6"
+          }
+        }
+      }
+    ],
+    "scrapedAt": "2025-09-22T12:17:17.209Z",
+    "success": true,
+    "matchCount": 5
+  }
+]

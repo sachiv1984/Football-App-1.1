@@ -1,8 +1,8 @@
-name: Scrape FBref Fixtures
+name: Scrape FBref Team Stats
 
 on:
   schedule:
-    - cron: "30 22 * * *"
+    - cron: "20 20 * * *"
   workflow_dispatch:
 
 jobs:
@@ -30,7 +30,7 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: node dist/scrapeFixtures.js
+        run: node dist/scrapeAllTeamStats.js
 
       - name: Commit scraped data
         run: |
