@@ -105,9 +105,11 @@ class Scraper {
   }
 
   parseMatchLogsTable(html: string, statType: any, teamName: string): any[] {
+    // Remove HTML comments to reveal hidden tables
     const cleanHtml = html.replace(//g, '');
     const $ = cheerio.load(cleanHtml);
 
+    // Find the main matchlogs table
     const tableSelectors = [ `#matchlogs_for_${statType.key}`, `table[id*="matchlogs_for"]`, `table[id*="${statType.key}"]`, 'table.stats_table'];
     let teamTable: cheerio.Cheerio | null = null;
     for (const sel of tableSelectors) {
@@ -119,6 +121,7 @@ class Scraper {
       }
     }
 
+    // Also look for opponent table
     const opponentSelectors = [ `#matchlogs_against_${statType.key}`, `table[id*="matchlogs_against"]`, `table[id*="against_${statType.key}"]`];
     let opponentTable: cheerio.Cheerio | null = null;
     for (const sel of opponentSelectors) {
@@ -135,6 +138,7 @@ class Scraper {
       return [];
     }
 
+    // Extract headers from team table
     const headers: string[] = [];
     const headerSelectors = ['thead tr:last-child th', 'thead tr th', 'tr:first-child th', 'tr:first-child td'];
     for (const sel of headerSelectors) {
@@ -155,6 +159,7 @@ class Scraper {
 
     console.log(`📋 Headers found: ${headers.slice(0, 10).join(', ')}...`);
 
+    // Extract opponent headers if opponent table exists
     let opponentHeaders: string[] = [];
     if (opponentTable) {
       for (const sel of headerSelectors) {
@@ -169,6 +174,7 @@ class Scraper {
       }
     }
 
+    // Parse team data
     const teamData: any[] = [];
     teamTable.find('tbody tr').each((i, tr) => {
       const row: Record<string, any> = {};
@@ -181,6 +187,8 @@ class Scraper {
           row[headers[j]] = val;
           hasData = true;
         }
+
+        // Look for match report link (usually in Date column)
         if (headers[j] === 'Date' || j === 0) {
           const url = this.extractMatchReportUrl($, td);
           if (url) matchReportUrl = url;
@@ -193,6 +201,7 @@ class Scraper {
       }
     });
 
+    // Parse opponent data if available
     const opponentData: any[] = [];
     if (opponentTable && opponentHeaders.length > 0) {
       opponentTable.find('tbody tr').each((i, tr) => {
@@ -211,6 +220,7 @@ class Scraper {
       });
     }
 
+    // Combine team and opponent data
     const combinedData: any[] = [];
     teamData.forEach((teamMatch, index) => {
       const coreMatchData: Record<string, any> = {};
