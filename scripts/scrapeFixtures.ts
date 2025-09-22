@@ -11,10 +11,13 @@
  * ===============================================================
  */
 
+// scripts/scrapeFixtures.ts
+
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import * as cheerio from 'cheerio';
+import type { Element } from 'cheerio'; // Explicitly import the type
 import fetch from 'node-fetch';
 
 /* ------------------ Path Setup ------------------ */
@@ -76,7 +79,7 @@ class Scraper {
     }
 
     const rows = fixturesTable.find('tbody tr');
-    rows.each((i: number, row: cheerio.Element) => {
+    rows.each((i: number, row: Element) => {
       const cells = $(row).find('td');
       const date = $(cells[0]).text().trim();
       const time = $(cells[1]).text().trim();
