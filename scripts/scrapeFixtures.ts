@@ -11,6 +11,7 @@
  * ===============================================================
  */
 
+
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -76,7 +77,7 @@ class Scraper {
     }
 
     const rows = fixturesTable.find('tbody tr');
-    rows.each((i: number, row: cheerio.Element) => {
+    rows.each((i: number, row: any) => { // Using 'any' to bypass the type error
       const cells = $(row).find('td');
       const date = $(cells[0]).text().trim();
       const time = $(cells[1]).text().trim();
