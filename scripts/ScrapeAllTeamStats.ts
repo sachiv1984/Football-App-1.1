@@ -98,7 +98,7 @@ class DebugScraper {
   /**
    * Extract match report URL from a table cell
    */
-  extractMatchReportUrl($: cheerio.Root, cell: cheerio.Element): string | null {
+  extractMatchReportUrl($: any, cell: any): string | null {
     const link = $(cell).find('a').first();
     if (link.length > 0) {
       const href = link.attr('href');
@@ -114,7 +114,7 @@ class DebugScraper {
    */
   parseMatchLogsTable(html: string, statType: any, teamName: string): any[] {
     // Remove HTML comments to reveal hidden tables
-    const cleanHtml = html.replace(/<!--/g, '').replace(/-->/g, '');
+    const cleanHtml = html.replace(//g, '');
     const $ = cheerio.load(cleanHtml);
 
 
@@ -126,7 +126,7 @@ class DebugScraper {
       'table.stats_table'
     ];
 
-    let teamTable: cheerio.Cheerio | null = null;
+    let teamTable: any = null;
     for (const sel of tableSelectors) {
       const t = $(sel).first();
       if (t.length > 0) {
@@ -143,7 +143,7 @@ class DebugScraper {
       `table[id*="against_${statType.key}"]`
     ];
 
-    let opponentTable: cheerio.Cheerio | null = null;
+    let opponentTable: any = null;
     for (const sel of opponentSelectors) {
       const t = $(sel).first();
       if (t.length > 0) {
@@ -164,7 +164,7 @@ class DebugScraper {
     for (const sel of headerSelectors) {
       const ths = teamTable.find(sel);
       if (ths.length > 0) {
-        ths.each((i, th) => {
+        ths.each((i: any, th: any) => {
           const h = $(th).text().trim();
           if (h) headers.push(h);
         });
@@ -185,7 +185,7 @@ class DebugScraper {
       for (const sel of headerSelectors) {
         const ths = opponentTable.find(sel);
         if (ths.length > 0) {
-          ths.each((i, th) => {
+          ths.each((i: any, th: any) => {
             const h = $(th).text().trim();
             if (h) opponentHeaders.push(h);
           });
@@ -196,12 +196,12 @@ class DebugScraper {
 
     // Parse team data
     const teamData: any[] = [];
-    teamTable.find('tbody tr').each((i, tr) => {
+    teamTable.find('tbody tr').each((i: any, tr: any) => {
       const row: Record<string, any> = {};
       let hasData = false;
       let matchReportUrl: string | null = null;
 
-      $(tr).find('td, th').each((j, td) => {
+      $(tr).find('td, th').each((j: any, td: any) => {
         const val = $(td).text().trim();
         if (headers[j] && val !== '') {
           row[headers[j]] = val;
@@ -225,11 +225,11 @@ class DebugScraper {
     // Parse opponent data if available
     const opponentData: any[] = [];
     if (opponentTable && opponentHeaders.length > 0) {
-      opponentTable.find('tbody tr').each((i, tr) => {
+      opponentTable.find('tbody tr').each((i: any, tr: any) => {
         const row: Record<string, any> = {};
         let hasData = false;
 
-        $(tr).find('td, th').each((j, td) => {
+        $(tr).find('td, th').each((j: any, td: any) => {
           const val = $(td).text().trim();
           if (opponentHeaders[j] && val !== '') {
             row[opponentHeaders[j]] = val;
@@ -245,7 +245,7 @@ class DebugScraper {
 
     // Combine team and opponent data
     const combinedData: any[] = [];
-    teamData.forEach((teamMatch, index) => {
+    teamData.forEach((teamMatch: any, index: any) => {
       // Extract core match info (date, venue, etc.) without duplicating stats
       const coreMatchData: Record<string, any> = {};
       const teamStats: Record<string, any> = {};
@@ -342,11 +342,12 @@ class ScraperManager {
     const statsToScrape = AVAILABLE_STATS.slice(TEST_STAT_INDEX);
     console.log(`📋 Total stat types to scrape: ${statsToScrape.length}`);
     
+    // Declare allResults outside the loop to be accessible later
+    const allResults: any[] = [];
+
     for (let i = 0; i < statsToScrape.length; i++) {
       const stat = statsToScrape[i];
       console.log(`\n--- Scraping Stat ${TEST_STAT_INDEX + i + 1} of ${AVAILABLE_STATS.length}: ${stat.name} ---`);
-      
-      const allResults: any[] = [];
       
       // Determine teams to scrape based on mode
       const teamsToScrape = SCRAPE_MODE === SCRAPE_MODES.ALL ? AVAILABLE_TEAMS : [AVAILABLE_TEAMS[SINGLE_TEAM_INDEX]];
@@ -427,8 +428,8 @@ class ScraperManager {
     }
     
     // Generate summary
-    const totalMatches = allResults.reduce((sum, result) => sum + result.matchCount, 0);
-    const successfulTeams = allResults.filter(r => r.success).length;
+    const totalMatches = allResults.reduce((sum: any, result: any) => sum + result.matchCount, 0);
+    const successfulTeams = allResults.filter((r: any) => r.success).length;
     console.log(`\n📊 Summary:`);
     console.log(`   Teams scraped successfully: ${successfulTeams}/${AVAILABLE_TEAMS.length}`);
     console.log(`   Total matches found: ${totalMatches}`);
@@ -446,4 +447,3 @@ async function main() {
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main();
 }
-
