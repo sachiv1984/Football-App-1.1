@@ -233,26 +233,46 @@ class DebugScraper {
     // Combine team and opponent data
     const combinedData: any[] = [];
     teamData.forEach((teamMatch, index) => {
+      // Extract core match info (date, venue, etc.) without duplicating stats
+      const coreMatchData: Record<string, any> = {};
+      const teamStats: Record<string, any> = {};
+      
+      // Separate core match data from team stats
+      Object.entries(teamMatch).forEach(([key, value]) => {
+        if (['Date', 'Time', 'Comp', 'Round', 'Day', 'Venue', 'Result', 'GF', 'GA', 'Opponent', 'Poss', 'matchReportUrl', 'teamName'].includes(key)) {
+          coreMatchData[key] = value;
+        } else {
+          teamStats[key] = value;
+        }
+      });
+
       const combined = {
-        ...teamMatch,
+        ...coreMatchData,
         team: {
           name: teamName,
-          stats: { ...teamMatch }
+          stats: teamStats
         }
       };
 
       // Add opponent data if available
       if (opponentData[index]) {
+        const opponentStats: Record<string, any> = {};
+        // Extract only stats from opponent data, skip match info
+        Object.entries(opponentData[index]).forEach(([key, value]) => {
+          if (!['Date', 'Time', 'Comp', 'Round', 'Day', 'Venue', 'Result', 'GF', 'GA', 'Opponent', 'Poss'].includes(key)) {
+            opponentStats[key] = value;
+          }
+        });
+        
         combined.opponent = {
-          stats: { ...opponentData[index] }
+          name: teamMatch.Opponent || 'Unknown',
+          stats: opponentStats
         };
-      }
-
-      // Try to extract opponent name from team data
-      if (teamMatch.Opponent) {
+      } else if (teamMatch.Opponent) {
+        // If no opponent data table found, just add the name
         combined.opponent = {
           name: teamMatch.Opponent,
-          stats: opponentData[index] || {}
+          stats: {}
         };
       }
 
