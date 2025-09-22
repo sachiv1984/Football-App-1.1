@@ -18,7 +18,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import * as cheerio from 'cheerio';
+import * as cheerio from 'cheerio'; // Keep this as per your requirement
 import fetch from 'node-fetch';
 
 /* ------------------ Path Setup ------------------ */
@@ -100,10 +100,7 @@ class Scraper {
 
   parseMatchLogsTable(html: string, statType: any, teamName: string): any[] {
     const cleanHtml = html.replace(//g, '');
-
-    // The robust way to get the cheerio.load function
-    const loadFunction = typeof cheerio.load === 'function' ? cheerio.load : (cheerio as any).default.load;
-    const $ = loadFunction(cleanHtml);
+    const $ = cheerio.load(cleanHtml); // This is now correct because of the `types` fix
 
     const tableSelectors = [ `#matchlogs_for_${statType.key}`, `table[id*="matchlogs_for"]`, `table[id*="${statType.key}"]`, 'table.stats_table'];
     let teamTable: cheerio.Cheerio | null = null;
