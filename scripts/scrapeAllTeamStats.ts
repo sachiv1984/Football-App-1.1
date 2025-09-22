@@ -278,84 +278,160 @@ class Scraper {
   }
 }
 
-/* ------------------ ScraperManager Class ------------------ */
+/*/* ------------------ Scraper Class ------------------ */
 /**
- * Orchestrates the scraping process, handling the loops, rate limiting,
- * and saving the final output.
+ * Handles the low-level scraping logic for a single team and stat type.
  */
-class ScraperManager {
-  private scraper = new Scraper();
-  
-  async run() {
-    console.log('🚀 Starting full sequential stat scrape...');
-    console.log(`📋 Total stat types to scrape: ${AVAILABLE_STATS.length}`);
-    console.log(`📋 Total teams to scrape per stat: ${AVAILABLE_TEAMS.length}`);
+class Scraper {
+  private ensureDataDir() {
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
 
-    // Main loop to iterate through all stat types sequentially
-    for (let i = 0; i < AVAILABLE_STATS.length; i++) {
-      const stat = AVAILABLE_STATS[i];
-      console.log(`\n--- Scraping Stat ${i + 1} of ${AVAILABLE_STATS.length}: ${stat.name} ---`);
-      
-      const allResults: any[] = [];
-      const teamsToScrape = AVAILABLE_TEAMS;
+  saveFile(filename: string, content: string) {
+    this.ensureDataDir();
+    fs.writeFileSync(path.join(DATA_DIR, filename), content, 'utf8');
+  }
 
-      // Inner loop to iterate through all teams for the current stat type
-      for (let j = 0; j < teamsToScrape.length; j++) {
-        const team = teamsToScrape[j];
-        console.log(`\n⏱ Scraping team ${j + 1} of ${teamsToScrape.length}: ${team.name}`);
+  buildUrl(team: any, statType: any): string {
+    const teamNameSlug = team.name.replace(/\s+/g, '-').replace(/[^\w-]/g, '');
+    return `${FBREF_BASE_URL}/${team.fbrefId}/${SEASON}/matchlogs/c9/${statType.key}/${teamNameSlug}-Match-Logs-Premier-League`;
+  }
 
-        let attempts = 0;
-        let success = false;
-        while (!success && attempts <= RATE_LIMIT.maxRetries) {
-          try {
-            const result = await this.scraper.Scrape(team, stat);
-            allResults.push(result);
-            success = true;
-
-            console.log(`✅ Success! Found ${result.matchCount} matches for ${team.name}`);
-            if (result.matchLogs.length > 0) {
-              const sampleMatch = result.matchLogs[0];
-              console.log(`📋 Sample match data keys: ${Object.keys(sampleMatch).slice(0, 10).join(', ')}...`);
-            }
-          } catch (err) {
-            attempts++;
-            console.warn(`⚠️ Attempt ${attempts} failed for ${team.name}: ${err}`);
-            if (attempts <= RATE_LIMIT.maxRetries) {
-              console.log(`Retrying in ${RATE_LIMIT.retryDelay / 1000}s...`);
-              await new Promise(res => setTimeout(res, RATE_LIMIT.retryDelay));
-            }
-          }
-        }
-
-        if (!success) {
-          console.error(`❌ Failed to scrape ${team.name} after ${RATE_LIMIT.maxRetries} retries`);
-          allResults.push({ teamId: team.id, statType: stat.key, success: false, error: 'Failed after retries' });
-        }
-
-        // Wait between team scrapes to respect the per-request rate limit
-        if (j < teamsToScrape.length - 1) {
-          console.log(`⏳ Waiting ${RATE_LIMIT.delayBetweenRequests / 1000}s before next team...`);
-          await new Promise(res => setTimeout(res, RATE_LIMIT.delayBetweenRequests));
-        }
-      }
-
-      // Save the allResults data for the current stat type to its own file
-      const filename = `Team${stat.name.replace(/\s+/g, '')}Stats.json`;
-      this.scraper.saveFile(filename, JSON.stringify(allResults, null, 2));
-      console.log(`\n💾 All ${stat.name} data saved to data/${filename}`);
-
-      // Wait 30 seconds before starting the next stat scrape
-      if (i < AVAILABLE_STATS.length - 1) {
-        console.log(`\n-----------------------------------------------------`);
-        console.log(`⏳ Waiting ${RATE_LIMIT.delayBetweenStats / 1000}s before next stat scrape...`);
-        console.log(`-----------------------------------------------------`);
-        await new Promise(res => setTimeout(res, RATE_LIMIT.delayBetweenStats));
+  extractMatchReportUrl($: cheerio.Root, cell: cheerio.Element): string | null {
+    const link = $(cell).find('a').first();
+    if (link.length > 0) {
+      const href = link.attr('href');
+      if (href && href.includes('/matches/')) {
+        return href.startsWith('http') ? href : `https://fbref.com${href}`;
       }
     }
-    
-    console.log('\n✅ All scraping complete.');
+    return null;
+  }
+
+  parseMatchLogsTable(html: string, statType: any, teamName: string): any[] {
+    // Remove HTML comments to reveal hidden tables
+    const cleanHtml = html.replace(//g, '');
+
+    // FIX: Get the correct `load` function due to CJS/ESM compatibility
+    // The load function may be at the top level or on the 'default' property.
+    const loadFunction = typeof cheerio.load === 'function' ? cheerio.load : (cheerio as any).default.load;
+    const $ = loadFunction(cleanHtml);
+
+    // Find the main matchlogs table
+    const tableSelectors = [ `#matchlogs_for_${statType.key}`, `table[id*="matchlogs_for"]`, `table[id*="${statType.key}"]`, 'table.stats_table'];
+    let teamTable: cheerio.Cheerio | null = null;
+    for (const sel of tableSelectors) {
+      const t = $(sel).first();
+      if (t.length > 0) { teamTable = t; console.log(`✅ Found team table with selector: ${sel}`); break; }
+    }
+
+    // Also look for opponent table
+    const opponentSelectors = [ `#matchlogs_against_${statType.key}`, `table[id*="matchlogs_against"]`, `table[id*="against_${statType.key}"]`];
+    let opponentTable: cheerio.Cheerio | null = null;
+    for (const sel of opponentSelectors) {
+      const t = $(sel).first();
+      if (t.length > 0) { opponentTable = t; console.log(`✅ Found opponent table with selector: ${sel}`); break; }
+    }
+
+    if (!teamTable || teamTable.length === 0) {
+      console.warn(`❌ No team table found for ${statType.key}`);
+      return [];
+    }
+
+    // Extract headers from team table
+    const headers: string[] = [];
+    const headerSelectors = ['thead tr:last-child th', 'thead tr th', 'tr:first-child th', 'tr:first-child td'];
+    for (const sel of headerSelectors) {
+      const ths = teamTable.find(sel);
+      if (ths.length > 0) {
+        ths.each((i, th) => { const h = $(th).text().trim(); if (h) headers.push(h); });
+        if (headers.length > 0) break;
+      }
+    }
+
+    if (headers.length === 0) { console.warn('❌ No headers found'); return []; }
+    console.log(`📋 Headers found: ${headers.slice(0, 10).join(', ')}...`);
+
+    // Extract opponent headers if opponent table exists
+    let opponentHeaders: string[] = [];
+    if (opponentTable) {
+      for (const sel of headerSelectors) {
+        const ths = opponentTable.find(sel);
+        if (ths.length > 0) {
+          ths.each((i, th) => { const h = $(th).text().trim(); if (h) opponentHeaders.push(h); });
+          if (opponentHeaders.length > 0) break;
+        }
+      }
+    }
+
+    // Parse team data
+    const teamData: any[] = [];
+    teamTable.find('tbody tr').each((i, tr) => {
+      const row: Record<string, any> = {}; let hasData = false; let matchReportUrl: string | null = null;
+      $(tr).find('td, th').each((j, td) => {
+        const val = $(td).text().trim();
+        if (headers[j] && val !== '') { row[headers[j]] = val; hasData = true; }
+        if (headers[j] === 'Date' || j === 0) { const url = this.extractMatchReportUrl($, td); if (url) matchReportUrl = url; }
+      });
+      if (hasData) { row.matchReportUrl = matchReportUrl; row.teamName = teamName; teamData.push(row); }
+    });
+
+    // Parse opponent data if available
+    const opponentData: any[] = [];
+    if (opponentTable && opponentHeaders.length > 0) {
+      opponentTable.find('tbody tr').each((i, tr) => {
+        const row: Record<string, any> = {}; let hasData = false;
+        $(tr).find('td, th').each((j, td) => {
+          const val = $(td).text().trim();
+          if (opponentHeaders[j] && val !== '') { row[opponentHeaders[j]] = val; hasData = true; }
+        });
+        if (hasData) { opponentData.push(row); }
+      });
+    }
+
+    // Combine team and opponent data
+    const combinedData: any[] = [];
+    teamData.forEach((teamMatch, index) => {
+      const coreMatchData: Record<string, any> = {}; const teamStats: Record<string, any> = {};
+      Object.entries(teamMatch).forEach(([key, value]) => {
+        if (['Date', 'Time', 'Comp', 'Round', 'Day', 'Venue', 'Result', 'GF', 'GA', 'Opponent', 'Poss', 'matchReportUrl', 'teamName', 'Match Report'].includes(key)) {
+          if (key !== 'Match Report') coreMatchData[key] = value;
+        } else { teamStats[key] = value; }
+      });
+      
+      const combined: Record<string, any> = { ...coreMatchData, team: { name: teamName, stats: teamStats } };
+      if (opponentData[index]) {
+        const opponentStats: Record<string, any> = {};
+        Object.entries(opponentData[index]).forEach(([key, value]) => {
+          if (!['Date', 'Time', 'Comp', 'Round', 'Day', 'Venue', 'Result', 'GF', 'GA', 'Opponent', 'Poss', 'Match Report'].includes(key)) {
+            opponentStats[key] = value;
+          }
+        });
+        combined.opponent = { name: teamMatch.Opponent || 'Unknown', stats: opponentStats };
+      } else if (teamMatch.Opponent) {
+        combined.opponent = { name: teamMatch.Opponent, stats: {} };
+      }
+      combinedData.push(combined);
+    });
+    return combinedData;
+  }
+
+  async Scrape(team: any, statType: any): Promise<any> {
+    const url = this.buildUrl(team, statType);
+    console.log(`🔗 Fetching: ${url}`);
+    const response = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36' }
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    const html = await response.text();
+    const matchLogs = this.parseMatchLogsTable(html, statType, team.name);
+    return {
+      teamId: team.id, teamName: team.name, statType: statType.key, season: SEASON, url, matchLogs,
+      scrapedAt: new Date().toISOString(), success: matchLogs.length > 0, matchCount: matchLogs.length
+    };
   }
 }
+
 
 /* ------------------ Main Execution ------------------ */
 async function main() {
