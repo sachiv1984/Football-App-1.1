@@ -63,16 +63,24 @@ const AVAILABLE_STATS = [
   { key: 'misc', name: 'Miscellaneous', tableName: 'team_misc_stats' }
 ];
 
+/* ------------------ Test Configuration ------------------ */
+const SCRAPE_MODES = { SINGLE: 'single', ALL: 'all' } as const;
+type ScrapeMode = typeof SCRAPE_MODES[keyof typeof SCRAPE_MODES];
+const SCRAPE_MODE: ScrapeMode = SCRAPE_MODES.ALL; // Change to ALL for all teams
+const SINGLE_TEAM_INDEX = 0; // Arsenal
+const TEST_STAT_INDEX = 6;   
+
 /* ------------------ Rate Limiting ------------------ */
 const RATE_LIMIT = {
-  delayBetweenRequests: 6000, 
-  delayBetweenStats: 30000,
+  requestsPerMinute: 10,
+  delayBetweenRequests: 6000,
+  delayBetweenStats: 30000, // New delay added
   retryDelay: 30000,
   maxRetries: 3
 };
 
-/* ------------------ Scraper Class ------------------ */
-class Scraper {
+/* ------------------ Enhanced DebugScraper ------------------ */
+class DebugScraper {
   private ensureDataDir() {
     if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
   }
@@ -87,7 +95,10 @@ class Scraper {
     return `${FBREF_BASE_URL}/${team.fbrefId}/${SEASON}/matchlogs/c9/${statType.key}/${teamNameSlug}-Match-Logs-Premier-League`;
   }
 
-  extractMatchReportUrl($: cheerio.CheerioAPI, cell: cheerio.Element): string | null {
+  /**
+   * Extract match report URL from a table cell
+   */
+  extractMatchReportUrl($: cheerio.Root, cell: cheerio.Element): string | null {
     const link = $(cell).find('a').first();
     if (link.length > 0) {
       const href = link.attr('href');
@@ -98,23 +109,47 @@ class Scraper {
     return null;
   }
 
+  /**
+   * Enhanced table parsing that extracts both team and opponent stats
+   */
   parseMatchLogsTable(html: string, statType: any, teamName: string): any[] {
     // Remove HTML comments to reveal hidden tables
-    const cleanHtml = html.replace(/<!--/g, '').replace(/-->/g, '');
+    const cleanHtml = html.replace(//g, '');
     const $ = cheerio.load(cleanHtml);
 
-    const tableSelectors = [ `#matchlogs_for_${statType.key}`, `table[id*="matchlogs_for"]`, `table[id*="${statType.key}"]`, 'table.stats_table'];
-    let teamTable: cheerio.Cheerio<cheerio.AnyNode> | null = null;
+    // Find the main matchlogs table
+    const tableSelectors = [
+      `#matchlogs_for_${statType.key}`,
+      `table[id*="matchlogs_for"]`,
+      `table[id*="${statType.key}"]`,
+      'table.stats_table'
+    ];
+
+    let teamTable: cheerio.Cheerio | null = null;
     for (const sel of tableSelectors) {
       const t = $(sel).first();
-      if (t.length > 0) { teamTable = t; console.log(`✅ Found team table with selector: ${sel}`); break; }
+      if (t.length > 0) {
+        teamTable = t;
+        console.log(`✅ Found team table with selector: ${sel}`);
+        break;
+      }
     }
 
-    const opponentSelectors = [ `#matchlogs_against_${statType.key}`, `table[id*="matchlogs_against"]`, `table[id*="against_${statType.key}"]`];
-    let opponentTable: cheerio.Cheerio<cheerio.AnyNode> | null = null;
+    // Also look for opponent table
+    const opponentSelectors = [
+      `#matchlogs_against_${statType.key}`,
+      `table[id*="matchlogs_against"]`,
+      `table[id*="against_${statType.key}"]`
+    ];
+
+    let opponentTable: cheerio.Cheerio | null = null;
     for (const sel of opponentSelectors) {
       const t = $(sel).first();
-      if (t.length > 0) { opponentTable = t; console.log(`✅ Found opponent table with selector: ${sel}`); break; }
+      if (t.length > 0) {
+        opponentTable = t;
+        console.log(`✅ Found opponent table with selector: ${sel}`);
+        break;
+      }
     }
 
     if (!teamTable || teamTable.length === 0) {
@@ -122,111 +157,200 @@ class Scraper {
       return [];
     }
 
+    // Extract headers from team table
     const headers: string[] = [];
     const headerSelectors = ['thead tr:last-child th', 'thead tr th', 'tr:first-child th', 'tr:first-child td'];
     for (const sel of headerSelectors) {
       const ths = teamTable.find(sel);
       if (ths.length > 0) {
-        ths.each((i: number, th: cheerio.Element) => { const h = $(th).text().trim(); if (h) headers.push(h); });
+        ths.each((i, th) => {
+          const h = $(th).text().trim();
+          if (h) headers.push(h);
+        });
         if (headers.length > 0) break;
       }
     }
 
-    if (headers.length === 0) { console.warn('❌ No headers found'); return []; }
+    if (headers.length === 0) {
+      console.warn('❌ No headers found');
+      return [];
+    }
+
     console.log(`📋 Headers found: ${headers.slice(0, 10).join(', ')}...`);
 
+    // Extract opponent headers if opponent table exists
     let opponentHeaders: string[] = [];
     if (opponentTable) {
       for (const sel of headerSelectors) {
         const ths = opponentTable.find(sel);
         if (ths.length > 0) {
-          ths.each((i: number, th: cheerio.Element) => { const h = $(th).text().trim(); if (h) opponentHeaders.push(h); });
+          ths.each((i, th) => {
+            const h = $(th).text().trim();
+            if (h) opponentHeaders.push(h);
+          });
           if (opponentHeaders.length > 0) break;
         }
       }
     }
 
+    // Parse team data
     const teamData: any[] = [];
-    teamTable.find('tbody tr').each((i: number, tr: cheerio.Element) => {
-      const row: Record<string, any> = {}; let hasData = false; let matchReportUrl: string | null = null;
-      $(tr).find('td, th').each((j: number, td: cheerio.Element) => {
+    teamTable.find('tbody tr').each((i, tr) => {
+      const row: Record<string, any> = {};
+      let hasData = false;
+      let matchReportUrl: string | null = null;
+
+      $(tr).find('td, th').each((j, td) => {
         const val = $(td).text().trim();
-        if (headers[j] && val !== '') { row[headers[j]] = val; hasData = true; }
-        if (headers[j] === 'Date' || j === 0) { const url = this.extractMatchReportUrl($, td); if (url) matchReportUrl = url; }
+        if (headers[j] && val !== '') {
+          row[headers[j]] = val;
+          hasData = true;
+        }
+
+        // Look for match report link (usually in Date column)
+        if (headers[j] === 'Date' || j === 0) {
+          const url = this.extractMatchReportUrl($, td);
+          if (url) matchReportUrl = url;
+        }
       });
-      if (hasData) { row.matchReportUrl = matchReportUrl; row.teamName = teamName; teamData.push(row); }
+
+      if (hasData) {
+        row.matchReportUrl = matchReportUrl;
+        row.teamName = teamName;
+        teamData.push(row);
+      }
     });
 
+    // Parse opponent data if available
     const opponentData: any[] = [];
     if (opponentTable && opponentHeaders.length > 0) {
-      opponentTable.find('tbody tr').each((i: number, tr: cheerio.Element) => {
-        const row: Record<string, any> = {}; let hasData = false;
-        $(tr).find('td, th').each((j: number, td: cheerio.Element) => {
+      opponentTable.find('tbody tr').each((i, tr) => {
+        const row: Record<string, any> = {};
+        let hasData = false;
+
+        $(tr).find('td, th').each((j, td) => {
           const val = $(td).text().trim();
-          if (opponentHeaders[j] && val !== '') { row[opponentHeaders[j]] = val; hasData = true; }
+          if (opponentHeaders[j] && val !== '') {
+            row[opponentHeaders[j]] = val;
+            hasData = true;
+          }
         });
-        if (hasData) { opponentData.push(row); }
+
+        if (hasData) {
+          opponentData.push(row);
+        }
       });
     }
 
+    // Combine team and opponent data
     const combinedData: any[] = [];
-    teamData.forEach((teamMatch: any, index: number) => {
-      const coreMatchData: Record<string, any> = {}; const teamStats: Record<string, any> = {};
+    teamData.forEach((teamMatch, index) => {
+      // Extract core match info (date, venue, etc.) without duplicating stats
+      const coreMatchData: Record<string, any> = {};
+      const teamStats: Record<string, any> = {};
+      
+      // Separate core match data from team stats
       Object.entries(teamMatch).forEach(([key, value]) => {
         if (['Date', 'Time', 'Comp', 'Round', 'Day', 'Venue', 'Result', 'GF', 'GA', 'Opponent', 'Poss', 'matchReportUrl', 'teamName', 'Match Report'].includes(key)) {
-          if (key !== 'Match Report') coreMatchData[key] = value;
-        } else { teamStats[key] = value; }
+          // Only add to core data if it's not the redundant "Match Report" text
+          if (key !== 'Match Report') {
+            coreMatchData[key] = value;
+          }
+        } else {
+          teamStats[key] = value;
+        }
       });
-      
-      const combined: Record<string, any> = { ...coreMatchData, team: { name: teamName, stats: teamStats } };
+
+      const combined: Record<string, any> = {
+        ...coreMatchData,
+        team: {
+          name: teamName,
+          stats: teamStats
+        }
+      };
+
+      // Add opponent data if available
       if (opponentData[index]) {
         const opponentStats: Record<string, any> = {};
+        // Extract only stats from opponent data, skip match info and redundant fields
         Object.entries(opponentData[index]).forEach(([key, value]) => {
           if (!['Date', 'Time', 'Comp', 'Round', 'Day', 'Venue', 'Result', 'GF', 'GA', 'Opponent', 'Poss', 'Match Report'].includes(key)) {
             opponentStats[key] = value;
           }
         });
-        combined.opponent = { name: teamMatch.Opponent || 'Unknown', stats: opponentStats };
+        
+        combined.opponent = {
+          name: teamMatch.Opponent || 'Unknown',
+          stats: opponentStats
+        };
       } else if (teamMatch.Opponent) {
-        combined.opponent = { name: teamMatch.Opponent, stats: {} };
+        // If no opponent data table found, just add the name
+        combined.opponent = {
+          name: teamMatch.Opponent,
+          stats: {}
+        };
       }
+
       combinedData.push(combined);
     });
+
     return combinedData;
   }
 
-  async Scrape(team: any, statType: any): Promise<any> {
+  async debugScrape(team: any, statType: any): Promise<any> {
     const url = this.buildUrl(team, statType);
     console.log(`🔗 Fetching: ${url}`);
+
     const response = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36' }
+      headers: { 
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate',
+        'Connection': 'keep-alive'
+      }
     });
+
     if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     const html = await response.text();
+
     const matchLogs = this.parseMatchLogsTable(html, statType, team.name);
+
     return {
-      teamId: team.id, teamName: team.name, statType: statType.key, season: SEASON, url, matchLogs,
-      scrapedAt: new Date().toISOString(), success: matchLogs.length > 0, matchCount: matchLogs.length
+      teamId: team.id,
+      teamName: team.name,
+      statType: statType.key,
+      season: SEASON,
+      url,
+      matchLogs,
+      scrapedAt: new Date().toISOString(),
+      success: matchLogs.length > 0,
+      matchCount: matchLogs.length
     };
   }
 }
 
-/* ------------------ ScraperManager Class ------------------ */
+/* ------------------ ScraperManager ------------------ */
 class ScraperManager {
-  private scraper = new Scraper();
-  
+  private scraper = new DebugScraper();
+
   async run() {
     console.log('🚀 Starting full sequential stat scrape...');
-    console.log(`📋 Total stat types to scrape: ${AVAILABLE_STATS.length}`);
-    console.log(`📋 Total teams to scrape per stat: ${AVAILABLE_TEAMS.length}`);
-
-    for (let i = 0; i < AVAILABLE_STATS.length; i++) {
-      const stat = AVAILABLE_STATS[i];
-      console.log(`\n--- Scraping Stat ${i + 1} of ${AVAILABLE_STATS.length}: ${stat.name} ---`);
+    
+    // Determine the range of stats to scrape
+    const statsToScrape = AVAILABLE_STATS.slice(TEST_STAT_INDEX);
+    console.log(`📋 Total stat types to scrape: ${statsToScrape.length}`);
+    
+    for (let i = 0; i < statsToScrape.length; i++) {
+      const stat = statsToScrape[i];
+      console.log(`\n--- Scraping Stat ${TEST_STAT_INDEX + i + 1} of ${AVAILABLE_STATS.length}: ${stat.name} ---`);
       
       const allResults: any[] = [];
-      const teamsToScrape = AVAILABLE_TEAMS;
-
+      
+      // Determine teams to scrape based on mode
+      const teamsToScrape = SCRAPE_MODE === SCRAPE_MODES.ALL ? AVAILABLE_TEAMS : [AVAILABLE_TEAMS[SINGLE_TEAM_INDEX]];
+      console.log(`📋 Total teams to scrape: ${teamsToScrape.length}`);
+      
       for (let j = 0; j < teamsToScrape.length; j++) {
         const team = teamsToScrape[j];
         console.log(`\n⏱ Scraping team ${j + 1} of ${teamsToScrape.length}: ${team.name}`);
@@ -235,15 +359,26 @@ class ScraperManager {
         let success = false;
         while (!success && attempts <= RATE_LIMIT.maxRetries) {
           try {
-            const result = await this.scraper.Scrape(team, stat);
+            const result = await this.scraper.debugScrape(team, stat);
             allResults.push(result);
             success = true;
 
             console.log(`✅ Success! Found ${result.matchCount} matches for ${team.name}`);
+            
+            // Log sample data for debugging
             if (result.matchLogs.length > 0) {
               const sampleMatch = result.matchLogs[0];
-              console.log(`📋 Sample match data keys: ${Object.keys(sampleMatch).slice(0, 10).join(', ')}...`);
+              console.log(`📋 Sample match data keys: ${Object.keys(sampleMatch).slice(0, 10).join(', ')}`);
+              
+              if (sampleMatch.matchReportUrl) {
+                console.log(`🔗 Sample match report URL: ${sampleMatch.matchReportUrl}`);
+              }
+              
+              if (sampleMatch.opponent) {
+                console.log(`🆚 Sample opponent: ${sampleMatch.opponent.name || 'Unknown'}`);
+              }
             }
+            
           } catch (err) {
             attempts++;
             console.warn(`⚠️ Attempt ${attempts} failed for ${team.name}: ${err}`);
@@ -256,11 +391,23 @@ class ScraperManager {
 
         if (!success) {
           console.error(`❌ Failed to scrape ${team.name} after ${RATE_LIMIT.maxRetries} retries`);
-          allResults.push({ teamId: team.id, statType: stat.key, success: false, error: 'Failed after retries' });
+          // Add empty result to maintain consistency
+          allResults.push({
+            teamId: team.id,
+            teamName: team.name,
+            statType: stat.key,
+            season: SEASON,
+            url: this.scraper.buildUrl(team, stat),
+            matchLogs: [],
+            scrapedAt: new Date().toISOString(),
+            success: false,
+            matchCount: 0,
+            error: 'Failed after retries'
+          });
         }
 
         if (j < teamsToScrape.length - 1) {
-          console.log(`⏳ Waiting ${RATE_LIMIT.delayBetweenRequests / 1000}s before next team...`);
+          console.log(`⏳ Waiting ${RATE_LIMIT.delayBetweenRequests / 1000}s before next scrape...`);
           await new Promise(res => setTimeout(res, RATE_LIMIT.delayBetweenRequests));
         }
       }
@@ -269,20 +416,28 @@ class ScraperManager {
       this.scraper.saveFile(filename, JSON.stringify(allResults, null, 2));
       console.log(`\n💾 All ${stat.name} data saved to data/${filename}`);
 
-      if (i < AVAILABLE_STATS.length - 1) {
-        console.log(`\n-----------------------------------------------------`);
-        console.log(`⏳ Waiting ${RATE_LIMIT.delayBetweenStats / 1000}s before next stat scrape...`);
-        console.log(`-----------------------------------------------------`);
-        await new Promise(res => setTimeout(res, RATE_LIMIT.delayBetweenStats));
+      // Add delay before next stat scrape
+      if (i < statsToScrape.length - 1) {
+          console.log(`\n-----------------------------------------------------`);
+          console.log(`⏳ Waiting ${RATE_LIMIT.delayBetweenStats / 1000}s before next stat scrape...`);
+          console.log(`-----------------------------------------------------`);
+          await new Promise(res => setTimeout(res, RATE_LIMIT.delayBetweenStats));
       }
     }
     
+    // Generate summary
+    const totalMatches = allResults.reduce((sum, result) => sum + result.matchCount, 0);
+    const successfulTeams = allResults.filter(r => r.success).length;
+    console.log(`\n📊 Summary:`);
+    console.log(`   Teams scraped successfully: ${successfulTeams}/${AVAILABLE_TEAMS.length}`);
+    console.log(`   Total matches found: ${totalMatches}`);
     console.log('\n✅ All scraping complete.');
   }
 }
 
-/* ------------------ Main Execution ------------------ */
+/* ------------------ Main ------------------ */
 async function main() {
+  console.log('🐛 Starting enhanced team vs opponent scraper...');
   const manager = new ScraperManager();
   await manager.run();
 }
