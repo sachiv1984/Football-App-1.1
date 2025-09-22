@@ -57,7 +57,7 @@ const SCRAPE_MODES = { SINGLE: 'single', ALL: 'all' } as const;
 type ScrapeMode = typeof SCRAPE_MODES[keyof typeof SCRAPE_MODES];
 const SCRAPE_MODE: ScrapeMode = SCRAPE_MODES.ALL; // or SCRAPE_MODES.SINGLE
 const SINGLE_TEAM_INDEX = 0; // used if single mode
-const TEST_STAT_INDEX = 0;   // shooting, keeper, etc.
+const TEST_STAT_INDEX = 1;   // shooting, keeper, etc.
 
 /* ------------------ Rate Limiting ------------------ */
 const RATE_LIMIT = {
