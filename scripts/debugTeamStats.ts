@@ -55,9 +55,9 @@ const AVAILABLE_STATS = [
 /* ------------------ Test Configuration ------------------ */
 const SCRAPE_MODES = { SINGLE: 'single', ALL: 'all' } as const;
 type ScrapeMode = typeof SCRAPE_MODES[keyof typeof SCRAPE_MODES];
-const SCRAPE_MODE: ScrapeMode = SCRAPE_MODES.ALL; // Change to ALL for all teams
+const SCRAPE_MODE: ScrapeMode = SCRAPE_MODES.SINGLE; // Change to ALL for all teams
 const SINGLE_TEAM_INDEX = 0; // Arsenal
-const TEST_STAT_INDEX = 0;   // misc stats (includes corners)
+const TEST_STAT_INDEX = 6;   // misc stats (includes corners)
 
 /* ------------------ Rate Limiting ------------------ */
 const RATE_LIMIT = {
@@ -239,8 +239,11 @@ class DebugScraper {
       
       // Separate core match data from team stats
       Object.entries(teamMatch).forEach(([key, value]) => {
-        if (['Date', 'Time', 'Comp', 'Round', 'Day', 'Venue', 'Result', 'GF', 'GA', 'Opponent', 'Poss', 'matchReportUrl', 'teamName'].includes(key)) {
-          coreMatchData[key] = value;
+        if (['Date', 'Time', 'Comp', 'Round', 'Day', 'Venue', 'Result', 'GF', 'GA', 'Opponent', 'Poss', 'matchReportUrl', 'teamName', 'Match Report'].includes(key)) {
+          // Only add to core data if it's not the redundant "Match Report" text
+          if (key !== 'Match Report') {
+            coreMatchData[key] = value;
+          }
         } else {
           teamStats[key] = value;
         }
@@ -257,9 +260,9 @@ class DebugScraper {
       // Add opponent data if available
       if (opponentData[index]) {
         const opponentStats: Record<string, any> = {};
-        // Extract only stats from opponent data, skip match info
+        // Extract only stats from opponent data, skip match info and redundant fields
         Object.entries(opponentData[index]).forEach(([key, value]) => {
-          if (!['Date', 'Time', 'Comp', 'Round', 'Day', 'Venue', 'Result', 'GF', 'GA', 'Opponent', 'Poss'].includes(key)) {
+          if (!['Date', 'Time', 'Comp', 'Round', 'Day', 'Venue', 'Result', 'GF', 'GA', 'Opponent', 'Poss', 'Match Report'].includes(key)) {
             opponentStats[key] = value;
           }
         });
@@ -394,7 +397,7 @@ class ScraperManager {
       }
     }
 
-    const filename = `Team${this.statToScrape.name.replace(/\s+/g, '')}.json`;
+    const filename = `Team${this.statToScrape.name.replace(/\s+/g, '')}StatsWithOpponents.json`;
     this.scraper.saveFile(filename, JSON.stringify(allResults, null, 2));
     console.log(`\n💾 All data saved to data/${filename}`);
 
