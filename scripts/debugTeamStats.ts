@@ -1,4 +1,4 @@
-(// scripts/debugTeamStats.ts
+// scripts/debugTeamStats.ts
 /**
  * Enhanced Debug scraper - scrapes both team stats AND opponent stats from match logs
  * Handles hidden tables and generates correct match report URLs
