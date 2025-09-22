@@ -86,7 +86,7 @@ class DebugScraper {
   /**
    * Extract match report URL from a table cell
    */
-  extractMatchReportUrl($: cheerio.CheerioAPI, cell: cheerio.Element): string | null {
+  extractMatchReportUrl($: cheerio.Root, cell: cheerio.Element): string | null {
     const link = $(cell).find('a').first();
     if (link.length > 0) {
       const href = link.attr('href');
