@@ -11,13 +11,11 @@
  * ===============================================================
  */
 
-// scripts/scrapeFixtures.ts
-
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import * as cheerio from 'cheerio';
-import type { Element } from 'cheerio'; // Explicitly import the type
+import cheerio from 'cheerio';
+import type { CheerioAPI, Element } from 'cheerio';
 import fetch from 'node-fetch';
 
 /* ------------------ Path Setup ------------------ */
@@ -69,7 +67,7 @@ class Scraper {
     return response.text();
   }
 
-  private parseFixtures($: cheerio.CheerioAPI): any[] {
+  private parseFixtures($: CheerioAPI): any[] {
     const fixturesTable = $('#sched_2025-2026_9_1_fixtures_and_results').first();
     const fixtures: any[] = [];
 
