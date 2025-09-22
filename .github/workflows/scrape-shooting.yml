@@ -2,7 +2,7 @@ name: Scrape FBref Team Stats Shooting
 
 on:
   schedule:
-    - cron: "30 22 * * *"
+    - cron: "20 22 * * *"
   workflow_dispatch:
 
 jobs:
