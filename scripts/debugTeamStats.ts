@@ -55,9 +55,9 @@ const AVAILABLE_STATS = [
 /* ------------------ Test Configuration ------------------ */
 const SCRAPE_MODES = { SINGLE: 'single', ALL: 'all' } as const;
 type ScrapeMode = typeof SCRAPE_MODES[keyof typeof SCRAPE_MODES];
-const SCRAPE_MODE: ScrapeMode = SCRAPE_MODES.SINGLE; // Change to ALL for all teams
+const SCRAPE_MODE: ScrapeMode = SCRAPE_MODES.ALL; // Change to ALL for all teams
 const SINGLE_TEAM_INDEX = 0; // Arsenal
-const TEST_STAT_INDEX = 6;   // misc stats (includes corners)
+const TEST_STAT_INDEX = 0;   // misc stats (includes corners)
 
 /* ------------------ Rate Limiting ------------------ */
 const RATE_LIMIT = {
@@ -394,7 +394,7 @@ class ScraperManager {
       }
     }
 
-    const filename = `Team${this.statToScrape.name.replace(/\s+/g, '')}StatsWithOpponents.json`;
+    const filename = `Team${this.statToScrape.name.replace(/\s+/g, '')}.json`;
     this.scraper.saveFile(filename, JSON.stringify(allResults, null, 2));
     console.log(`\n💾 All data saved to data/${filename}`);
 
