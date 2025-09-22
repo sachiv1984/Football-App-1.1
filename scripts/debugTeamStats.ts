@@ -246,7 +246,7 @@ class DebugScraper {
         }
       });
 
-      const combined = {
+      const combined: Record<string, any> = {
         ...coreMatchData,
         team: {
           name: teamName,
