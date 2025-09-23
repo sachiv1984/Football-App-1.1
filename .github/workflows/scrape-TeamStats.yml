@@ -23,11 +23,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run scraper with ts-node
+      - name: Compile scraper
+        run: npx tsc --project tsconfig.scripts.json
+
+      - name: Run compiled scraper
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-        run: npx ts-node scripts/scrapeAllTeamStats.ts
+        run: node dist/scripts/scrapeAllTeamStats.js
 
       - name: Commit scraped data
         run: |
