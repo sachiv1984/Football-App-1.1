@@ -33,7 +33,7 @@ const DATA_DIR = path.join(__dirname, '..', 'data');
 /* ------------------ Supabase Setup ------------------ */
 const SUPABASE_URL = process.env.SUPABASE_URL || '';
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 /* ------------------ Configuration ------------------ */
 const FBREF_BASE_URL = 'https://fbref.com/en/squads';
@@ -474,7 +474,7 @@ class ScraperManager {
     console.log('🚀 Starting full sequential stat scrape with Supabase export...');
     
     // Check Supabase connection
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
       console.warn('⚠️ Supabase credentials missing. Only local JSON files will be saved.');
     } else {
       console.log('✅ Supabase configured. Data will be exported to both JSON and database.');
