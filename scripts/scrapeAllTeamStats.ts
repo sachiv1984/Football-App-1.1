@@ -1,15 +1,17 @@
 // scripts/scrapeAllTeamStats.ts
 /**
  * ===============================================================
- * Production-ready FBref Sequential Stats Scraper
+ * Production-ready FBref Sequential Stats Scraper with Supabase
  *
  * This script sequentially scrapes a full set of team and opponent
- * match logs for all defined stat types. It handles hidden tables
- * and includes robust rate-limiting and retry logic.
+ * match logs for all defined stat types. It handles hidden tables,
+ * includes robust rate-limiting and retry logic, and exports to both
+ * local JSON files and Supabase database.
  *
  * Key features:
  * - Scrapes all available stat types sequentially.
  * - Saves each stat type's data to a separate JSON file.
+ * - Exports structured data to Supabase using field mappings.
  * - Enforces a 30-second delay between each stat scrape to respect
  * FBref's global rate limits.
  * ===============================================================
@@ -20,11 +22,18 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import * as cheerio from 'cheerio';
 import fetch from 'node-fetch';
+import { createClient } from '@supabase/supabase-js';
+import { SUPABASE_CONFIGS } from '../config/supabaseTableConfigs.js';
 
 /* ------------------ Path Setup ------------------ */
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DATA_DIR = path.join(__dirname, '..', 'data');
+
+/* ------------------ Supabase Setup ------------------ */
+const SUPABASE_URL = process.env.SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /* ------------------ Configuration ------------------ */
 const FBREF_BASE_URL = 'https://fbref.com/en/squads';
@@ -68,19 +77,127 @@ const SCRAPE_MODES = { SINGLE: 'single', ALL: 'all' } as const;
 type ScrapeMode = typeof SCRAPE_MODES[keyof typeof SCRAPE_MODES];
 const SCRAPE_MODE: ScrapeMode = SCRAPE_MODES.ALL; // Change to ALL for all teams
 const SINGLE_TEAM_INDEX = 0; // Arsenal
-const TEST_STAT_INDEX = 0;   
+const TEST_STAT_INDEX = 6;   
 
 /* ------------------ Rate Limiting ------------------ */
 const RATE_LIMIT = {
   requestsPerMinute: 10,
   delayBetweenRequests: 6000,
-  delayBetweenStats: 30000, // New delay added
+  delayBetweenStats: 30000,
   retryDelay: 30000,
   maxRetries: 3
 };
 
+/* ------------------ Supabase Helper Functions ------------------ */
+class SupabaseExporter {
+  /**
+   * Transform scraped data to Supabase format using field mappings
+   */
+  transformDataForSupabase(matchLogs: any[], statType: string, teamId: string): any[] {
+    const config = SUPABASE_CONFIGS[statType];
+    if (!config) {
+      console.warn(`⚠️ No config found for stat type: ${statType}`);
+      return [];
+    }
+
+    return matchLogs.map((match: any) => {
+      const transformed: any = {
+        id: `${teamId}_${match.Date}_${match.Opponent || 'unknown'}`.replace(/[^\w-]/g, '_'),
+        season: SEASON,
+        team_id: teamId,
+        team_name: match.teamName,
+        match_report_url: match.matchReportUrl
+      };
+
+      // Map common fields
+      Object.entries(config.fieldMappings.common).forEach(([fbrefField, supabaseField]) => {
+        if (match[fbrefField] !== undefined) {
+          transformed[supabaseField] = this.parseValue(match[fbrefField]);
+        }
+      });
+
+      // Map team stats
+      if (match.team?.stats) {
+        Object.entries(config.fieldMappings.team).forEach(([fbrefField, supabaseField]) => {
+          if (match.team.stats[fbrefField] !== undefined) {
+            transformed[supabaseField] = this.parseValue(match.team.stats[fbrefField]);
+          }
+        });
+      }
+
+      // Map opponent stats
+      if (match.opponent?.stats) {
+        Object.entries(config.fieldMappings.opponent).forEach(([fbrefField, supabaseField]) => {
+          if (match.opponent.stats[fbrefField] !== undefined) {
+            transformed[supabaseField] = this.parseValue(match.opponent.stats[fbrefField]);
+          }
+        });
+      }
+
+      return transformed;
+    });
+  }
+
+  /**
+   * Parse and convert values to appropriate types
+   */
+  private parseValue(value: any): any {
+    if (value === null || value === undefined || value === '') return null;
+    
+    const strValue = String(value).trim();
+    
+    // Handle percentages
+    if (strValue.endsWith('%')) {
+      const numValue = parseFloat(strValue.replace('%', ''));
+      return isNaN(numValue) ? null : numValue / 100;
+    }
+    
+    // Handle numeric values
+    const numValue = parseFloat(strValue);
+    if (!isNaN(numValue)) return numValue;
+    
+    // Handle dates
+    if (strValue.match(/^\d{4}-\d{2}-\d{2}$/)) return strValue;
+    
+    // Return as string
+    return strValue;
+  }
+
+  /**
+   * Upsert data to Supabase
+   */
+  async upsertToSupabase(data: any[], statType: string): Promise<boolean> {
+    const config = SUPABASE_CONFIGS[statType];
+    if (!config || data.length === 0) return false;
+
+    try {
+      console.log(`📤 Upserting ${data.length} records to ${config.tableName}...`);
+      
+      const { error } = await supabase
+        .from(config.tableName)
+        .upsert(data, { 
+          onConflict: 'team_id,match_date,opponent',
+          ignoreDuplicates: false 
+        });
+
+      if (error) {
+        console.error(`❌ Supabase upsert error for ${config.tableName}:`, error);
+        return false;
+      }
+
+      console.log(`✅ Successfully upserted ${data.length} records to ${config.tableName}`);
+      return true;
+    } catch (err) {
+      console.error(`❌ Supabase upsert exception for ${config.tableName}:`, err);
+      return false;
+    }
+  }
+}
+
 /* ------------------ Enhanced DebugScraper ------------------ */
 class DebugScraper {
+  private supabaseExporter = new SupabaseExporter();
+
   private ensureDataDir() {
     if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
   }
@@ -116,7 +233,6 @@ class DebugScraper {
     // Remove HTML comments to reveal hidden tables
     const cleanHtml = html.replace(/<!--/g, '').replace(/-->/g, '');
     const $ = cheerio.load(cleanHtml);
-
 
     // Find the main matchlogs table
     const tableSelectors = [
@@ -317,6 +433,24 @@ class DebugScraper {
 
     const matchLogs = this.parseMatchLogsTable(html, statType, team.name);
 
+    // Transform and export to Supabase
+    let supabaseSuccess = false;
+    if (matchLogs.length > 0) {
+      try {
+        const transformedData = this.supabaseExporter.transformDataForSupabase(
+          matchLogs, 
+          statType.key, 
+          team.id
+        );
+        supabaseSuccess = await this.supabaseExporter.upsertToSupabase(
+          transformedData, 
+          statType.key
+        );
+      } catch (err) {
+        console.warn(`⚠️ Supabase export failed for ${team.name}:`, err);
+      }
+    }
+
     return {
       teamId: team.id,
       teamName: team.name,
@@ -326,7 +460,8 @@ class DebugScraper {
       matchLogs,
       scrapedAt: new Date().toISOString(),
       success: matchLogs.length > 0,
-      matchCount: matchLogs.length
+      matchCount: matchLogs.length,
+      supabaseSuccess
     };
   }
 }
@@ -336,15 +471,19 @@ class ScraperManager {
   private scraper = new DebugScraper();
 
   async run() {
-    console.log('🚀 Starting full sequential stat scrape...');
+    console.log('🚀 Starting full sequential stat scrape with Supabase export...');
+    
+    // Check Supabase connection
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      console.warn('⚠️ Supabase credentials missing. Only local JSON files will be saved.');
+    } else {
+      console.log('✅ Supabase configured. Data will be exported to both JSON and database.');
+    }
     
     // Determine the range of stats to scrape
     const statsToScrape = AVAILABLE_STATS.slice(TEST_STAT_INDEX);
     console.log(`📋 Total stat types to scrape: ${statsToScrape.length}`);
     
-    // Declare allResults outside the loop to be accessible later
-    const allResults: any[] = [];
-
     for (let i = 0; i < statsToScrape.length; i++) {
       const stat = statsToScrape[i];
       console.log(`\n--- Scraping Stat ${TEST_STAT_INDEX + i + 1} of ${AVAILABLE_STATS.length}: ${stat.name} ---`);
@@ -352,6 +491,9 @@ class ScraperManager {
       // Determine teams to scrape based on mode
       const teamsToScrape = SCRAPE_MODE === SCRAPE_MODES.ALL ? AVAILABLE_TEAMS : [AVAILABLE_TEAMS[SINGLE_TEAM_INDEX]];
       console.log(`📋 Total teams to scrape: ${teamsToScrape.length}`);
+      
+      const statResults: any[] = [];
+      let supabaseSuccessCount = 0;
       
       for (let j = 0; j < teamsToScrape.length; j++) {
         const team = teamsToScrape[j];
@@ -362,10 +504,12 @@ class ScraperManager {
         while (!success && attempts <= RATE_LIMIT.maxRetries) {
           try {
             const result = await this.scraper.debugScrape(team, stat);
-            allResults.push(result);
+            statResults.push(result);
             success = true;
+            if (result.supabaseSuccess) supabaseSuccessCount++;
 
             console.log(`✅ Success! Found ${result.matchCount} matches for ${team.name}`);
+            console.log(`📤 Supabase export: ${result.supabaseSuccess ? '✅' : '❌'}`);
             
             // Log sample data for debugging
             if (result.matchLogs.length > 0) {
@@ -394,7 +538,7 @@ class ScraperManager {
         if (!success) {
           console.error(`❌ Failed to scrape ${team.name} after ${RATE_LIMIT.maxRetries} retries`);
           // Add empty result to maintain consistency
-          allResults.push({
+          statResults.push({
             teamId: team.id,
             teamName: team.name,
             statType: stat.key,
@@ -404,6 +548,7 @@ class ScraperManager {
             scrapedAt: new Date().toISOString(),
             success: false,
             matchCount: 0,
+            supabaseSuccess: false,
             error: 'Failed after retries'
           });
         }
@@ -414,9 +559,11 @@ class ScraperManager {
         }
       }
 
+      // Save local JSON file
       const filename = `Team${stat.name.replace(/\s+/g, '')}Stats.json`;
-      this.scraper.saveFile(filename, JSON.stringify(allResults, null, 2));
+      this.scraper.saveFile(filename, JSON.stringify(statResults, null, 2));
       console.log(`\n💾 All ${stat.name} data saved to data/${filename}`);
+      console.log(`📤 Supabase exports successful: ${supabaseSuccessCount}/${teamsToScrape.length}`);
 
       // Add delay before next stat scrape
       if (i < statsToScrape.length - 1) {
@@ -427,19 +574,16 @@ class ScraperManager {
       }
     }
     
-    // Generate summary
-    const totalMatches = allResults.reduce((sum: any, result: any) => sum + result.matchCount, 0);
-    const successfulTeams = allResults.filter((r: any) => r.success).length;
-    console.log(`\n📊 Summary:`);
-    console.log(`   Teams scraped successfully: ${successfulTeams}/${AVAILABLE_TEAMS.length}`);
-    console.log(`   Total matches found: ${totalMatches}`);
-    console.log('\n✅ All scraping complete.');
+    console.log(`\n📊 Final Summary:`);
+    console.log(`   ✅ All scraping and export operations complete.`);
+    console.log('   📁 JSON files saved to data/ directory');
+    console.log('   🗄️ Data exported to Supabase (where successful)');
   }
 }
 
 /* ------------------ Main ------------------ */
 async function main() {
-  console.log('🐛 Starting enhanced team vs opponent scraper...');
+  console.log('🐛 Starting enhanced team vs opponent scraper with Supabase...');
   const manager = new ScraperManager();
   await manager.run();
 }
