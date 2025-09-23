@@ -14,8 +14,6 @@ export interface SupabaseTableConfig {
     // Opponent-specific stat fields  
     opponent: Record<string, string>;
   };
-  // SQL for creating the table if it doesn't exist
-  createTableSQL: string;
 }
 
 export const SUPABASE_CONFIGS: Record<string, SupabaseTableConfig> = {
@@ -60,55 +58,7 @@ export const SUPABASE_CONFIGS: Record<string, SupabaseTableConfig> = {
         'PK': 'opp_penalty_kicks',
         'PKatt': 'opp_penalty_attempts'
       }
-    },
-    createTableSQL: `
-      CREATE TABLE IF NOT EXISTS team_shooting_stats (
-        id TEXT PRIMARY KEY,
-        season TEXT NOT NULL,
-        team_id TEXT NOT NULL,
-        team_name TEXT NOT NULL,
-        match_date DATE,
-        match_time TEXT,
-        venue TEXT,
-        result TEXT,
-        goals_for INTEGER,
-        goals_against INTEGER,
-        opponent TEXT,
-        possession DECIMAL,
-        match_report_url TEXT,
-        
-        -- Team stats
-        team_goals INTEGER,
-        team_shots INTEGER,
-        team_shots_on_target INTEGER,
-        team_shot_on_target_pct DECIMAL,
-        team_shots_per_90 DECIMAL,
-        team_shots_on_target_per_90 DECIMAL,
-        team_goals_per_shot DECIMAL,
-        team_goals_per_shot_on_target DECIMAL,
-        team_avg_shot_distance DECIMAL,
-        team_free_kick_shots INTEGER,
-        team_penalty_kicks INTEGER,
-        team_penalty_attempts INTEGER,
-        
-        -- Opponent stats
-        opp_goals INTEGER,
-        opp_shots INTEGER,
-        opp_shots_on_target INTEGER,
-        opp_shot_on_target_pct DECIMAL,
-        opp_shots_per_90 DECIMAL,
-        opp_shots_on_target_per_90 DECIMAL,
-        opp_goals_per_shot DECIMAL,
-        opp_goals_per_shot_on_target DECIMAL,
-        opp_avg_shot_distance DECIMAL,
-        opp_free_kick_shots INTEGER,
-        opp_penalty_kicks INTEGER,
-        opp_penalty_attempts INTEGER,
-        
-        scraped_at TIMESTAMPTZ DEFAULT NOW(),
-        UNIQUE(team_id, match_date, opponent)
-      );
-    `
+    }
   },
 
   gca: {
@@ -160,63 +110,7 @@ export const SUPABASE_CONFIGS: Record<string, SupabaseTableConfig> = {
         'Fld.1': 'opp_gca_fouled',
         'Def.1': 'opp_gca_defensive_actions'
       }
-    },
-    createTableSQL: `
-      CREATE TABLE IF NOT EXISTS team_gca_stats (
-        id TEXT PRIMARY KEY,
-        season TEXT NOT NULL,
-        team_id TEXT NOT NULL,
-        team_name TEXT NOT NULL,
-        match_date DATE,
-        match_time TEXT,
-        venue TEXT,
-        result TEXT,
-        goals_for INTEGER,
-        goals_against INTEGER,
-        opponent TEXT,
-        possession DECIMAL,
-        match_report_url TEXT,
-        
-        -- Team shot and goal creating actions
-        team_shot_creating_actions INTEGER,
-        team_sca_per_90 DECIMAL,
-        team_sca_pass_live INTEGER,
-        team_sca_pass_dead INTEGER,
-        team_sca_take_ons INTEGER,
-        team_sca_shots INTEGER,
-        team_sca_fouled INTEGER,
-        team_sca_defensive_actions INTEGER,
-        team_goal_creating_actions INTEGER,
-        team_gca_per_90 DECIMAL,
-        team_gca_pass_live INTEGER,
-        team_gca_pass_dead INTEGER,
-        team_gca_take_ons INTEGER,
-        team_gca_shots INTEGER,
-        team_gca_fouled INTEGER,
-        team_gca_defensive_actions INTEGER,
-        
-        -- Opponent shot and goal creating actions
-        opp_shot_creating_actions INTEGER,
-        opp_sca_per_90 DECIMAL,
-        opp_sca_pass_live INTEGER,
-        opp_sca_pass_dead INTEGER,
-        opp_sca_take_ons INTEGER,
-        opp_sca_shots INTEGER,
-        opp_sca_fouled INTEGER,
-        opp_sca_defensive_actions INTEGER,
-        opp_goal_creating_actions INTEGER,
-        opp_gca_per_90 DECIMAL,
-        opp_gca_pass_live INTEGER,
-        opp_gca_pass_dead INTEGER,
-        opp_gca_take_ons INTEGER,
-        opp_gca_shots INTEGER,
-        opp_gca_fouled INTEGER,
-        opp_gca_defensive_actions INTEGER,
-        
-        scraped_at TIMESTAMPTZ DEFAULT NOW(),
-        UNIQUE(team_id, match_date, opponent)
-      );
-    `
+    }
   },
 
   passing_types: {
@@ -266,66 +160,7 @@ export const SUPABASE_CONFIGS: Record<string, SupabaseTableConfig> = {
         'Off': 'opp_passes_offside',
         'Blocks': 'opp_passes_blocked'
       }
-    },
-    createTableSQL: `
-      CREATE TABLE IF NOT EXISTS team_passing_types_stats (
-        id TEXT PRIMARY KEY,
-        season TEXT NOT NULL,
-        team_id TEXT NOT NULL,
-        team_name TEXT NOT NULL,
-        match_date DATE,
-        match_time TEXT,
-        venue TEXT,
-        result TEXT,
-        goals_for INTEGER,
-        goals_against INTEGER,
-        opponent TEXT,
-        possession DECIMAL,
-        match_report_url TEXT,
-        
-        -- Team passing types
-        team_passes_attempted INTEGER,
-        team_live_passes INTEGER,
-        team_dead_passes INTEGER,
-        team_free_kick_passes INTEGER,
-        team_through_balls INTEGER,
-        team_switches INTEGER,
-        team_crosses INTEGER,
-        team_throw_ins INTEGER,
-        team_corner_kicks INTEGER,
-        team_inswinging_corners INTEGER,
-        team_outswinging_corners INTEGER,
-        team_straight_corners INTEGER,
-        team_passes_completed INTEGER,
-        team_passes_offside INTEGER,
-        team_passes_blocked INTEGER,
-        
-        -- Opponent passing types
-        opp_passes_attempted INTEGER,
-        opp_live_passes INTEGER,
-        opp_dead_passes INTEGER,
-        opp_free_kick_passes INTEGER,
-        opp_through_balls INTEGER,
-        opp_switches INTEGER,
-        opp_crosses INTEGER,
-        opp_throw_ins INTEGER,
-        opp_corner_kicks INTEGER,
-        opp_inswinging_corners INTEGER,
-        opp_outswinging_corners INTEGER,
-        opp_straight_corners INTEGER,
-        opp_passes_completed INTEGER,
-        opp_passes_offside INTEGER,
-        opp_passes_blocked INTEGER,
-        
-        scraped_at TIMESTAMPTZ DEFAULT NOW(),
-        UNIQUE(team_id, match_date, opponent)
-      );
-    `
-  }
-}; NOW(),
-        UNIQUE(team_id, match_date, opponent)
-      );
-    `
+    }
   },
   
   passing: {
@@ -379,65 +214,7 @@ export const SUPABASE_CONFIGS: Record<string, SupabaseTableConfig> = {
         'CrsPA': 'opp_crosses_into_penalty_area',
         'PrgP': 'opp_progressive_passes'
       }
-    },
-    createTableSQL: `
-      CREATE TABLE IF NOT EXISTS team_passing_stats (
-        id TEXT PRIMARY KEY,
-        season TEXT NOT NULL,
-        team_id TEXT NOT NULL,
-        team_name TEXT NOT NULL,
-        match_date DATE,
-        match_time TEXT,
-        venue TEXT,
-        result TEXT,
-        goals_for INTEGER,
-        goals_against INTEGER,
-        opponent TEXT,
-        possession DECIMAL,
-        match_report_url TEXT,
-        
-        -- Team stats
-        team_passes_completed INTEGER,
-        team_passes_attempted INTEGER,
-        team_pass_completion_pct DECIMAL,
-        team_total_pass_distance INTEGER,
-        team_progressive_pass_distance INTEGER,
-        team_short_passes_completed INTEGER,
-        team_medium_passes_completed INTEGER,
-        team_long_passes_completed INTEGER,
-        team_assists INTEGER,
-        team_expected_assisted_goals DECIMAL,
-        team_expected_assists DECIMAL,
-        team_assists_minus_xag DECIMAL,
-        team_key_passes INTEGER,
-        team_passes_into_final_third INTEGER,
-        team_passes_into_penalty_area INTEGER,
-        team_crosses_into_penalty_area INTEGER,
-        team_progressive_passes INTEGER,
-        
-        -- Opponent stats
-        opp_passes_completed INTEGER,
-        opp_passes_attempted INTEGER,
-        opp_pass_completion_pct DECIMAL,
-        opp_total_pass_distance INTEGER,
-        opp_progressive_pass_distance INTEGER,
-        opp_short_passes_completed INTEGER,
-        opp_medium_passes_completed INTEGER,
-        opp_long_passes_completed INTEGER,
-        opp_assists INTEGER,
-        opp_expected_assisted_goals DECIMAL,
-        opp_expected_assists DECIMAL,
-        opp_assists_minus_xag DECIMAL,
-        opp_key_passes INTEGER,
-        opp_passes_into_final_third INTEGER,
-        opp_passes_into_penalty_area INTEGER,
-        opp_crosses_into_penalty_area INTEGER,
-        opp_progressive_passes INTEGER,
-        
-        scraped_at TIMESTAMPTZ DEFAULT NOW(),
-        UNIQUE(team_id, match_date, opponent)
-      );
-    `
+    }
   },
 
   keeper: {
@@ -475,49 +252,7 @@ export const SUPABASE_CONFIGS: Record<string, SupabaseTableConfig> = {
         'PKm': 'opp_penalty_misses',
         'PSxG': 'opp_post_shot_expected_goals_against'
       }
-    },
-    createTableSQL: `
-      CREATE TABLE IF NOT EXISTS team_keeper_stats (
-        id TEXT PRIMARY KEY,
-        season TEXT NOT NULL,
-        team_id TEXT NOT NULL,
-        team_name TEXT NOT NULL,
-        match_date DATE,
-        match_time TEXT,
-        venue TEXT,
-        result TEXT,
-        goals_for INTEGER,
-        goals_against INTEGER,
-        opponent TEXT,
-        possession DECIMAL,
-        match_report_url TEXT,
-        
-        -- Team keeper stats
-        team_goals_against_gk INTEGER,
-        team_shots_on_target_against INTEGER,
-        team_saves INTEGER,
-        team_save_percentage DECIMAL,
-        team_clean_sheets INTEGER,
-        team_penalty_kicks_against INTEGER,
-        team_penalty_saves INTEGER,
-        team_penalty_misses INTEGER,
-        team_post_shot_expected_goals_against DECIMAL,
-        
-        -- Opponent keeper stats
-        opp_goals_against_gk INTEGER,
-        opp_shots_on_target_against INTEGER,
-        opp_saves INTEGER,
-        opp_save_percentage DECIMAL,
-        opp_clean_sheets INTEGER,
-        opp_penalty_kicks_against INTEGER,
-        opp_penalty_saves INTEGER,
-        opp_penalty_misses INTEGER,
-        opp_post_shot_expected_goals_against DECIMAL,
-        
-        scraped_at TIMESTAMPTZ DEFAULT NOW(),
-        UNIQUE(team_id, match_date, opponent)
-      );
-    `
+    }
   },
 
   defense: {
@@ -569,63 +304,7 @@ export const SUPABASE_CONFIGS: Record<string, SupabaseTableConfig> = {
         'Clr': 'opp_clearances',
         'Err': 'opp_errors'
       }
-    },
-    createTableSQL: `
-      CREATE TABLE IF NOT EXISTS team_defense_stats (
-        id TEXT PRIMARY KEY,
-        season TEXT NOT NULL,
-        team_id TEXT NOT NULL,
-        team_name TEXT NOT NULL,
-        match_date DATE,
-        match_time TEXT,
-        venue TEXT,
-        result TEXT,
-        goals_for INTEGER,
-        goals_against INTEGER,
-        opponent TEXT,
-        possession DECIMAL,
-        match_report_url TEXT,
-        
-        -- Team defense stats
-        team_tackles INTEGER,
-        team_tackles_won INTEGER,
-        team_tackles_def_3rd INTEGER,
-        team_tackles_mid_3rd INTEGER,
-        team_tackles_att_3rd INTEGER,
-        team_dribblers_tackled INTEGER,
-        team_dribbles_contested INTEGER,
-        team_tackle_pct DECIMAL,
-        team_tackles_lost INTEGER,
-        team_blocks INTEGER,
-        team_shots_blocked INTEGER,
-        team_passes_blocked INTEGER,
-        team_interceptions INTEGER,
-        team_tackles_interceptions INTEGER,
-        team_clearances INTEGER,
-        team_errors INTEGER,
-        
-        -- Opponent defense stats
-        opp_tackles INTEGER,
-        opp_tackles_won INTEGER,
-        opp_tackles_def_3rd INTEGER,
-        opp_tackles_mid_3rd INTEGER,
-        opp_tackles_att_3rd INTEGER,
-        opp_dribblers_tackled INTEGER,
-        opp_dribbles_contested INTEGER,
-        opp_tackle_pct DECIMAL,
-        opp_tackles_lost INTEGER,
-        opp_blocks INTEGER,
-        opp_shots_blocked INTEGER,
-        opp_passes_blocked INTEGER,
-        opp_interceptions INTEGER,
-        opp_tackles_interceptions INTEGER,
-        opp_clearances INTEGER,
-        opp_errors INTEGER,
-        
-        scraped_at TIMESTAMPTZ DEFAULT NOW(),
-        UNIQUE(team_id, match_date, opponent)
-      );
-    `
+    }
   },
 
   misc: {
@@ -677,57 +356,6 @@ export const SUPABASE_CONFIGS: Record<string, SupabaseTableConfig> = {
         'Lost': 'opp_aerial_duels_lost',
         'Won%': 'opp_aerial_duels_won_pct'
       }
-    },
-    createTableSQL: `
-      CREATE TABLE IF NOT EXISTS team_misc_stats (
-        id TEXT PRIMARY KEY,
-        season TEXT NOT NULL,
-        team_id TEXT NOT NULL,
-        team_name TEXT NOT NULL,
-        match_date DATE,
-        match_time TEXT,
-        venue TEXT,
-        result TEXT,
-        goals_for INTEGER,
-        goals_against INTEGER,
-        opponent TEXT,
-        possession DECIMAL,
-        match_report_url TEXT,
-        
-        -- Team misc stats
-        team_yellow_cards INTEGER,
-        team_red_cards INTEGER,
-        team_second_yellow_cards INTEGER,
-        team_fouls INTEGER,
-        team_fouled INTEGER,
-        team_offsides INTEGER,
-        team_crosses INTEGER,
-        team_tackles_won INTEGER,
-        team_interceptions INTEGER,
-        team_own_goals INTEGER,
-        team_penalty_kicks_won INTEGER,
-        team_penalty_kicks_conceded INTEGER,
-        team_ball_recoveries INTEGER,
-        team_aerial_duels_won INTEGER,
-        team_aerial_duels_lost INTEGER,
-        team_aerial_duels_won_pct DECIMAL,
-        
-        -- Opponent misc stats
-        opp_yellow_cards INTEGER,
-        opp_red_cards INTEGER,
-        opp_second_yellow_cards INTEGER,
-        opp_fouls INTEGER,
-        opp_fouled INTEGER,
-        opp_offsides INTEGER,
-        opp_crosses INTEGER,
-        opp_tackles_won INTEGER,
-        opp_interceptions INTEGER,
-        opp_own_goals INTEGER,
-        opp_penalty_kicks_won INTEGER,
-        opp_penalty_kicks_conceded INTEGER,
-        opp_ball_recoveries INTEGER,
-        opp_aerial_duels_won INTEGER,
-        opp_aerial_duels_lost INTEGER,
-        opp_aerial_duels_won_pct DECIMAL,
-        
-        scraped_at TIMESTAMPTZ DEFAULT
+    }
+  }
+};
