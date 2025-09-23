@@ -77,7 +77,7 @@ const SCRAPE_MODES = { SINGLE: 'single', ALL: 'all' } as const;
 type ScrapeMode = typeof SCRAPE_MODES[keyof typeof SCRAPE_MODES];
 const SCRAPE_MODE: ScrapeMode = SCRAPE_MODES.ALL; // Change to ALL for all teams
 const SINGLE_TEAM_INDEX = 0; // Arsenal
-const TEST_STAT_INDEX = 6;   
+const TEST_STAT_INDEX = 0;   
 
 /* ------------------ Rate Limiting ------------------ */
 const RATE_LIMIT = {
@@ -152,15 +152,72 @@ class SupabaseExporter {
       return isNaN(numValue) ? null : numValue / 100;
     }
     
+    // Handle dates - more robust date parsing
+    if (this.isDateField(strValue)) {
+      const parsedDate = this.parseDate(strValue);
+      return parsedDate;
+    }
+    
     // Handle numeric values
     const numValue = parseFloat(strValue);
     if (!isNaN(numValue)) return numValue;
     
-    // Handle dates
-    if (strValue.match(/^\d{4}-\d{2}-\d{2}$/)) return strValue;
-    
     // Return as string
     return strValue;
+  }
+
+  /**
+   * Check if a field should be treated as a date
+   */
+  private isDateField(value: string): boolean {
+    // Match various date formats
+    return /^\d{4}-\d{1,2}-\d{1,2}$/.test(value) || // YYYY-MM-DD or YYYY-M-D
+           /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(value) || // MM/DD/YYYY or M/D/YYYY
+           /^\d{1,2}-\d{1,2}-\d{4}$/.test(value) ||   // MM-DD-YYYY or M-D-YYYY
+           /^\d{4}$/.test(value); // Just year (problematic case)
+  }
+
+  /**
+   * Parse date string into proper YYYY-MM-DD format
+   */
+  private parseDate(dateStr: string): string | null {
+    const trimmed = dateStr.trim();
+    
+    // If it's just a year, return null (invalid date)
+    if (/^\d{4}$/.test(trimmed)) {
+      console.warn(`⚠️ Invalid date format (year only): ${trimmed}`);
+      return null;
+    }
+    
+    // Already in YYYY-MM-DD format
+    if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(trimmed)) {
+      const parts = trimmed.split('-');
+      const year = parts[0];
+      const month = parts[1].padStart(2, '0');
+      const day = parts[2].padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+    
+    // Handle MM/DD/YYYY or M/D/YYYY
+    if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(trimmed)) {
+      const parts = trimmed.split('/');
+      const month = parts[0].padStart(2, '0');
+      const day = parts[1].padStart(2, '0');
+      const year = parts[2];
+      return `${year}-${month}-${day}`;
+    }
+    
+    // Handle MM-DD-YYYY or M-D-YYYY
+    if (/^\d{1,2}-\d{1,2}-\d{4}$/.test(trimmed)) {
+      const parts = trimmed.split('-');
+      const month = parts[0].padStart(2, '0');
+      const day = parts[1].padStart(2, '0');
+      const year = parts[2];
+      return `${year}-${month}-${day}`;
+    }
+    
+    console.warn(`⚠️ Unrecognized date format: ${trimmed}`);
+    return null;
   }
 
   /**
