@@ -10,8 +10,8 @@ export interface TeamSeasonStats {
   won: number;
   drawn: number;
   lost: number;
-  corners?: number; 
-  cornersAgainst?: number;
+  //corners?: number; 
+  //cornersAgainst?: number;
   goalsFor?: number;
   goalsAgainst?: number;
   points?: number;
