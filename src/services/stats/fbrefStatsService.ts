@@ -1,5 +1,6 @@
 import { fbrefFixtureService, type TeamSeasonStats } from '../fixtures/fbrefFixtureService';
 import { supabaseCornersService, type DetailedCornerStats } from './supabaseCornersService';
+import { supabaseCardsService, type DetailedCardStats } from './supabaseCardsService';
 import { normalizeTeamName } from '../../utils/teamUtils';
 
 interface TeamFormData {
@@ -22,6 +23,16 @@ interface TeamStatsData {
   over95MatchCorners: { homeValue: number; awayValue: number };
   over105MatchCorners: { homeValue: number; awayValue: number };
   over115MatchCorners: { homeValue: number; awayValue: number };
+  
+  // Cards stats (as averages per game and actual percentages)
+  cardsMatchesPlayed: { homeValue: number; awayValue: number };
+  cardsShown: { homeValue: number; awayValue: number };           // Average cards this team receives
+  cardsAgainst: { homeValue: number; awayValue: number };         // Average cards opponents receive
+  totalCards: { homeValue: number; awayValue: number };           // Average total cards per match
+  over05TeamCards: { homeValue: number; awayValue: number };      // % games with 0.5+ team cards
+  over15TeamCards: { homeValue: number; awayValue: number };      // % games with 1.5+ team cards
+  over25TeamCards: { homeValue: number; awayValue: number };      // % games with 2.5+ team cards
+  over35TeamCards: { homeValue: number; awayValue: number };      // % games with 3.5+ team cards
 }
 
 export class FBrefStatsService {
@@ -30,6 +41,7 @@ export class FBrefStatsService {
 
   public clearCache(): void {
     supabaseCornersService.clearCache();
+    supabaseCardsService.clearCache();
     fbrefFixtureService.clearCache();
     console.log('[FBrefStats] All caches cleared');
   }
@@ -115,35 +127,39 @@ export class FBrefStatsService {
       // Get corner data from Supabase
       const { homeStats: homeCornerData, awayStats: awayCornerData } = 
         await supabaseCornersService.getMatchCornerStats(homeTeam, awayTeam);
+      
+      // Get card data from Supabase
+      const { homeStats: homeCardData, awayStats: awayCardData } = 
+        await supabaseCardsService.getMatchCardStats(homeTeam, awayTeam);
 
-      // Use empty corner data if not found (fallback)
       const defaultCornerData: DetailedCornerStats = {
-        corners: 0,
-        cornersAgainst: 0,
-        matches: homeStats.matchesPlayed,
-        matchDetails: []
+        corners: 0, cornersAgainst: 0, matches: homeStats.matchesPlayed, matchDetails: []
+      };
+
+      const defaultCardData: DetailedCardStats = {
+        cardsShown: 0, cardsAgainst: 0, matches: homeStats.matchesPlayed, matchDetails: []
       };
 
       const homeCorners = homeCornerData || defaultCornerData;
       const awayCorners = awayCornerData || defaultCornerData;
+      const homeCards = homeCardData || defaultCardData;
+      const awayCards = awayCardData || defaultCardData;
 
       // Log corner details for debugging
-      console.log(`[FBrefStats] ${homeTeam} corner details:`, {
-        totalCorners: homeCorners.corners,
-        totalCornersAgainst: homeCorners.cornersAgainst,
-        matches: homeCorners.matches,
-        avgCornersFor: this.calculateAverage(homeCorners.corners, homeCorners.matches),
-        avgCornersAgainst: this.calculateAverage(homeCorners.cornersAgainst, homeCorners.matches),
-        avgTotalCorners: this.calculateAverage(homeCorners.corners + homeCorners.cornersAgainst, homeCorners.matches)
+      console.log(`[FBrefStats] ${homeTeam} card details:`, {
+        totalCardsShown: homeCards.cardsShown,
+        totalCardsAgainst: homeCards.cardsAgainst,
+        matches: homeCards.matches,
+        avgCardsShown: this.calculateAverage(homeCards.cardsShown, homeCards.matches),
+        avgCardsAgainst: this.calculateAverage(homeCards.cardsAgainst, homeCards.matches)
       });
 
-      console.log(`[FBrefStats] ${awayTeam} corner details:`, {
-        totalCorners: awayCorners.corners,
-        totalCornersAgainst: awayCorners.cornersAgainst,
-        matches: awayCorners.matches,
-        avgCornersFor: this.calculateAverage(awayCorners.corners, awayCorners.matches),
-        avgCornersAgainst: this.calculateAverage(awayCorners.cornersAgainst, awayCorners.matches),
-        avgTotalCorners: this.calculateAverage(awayCorners.corners + awayCorners.cornersAgainst, awayCorners.matches)
+      console.log(`[FBrefStats] ${awayTeam} card details:`, {
+        totalCardsShown: awayCards.cardsShown,
+        totalCardsAgainst: awayCards.cardsAgainst,
+        matches: awayCards.matches,
+        avgCardsShown: this.calculateAverage(awayCards.cardsShown, awayCards.matches),
+        avgCardsAgainst: this.calculateAverage(awayCards.cardsAgainst, awayCards.matches)
       });
 
       return {
@@ -163,10 +179,8 @@ export class FBrefStatsService {
             lost: awayStats.lost 
           },
         },
-        cornersMatchesPlayed: { 
-          homeValue: homeCorners.matches, 
-          awayValue: awayCorners.matches 
-        },
+        // corner data
+        cornersMatchesPlayed: { homeValue: homeCorners.matches, awayValue: awayCorners.matches },
         cornersTaken: { 
           homeValue: this.calculateAverage(homeCorners.corners, homeCorners.matches), 
           awayValue: this.calculateAverage(awayCorners.corners, awayCorners.matches)
@@ -199,6 +213,37 @@ export class FBrefStatsService {
           homeValue: this.calculateOverPercentage(homeCorners.matchDetails, 11.5), 
           awayValue: this.calculateOverPercentage(awayCorners.matchDetails, 11.5)
         },
+
+        // Card data
+        cardsMatchesPlayed: { homeValue: homeCards.matches, awayValue: awayCards.matches },
+        cardsShown: { 
+          homeValue: this.calculateAverage(homeCards.cardsShown, homeCards.matches), 
+          awayValue: this.calculateAverage(awayCards.cardsShown, awayCards.matches)
+        },
+        cardsAgainst: { 
+          homeValue: this.calculateAverage(homeCards.cardsAgainst, homeCards.matches), 
+          awayValue: this.calculateAverage(awayCards.cardsAgainst, awayCards.matches)
+        },
+        totalCards: { 
+          homeValue: this.calculateAverage(homeCards.cardsShown + homeCards.cardsAgainst, homeCards.matches), 
+          awayValue: this.calculateAverage(awayCards.cardsShown + awayCards.cardsAgainst, awayCards.matches)
+        },
+        over05TeamCards: { 
+          homeValue: supabaseCardsService.calculateOverPercentage(homeCards.matchDetails, 0.5), 
+          awayValue: supabaseCardsService.calculateOverPercentage(awayCards.matchDetails, 0.5)
+        },
+        over15TeamCards: { 
+          homeValue: supabaseCardsService.calculateOverPercentage(homeCards.matchDetails, 1.5), 
+          awayValue: supabaseCardsService.calculateOverPercentage(awayCards.matchDetails, 1.5)
+        },
+        over25TeamCards: { 
+          homeValue: supabaseCardsService.calculateOverPercentage(homeCards.matchDetails, 2.5), 
+          awayValue: supabaseCardsService.calculateOverPercentage(awayCards.matchDetails, 2.5)
+        },
+        over35TeamCards: { 
+          homeValue: supabaseCardsService.calculateOverPercentage(homeCards.matchDetails, 3.5), 
+          awayValue: supabaseCardsService.calculateOverPercentage(awayCards.matchDetails, 3.5)
+        },
       };
 
     } catch (error) {
@@ -208,10 +253,14 @@ export class FBrefStatsService {
   }
 
   /**
-   * Get detailed corner breakdown for a specific team (uses Supabase data)
+   * Get detailed breakdown for a specific team (uses Supabase data)
    */
   async getTeamCornerBreakdown(teamName: string) {
     return await supabaseCornersService.getTeamCornerBreakdown(teamName);
+  }
+
+   async getTeamCardBreakdown(teamName: string) {
+    return await supabaseCardsService.getTeamCardBreakdown(teamName);
   }
 
   /**
@@ -222,18 +271,25 @@ export class FBrefStatsService {
     this.clearCache();
     
     // Force refresh of both services
+  async refreshAllData(): Promise<void> {
+    console.log('[FBrefStats] Manually refreshing all data...');
+    this.clearCache();
+    
     await supabaseCornersService.refresh();
-    await fbrefFixtureService.getAllTeamStats(); // This will refresh fixture service cache
+    await supabaseCardsService.refresh();
+    await fbrefFixtureService.getAllTeamStats();
     
     console.log('[FBrefStats] All data refresh completed');
+  }
   }
 
   /**
    * Get cache status for debugging
    */
-  getCacheStatus() {
+   getCacheStatus() {
     return {
       cornersCache: supabaseCornersService.getCacheStatus(),
+      cardsCache: supabaseCardsService.getCacheStatus(),
       currentLeague: this.currentLeague,
       currentSeason: this.currentSeason,
       dataSource: 'Supabase'
