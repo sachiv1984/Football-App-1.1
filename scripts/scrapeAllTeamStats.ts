@@ -32,8 +32,8 @@ const DATA_DIR = path.join(__dirname, '..', 'data');
 
 /* ------------------ Supabase Setup ------------------ */
 const SUPABASE_URL = process.env.SUPABASE_URL || '';
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /* ------------------ Configuration ------------------ */
 const FBREF_BASE_URL = 'https://fbref.com/en/squads';
@@ -112,7 +112,7 @@ class SupabaseExporter {
       // Map common fields
       Object.entries(config.fieldMappings.common).forEach(([fbrefField, supabaseField]) => {
         if (match[fbrefField] !== undefined) {
-          transformed[supabaseField] = this.parseValue(match[fbrefField]);
+          transformed[supabaseField] = this.parseValue(match[fbrefField], supabaseField);
         }
       });
 
@@ -120,7 +120,7 @@ class SupabaseExporter {
       if (match.team?.stats) {
         Object.entries(config.fieldMappings.team).forEach(([fbrefField, supabaseField]) => {
           if (match.team.stats[fbrefField] !== undefined) {
-            transformed[supabaseField] = this.parseValue(match.team.stats[fbrefField]);
+            transformed[supabaseField] = this.parseValue(match.team.stats[fbrefField], supabaseField);
           }
         });
       }
@@ -129,7 +129,7 @@ class SupabaseExporter {
       if (match.opponent?.stats) {
         Object.entries(config.fieldMappings.opponent).forEach(([fbrefField, supabaseField]) => {
           if (match.opponent.stats[fbrefField] !== undefined) {
-            transformed[supabaseField] = this.parseValue(match.opponent.stats[fbrefField]);
+            transformed[supabaseField] = this.parseValue(match.opponent.stats[fbrefField], supabaseField);
           }
         });
       }
@@ -141,10 +141,15 @@ class SupabaseExporter {
   /**
    * Parse and convert values to appropriate types
    */
-  private parseValue(value: any): any {
+  private parseValue(value: any, fieldName?: string): any {
     if (value === null || value === undefined || value === '') return null;
     
     const strValue = String(value).trim();
+    
+    // Handle time fields - keep as string to preserve format like "16:30"
+    if (fieldName === 'match_time' || this.isTimeField(strValue)) {
+      return strValue;
+    }
     
     // Handle percentages
     if (strValue.endsWith('%')) {
@@ -158,12 +163,20 @@ class SupabaseExporter {
       return parsedDate;
     }
     
-    // Handle numeric values
+    // Handle numeric values (but not times)
     const numValue = parseFloat(strValue);
-    if (!isNaN(numValue)) return numValue;
+    if (!isNaN(numValue) && !this.isTimeField(strValue)) return numValue;
     
     // Return as string
     return strValue;
+  }
+
+  /**
+   * Check if a field is a time field
+   */
+  private isTimeField(value: string): boolean {
+    // Match time formats like 16:30, 14:45, etc.
+    return /^\d{1,2}:\d{2}$/.test(value) || /^\d{1,2}\.\d{2}$/.test(value);
   }
 
   /**
@@ -531,7 +544,7 @@ class ScraperManager {
     console.log('🚀 Starting full sequential stat scrape with Supabase export...');
     
     // Check Supabase connection
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
       console.warn('⚠️ Supabase credentials missing. Only local JSON files will be saved.');
     } else {
       console.log('✅ Supabase configured. Data will be exported to both JSON and database.');
@@ -549,6 +562,7 @@ class ScraperManager {
       const teamsToScrape = SCRAPE_MODE === SCRAPE_MODES.ALL ? AVAILABLE_TEAMS : [AVAILABLE_TEAMS[SINGLE_TEAM_INDEX]];
       console.log(`📋 Total teams to scrape: ${teamsToScrape.length}`);
       
+      // Create fresh results array for each stat type
       const statResults: any[] = [];
       let supabaseSuccessCount = 0;
       
