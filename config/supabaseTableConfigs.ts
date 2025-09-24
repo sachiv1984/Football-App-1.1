@@ -118,7 +118,6 @@ export const SUPABASE_CONFIGS: Record<string, SupabaseTableConfig> = {
         'GF': 'goals_for',
         'GA': 'goals_against',
         'Opponent': 'opponent',
-        'Poss': 'possession'
       },
       team: {
         'Att': 'team_passes_attempted',
@@ -168,7 +167,6 @@ export const SUPABASE_CONFIGS: Record<string, SupabaseTableConfig> = {
         'GF': 'goals_for',
         'GA': 'goals_against',
         'Opponent': 'opponent',
-        'Poss': 'possession'
       },
       team: {
         'Cmp': 'team_passes_completed',
@@ -222,7 +220,6 @@ export const SUPABASE_CONFIGS: Record<string, SupabaseTableConfig> = {
         'GF': 'goals_for',
         'GA': 'goals_against',
         'Opponent': 'opponent',
-        'Poss': 'possession'
       },
       team: {
         'GA': 'team_goals_against_gk',
@@ -260,7 +257,6 @@ export const SUPABASE_CONFIGS: Record<string, SupabaseTableConfig> = {
         'GF': 'goals_for',
         'GA': 'goals_against',
         'Opponent': 'opponent',
-        'Poss': 'possession'
       },
       team: {
         'Tkl': 'team_tackles',
@@ -312,7 +308,6 @@ export const SUPABASE_CONFIGS: Record<string, SupabaseTableConfig> = {
         'GF': 'goals_for',
         'GA': 'goals_against',
         'Opponent': 'opponent',
-        'Poss': 'possession'
       },
       team: {
         'CrdY': 'team_yellow_cards',
