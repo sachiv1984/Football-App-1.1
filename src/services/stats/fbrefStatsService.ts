@@ -281,7 +281,6 @@ export class FBrefStatsService {
     
     console.log('[FBrefStats] All data refresh completed');
   }
-  }
 
   /**
    * Get cache status for debugging
