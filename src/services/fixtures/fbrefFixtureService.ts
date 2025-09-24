@@ -124,8 +124,8 @@ private calculateForm(fixtures: SupabaseFixture[]): Map<string, TeamSeasonStats>
         won: 0,
         drawn: 0,
         lost: 0,
-        corners: 0,
-        cornersAgainst: 0
+        // corners: 0,
+        // cornersAgainst: 0
       });
     }
     if (!stats.has(f.awayteam)) {
@@ -136,8 +136,8 @@ private calculateForm(fixtures: SupabaseFixture[]): Map<string, TeamSeasonStats>
         won: 0,
         drawn: 0,
         lost: 0,
-        corners: 0,
-        cornersAgainst: 0
+        // corners: 0,
+        // cornersAgainst: 0
       });
     }
   });
