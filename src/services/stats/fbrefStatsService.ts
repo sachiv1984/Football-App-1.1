@@ -83,8 +83,8 @@ export class FBrefStatsService {
       if (cornerData) {
         return {
           ...basicStats,
-          corners: cornerData.corners,
-          cornersAgainst: cornerData.cornersAgainst,
+          // corners: cornerData.corners,
+          // cornersAgainst: cornerData.cornersAgainst,
         };
       }
     } catch (error) {
