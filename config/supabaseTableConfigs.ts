@@ -67,7 +67,6 @@ export const SUPABASE_CONFIGS: Record<string, SupabaseTableConfig> = {
         'GF': 'goals_for',
         'GA': 'goals_against',
         'Opponent': 'opponent',
-        'Poss': 'possession'
       },
       team: {
         'SCA': 'team_shot_creating_actions',
