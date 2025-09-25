@@ -17,10 +17,15 @@ interface StatValue {
   unit?: string;
 }
 
+interface StatsData {
+  recentForm?: FormData;
+  [key: string]: StatValue | FormData | undefined;
+}
+
 interface ModernStatsTableProps {
   homeTeam: Team;
   awayTeam: Team;
-  stats?: Record<string, any>;
+  stats?: StatsData;
   league?: string;
   season?: string;
   className?: string;
@@ -70,13 +75,9 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     autoLoad ? awayTeam.name : undefined
   );
 
-  const mockStats = {
-    // ... same mockStats as before
-  };
+  const effectiveStats: StatsData = propStats || (fetchedStats as StatsData) || {};
 
-  const effectiveStats = propStats || fetchedStats || mockStats;
-
-  // Loading & error state
+  // Loading state
   if (showLoadingState && autoLoad && loading && !propStats) {
     return (
       <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
@@ -90,6 +91,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     );
   }
 
+  // Error state
   if (showLoadingState && autoLoad && error && !propStats) {
     return (
       <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
@@ -144,7 +146,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   };
 
   const renderFormContent = () => {
-    const recentForm = effectiveStats.recentForm as FormData | undefined;
+    const recentForm = effectiveStats.recentForm;
 
     if (!recentForm) {
       return (
@@ -173,7 +175,6 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
             )}
           </div>
 
-          {/* Title */}
           <div className="text-center px-2">
             <h2 className="text-lg sm:text-2xl font-bold text-gray-900">Team Form</h2>
           </div>
@@ -270,12 +271,11 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
         ))}
       </div>
 
-      {/* Content with smooth fade */}
+      {/* Content */}
       <div className="p-4 sm:p-6 transition-opacity duration-300 ease-in-out opacity-100">
         {activeTab === 'form' ? renderFormContent() : (
           <div className="space-y-6 sm:space-y-8 px-0 sm:px-0">
-            {/* Stats Rows (reuse same pattern as renderFormContent) */}
-            {/* ...your stats row rendering logic here, similar to above, with hover & padding */}
+            {/* Add stats rendering for other tabs here */}
           </div>
         )}
       </div>
