@@ -1,62 +1,63 @@
-// src/services/stats/supabaseCornersService.ts
+// src/services/stats/supabaseGoalsService.ts
 import { supabase } from '../supabaseClient';
 import { normalizeTeamName } from '../../utils/teamUtils';
 
-export interface SupabaseCornerData {
+export interface SupabaseGoalData {
   id: string;
   team_name: string;
   opponent: string;
-  team_corner_kicks: number;
-  opp_corner_kicks: number;
+  goals_for: number;
+  goals_against: number;
   match_date?: string;
   matchweek?: number;
   venue?: 'home' | 'away';
 }
 
-export interface DetailedCornerStats {
-  corners: number;
-  cornersAgainst: number;
+export interface DetailedGoalStats {
+  goalsFor: number;              // Total goals this team scored
+  goalsAgainst: number;          // Total goals conceded
   matches: number;
   matchDetails: Array<{
     opponent: string;
-    totalCorners: number;
-    cornersFor: number;
-    cornersAgainst: number;
+    totalGoals: number;          // goalsFor + goalsAgainst for this match
+    goalsFor: number;            // Goals this team scored
+    goalsAgainst: number;        // Goals this team conceded
+    bothTeamsScored: boolean;    // Did both teams score?
     date?: string;
     matchweek?: number;
   }>;
 }
 
-export class SupabaseCornersService {
-  private cornersCache: Map<string, DetailedCornerStats> = new Map();
-  private cornersCacheTime = 0;
-  private readonly cornersCacheTimeout = 30 * 60 * 1000; // 30 minutes cache
+export class SupabaseGoalsService {
+  private goalsCache: Map<string, DetailedGoalStats> = new Map();
+  private goalsCacheTime = 0;
+  private readonly goalsCacheTimeout = 30 * 60 * 1000; // 30 minutes cache
 
   private isCacheValid(): boolean {
-    return this.cornersCache.size > 0 && Date.now() - this.cornersCacheTime < this.cornersCacheTimeout;
+    return this.goalsCache.size > 0 && Date.now() - this.goalsCacheTime < this.goalsCacheTimeout;
   }
 
   public clearCache(): void {
-    this.cornersCache.clear();
-    this.cornersCacheTime = 0;
-    console.log('[SupabaseCorners] Cache cleared');
+    this.goalsCache.clear();
+    this.goalsCacheTime = 0;
+    console.log('[SupabaseGoals] Cache cleared');
   }
 
   /**
-   * Fetch corner data for all teams from Supabase
+   * Fetch goal data for all teams from Supabase (from shooting stats table)
    */
-  private async fetchCornerDataFromSupabase(): Promise<SupabaseCornerData[]> {
-    console.log('[SupabaseCorners] 🔄 Fetching corner data from Supabase...');
+  private async fetchGoalDataFromSupabase(): Promise<SupabaseGoalData[]> {
+    console.log('[SupabaseGoals] 🔄 Fetching goal data from Supabase...');
     
     try {
       const { data, error } = await supabase
-        .from('team_passing_types_stats')
+        .from('team_shooting_stats')
         .select(`
           id,
           team_name,
           opponent,
-          team_corner_kicks,
-          opp_corner_kicks,
+          goals_for,
+          goals_against,
           match_date,
           matchweek,
           venue
@@ -65,7 +66,7 @@ export class SupabaseCornersService {
         .order('match_date');
 
       if (error) {
-        console.error('[SupabaseCorners] ❌ Supabase fetch error:', {
+        console.error('[SupabaseGoals] ❌ Supabase fetch error:', {
           error,
           message: error.message,
           details: error.details,
@@ -76,43 +77,43 @@ export class SupabaseCornersService {
       }
 
       if (!data || data.length === 0) {
-        console.warn('[SupabaseCorners] ⚠️ No corner data found in database');
+        console.warn('[SupabaseGoals] ⚠️ No goal data found in database');
         return [];
       }
 
-      console.log('[SupabaseCorners] ✅ Fetched corner data:', {
+      console.log('[SupabaseGoals] ✅ Fetched goal data:', {
         totalRecords: data.length,
         uniqueTeams: new Set(data.map(d => d.team_name)).size
       });
 
       // Log sample data for debugging
-      console.log('[SupabaseCorners] 📊 Sample corner data:', data.slice(0, 2));
+      console.log('[SupabaseGoals] 📊 Sample goal data:', data.slice(0, 2));
 
       return data.map(row => ({
         id: row.id,
         team_name: normalizeTeamName(row.team_name),
         opponent: normalizeTeamName(row.opponent),
-        team_corner_kicks: row.team_corner_kicks || 0,
-        opp_corner_kicks: row.opp_corner_kicks || 0,
+        goals_for: row.goals_for || 0,
+        goals_against: row.goals_against || 0,
         match_date: row.match_date,
         matchweek: row.matchweek,
         venue: row.venue
       }));
 
     } catch (err) {
-      console.error('[SupabaseCorners] 💥 Error fetching corner data:', err);
+      console.error('[SupabaseGoals] 💥 Error fetching goal data:', err);
       throw err;
     }
   }
 
   /**
-   * Process raw corner data into structured team stats
+   * Process raw goal data into structured team stats
    */
-  private processCornerData(rawData: SupabaseCornerData[]): Map<string, DetailedCornerStats> {
-    const teamStats = new Map<string, DetailedCornerStats>();
+  private processGoalData(rawData: SupabaseGoalData[]): Map<string, DetailedGoalStats> {
+    const teamStats = new Map<string, DetailedGoalStats>();
 
     // Group data by team
-    const teamGroups = new Map<string, SupabaseCornerData[]>();
+    const teamGroups = new Map<string, SupabaseGoalData[]>();
     rawData.forEach(row => {
       const teamName = row.team_name;
       if (!teamGroups.has(teamName)) {
@@ -123,68 +124,75 @@ export class SupabaseCornersService {
 
     // Process each team's data
     teamGroups.forEach((matches, teamName) => {
-      // Sort matches by date (most recent first for consistency with existing logic)
+      // Sort matches by date (most recent first for consistency)
       matches.sort((a, b) => {
         if (!a.match_date || !b.match_date) return 0;
         return new Date(b.match_date).getTime() - new Date(a.match_date).getTime();
       });
 
       // Calculate totals
-      const totalCorners = matches.reduce((sum, match) => sum + match.team_corner_kicks, 0);
-      const totalCornersAgainst = matches.reduce((sum, match) => sum + match.opp_corner_kicks, 0);
+      const totalGoalsFor = matches.reduce((sum, match) => sum + match.goals_for, 0);
+      const totalGoalsAgainst = matches.reduce((sum, match) => sum + match.goals_against, 0);
 
       // Create detailed match data
       const matchDetails = matches.map(match => ({
         opponent: match.opponent,
-        totalCorners: match.team_corner_kicks + match.opp_corner_kicks,
-        cornersFor: match.team_corner_kicks,
-        cornersAgainst: match.opp_corner_kicks,
+        totalGoals: match.goals_for + match.goals_against,
+        goalsFor: match.goals_for,
+        goalsAgainst: match.goals_against,
+        bothTeamsScored: match.goals_for > 0 && match.goals_against > 0,
         date: match.match_date,
         matchweek: match.matchweek
       }));
 
       teamStats.set(teamName, {
-        corners: totalCorners,
-        cornersAgainst: totalCornersAgainst,
+        goalsFor: totalGoalsFor,
+        goalsAgainst: totalGoalsAgainst,
         matches: matches.length,
         matchDetails
       });
 
-      console.log(`[SupabaseCorners] ${teamName}: ${totalCorners} corners for, ${totalCornersAgainst} against (${matches.length} matches)`);
+      console.log(`[SupabaseGoals] ${teamName}: ${totalGoalsFor} goals for, ${totalGoalsAgainst} against (${matches.length} matches)`);
+      
+      // Debug: show goal data for first match
+      if (matches.length > 0) {
+        const firstMatch = matches[0];
+        console.log(`[SupabaseGoals] ${teamName} vs ${firstMatch.opponent}: ${firstMatch.goals_for}-${firstMatch.goals_against}`);
+      }
     });
 
     return teamStats;
   }
 
   /**
-   * Get corner statistics for all teams (main method)
+   * Get goal statistics for all teams (main method)
    */
-  async getCornerStatistics(): Promise<Map<string, DetailedCornerStats>> {
+  async getGoalStatistics(): Promise<Map<string, DetailedGoalStats>> {
     if (this.isCacheValid()) {
-      console.log('[SupabaseCorners] Using cached corner statistics');
-      return this.cornersCache;
+      console.log('[SupabaseGoals] Using cached goal statistics');
+      return this.goalsCache;
     }
 
     try {
-      console.log('[SupabaseCorners] Refreshing corner statistics from Supabase...');
+      console.log('[SupabaseGoals] Refreshing goal statistics from Supabase...');
       
-      const rawData = await this.fetchCornerDataFromSupabase();
-      const processedStats = this.processCornerData(rawData);
+      const rawData = await this.fetchGoalDataFromSupabase();
+      const processedStats = this.processGoalData(rawData);
 
       // Update cache
-      this.cornersCache = processedStats;
-      this.cornersCacheTime = Date.now();
+      this.goalsCache = processedStats;
+      this.goalsCacheTime = Date.now();
 
-      console.log(`[SupabaseCorners] Corner statistics cached for ${this.cornersCache.size} teams`);
-      return this.cornersCache;
+      console.log(`[SupabaseGoals] Goal statistics cached for ${this.goalsCache.size} teams`);
+      return this.goalsCache;
 
     } catch (error) {
-      console.error('[SupabaseCorners] Error fetching corner statistics:', error);
+      console.error('[SupabaseGoals] Error fetching goal statistics:', error);
       
       // Return existing cache if available, even if stale
-      if (this.cornersCache.size > 0) {
-        console.warn('[SupabaseCorners] Returning stale cache data due to error');
-        return this.cornersCache;
+      if (this.goalsCache.size > 0) {
+        console.warn('[SupabaseGoals] Returning stale cache data due to error');
+        return this.goalsCache;
       }
       
       throw error;
@@ -192,21 +200,21 @@ export class SupabaseCornersService {
   }
 
   /**
-   * Get corner statistics for a specific team
+   * Get goal statistics for a specific team
    */
-  async getTeamCornerStats(teamName: string): Promise<DetailedCornerStats | null> {
-    const allStats = await this.getCornerStatistics();
+  async getTeamGoalStats(teamName: string): Promise<DetailedGoalStats | null> {
+    const allStats = await this.getGoalStatistics();
     return allStats.get(normalizeTeamName(teamName)) || null;
   }
 
   /**
-   * Get corner data for two specific teams (for match stats)
+   * Get goal data for two specific teams (for match stats)
    */
-  async getMatchCornerStats(homeTeam: string, awayTeam: string): Promise<{
-    homeStats: DetailedCornerStats | null;
-    awayStats: DetailedCornerStats | null;
+  async getMatchGoalStats(homeTeam: string, awayTeam: string): Promise<{
+    homeStats: DetailedGoalStats | null;
+    awayStats: DetailedGoalStats | null;
   }> {
-    const allStats = await this.getCornerStatistics();
+    const allStats = await this.getGoalStatistics();
     
     return {
       homeStats: allStats.get(normalizeTeamName(homeTeam)) || null,
@@ -215,19 +223,31 @@ export class SupabaseCornersService {
   }
 
   /**
-   * Calculate percentage of matches over a certain corner threshold
+   * Calculate percentage of matches over a certain goal threshold
    */
-  calculateOverPercentage(matchDetails: Array<{totalCorners: number}>, threshold: number): number {
+  calculateOverPercentage(matchDetails: Array<{totalGoals: number}>, threshold: number): number {
     if (matchDetails.length === 0) return 0;
     
-    const gamesOver = matchDetails.filter(match => match.totalCorners > threshold).length;
+    const gamesOver = matchDetails.filter(match => match.totalGoals > threshold).length;
     const percentage = (gamesOver / matchDetails.length) * 100;
     
     return Math.round(percentage * 100) / 100; // Round to 2 decimal places
   }
 
   /**
-   * Calculate average corners per game
+   * Calculate Both Teams to Score percentage
+   */
+  calculateBothTeamsToScorePercentage(matchDetails: Array<{bothTeamsScored: boolean}>): number {
+    if (matchDetails.length === 0) return 0;
+    
+    const bttsGames = matchDetails.filter(match => match.bothTeamsScored).length;
+    const percentage = (bttsGames / matchDetails.length) * 100;
+    
+    return Math.round(percentage * 100) / 100; // Round to 2 decimal places
+  }
+
+  /**
+   * Calculate average goals per game
    */
   calculateAverage(total: number, matches: number): number {
     if (matches === 0) return 0;
@@ -235,49 +255,55 @@ export class SupabaseCornersService {
   }
 
   /**
-   * Get comprehensive team corner breakdown (matches existing API)
+   * Get comprehensive team goal breakdown
    */
-  async getTeamCornerBreakdown(teamName: string): Promise<{
+  async getTeamGoalBreakdown(teamName: string): Promise<{
     averages: {
-      cornersFor: number;
-      cornersAgainst: number;
-      totalCorners: number;
+      goalsFor: number;
+      goalsAgainst: number;
+      totalGoals: number;
     };
     percentages: {
-      over75: number;
-      over85: number;
-      over95: number;
-      over105: number;
-      over115: number;
+      over15MatchGoals: number;      // Over 1.5 match goals
+      over25MatchGoals: number;      // Over 2.5 match goals
+      over35MatchGoals: number;      // Over 3.5 match goals
+      bothTeamsToScore: number;      // Both teams to score %
     };
     matchCount: number;
     recentMatches: Array<{
       opponent: string;
-      totalCorners: number;
-      cornersFor: number;
-      cornersAgainst: number;
+      totalGoals: number;
+      goalsFor: number;
+      goalsAgainst: number;
+      bothTeamsScored: boolean;
       date?: string;
     }>;
   } | null> {
-    const cornerData = await this.getTeamCornerStats(teamName);
+    const goalData = await this.getTeamGoalStats(teamName);
     
-    if (!cornerData) return null;
+    if (!goalData) return null;
 
     return {
       averages: {
-        cornersFor: this.calculateAverage(cornerData.corners, cornerData.matches),
-        cornersAgainst: this.calculateAverage(cornerData.cornersAgainst, cornerData.matches),
-        totalCorners: this.calculateAverage(cornerData.corners + cornerData.cornersAgainst, cornerData.matches)
+        goalsFor: this.calculateAverage(goalData.goalsFor, goalData.matches),
+        goalsAgainst: this.calculateAverage(goalData.goalsAgainst, goalData.matches),
+        totalGoals: this.calculateAverage(goalData.goalsFor + goalData.goalsAgainst, goalData.matches)
       },
       percentages: {
-        over75: this.calculateOverPercentage(cornerData.matchDetails, 7.5),
-        over85: this.calculateOverPercentage(cornerData.matchDetails, 8.5),
-        over95: this.calculateOverPercentage(cornerData.matchDetails, 9.5),
-        over105: this.calculateOverPercentage(cornerData.matchDetails, 10.5),
-        over115: this.calculateOverPercentage(cornerData.matchDetails, 11.5),
+        over15MatchGoals: this.calculateOverPercentage(goalData.matchDetails, 1.5),
+        over25MatchGoals: this.calculateOverPercentage(goalData.matchDetails, 2.5),
+        over35MatchGoals: this.calculateOverPercentage(goalData.matchDetails, 3.5),
+        bothTeamsToScore: this.calculateBothTeamsToScorePercentage(goalData.matchDetails),
       },
-      matchCount: cornerData.matches,
-      recentMatches: cornerData.matchDetails.slice(0, 5) // Last 5 matches
+      matchCount: goalData.matches,
+      recentMatches: goalData.matchDetails.slice(0, 5).map(match => ({
+        opponent: match.opponent,
+        totalGoals: match.totalGoals,
+        goalsFor: match.goalsFor,
+        goalsAgainst: match.goalsAgainst,
+        bothTeamsScored: match.bothTeamsScored,
+        date: match.date
+      }))
     };
   }
 
@@ -285,20 +311,21 @@ export class SupabaseCornersService {
    * Get cache status for debugging
    */
   getCacheStatus() {
-    const sampleTeams = Array.from(this.cornersCache.entries()).slice(0, 3);
+    const sampleTeams = Array.from(this.goalsCache.entries()).slice(0, 3);
     
     return {
-      size: this.cornersCache.size,
+      size: this.goalsCache.size,
       isValid: this.isCacheValid(),
-      cacheTime: this.cornersCacheTime,
-      lastUpdate: this.cornersCacheTime ? new Date(this.cornersCacheTime).toISOString() : null,
-      teams: Array.from(this.cornersCache.keys()),
+      cacheTime: this.goalsCacheTime,
+      lastUpdate: this.goalsCacheTime ? new Date(this.goalsCacheTime).toISOString() : null,
+      teams: Array.from(this.goalsCache.keys()),
       sampleData: sampleTeams.map(([team, data]) => ({
         team,
         matches: data.matches,
-        avgCornersFor: this.calculateAverage(data.corners, data.matches),
-        avgCornersAgainst: this.calculateAverage(data.cornersAgainst, data.matches),
-        over75Percentage: this.calculateOverPercentage(data.matchDetails, 7.5)
+        avgGoalsFor: this.calculateAverage(data.goalsFor, data.matches),
+        avgGoalsAgainst: this.calculateAverage(data.goalsAgainst, data.matches),
+        over25Percentage: this.calculateOverPercentage(data.matchDetails, 2.5),
+        bttsPercentage: this.calculateBothTeamsToScorePercentage(data.matchDetails)
       }))
     };
   }
@@ -308,8 +335,8 @@ export class SupabaseCornersService {
    */
   async refresh(): Promise<void> {
     this.clearCache();
-    await this.getCornerStatistics();
+    await this.getGoalStatistics();
   }
 }
 
-export const supabaseCornersService = new SupabaseCornersService();
+export const supabaseGoalsService = new SupabaseGoalsService();
