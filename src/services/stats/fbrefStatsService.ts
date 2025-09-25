@@ -1,4 +1,4 @@
-// src/services/stats/fbrefStatsService.ts
+// src/services/stats/fbrefStatsService.ts - CLEANED VERSION
 import { fbrefFixtureService, type TeamSeasonStats } from '../fixtures/fbrefFixtureService';
 import { supabaseCornersService, type DetailedCornerStats } from './supabaseCornersService';
 import { supabaseCardsService, type DetailedCardStats } from './supabaseCardsService';
@@ -17,7 +17,7 @@ interface TeamFormData {
 interface TeamStatsData {
   recentForm: TeamFormData;
   
-  // Goals stats (NEW - second after form)
+  // Goals stats
   goalsMatchesPlayed: { homeValue: number; awayValue: number };
   goalsFor: { homeValue: number; awayValue: number };
   goalsAgainst: { homeValue: number; awayValue: number };
@@ -80,9 +80,9 @@ export class FBrefStatsService {
     supabaseCardsService.clearCache();
     supabaseShootingService.clearCache();
     supabaseFoulsService.clearCache();
-    supabaseGoalsService.clearCache(); // Added goals service
+    supabaseGoalsService.clearCache();
     fbrefFixtureService.clearCache();
-    console.log('[FBrefStats] All caches cleared (including goals)');
+    console.log('[FBrefStats] All caches cleared');
   }
 
   setLeague(league: string): void {
@@ -101,41 +101,6 @@ export class FBrefStatsService {
   }
 
   /**
-   * Get team stats from fixture service (form data, W/D/L)
-   */
-  async getTeamStats(teamName: string): Promise<TeamSeasonStats | null> {
-    console.log(`[FBrefStats] Getting team stats for ${teamName} from fixture service...`);
-    return await fbrefFixtureService.getTeamStats(teamName);
-  }
-
-  /**
-   * Enhanced team stats with all Supabase data including goals
-   */
-  async getEnhancedTeamStats(teamName: string): Promise<TeamSeasonStats | null> {
-    const basicStats = await this.getTeamStats(teamName);
-    if (!basicStats) return null;
-
-    try {
-      const cornerData = await supabaseCornersService.getTeamCornerStats(teamName);
-      const goalData = await supabaseGoalsService.getTeamGoalStats(teamName);
-      
-      if (cornerData || goalData) {
-        return {
-          ...basicStats,
-          corners: cornerData?.corners,
-          cornersAgainst: cornerData?.cornersAgainst,
-          goalsFor: goalData?.goalsFor,
-          goalsAgainst: goalData?.goalsAgainst,
-        };
-      }
-    } catch (error) {
-      console.warn(`[FBrefStats] Could not fetch enhanced data for ${teamName}:`, error);
-    }
-
-    return basicStats;
-  }
-
-  /**
    * Calculate average per game
    */
   private calculateAverage(total: number, matches: number): number {
@@ -151,10 +116,11 @@ export class FBrefStatsService {
   }
 
   /**
-   * Main method to get comprehensive match stats with ALL categories including Goals
+   * Main method - the only one that matters!
+   * Gets comprehensive match stats with ALL categories including Goals
    */
   async getMatchStats(homeTeam: string, awayTeam: string): Promise<TeamStatsData> {
-    console.log(`[FBrefStats] Getting complete match stats for ${homeTeam} vs ${awayTeam} from Supabase (with Goals)`);
+    console.log(`[FBrefStats] Getting complete match stats for ${homeTeam} vs ${awayTeam}`);
 
     try {
       // Get team form data from fixture service
@@ -166,22 +132,20 @@ export class FBrefStatsService {
         throw new Error(`Form stats not found for teams: ${homeTeam} vs ${awayTeam}`);
       }
 
-      // Get data from ALL Supabase services including Goals
-      const { homeStats: homeCornerData, awayStats: awayCornerData } = 
-        await supabaseCornersService.getMatchCornerStats(homeTeam, awayTeam);
-      
-      const { homeStats: homeCardData, awayStats: awayCardData } = 
-        await supabaseCardsService.getMatchCardStats(homeTeam, awayTeam);
-
-      const { homeStats: homeShootingData, awayStats: awayShootingData } = 
-        await supabaseShootingService.getMatchShootingStats(homeTeam, awayTeam);
-
-      const { homeStats: homeFoulData, awayStats: awayFoulData } = 
-        await supabaseFoulsService.getMatchFoulStats(homeTeam, awayTeam);
-
-      // NEW: Get goals data
-      const { homeStats: homeGoalData, awayStats: awayGoalData } = 
-        await supabaseGoalsService.getMatchGoalStats(homeTeam, awayTeam);
+      // Get data from ALL Supabase services
+      const [
+        { homeStats: homeCornerData, awayStats: awayCornerData },
+        { homeStats: homeCardData, awayStats: awayCardData },
+        { homeStats: homeShootingData, awayStats: awayShootingData },
+        { homeStats: homeFoulData, awayStats: awayFoulData },
+        { homeStats: homeGoalData, awayStats: awayGoalData }
+      ] = await Promise.all([
+        supabaseCornersService.getMatchCornerStats(homeTeam, awayTeam),
+        supabaseCardsService.getMatchCardStats(homeTeam, awayTeam),
+        supabaseShootingService.getMatchShootingStats(homeTeam, awayTeam),
+        supabaseFoulsService.getMatchFoulStats(homeTeam, awayTeam),
+        supabaseGoalsService.getMatchGoalStats(homeTeam, awayTeam)
+      ]);
 
       // Fallback defaults for missing data
       const defaultCornerData: DetailedCornerStats = {
@@ -194,7 +158,7 @@ export class FBrefStatsService {
 
       const defaultShootingData: DetailedShootingStats = {
         shots: 0, shotsAgainst: 0, shotsOnTarget: 0, shotsOnTargetAgainst: 0,
-        goalsFor: 0, goalsAgainst: 0, matches: homeStats.matchesPlayed, matchDetails: []
+        matches: homeStats.matchesPlayed, matchDetails: []
       };
 
       const defaultFoulData: DetailedFoulStats = {
@@ -218,13 +182,11 @@ export class FBrefStatsService {
       const homeGoals = homeGoalData || defaultGoalData;
       const awayGoals = awayGoalData || defaultGoalData;
 
-      // Log details for debugging
-      console.log(`[FBrefStats] ${homeTeam} complete stats with goals:`, {
-        goals: { avgFor: this.calculateAverage(homeGoals.goalsFor, homeGoals.matches), avgAgainst: this.calculateAverage(homeGoals.goalsAgainst, homeGoals.matches) },
-        corners: { avg: this.calculateAverage(homeCorners.corners, homeCorners.matches) },
-        cards: { avg: this.calculateAverage(homeCards.cardsShown, homeCards.matches) },
-        shooting: { avgShots: this.calculateAverage(homeShooting.shots, homeShooting.matches) },
-        fouls: { avgCommitted: this.calculateAverage(homeFouls.foulsCommitted, homeFouls.matches) }
+      // Log summary for debugging
+      console.log(`[FBrefStats] ${homeTeam} summary:`, {
+        goals: this.calculateAverage(homeGoals.goalsFor, homeGoals.matches),
+        corners: this.calculateAverage(homeCorners.corners, homeCorners.matches),
+        cards: this.calculateAverage(homeCards.cardsShown, homeCards.matches)
       });
 
       return {
@@ -246,7 +208,7 @@ export class FBrefStatsService {
           },
         },
         
-        // NEW: Goals data (second position)
+        // Goals data
         goalsMatchesPlayed: { homeValue: homeGoals.matches, awayValue: awayGoals.matches },
         goalsFor: { 
           homeValue: this.calculateAverage(homeGoals.goalsFor, homeGoals.matches), 
@@ -415,13 +377,13 @@ export class FBrefStatsService {
       };
 
     } catch (error) {
-      console.error('[FBrefStats] Error getting complete match stats with goals:', error);
+      console.error('[FBrefStats] Error getting match stats:', error);
       throw error;
     }
   }
 
   /**
-   * Get detailed breakdowns for specific teams
+   * Individual breakdown methods (for debugging/future use)
    */
   async getTeamCornerBreakdown(teamName: string) {
     return await supabaseCornersService.getTeamCornerBreakdown(teamName);
@@ -439,51 +401,43 @@ export class FBrefStatsService {
     return await supabaseFoulsService.getTeamFoulBreakdown(teamName);
   }
 
-  // NEW: Goals breakdown method
   async getTeamGoalBreakdown(teamName: string) {
     return await supabaseGoalsService.getTeamGoalBreakdown(teamName);
   }
 
   /**
-   * Utility method to refresh ALL data including goals
+   * Utility methods
    */
   async refreshAllData(): Promise<void> {
-    console.log('[FBrefStats] Manually refreshing ALL data including goals...');
+    console.log('[FBrefStats] Refreshing all data...');
     this.clearCache();
     
-    // Force refresh of all services including goals
     await Promise.all([
       supabaseCornersService.refresh(),
       supabaseCardsService.refresh(),
       supabaseShootingService.refresh(),
       supabaseFoulsService.refresh(),
-      supabaseGoalsService.refresh(), // Added goals refresh
+      supabaseGoalsService.refresh(),
       fbrefFixtureService.getAllTeamStats()
     ]);
     
-    console.log('[FBrefStats] ALL data refresh completed (including goals)');
+    console.log('[FBrefStats] All data refresh completed');
   }
 
-  /**
-   * Get comprehensive cache status including goals
-   */
   getCacheStatus() {
     return {
       cornersCache: supabaseCornersService.getCacheStatus(),
       cardsCache: supabaseCardsService.getCacheStatus(),
       shootingCache: supabaseShootingService.getCacheStatus(),
       foulsCache: supabaseFoulsService.getCacheStatus(),
-      goalsCache: supabaseGoalsService.getCacheStatus(), // Added goals cache status
+      goalsCache: supabaseGoalsService.getCacheStatus(),
       currentLeague: this.currentLeague,
       currentSeason: this.currentSeason,
       dataSource: 'Supabase',
-      totalServices: 5 // Updated to 5 services
+      totalServices: 5
     };
   }
 
-  /**
-   * Get summary of all stats including goals for a team
-   */
   async getTeamStatsSummary(teamName: string) {
     try {
       const [corners, cards, shooting, fouls, goals] = await Promise.all([
@@ -491,7 +445,7 @@ export class FBrefStatsService {
         this.getTeamCardBreakdown(teamName),
         this.getTeamShootingBreakdown(teamName),
         this.getTeamFoulBreakdown(teamName),
-        this.getTeamGoalBreakdown(teamName) // Added goals breakdown
+        this.getTeamGoalBreakdown(teamName)
       ]);
 
       return {
