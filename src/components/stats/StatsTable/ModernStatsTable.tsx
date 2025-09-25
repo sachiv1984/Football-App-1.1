@@ -17,22 +17,19 @@ interface StatValue {
   unit?: string;
 }
 
-interface StatsData {
-  recentForm?: FormData;
-  [key: string]: StatValue | FormData | undefined;
-}
-
 interface ModernStatsTableProps {
   homeTeam: Team;
   awayTeam: Team;
-  stats?: StatsData;
+  stats?: Record<string, any>; // Optional override stats
   league?: string;
   season?: string;
   className?: string;
+  // New props for automatic data loading
   autoLoad?: boolean;
   showLoadingState?: boolean;
 }
 
+// Updated to include goals
 type StatCategory = 'form' | 'goals' | 'corners' | 'cards' | 'shooting' | 'fouls';
 
 const FormResult: React.FC<{ result: 'W' | 'D' | 'L' }> = ({ result }) => {
@@ -48,11 +45,7 @@ const FormResult: React.FC<{ result: 'W' | 'D' | 'L' }> = ({ result }) => {
   };
 
   return (
-    <div
-      className={`w-8 h-8 sm:w-10 sm:h-10 rounded border flex items-center justify-center text-xs sm:text-sm font-semibold ${getResultStyle(
-        result
-      )}`}
-    >
+    <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded border flex items-center justify-center text-xs sm:text-sm font-semibold ${getResultStyle(result)}`}>
       {result}
     </div>
   );
@@ -62,20 +55,88 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   homeTeam,
   awayTeam,
   stats: propStats,
-  league = 'Premier League',
-  season = '25/26',
-  className = '',
+  league = "Premier League",
+  season = "25/26",
+  className = "",
   autoLoad = true,
-  showLoadingState = true,
+  showLoadingState = true
 }) => {
   const [activeTab, setActiveTab] = useState<StatCategory>('form');
 
-  const { stats: fetchedStats, loading, error, refetch } = useTeamStats(
-    autoLoad ? homeTeam.name : undefined,
+  // Use the hook to fetch real data
+  const { 
+    stats: fetchedStats, 
+    loading, 
+    error, 
+    refetch 
+  } = useTeamStats(
+    autoLoad ? homeTeam.name : undefined, 
     autoLoad ? awayTeam.name : undefined
   );
 
-  const effectiveStats: StatsData = propStats || (fetchedStats as StatsData) || {};
+  // Updated mock data to include goals
+  const mockStats = {
+    recentForm: {
+      homeResults: ['W', 'L', 'W', 'D', 'W'] as ('W' | 'D' | 'L')[],
+      awayResults: ['L', 'W', 'D', 'W', 'L'] as ('W' | 'D' | 'L')[],
+      homeStats: { matchesPlayed: 28, won: 18, drawn: 6, lost: 4 },
+      awayStats: { matchesPlayed: 28, won: 12, drawn: 8, lost: 8 }
+    },
+    // NEW: Goals mock data
+    goalsMatchesPlayed: { homeValue: 28, awayValue: 28 },
+    goalsFor: { homeValue: 2.1, awayValue: 1.8 },
+    goalsAgainst: { homeValue: 1.2, awayValue: 1.6 },
+    totalGoals: { homeValue: 3.3, awayValue: 3.4 },
+    over15MatchGoals: { homeValue: 85, awayValue: 82 },
+    over25MatchGoals: { homeValue: 68, awayValue: 71 },
+    over35MatchGoals: { homeValue: 43, awayValue: 46 },
+    bothTeamsToScore: { homeValue: 64, awayValue: 68 },
+    
+    // Existing corners data (updated to show averages)
+    cornersMatchesPlayed: { homeValue: 28, awayValue: 28 },
+    cornersTaken: { homeValue: 5.57, awayValue: 4.79 },
+    cornersAgainst: { homeValue: 3.50, awayValue: 5.07 },
+    totalCorners: { homeValue: 9.07, awayValue: 9.86 },
+    over75MatchCorners: { homeValue: 89, awayValue: 82 },
+    over85MatchCorners: { homeValue: 82, awayValue: 75 },
+    over95MatchCorners: { homeValue: 75, awayValue: 68 },
+    over105MatchCorners: { homeValue: 64, awayValue: 57 },
+    over115MatchCorners: { homeValue: 50, awayValue: 43 },
+    
+    // Cards data (updated to show averages)
+    cardsMatchesPlayed: { homeValue: 28, awayValue: 28 },
+    cardsShown: { homeValue: 2.39, awayValue: 1.93 },
+    cardsAgainst: { homeValue: 1.50, awayValue: 2.07 },
+    totalCards: { homeValue: 3.89, awayValue: 4.00 },
+    over05TeamCards: { homeValue: 100, awayValue: 96 },
+    over15TeamCards: { homeValue: 93, awayValue: 89 },
+    over25TeamCards: { homeValue: 79, awayValue: 71 },
+    over35TeamCards: { homeValue: 57, awayValue: 46 },
+    
+    // Shooting data (updated to show averages)
+    shootingMatchesPlayed: { homeValue: 28, awayValue: 28 },
+    shots: { homeValue: 13.50, awayValue: 11.46 },
+    shotsAgainst: { homeValue: 10.25, awayValue: 12.71 },
+    shotsOnTarget: { homeValue: 5.07, awayValue: 4.21 },
+    shotsOnTargetAgainst: { homeValue: 3.50, awayValue: 4.79 },
+    over25TeamShotsOnTarget: { homeValue: 96, awayValue: 89 },
+    over35TeamShotsOnTarget: { homeValue: 89, awayValue: 82 },
+    over45TeamShotsOnTarget: { homeValue: 82, awayValue: 71 },
+    over55TeamShotsOnTarget: { homeValue: 68, awayValue: 57 },
+    
+    // Fouls data (updated to show averages)
+    foulsMatchesPlayed: { homeValue: 28, awayValue: 28 },
+    foulsCommitted: { homeValue: 11.57, awayValue: 10.64 },
+    foulsWon: { homeValue: 9.86, awayValue: 11.14 },
+    totalFouls: { homeValue: 21.43, awayValue: 21.78 },
+    over85TeamFoulsCommitted: { homeValue: 93, awayValue: 86 },
+    over95TeamFoulsCommitted: { homeValue: 86, awayValue: 79 },
+    over105TeamFoulsCommitted: { homeValue: 79, awayValue: 71 },
+    over115TeamFoulsCommitted: { homeValue: 71, awayValue: 64 }
+  };
+
+  // Determine which stats to use: propStats > fetchedStats > mockStats
+  const effectiveStats = propStats || fetchedStats || mockStats;
 
   // Loading state
   if (showLoadingState && autoLoad && loading && !propStats) {
@@ -111,21 +172,23 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     );
   }
 
+  // Updated tabs to include goals
   const tabs: { key: StatCategory; label: string }[] = [
     { key: 'form', label: 'Form' },
-    { key: 'goals', label: 'Goals' },
+    { key: 'goals', label: 'Goals' },        // NEW: Goals tab
     { key: 'corners', label: 'Corners' },
     { key: 'cards', label: 'Cards' },
     { key: 'shooting', label: 'Shooting' },
-    { key: 'fouls', label: 'Fouls' },
+    { key: 'fouls', label: 'Fouls' }
   ];
 
-  const getStatCategoryTitle = (category: StatCategory) => {
+  // Updated to include goals
+  const getStatCategoryTitle = (category: StatCategory): string => {
     switch (category) {
       case 'form':
         return 'Team Form';
       case 'goals':
-        return 'Team Goals';
+        return 'Team Goals';           // NEW
       case 'corners':
         return 'Team Corners';
       case 'cards':
@@ -139,15 +202,92 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     }
   };
 
-  const formatValue = (value: number, unit?: string, isMatchesPlayed?: boolean) => {
-    if (isMatchesPlayed) return value.toString();
-    if (unit === '%') return `${value}%`;
+  // Updated to include goals stats
+  const getStatsForCategory = (category: StatCategory): Record<string, StatValue> => {
+    const getStat = (key: string, unit?: string): StatValue => {
+      const stat = (effectiveStats as any)[key];
+      if (stat && typeof stat === 'object' && 'homeValue' in stat && 'awayValue' in stat) {
+        return { ...stat, unit } as StatValue;
+      }
+      return { homeValue: 0, awayValue: 0, unit };
+    };
+
+    switch (category) {
+      case 'goals':  // NEW: Goals case
+        return {
+          'Matches Played': getStat('goalsMatchesPlayed'),
+          'Goals For': getStat('goalsFor'),
+          'Goals Against': getStat('goalsAgainst'),
+          'Total Goals': getStat('totalGoals'),
+          'Over 1.5 Match Goals': getStat('over15MatchGoals', '%'),
+          'Over 2.5 Match Goals': getStat('over25MatchGoals', '%'),
+          'Over 3.5 Match Goals': getStat('over35MatchGoals', '%'),
+          'Both Teams to Score': getStat('bothTeamsToScore', '%'),
+        };
+      case 'corners':
+        return {
+          'Matches Played': getStat('cornersMatchesPlayed'),
+          'Corners Taken': getStat('cornersTaken'),
+          'Corners Against': getStat('cornersAgainst'),
+          'Total Corners': getStat('totalCorners'),
+          'Over 7.5 Match Corners': getStat('over75MatchCorners', '%'),
+          'Over 8.5 Match Corners': getStat('over85MatchCorners', '%'),
+          'Over 9.5 Match Corners': getStat('over95MatchCorners', '%'),
+          'Over 10.5 Match Corners': getStat('over105MatchCorners', '%'),
+          'Over 11.5 Match Corners': getStat('over115MatchCorners', '%'),
+        };
+      case 'cards':
+        return {
+          'Matches Played': getStat('cardsMatchesPlayed'),
+          'Cards Shown': getStat('cardsShown'),
+          'Cards Against': getStat('cardsAgainst'),
+          'Total Cards': getStat('totalCards'),
+          'Over 0.5 Team Cards': getStat('over05TeamCards', '%'),
+          'Over 1.5 Team Cards': getStat('over15TeamCards', '%'),
+          'Over 2.5 Team Cards': getStat('over25TeamCards', '%'),
+          'Over 3.5 Team Cards': getStat('over35TeamCards', '%'),
+        };
+      case 'shooting':
+        return {
+          'Matches Played': getStat('shootingMatchesPlayed'),
+          'Shots': getStat('shots'),
+          'Shots Against': getStat('shotsAgainst'),
+          'Shots on Target': getStat('shotsOnTarget'),
+          'Shots on Target Against': getStat('shotsOnTargetAgainst'),
+          'Over 2.5 Team Shots on Target': getStat('over25TeamShotsOnTarget', '%'),
+          'Over 3.5 Team Shots on Target': getStat('over35TeamShotsOnTarget', '%'),
+          'Over 4.5 Team Shots on Target': getStat('over45TeamShotsOnTarget', '%'),
+          'Over 5.5 Team Shots on Target': getStat('over55TeamShotsOnTarget', '%'),
+        };
+      case 'fouls':
+        return {
+          'Matches Played': getStat('foulsMatchesPlayed'),
+          'Fouls Committed': getStat('foulsCommitted'),
+          'Fouls Won': getStat('foulsWon'),
+          'Total Fouls': getStat('totalFouls'),
+          'Over 8.5 Team Fouls Committed': getStat('over85TeamFoulsCommitted', '%'),
+          'Over 9.5 Team Fouls Committed': getStat('over95TeamFoulsCommitted', '%'),
+          'Over 10.5 Team Fouls Committed': getStat('over105TeamFoulsCommitted', '%'),
+          'Over 11.5 Team Fouls Committed': getStat('over115TeamFoulsCommitted', '%'),
+        };
+      default:
+        return {};
+    }
+  };
+
+  const formatValue = (value: number, unit?: string, isMatchesPlayed?: boolean): string => {
+    if (isMatchesPlayed) {
+      return value.toString();
+    }
+    if (unit === '%') {
+      return `${value}%`;
+    }
     return value.toFixed(2);
   };
 
   const renderFormContent = () => {
-    const recentForm = effectiveStats.recentForm;
-
+    const recentForm = effectiveStats.recentForm as FormData | undefined;
+    
     if (!recentForm) {
       return (
         <div className="text-center py-8">
@@ -160,98 +300,105 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
     return (
       <div className="space-y-6 sm:space-y-8">
-        {/* Logos & Title */}
-        <div className="flex items-center justify-between mb-6 sm:mb-8 px-4 sm:px-6">
-          {/* Home */}
+        {/* Team logos and title */}
+        <div className="flex items-center justify-between mb-6 sm:mb-8">
           <div className="flex items-center">
             {homeTeam.logo ? (
-              <img src={homeTeam.logo} alt={homeTeam.name} className="w-10 h-10 sm:w-12 sm:h-12 object-contain" />
+              <img src={homeTeam.logo} alt={homeTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
             ) : (
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                <span className="text-gray-600 font-semibold text-sm sm:text-base">
-                  {homeTeam.shortName?.charAt(0) || homeTeam.name.charAt(0)}
-                </span>
+              <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                <span className="text-gray-600 font-semibold text-xs sm:text-sm">{homeTeam.shortName?.charAt(0) || homeTeam.name.charAt(0)}</span>
               </div>
             )}
           </div>
-
+          
           <div className="text-center px-2">
             <h2 className="text-lg sm:text-2xl font-bold text-gray-900">Team Form</h2>
           </div>
-
-          {/* Away */}
+          
           <div className="flex items-center">
             {awayTeam.logo ? (
-              <img src={awayTeam.logo} alt={awayTeam.name} className="w-10 h-10 sm:w-12 sm:h-12 object-contain" />
+              <img src={awayTeam.logo} alt={awayTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
             ) : (
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                <span className="text-gray-600 font-semibold text-sm sm:text-base">
-                  {awayTeam.shortName?.charAt(0) || awayTeam.name.charAt(0)}
-                </span>
+              <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                <span className="text-gray-600 font-semibold text-xs sm:text-sm">{awayTeam.shortName?.charAt(0) || awayTeam.name.charAt(0)}</span>
               </div>
             )}
           </div>
         </div>
 
-        {/* Form Boxes */}
-        <div className="flex justify-between items-center px-4 sm:px-6">
-          <div className="flex space-x-2 sm:space-x-3">
-            {Array.from({ length: 5 - homeResults.length }).map((_, i) => (
-              <div key={i} className="w-8 h-8 sm:w-10 sm:h-10 rounded border border-gray-200 bg-gray-50"></div>
+        {/* Form display */}
+        <div className="flex justify-between items-center mb-6 sm:mb-8 px-2 sm:px-0">
+          {/* Home team form */}
+          <div className="flex space-x-1 sm:space-x-2">
+            {Array.from({ length: 5 - homeResults.length }).map((_, index) => (
+              <div key={`empty-home-${index}`} className="w-6 h-6 sm:w-8 sm:h-8 rounded border border-gray-200 bg-gray-50"></div>
             ))}
-            {homeResults.map((result, i) => (
-              <FormResult key={i} result={result} />
+            {homeResults.map((result, index) => (
+              <FormResult key={`home-${index}`} result={result} />
             ))}
           </div>
 
-          <div className="text-center px-4">
+          {/* Center form label */}
+          <div className="text-center px-2 sm:px-4">
             <span className="text-sm sm:text-lg font-medium text-gray-700">Form</span>
           </div>
 
-          <div className="flex space-x-2 sm:space-x-3">
-            {awayResults.map((result, i) => (
-              <FormResult key={i} result={result} />
+          {/* Away team form */}
+          <div className="flex space-x-1 sm:space-x-2">
+            {awayResults.map((result, index) => (
+              <FormResult key={`away-${index}`} result={result} />
             ))}
-            {Array.from({ length: 5 - awayResults.length }).map((_, i) => (
-              <div key={i} className="w-8 h-8 sm:w-10 sm:h-10 rounded border border-gray-200 bg-gray-50"></div>
+            {Array.from({ length: 5 - awayResults.length }).map((_, index) => (
+              <div key={`empty-away-${index}`} className="w-6 h-6 sm:w-8 sm:h-8 rounded border border-gray-200 bg-gray-50"></div>
             ))}
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="space-y-3 sm:space-y-4 px-4 sm:px-6">
-          {[
-            { label: 'Matches Played', home: homeStats.matchesPlayed, away: awayStats.matchesPlayed },
-            { label: 'Won', home: homeStats.won, away: awayStats.won },
-            { label: 'Drawn', home: homeStats.drawn, away: awayStats.drawn },
-            { label: 'Lost', home: homeStats.lost, away: awayStats.lost },
-          ].map((stat) => (
-            <div
-              key={stat.label}
-              className="flex justify-between items-center border-b border-gray-100 py-2 sm:py-3 transition-colors hover:bg-gray-50 rounded"
-            >
-              <span className="text-lg sm:text-2xl font-medium text-gray-900 flex-shrink-0 w-16 text-left">{stat.home}</span>
-              <span className="text-sm sm:text-lg font-medium text-gray-700 text-center flex-1">{stat.label}</span>
-              <span className="text-lg sm:text-2xl font-medium text-gray-900 flex-shrink-0 w-16 text-right">{stat.away}</span>
-            </div>
-          ))}
+        {/* Stats comparison */}
+        <div className="space-y-4 sm:space-y-6">
+          <div className="flex justify-between items-center">
+            <span className="text-lg sm:text-2xl font-medium text-gray-900 min-w-0">{homeStats.matchesPlayed}</span>
+            <span className="text-sm sm:text-lg font-medium text-gray-700 text-center px-2 flex-1">Matches Played</span>
+            <span className="text-lg sm:text-2xl font-medium text-gray-900 min-w-0">{awayStats.matchesPlayed}</span>
+          </div>
+
+          <div className="flex justify-between items-center">
+            <span className="text-lg sm:text-2xl font-medium text-gray-900 min-w-0">{homeStats.won}</span>
+            <span className="text-sm sm:text-lg font-medium text-gray-700 text-center px-2 flex-1">Won</span>
+            <span className="text-lg sm:text-2xl font-medium text-gray-900 min-w-0">{awayStats.won}</span>
+          </div>
+
+          <div className="flex justify-between items-center">
+            <span className="text-lg sm:text-2xl font-medium text-gray-900 min-w-0">{homeStats.drawn}</span>
+            <span className="text-sm sm:text-lg font-medium text-gray-700 text-center px-2 flex-1">Drawn</span>
+            <span className="text-lg sm:text-2xl font-medium text-gray-900 min-w-0">{awayStats.drawn}</span>
+          </div>
+
+          <div className="flex justify-between items-center">
+            <span className="text-lg sm:text-2xl font-medium text-gray-900 min-w-0">{homeStats.lost}</span>
+            <span className="text-sm sm:text-lg font-medium text-gray-700 text-center px-2 flex-1">Lost</span>
+            <span className="text-lg sm:text-2xl font-medium text-gray-900 min-w-0">{awayStats.lost}</span>
+          </div>
         </div>
       </div>
     );
   };
 
+  const currentStats = getStatsForCategory(activeTab);
+
   return (
     <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
-      {/* Tabs */}
+      {/* Header with navigation tabs */}
       <div className="flex border-b border-gray-200 bg-gray-50 overflow-x-auto scrollbar-hide w-full">
         {tabs.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex-1 px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+            className={`flex-1 px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
               activeTab === tab.key
-                ? 'text-purple-600 border-purple-600 bg-white font-semibold'
-                : 'text-gray-600 border-transparent hover:text-gray-700 hover:border-gray-300'
+                ? 'text-purple-600 border-purple-600 bg-white'
+                : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
             }`}
           >
             {tab.label}
@@ -259,8 +406,8 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
         ))}
       </div>
 
-      {/* League Indicator */}
-      <div className="px-4 sm:px-6 py-2 sm:py-3 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
+      {/* League indicator */}
+      <div className="px-3 sm:px-6 py-2 sm:py-3 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
         <p className="text-xs sm:text-sm text-gray-600">
           Showing stats for {league} {season}
         </p>
@@ -272,10 +419,62 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
       </div>
 
       {/* Content */}
-      <div className="p-4 sm:p-6 transition-opacity duration-300 ease-in-out opacity-100">
-        {activeTab === 'form' ? renderFormContent() : (
-          <div className="space-y-6 sm:space-y-8 px-0 sm:px-0">
-            {/* Add stats rendering for other tabs here */}
+      <div className="p-3 sm:p-6">
+        {activeTab === 'form' ? (
+          renderFormContent()
+        ) : (
+          <div className="space-y-6 sm:space-y-8">
+            {/* Team logos and title */}
+            <div className="flex items-center justify-between mb-6 sm:mb-8">
+              <div className="flex items-center">
+                {homeTeam.logo ? (
+                  <img src={homeTeam.logo} alt={homeTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
+                ) : (
+                  <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                    <span className="text-gray-600 font-semibold text-xs sm:text-sm">{homeTeam.shortName?.charAt(0) || homeTeam.name.charAt(0)}</span>
+                  </div>
+                )}
+              </div>
+              
+              <div className="text-center px-2">
+                <h2 className="text-lg sm:text-2xl font-bold text-gray-900">{getStatCategoryTitle(activeTab)}</h2>
+              </div>
+              
+              <div className="flex items-center">
+                {awayTeam.logo ? (
+                  <img src={awayTeam.logo} alt={awayTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
+                ) : (
+                  <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                    <span className="text-gray-600 font-semibold text-xs sm:text-sm">{awayTeam.shortName?.charAt(0) || awayTeam.name.charAt(0)}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Stats comparison */}
+            <div className="space-y-4 sm:space-y-6">
+              {Object.entries(currentStats).map(([statName, statData]) => {
+                const isMatchesPlayed = statName === 'Matches Played';
+                return (
+                  <div key={statName} className="flex justify-between items-center">
+                    <span className="text-lg sm:text-2xl font-medium text-gray-900 min-w-0 flex-shrink-0 w-16 sm:w-auto text-left">
+                      {formatValue(statData.homeValue, statData.unit, isMatchesPlayed)}
+                    </span>
+                    <div className="text-center px-2 sm:px-4 flex-1 min-w-0">
+                      <span className="text-sm sm:text-lg font-medium text-gray-700 block leading-tight">{statName}</span>
+                      {statData.leagueAverage && (
+                        <div className="text-xs sm:text-sm text-gray-500 mt-1">
+                          Avg: {formatValue(statData.leagueAverage, statData.unit, isMatchesPlayed)}
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-lg sm:text-2xl font-medium text-gray-900 min-w-0 flex-shrink-0 w-16 sm:w-auto text-right">
+                      {formatValue(statData.awayValue, statData.unit, isMatchesPlayed)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
