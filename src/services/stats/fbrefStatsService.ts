@@ -4,6 +4,7 @@ import { supabaseCornersService, type DetailedCornerStats } from './supabaseCorn
 import { supabaseCardsService, type DetailedCardStats } from './supabaseCardsService';
 import { supabaseShootingService, type DetailedShootingStats } from './supabaseShootingService';
 import { supabaseFoulsService, type DetailedFoulStats } from './supabaseFoulsService';
+import { supabaseGoalsService, type DetailedGoalStats } from './supabaseGoalsService';
 import { normalizeTeamName } from '../../utils/teamUtils';
 
 interface TeamFormData {
@@ -15,6 +16,16 @@ interface TeamFormData {
 
 interface TeamStatsData {
   recentForm: TeamFormData;
+  
+  // Goals stats (NEW - second after form)
+  goalsMatchesPlayed: { homeValue: number; awayValue: number };
+  goalsFor: { homeValue: number; awayValue: number };
+  goalsAgainst: { homeValue: number; awayValue: number };
+  totalGoals: { homeValue: number; awayValue: number };
+  over15MatchGoals: { homeValue: number; awayValue: number };
+  over25MatchGoals: { homeValue: number; awayValue: number };
+  over35MatchGoals: { homeValue: number; awayValue: number };
+  bothTeamsToScore: { homeValue: number; awayValue: number };
   
   // Corners stats
   cornersMatchesPlayed: { homeValue: number; awayValue: number };
@@ -69,8 +80,9 @@ export class FBrefStatsService {
     supabaseCardsService.clearCache();
     supabaseShootingService.clearCache();
     supabaseFoulsService.clearCache();
+    supabaseGoalsService.clearCache(); // Added goals service
     fbrefFixtureService.clearCache();
-    console.log('[FBrefStats] All caches cleared');
+    console.log('[FBrefStats] All caches cleared (including goals)');
   }
 
   setLeague(league: string): void {
@@ -97,7 +109,7 @@ export class FBrefStatsService {
   }
 
   /**
-   * Enhanced team stats with all Supabase data
+   * Enhanced team stats with all Supabase data including goals
    */
   async getEnhancedTeamStats(teamName: string): Promise<TeamSeasonStats | null> {
     const basicStats = await this.getTeamStats(teamName);
@@ -105,13 +117,19 @@ export class FBrefStatsService {
 
     try {
       const cornerData = await supabaseCornersService.getTeamCornerStats(teamName);
-      if (cornerData) {
+      const goalData = await supabaseGoalsService.getTeamGoalStats(teamName);
+      
+      if (cornerData || goalData) {
         return {
           ...basicStats,
+          corners: cornerData?.corners,
+          cornersAgainst: cornerData?.cornersAgainst,
+          goalsFor: goalData?.goalsFor,
+          goalsAgainst: goalData?.goalsAgainst,
         };
       }
     } catch (error) {
-      console.warn(`[FBrefStats] Could not fetch corner data for ${teamName}:`, error);
+      console.warn(`[FBrefStats] Could not fetch enhanced data for ${teamName}:`, error);
     }
 
     return basicStats;
@@ -133,10 +151,10 @@ export class FBrefStatsService {
   }
 
   /**
-   * Main method to get comprehensive match stats using ALL Supabase data
+   * Main method to get comprehensive match stats with ALL categories including Goals
    */
   async getMatchStats(homeTeam: string, awayTeam: string): Promise<TeamStatsData> {
-    console.log(`[FBrefStats] Getting complete match stats for ${homeTeam} vs ${awayTeam} from Supabase`);
+    console.log(`[FBrefStats] Getting complete match stats for ${homeTeam} vs ${awayTeam} from Supabase (with Goals)`);
 
     try {
       // Get team form data from fixture service
@@ -148,7 +166,7 @@ export class FBrefStatsService {
         throw new Error(`Form stats not found for teams: ${homeTeam} vs ${awayTeam}`);
       }
 
-      // Get data from ALL Supabase services
+      // Get data from ALL Supabase services including Goals
       const { homeStats: homeCornerData, awayStats: awayCornerData } = 
         await supabaseCornersService.getMatchCornerStats(homeTeam, awayTeam);
       
@@ -161,6 +179,10 @@ export class FBrefStatsService {
       const { homeStats: homeFoulData, awayStats: awayFoulData } = 
         await supabaseFoulsService.getMatchFoulStats(homeTeam, awayTeam);
 
+      // NEW: Get goals data
+      const { homeStats: homeGoalData, awayStats: awayGoalData } = 
+        await supabaseGoalsService.getMatchGoalStats(homeTeam, awayTeam);
+
       // Fallback defaults for missing data
       const defaultCornerData: DetailedCornerStats = {
         corners: 0, cornersAgainst: 0, matches: homeStats.matchesPlayed, matchDetails: []
@@ -172,12 +194,16 @@ export class FBrefStatsService {
 
       const defaultShootingData: DetailedShootingStats = {
         shots: 0, shotsAgainst: 0, shotsOnTarget: 0, shotsOnTargetAgainst: 0,
-        matches: homeStats.matchesPlayed, matchDetails: []
+        goalsFor: 0, goalsAgainst: 0, matches: homeStats.matchesPlayed, matchDetails: []
       };
 
       const defaultFoulData: DetailedFoulStats = {
         foulsCommitted: 0, foulsWon: 0, foulsAgainst: 0, foulsLost: 0,
         matches: homeStats.matchesPlayed, matchDetails: []
+      };
+
+      const defaultGoalData: DetailedGoalStats = {
+        goalsFor: 0, goalsAgainst: 0, matches: homeStats.matchesPlayed, matchDetails: []
       };
 
       // Use actual data or fallback to defaults
@@ -189,9 +215,12 @@ export class FBrefStatsService {
       const awayShooting = awayShootingData || defaultShootingData;
       const homeFouls = homeFoulData || defaultFoulData;
       const awayFouls = awayFoulData || defaultFoulData;
+      const homeGoals = homeGoalData || defaultGoalData;
+      const awayGoals = awayGoalData || defaultGoalData;
 
       // Log details for debugging
-      console.log(`[FBrefStats] ${homeTeam} complete stats:`, {
+      console.log(`[FBrefStats] ${homeTeam} complete stats with goals:`, {
+        goals: { avgFor: this.calculateAverage(homeGoals.goalsFor, homeGoals.matches), avgAgainst: this.calculateAverage(homeGoals.goalsAgainst, homeGoals.matches) },
         corners: { avg: this.calculateAverage(homeCorners.corners, homeCorners.matches) },
         cards: { avg: this.calculateAverage(homeCards.cardsShown, homeCards.matches) },
         shooting: { avgShots: this.calculateAverage(homeShooting.shots, homeShooting.matches) },
@@ -215,6 +244,37 @@ export class FBrefStatsService {
             drawn: awayStats.drawn, 
             lost: awayStats.lost 
           },
+        },
+        
+        // NEW: Goals data (second position)
+        goalsMatchesPlayed: { homeValue: homeGoals.matches, awayValue: awayGoals.matches },
+        goalsFor: { 
+          homeValue: this.calculateAverage(homeGoals.goalsFor, homeGoals.matches), 
+          awayValue: this.calculateAverage(awayGoals.goalsFor, awayGoals.matches)
+        },
+        goalsAgainst: { 
+          homeValue: this.calculateAverage(homeGoals.goalsAgainst, homeGoals.matches), 
+          awayValue: this.calculateAverage(awayGoals.goalsAgainst, awayGoals.matches)
+        },
+        totalGoals: { 
+          homeValue: this.calculateAverage(homeGoals.goalsFor + homeGoals.goalsAgainst, homeGoals.matches), 
+          awayValue: this.calculateAverage(awayGoals.goalsFor + awayGoals.goalsAgainst, awayGoals.matches)
+        },
+        over15MatchGoals: { 
+          homeValue: supabaseGoalsService.calculateOverPercentage(homeGoals.matchDetails, 1.5), 
+          awayValue: supabaseGoalsService.calculateOverPercentage(awayGoals.matchDetails, 1.5)
+        },
+        over25MatchGoals: { 
+          homeValue: supabaseGoalsService.calculateOverPercentage(homeGoals.matchDetails, 2.5), 
+          awayValue: supabaseGoalsService.calculateOverPercentage(awayGoals.matchDetails, 2.5)
+        },
+        over35MatchGoals: { 
+          homeValue: supabaseGoalsService.calculateOverPercentage(homeGoals.matchDetails, 3.5), 
+          awayValue: supabaseGoalsService.calculateOverPercentage(awayGoals.matchDetails, 3.5)
+        },
+        bothTeamsToScore: { 
+          homeValue: supabaseGoalsService.calculateBothTeamsToScorePercentage(homeGoals.matchDetails), 
+          awayValue: supabaseGoalsService.calculateBothTeamsToScorePercentage(awayGoals.matchDetails)
         },
         
         // Corner data
@@ -355,7 +415,7 @@ export class FBrefStatsService {
       };
 
     } catch (error) {
-      console.error('[FBrefStats] Error getting complete match stats:', error);
+      console.error('[FBrefStats] Error getting complete match stats with goals:', error);
       throw error;
     }
   }
@@ -379,27 +439,33 @@ export class FBrefStatsService {
     return await supabaseFoulsService.getTeamFoulBreakdown(teamName);
   }
 
+  // NEW: Goals breakdown method
+  async getTeamGoalBreakdown(teamName: string) {
+    return await supabaseGoalsService.getTeamGoalBreakdown(teamName);
+  }
+
   /**
-   * Utility method to refresh ALL data manually
+   * Utility method to refresh ALL data including goals
    */
   async refreshAllData(): Promise<void> {
-    console.log('[FBrefStats] Manually refreshing ALL data...');
+    console.log('[FBrefStats] Manually refreshing ALL data including goals...');
     this.clearCache();
     
-    // Force refresh of all services
+    // Force refresh of all services including goals
     await Promise.all([
       supabaseCornersService.refresh(),
       supabaseCardsService.refresh(),
       supabaseShootingService.refresh(),
       supabaseFoulsService.refresh(),
+      supabaseGoalsService.refresh(), // Added goals refresh
       fbrefFixtureService.getAllTeamStats()
     ]);
     
-    console.log('[FBrefStats] ALL data refresh completed');
+    console.log('[FBrefStats] ALL data refresh completed (including goals)');
   }
 
   /**
-   * Get comprehensive cache status for debugging
+   * Get comprehensive cache status including goals
    */
   getCacheStatus() {
     return {
@@ -407,27 +473,35 @@ export class FBrefStatsService {
       cardsCache: supabaseCardsService.getCacheStatus(),
       shootingCache: supabaseShootingService.getCacheStatus(),
       foulsCache: supabaseFoulsService.getCacheStatus(),
+      goalsCache: supabaseGoalsService.getCacheStatus(), // Added goals cache status
       currentLeague: this.currentLeague,
       currentSeason: this.currentSeason,
       dataSource: 'Supabase',
-      totalServices: 4
+      totalServices: 5 // Updated to 5 services
     };
   }
 
   /**
-   * Get summary of all stats for a team (useful for debugging)
+   * Get summary of all stats including goals for a team
    */
   async getTeamStatsSummary(teamName: string) {
     try {
-      const [corners, cards, shooting, fouls] = await Promise.all([
+      const [corners, cards, shooting, fouls, goals] = await Promise.all([
         this.getTeamCornerBreakdown(teamName),
         this.getTeamCardBreakdown(teamName),
         this.getTeamShootingBreakdown(teamName),
-        this.getTeamFoulBreakdown(teamName)
+        this.getTeamFoulBreakdown(teamName),
+        this.getTeamGoalBreakdown(teamName) // Added goals breakdown
       ]);
 
       return {
         team: teamName,
+        goals: goals ? {
+          avgFor: goals.averages.goalsFor,
+          avgAgainst: goals.averages.goalsAgainst,
+          over25: goals.percentages.over25MatchGoals,
+          btts: goals.percentages.bothTeamsToScore
+        } : null,
         corners: corners ? {
           avgFor: corners.averages.cornersFor,
           avgAgainst: corners.averages.cornersAgainst,
