@@ -29,7 +29,8 @@ interface ModernStatsTableProps {
   showLoadingState?: boolean;
 }
 
-type StatCategory = 'form' | 'corners' | 'cards' | 'shooting' | 'fouls';
+// Updated to include goals
+type StatCategory = 'form' | 'goals' | 'corners' | 'cards' | 'shooting' | 'fouls';
 
 const FormResult: React.FC<{ result: 'W' | 'D' | 'L' }> = ({ result }) => {
   const getResultStyle = (result: 'W' | 'D' | 'L') => {
@@ -73,7 +74,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     autoLoad ? awayTeam.name : undefined
   );
 
-  // Mock data fallback (same as before)
+  // Updated mock data to include goals
   const mockStats = {
     recentForm: {
       homeResults: ['W', 'L', 'W', 'D', 'W'] as ('W' | 'D' | 'L')[],
@@ -81,36 +82,53 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
       homeStats: { matchesPlayed: 28, won: 18, drawn: 6, lost: 4 },
       awayStats: { matchesPlayed: 28, won: 12, drawn: 8, lost: 8 }
     },
+    // NEW: Goals mock data
+    goalsMatchesPlayed: { homeValue: 28, awayValue: 28 },
+    goalsFor: { homeValue: 2.1, awayValue: 1.8 },
+    goalsAgainst: { homeValue: 1.2, awayValue: 1.6 },
+    totalGoals: { homeValue: 3.3, awayValue: 3.4 },
+    over15MatchGoals: { homeValue: 85, awayValue: 82 },
+    over25MatchGoals: { homeValue: 68, awayValue: 71 },
+    over35MatchGoals: { homeValue: 43, awayValue: 46 },
+    bothTeamsToScore: { homeValue: 64, awayValue: 68 },
+    
+    // Existing corners data (updated to show averages)
     cornersMatchesPlayed: { homeValue: 28, awayValue: 28 },
-    cornersTaken: { homeValue: 156.00, awayValue: 134.00 },
-    cornersAgainst: { homeValue: 98.00, awayValue: 142.00 },
-    totalCorners: { homeValue: 254.00, awayValue: 276.00 },
+    cornersTaken: { homeValue: 5.57, awayValue: 4.79 },
+    cornersAgainst: { homeValue: 3.50, awayValue: 5.07 },
+    totalCorners: { homeValue: 9.07, awayValue: 9.86 },
     over75MatchCorners: { homeValue: 89, awayValue: 82 },
     over85MatchCorners: { homeValue: 82, awayValue: 75 },
     over95MatchCorners: { homeValue: 75, awayValue: 68 },
     over105MatchCorners: { homeValue: 64, awayValue: 57 },
     over115MatchCorners: { homeValue: 50, awayValue: 43 },
+    
+    // Cards data (updated to show averages)
     cardsMatchesPlayed: { homeValue: 28, awayValue: 28 },
-    cardsShown: { homeValue: 67.00, awayValue: 54.00 },
-    cardsAgainst: { homeValue: 42.00, awayValue: 58.00 },
-    totalCards: { homeValue: 109.00, awayValue: 112.00 },
+    cardsShown: { homeValue: 2.39, awayValue: 1.93 },
+    cardsAgainst: { homeValue: 1.50, awayValue: 2.07 },
+    totalCards: { homeValue: 3.89, awayValue: 4.00 },
     over05TeamCards: { homeValue: 100, awayValue: 96 },
     over15TeamCards: { homeValue: 93, awayValue: 89 },
     over25TeamCards: { homeValue: 79, awayValue: 71 },
     over35TeamCards: { homeValue: 57, awayValue: 46 },
+    
+    // Shooting data (updated to show averages)
     shootingMatchesPlayed: { homeValue: 28, awayValue: 28 },
-    shots: { homeValue: 378.00, awayValue: 321.00 },
-    shotsAgainst: { homeValue: 287.00, awayValue: 356.00 },
-    shotsOnTarget: { homeValue: 142.00, awayValue: 118.00 },
-    shotsOnTargetAgainst: { homeValue: 98.00, awayValue: 134.00 },
+    shots: { homeValue: 13.50, awayValue: 11.46 },
+    shotsAgainst: { homeValue: 10.25, awayValue: 12.71 },
+    shotsOnTarget: { homeValue: 5.07, awayValue: 4.21 },
+    shotsOnTargetAgainst: { homeValue: 3.50, awayValue: 4.79 },
     over25TeamShotsOnTarget: { homeValue: 96, awayValue: 89 },
     over35TeamShotsOnTarget: { homeValue: 89, awayValue: 82 },
     over45TeamShotsOnTarget: { homeValue: 82, awayValue: 71 },
     over55TeamShotsOnTarget: { homeValue: 68, awayValue: 57 },
+    
+    // Fouls data (updated to show averages)
     foulsMatchesPlayed: { homeValue: 28, awayValue: 28 },
-    foulsCommitted: { homeValue: 324.00, awayValue: 298.00 },
-    foulsWon: { homeValue: 276.00, awayValue: 312.00 },
-    totalFouls: { homeValue: 600.00, awayValue: 610.00 },
+    foulsCommitted: { homeValue: 11.57, awayValue: 10.64 },
+    foulsWon: { homeValue: 9.86, awayValue: 11.14 },
+    totalFouls: { homeValue: 21.43, awayValue: 21.78 },
     over85TeamFoulsCommitted: { homeValue: 93, awayValue: 86 },
     over95TeamFoulsCommitted: { homeValue: 86, awayValue: 79 },
     over105TeamFoulsCommitted: { homeValue: 79, awayValue: 71 },
@@ -154,18 +172,23 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     );
   }
 
+  // Updated tabs to include goals
   const tabs: { key: StatCategory; label: string }[] = [
     { key: 'form', label: 'Form' },
+    { key: 'goals', label: 'Goals' },        // NEW: Goals tab
     { key: 'corners', label: 'Corners' },
     { key: 'cards', label: 'Cards' },
     { key: 'shooting', label: 'Shooting' },
     { key: 'fouls', label: 'Fouls' }
   ];
 
+  // Updated to include goals
   const getStatCategoryTitle = (category: StatCategory): string => {
     switch (category) {
       case 'form':
         return 'Team Form';
+      case 'goals':
+        return 'Team Goals';           // NEW
       case 'corners':
         return 'Team Corners';
       case 'cards':
@@ -179,6 +202,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     }
   };
 
+  // Updated to include goals stats
   const getStatsForCategory = (category: StatCategory): Record<string, StatValue> => {
     const getStat = (key: string, unit?: string): StatValue => {
       const stat = (effectiveStats as any)[key];
@@ -189,6 +213,17 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     };
 
     switch (category) {
+      case 'goals':  // NEW: Goals case
+        return {
+          'Matches Played': getStat('goalsMatchesPlayed'),
+          'Goals For': getStat('goalsFor'),
+          'Goals Against': getStat('goalsAgainst'),
+          'Total Goals': getStat('totalGoals'),
+          'Over 1.5 Match Goals': getStat('over15MatchGoals', '%'),
+          'Over 2.5 Match Goals': getStat('over25MatchGoals', '%'),
+          'Over 3.5 Match Goals': getStat('over35MatchGoals', '%'),
+          'Both Teams to Score': getStat('bothTeamsToScore', '%'),
+        };
       case 'corners':
         return {
           'Matches Played': getStat('cornersMatchesPlayed'),
