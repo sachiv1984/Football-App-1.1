@@ -102,7 +102,21 @@ export class FBrefStatsService {
   async getEnhancedTeamStats(teamName: string): Promise<TeamSeasonStats | null> {
     const basicStats = await this.getTeamStats(teamName);
     if (!basicStats) return null;
-    
+
+    try {
+      const cornerData = await supabaseCornersService.getTeamCornerStats(teamName);
+      if (cornerData) {
+        return {
+          ...basicStats,
+        };
+      }
+    } catch (error) {
+      console.warn(`[FBrefStats] Could not fetch corner data for ${teamName}:`, error);
+    }
+
+    return basicStats;
+  }
+
   /**
    * Calculate average per game
    */
