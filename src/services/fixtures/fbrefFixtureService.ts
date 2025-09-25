@@ -10,12 +10,6 @@ export interface TeamSeasonStats {
   won: number;
   drawn: number;
   lost: number;
-  //corners?: number; 
-  //cornersAgainst?: number;
-  goalsFor?: number;
-  goalsAgainst?: number;
-  points?: number;
-  // ... any other stats your fbrefStatsService expects
 }
 
 interface SupabaseFixture {
