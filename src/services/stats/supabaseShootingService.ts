@@ -345,3 +345,5 @@ export class SupabaseShootingService {
     await this.getShootingStatistics();
   }
 }
+
+export const supabaseShootingService = new SupabaseShootingService();
