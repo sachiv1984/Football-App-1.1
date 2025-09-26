@@ -145,14 +145,21 @@ private extractTables($: cheerio.CheerioAPI): TableData[] {
                 `Table ${tables.length + 1}`;
     }
 
-    // Extract headers (all th and td in first row if <thead> missing)
-    const headers: string[] = [];
-    const $thead = $table.find('thead');
-    if ($thead.length > 0) {
-      $thead.find('th, td').each((_, h) => headers.push($(h).text().trim()));
-    } else {
-      $table.find('tr:first th, tr:first td').each((_, h) => headers.push($(h).text().trim()));
-    }
+   // Extract headers (all th and td in first row if <thead> missing)
+const headers: string[] = [];
+const $thead = $table.find('thead');
+if ($thead.length > 0) {
+  $thead.find('th, td').each((_, h) => {
+    headers.push($(h).text().trim());
+    return; // explicitly void
+  });
+} else {
+  $table.find('tr:first th, tr:first td').each((_, h) => {
+    headers.push($(h).text().trim());
+    return; // explicitly void
+  });
+}
+
 
     // Extract all rows
     const rows: (string | CellData)[][] = [];
