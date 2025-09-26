@@ -296,15 +296,22 @@ class FixturesScraper {
     // If no explicit headers found, use common FBref patterns
     if (Object.keys(columnMap).length < 3) {
       console.log('🔍 No clear headers found, using positional mapping...');
-      // Common pattern: Day | Date | Time | Home | xG | Score | xG | Away | ...
-      if (headers.length >= 8) {
+      // Actual pattern based on debug: Week | Day | Date | Time | Home | xG | Score | xG | Away | Attendance | Venue | Referee | Report | Notes
+      if (headers.length >= 9) {
+        columnMap.date = 2;   // Date column
+        columnMap.time = 3;   // Time column  
+        columnMap.home = 4;   // Home team column
+        columnMap.score = 6;  // Score column
+        columnMap.away = 8;   // Away team column
+        if (headers.length > 10) columnMap.venue = 10;   // Venue
+        if (headers.length > 11) columnMap.referee = 11; // Referee
+      } else if (headers.length >= 8) {
+        // Fallback for 8+ columns
         columnMap.date = 1;
         columnMap.time = 2;
         columnMap.home = 3;
         columnMap.score = 5;
         columnMap.away = 7;
-        if (headers.length > 9) columnMap.venue = 9;
-        if (headers.length > 10) columnMap.referee = 10;
       }
     }
 
@@ -318,13 +325,13 @@ class FixturesScraper {
       return typeof cell === 'object' ? cell.text : cell;
     };
 
-    const date = getCellText(columnMap.date || 1).trim();
-    const time = getCellText(columnMap.time || 2).trim();
-    const homeTeam = getCellText(columnMap.home || 3).trim();
-    const awayTeam = getCellText(columnMap.away || 7).trim();
-    const score = getCellText(columnMap.score || 5).trim();
-    const venue = getCellText(columnMap.venue || 9).trim();
-    const referee = getCellText(columnMap.referee || 10).trim();
+    const date = getCellText(columnMap.date || 2).trim();      // Column 2: Date
+    const time = getCellText(columnMap.time || 3).trim();      // Column 3: Time
+    const homeTeam = getCellText(columnMap.home || 4).trim();  // Column 4: Home team
+    const awayTeam = getCellText(columnMap.away || 8).trim();  // Column 8: Away team
+    const score = getCellText(columnMap.score || 6).trim();    // Column 6: Score
+    const venue = getCellText(columnMap.venue || 10).trim();   // Column 10: Venue
+    const referee = getCellText(columnMap.referee || 11).trim(); // Column 11: Referee
 
     // Validate required fields
     if (!date || !homeTeam || !awayTeam) {
