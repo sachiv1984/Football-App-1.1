@@ -130,59 +130,89 @@ class FixturesScraper {
     return response.text();
   }
 
-  private extractTables($: cheerio.CheerioAPI): TableData[] {
-    const tables: TableData[] = [];
-    $('table').each((_, el) => {
-      const $table = $(el);
-      const id = $table.attr('id') || `table-${tables.length}`;
-      let caption = $table.find('caption').text().trim() || $table.prev('h2').text().trim() || `Table ${tables.length + 1}`;
-      const headers: string[] = [];
-      $table.find('thead th, thead td').each((_, h) => {
-      headers.push($(h).text().trim());
+private extractTables($: cheerio.CheerioAPI): TableData[] {
+  const tables: TableData[] = [];
+
+  $('table').each((_, tableElement) => {
+    const $table = $(tableElement);
+    const id = $table.attr('id') || `table-${tables.length}`;
+
+    // Get table caption/title
+    let caption = $table.find('caption').text().trim();
+    if (!caption) {
+      caption = $table.prev('h2, h3').text().trim() ||
+                $table.closest('div').find('h2, h3').first().text().trim() ||
+                `Table ${tables.length + 1}`;
+    }
+
+    // Extract headers (all th and td in first row if <thead> missing)
+    const headers: string[] = [];
+    const $thead = $table.find('thead');
+    if ($thead.length > 0) {
+      $thead.find('th, td').each((_, h) => headers.push($(h).text().trim()));
+    } else {
+      $table.find('tr:first th, tr:first td').each((_, h) => headers.push($(h).text().trim()));
+    }
+
+    // Extract all rows
+    const rows: (string | CellData)[][] = [];
+    $table.find('tbody tr, tr').each((_, rowElement) => {
+      const $row = $(rowElement);
+      const rowData: (string | CellData)[] = [];
+
+      $row.find('td, th').each((_, cellElement) => {
+        const $cell = $(cellElement);
+        const text = $cell.text().trim();
+        const link = $cell.find('a').attr('href');
+
+        if (link && link.startsWith('/')) {
+          rowData.push({ text, link: `https://fbref.com${link}` });
+        } else if (link && link.startsWith('http')) {
+          rowData.push({ text, link });
+        } else {
+          rowData.push(text);
+        }
       });
-      const rows: (string | CellData)[][] = [];
-      $table.find('tbody tr').each((_, r) => {
-        const row: (string | CellData)[] = [];
-        $(r).find('td, th').each((_, c) => {
-          const $c = $(c);
-          const text = $c.text().trim();
-          const link = $c.find('a').attr('href');
-          if (link) row.push({ text, link: link.startsWith('/') ? `${FIXTURES_CONFIG.BASE_URL}${link}` : link });
-          else row.push(text);
-        });
-        if (row.length) rows.push(row);
-      });
-      if (headers.length && rows.length) tables.push({ id, caption, headers, rows });
+
+      if (rowData.length > 0) {
+        rows.push(rowData);
+      }
     });
-    return tables;
-  }
 
-  private findFixturesTable(tables: TableData[]): TableData | null {
-  // FBref fixtures tables usually have these headers
-  const REQUIRED_HEADERS = ['date', 'time', 'home', 'away'];
+    // Only include tables with meaningful data
+    if (headers.length > 0 && rows.length > 0) {
+      tables.push({ id, caption, headers, rows });
+    }
+  });
 
+  return tables;
+}
+
+private findFixturesTable(tables: TableData[]): TableData | null {
   for (const table of tables) {
     const caption = table.caption.toLowerCase();
-    const lowerHeaders = table.headers.map(h => h.toLowerCase());
+    const headers = table.headers.map(h => h.toLowerCase()).join(' ');
 
-    // Check if headers contain all required fields
-    const hasRequiredHeaders = REQUIRED_HEADERS.every(h => lowerHeaders.includes(h));
+    const hasFixtureIndicators = (
+      caption.includes('fixture') ||
+      caption.includes('schedule') ||
+      caption.includes('scores') ||
+      headers.includes('date') ||
+      headers.includes('time') ||
+      headers.includes('home') ||
+      headers.includes('away')
+    );
 
-    // Also consider table captions with keywords
-    const hasFixtureKeywords = caption.includes('fixture') || caption.includes('schedule') || caption.includes('scores');
-
-    if (hasRequiredHeaders || hasFixtureKeywords) {
-      console.log(`🎯 Found fixtures table: "${table.caption}"`);
+    if (hasFixtureIndicators) {
+      console.log(`🎯 Found potential fixtures table: "${table.caption}"`);
       console.log(`   Headers: ${table.headers.join(', ')}`);
       console.log(`   Rows: ${table.rows.length}`);
       return table;
     }
   }
 
-  console.warn('❌ No fixtures table found');
   return null;
 }
-
 
   private convertTableToFixtures(table: TableData): ScrapedFixture[] {
     const fixtures: ScrapedFixture[] = [];
