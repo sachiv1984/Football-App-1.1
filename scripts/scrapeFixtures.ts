@@ -27,12 +27,11 @@ const FILE_NAME = 'Fixtures.json';
 const CURRENT_SEASON = '2025-2026';
 const NEXT_SEASON = '2026-2027';
 
-// Try multiple URLs to find fixtures
+// Try multiple URLs to find fixtures - prioritize fixtures pages
 const FBREF_URLS = [
   'https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures',
   `https://fbref.com/en/comps/9/${CURRENT_SEASON}/schedule/${CURRENT_SEASON}-Premier-League-Scores-and-Fixtures`,
-  `https://fbref.com/en/comps/9/${NEXT_SEASON}/schedule/${NEXT_SEASON}-Premier-League-Scores-and-Fixtures`,
-  'https://fbref.com/en/comps/9/Premier-League-Stats'
+  `https://fbref.com/en/comps/9/${NEXT_SEASON}/schedule/${NEXT_SEASON}-Premier-League-Scores-and-Fixtures`
 ];
 
 /* ------------------ Scraper Class ------------------ */
@@ -93,14 +92,15 @@ class Scraper {
     const fixtures: any[] = [];
     const seenFixtures = new Set<string>(); // Track duplicates
 
-    // Try multiple table selectors
+    // Try multiple table selectors - focus on fixtures tables
     const possibleSelectors = [
-      '#sched_2025-2026_9_1_fixtures_and_results',
-      '#sched_2024-2025_9_1_fixtures_and_results', 
-      'table[id*="sched_"][id*="_fixtures_and_results"]',
+      'table[id*="sched"][id*="fixtures_and_results"]',
+      '#sched_2024-2025_9_1',
+      '#sched_2025-2026_9_1', 
       'table[id*="schedule"]',
-      '.stats_table',
-      'table.sortable'
+      'table.stats_table',
+      'table.sortable.stats_table',
+      '.table_container table'
     ];
 
     let fixturesTable: cheerio.Cheerio<any> | null = null;
@@ -208,17 +208,41 @@ class Scraper {
 
   private debugTables($: cheerio.CheerioAPI) {
     console.log('🔧 Debug: Available tables on the page:');
-    $('table').each((i, table) => {
+    const tables = $('table');
+    console.log(`📊 Found ${tables.length} total tables`);
+    
+    tables.each((i, table) => {
       const id = $(table).attr('id') || 'no-id';
       const classes = $(table).attr('class') || 'no-classes';
-      console.log(`  Table ${i}: id="${id}", class="${classes}"`);
+      const rowCount = $(table).find('tr').length;
+      console.log(`  Table ${i}: id="${id}", class="${classes}", rows=${rowCount}`);
     });
 
     console.log('🔧 Debug: Looking for tables with "sched" in ID:');
-    $('table[id*="sched"]').each((i, table) => {
+    const schedTables = $('table[id*="sched"]');
+    schedTables.each((i, table) => {
       const id = $(table).attr('id');
-      console.log(`  Schedule table: ${id}`);
+      const rowCount = $(table).find('tbody tr').length;
+      console.log(`  Schedule table: ${id} (${rowCount} body rows)`);
     });
+    
+    console.log('🔧 Debug: Looking for any table with fixtures/schedule data:');
+    $('table').each((i, table) => {
+      const $table = $(table);
+      const hasDate = $table.find('th, td').text().toLowerCase().includes('date');
+      const hasTeams = $table.find('th, td').text().toLowerCase().includes('home') || 
+                      $table.find('th, td').text().toLowerCase().includes('away');
+      
+      if (hasDate && hasTeams) {
+        const id = $table.attr('id') || `table-${i}`;
+        const rowCount = $table.find('tbody tr').length;
+        console.log(`  ⭐ Potential fixtures table: ${id} (${rowCount} rows)`);
+      }
+    });
+
+    // Show page title for context
+    const pageTitle = $('title').text();
+    console.log(`📄 Page title: "${pageTitle}"`);
   }
 
   private analyzeFixtures(fixtures: any[]) {
@@ -259,7 +283,43 @@ class Scraper {
   private saveFixtures(data: any[]) {
     this.ensureDataDir();
     const filePath = path.join(DATA_DIR, FILE_NAME);
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
+    
+    try {
+      console.log(`💾 Attempting to save to: ${filePath}`);
+      console.log(`📁 Data directory exists: ${fs.existsSync(DATA_DIR)}`);
+      
+      const jsonData = JSON.stringify(data, null, 2);
+      fs.writeFileSync(filePath, jsonData, 'utf8');
+      
+      // Verify file was created
+      if (fs.existsSync(filePath)) {
+        const stats = fs.statSync(filePath);
+        console.log(`✅ File saved successfully: ${stats.size} bytes`);
+        console.log(`📄 File location: ${filePath}`);
+        
+        // Show first few fixtures as preview
+        console.log(`🔍 Preview of saved data (first 3 fixtures):`);
+        data.slice(0, 3).forEach((fixture, i) => {
+          console.log(`  ${i + 1}. ${fixture.date} - ${fixture.homeTeam} vs ${fixture.awayTeam}`);
+        });
+      } else {
+        console.error(`❌ File was not created at ${filePath}`);
+      }
+    } catch (error) {
+      console.error(`❌ Error saving file: ${error}`);
+      console.error(`📁 Trying to save to directory: ${DATA_DIR}`);
+      console.error(`📄 File name: ${FILE_NAME}`);
+      
+      // Try alternative save location (current directory)
+      try {
+        const altPath = path.join(process.cwd(), FILE_NAME);
+        console.log(`🔄 Trying alternative location: ${altPath}`);
+        fs.writeFileSync(altPath, JSON.stringify(data, null, 2), 'utf8');
+        console.log(`✅ File saved to alternative location: ${altPath}`);
+      } catch (altError) {
+        console.error(`❌ Alternative save also failed: ${altError}`);
+      }
+    }
   }
 }
 
