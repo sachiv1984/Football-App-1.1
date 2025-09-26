@@ -282,8 +282,8 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
         {/* Form display - Using Grid Layout */}
         <div className="grid grid-cols-3 gap-4 items-center mb-6 sm:mb-8">
-          {/* Home team form - right aligned */}
-          <div className="flex space-x-1 sm:space-x-2 justify-end">
+          {/* Home team form - centered */}
+          <div className="flex space-x-1 sm:space-x-2 justify-center">
             {Array.from({ length: 5 - homeResults.length }).map((_, index) => (
               <div key={`empty-home-${index}`} className="w-6 h-6 sm:w-8 sm:h-8 rounded border border-gray-200 bg-gray-50"></div>
             ))}
@@ -297,8 +297,8 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
             <span className="text-sm sm:text-lg font-medium text-gray-700">Form</span>
           </div>
 
-          {/* Away team form - left aligned */}
-          <div className="flex space-x-1 sm:space-x-2 justify-start">
+          {/* Away team form - centered */}
+          <div className="flex space-x-1 sm:space-x-2 justify-center">
             {awayResults.map((result, index) => (
               <FormResult key={`away-${index}`} result={result} />
             ))}
@@ -310,36 +310,36 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
         {/* Stats comparison - Using Grid Layout */}
         <div className="space-y-4 sm:space-y-6">
-  <div className="grid grid-cols-3 gap-2 sm:gap-4 items-center">
-    <span className="text-lg sm:text-2xl font-medium text-gray-900 text-center">{homeStats.matchesPlayed}</span>
-    <div className="text-center">
-      <span className="text-sm sm:text-lg font-medium text-gray-700">Matches Played</span>
-    </div>
-    <span className="text-lg sm:text-2xl font-medium text-gray-900 text-center">{awayStats.matchesPlayed}</span>
-  </div>
+          <div className="grid grid-cols-3 gap-2 sm:gap-4 items-center">
+            <span className="text-lg sm:text-2xl font-medium text-gray-900 text-center">{homeStats.matchesPlayed}</span>
+            <div className="text-center">
+              <span className="text-sm sm:text-lg font-medium text-gray-700">Matches Played</span>
+            </div>
+            <span className="text-lg sm:text-2xl font-medium text-gray-900 text-center">{awayStats.matchesPlayed}</span>
+          </div>
 
           <div className="grid grid-cols-3 gap-2 sm:gap-4 items-center">
-            <span className="text-lg sm:text-2xl font-medium text-gray-900 text-right">{homeStats.won}</span>
+            <span className="text-lg sm:text-2xl font-medium text-gray-900 text-center">{homeStats.won}</span>
             <div className="text-center">
               <span className="text-sm sm:text-lg font-medium text-gray-700">Won</span>
             </div>
-            <span className="text-lg sm:text-2xl font-medium text-gray-900 text-left">{awayStats.won}</span>
+            <span className="text-lg sm:text-2xl font-medium text-gray-900 text-center">{awayStats.won}</span>
           </div>
 
           <div className="grid grid-cols-3 gap-2 sm:gap-4 items-center">
-            <span className="text-lg sm:text-2xl font-medium text-gray-900 text-right">{homeStats.drawn}</span>
+            <span className="text-lg sm:text-2xl font-medium text-gray-900 text-center">{homeStats.drawn}</span>
             <div className="text-center">
               <span className="text-sm sm:text-lg font-medium text-gray-700">Drawn</span>
             </div>
-            <span className="text-lg sm:text-2xl font-medium text-gray-900 text-left">{awayStats.drawn}</span>
+            <span className="text-lg sm:text-2xl font-medium text-gray-900 text-center">{awayStats.drawn}</span>
           </div>
 
           <div className="grid grid-cols-3 gap-2 sm:gap-4 items-center">
-            <span className="text-lg sm:text-2xl font-medium text-gray-900 text-right">{homeStats.lost}</span>
+            <span className="text-lg sm:text-2xl font-medium text-gray-900 text-center">{homeStats.lost}</span>
             <div className="text-center">
               <span className="text-sm sm:text-lg font-medium text-gray-700">Lost</span>
             </div>
-            <span className="text-lg sm:text-2xl font-medium text-gray-900 text-left">{awayStats.lost}</span>
+            <span className="text-lg sm:text-2xl font-medium text-gray-900 text-center">{awayStats.lost}</span>
           </div>
         </div>
       </div>
@@ -414,30 +414,30 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
               </div>
             </div>
 
-       {/* Stats comparison - Using Grid Layout */}
-<div className="space-y-4 sm:space-y-6">
-  {Object.entries(currentStats).map(([statName, statData]) => {
-    const isMatchesPlayed = statName === 'Matches Played';
-    return (
-      <div key={statName} className="grid grid-cols-3 gap-2 sm:gap-4 items-center">
-        <span className="text-lg sm:text-2xl font-medium text-gray-900 text-center">
-          {formatValue(statData.homeValue, statData.unit, isMatchesPlayed)}
-        </span>
-        <div className="text-center px-1">
-          <span className="text-sm sm:text-lg font-medium text-gray-700 block leading-tight">{statName}</span>
-          {statData.leagueAverage && (
-            <div className="text-xs sm:text-sm text-gray-500 mt-1">
-              Avg: {formatValue(statData.leagueAverage, statData.unit, isMatchesPlayed)}
+            {/* Stats comparison - Using Grid Layout */}
+            <div className="space-y-4 sm:space-y-6">
+              {Object.entries(currentStats).map(([statName, statData]) => {
+                const isMatchesPlayed = statName === 'Matches Played';
+                return (
+                  <div key={statName} className="grid grid-cols-3 gap-2 sm:gap-4 items-center">
+                    <span className="text-lg sm:text-2xl font-medium text-gray-900 text-center">
+                      {formatValue(statData.homeValue, statData.unit, isMatchesPlayed)}
+                    </span>
+                    <div className="text-center px-1">
+                      <span className="text-sm sm:text-lg font-medium text-gray-700 block leading-tight">{statName}</span>
+                      {statData.leagueAverage && (
+                        <div className="text-xs sm:text-sm text-gray-500 mt-1">
+                          Avg: {formatValue(statData.leagueAverage, statData.unit, isMatchesPlayed)}
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-lg sm:text-2xl font-medium text-gray-900 text-center">
+                      {formatValue(statData.awayValue, statData.unit, isMatchesPlayed)}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
-          )}
-        </div>
-        <span className="text-lg sm:text-2xl font-medium text-gray-900 text-center">
-          {formatValue(statData.awayValue, statData.unit, isMatchesPlayed)}
-        </span>
-      </div>
-    );
-  })}
-</div>
           </div>
         )}
       </div>
