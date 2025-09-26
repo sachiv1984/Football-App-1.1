@@ -277,34 +277,37 @@ class SupabaseFixturesScraper {
     return fixtures;
   }
 
-  private extractFixtureFromRow(row: (string | CellData)[], columnMap: ColumnMapping): ScrapedFixture | null {
+private extractFixtureFromRow(row: (string | CellData)[], columnMap: ColumnMapping): SupabaseFixture | null {
   const getCellText = (index: number): string => {
-    if (index < 0 || index >= row.length) return '';
     const cell = row[index];
     return typeof cell === 'object' ? cell.text : cell;
   };
 
   const getCellLink = (index: number): string | undefined => {
-    if (index < 0 || index >= row.length) return undefined;
     const cell = row[index];
     return typeof cell === 'object' ? cell.link : undefined;
   };
 
-  // Extract all fields needed for the DB
-  const dateStr = getCellText(columnMap.date).trim();       // "2025-08-15"
-  const timeStr = getCellText(columnMap.time).trim();       // "20:00"
-  const homeTeam = getCellText(columnMap.home).trim();      // "Liverpool"
-  const awayTeam = getCellText(columnMap.away).trim();      // "Bournemouth"
-  const scoreStr = getCellText(columnMap.score).trim();     // "4–2"
-  const venue = getCellText(columnMap.venue).trim();        // "Anfield"
-  const matchweekStr = getCellText(columnMap.matchweek)?.trim(); // optional
-  const matchUrl = getCellLink(columnMap.matchReport);      // full URL if exists
+  const dateStr = getCellText(columnMap.date).trim();
+  const timeStr = getCellText(columnMap.time).trim() || '00:00';
+  const homeTeam = getCellText(columnMap.home).trim();
+  const awayTeam = getCellText(columnMap.away).trim();
+  const scoreStr = getCellText(columnMap.score).trim();
+  const venue = getCellText(columnMap.venue).trim() || undefined;
+  const matchUrl = getCellLink(columnMap.matchReport) || undefined;
+  const matchweekStr = getCellText(columnMap.matchweek).trim();
+  const matchweek = matchweekStr ? parseInt(matchweekStr, 10) : null;
 
-  // Skip rows without mandatory info
   if (!dateStr || !homeTeam || !awayTeam) return null;
 
   // Parse datetime
-  const datetime = new Date(`${dateStr}T${timeStr}:00Z`).toISOString();
+  const datetimeObj = new Date(`${dateStr}T${timeStr}:00Z`);
+  const datetime = datetimeObj.toISOString();
+
+  // Generate ID
+  const hour = datetimeObj.getUTCHours();
+  const formattedDate = `${dateStr}${hour}`;
+  const id = `${homeTeam}_${formattedDate}_${awayTeam}`.replace(/\s+/g, '_');
 
   // Parse scores
   let homescore: number | null = null;
@@ -317,14 +320,7 @@ class SupabaseFixturesScraper {
 
   // Determine status
   let status: 'scheduled' | 'live' | 'finished' | 'postponed' | 'upcoming' = 'scheduled';
-  if (!scoreStr || scoreStr === '' || scoreStr === 'TBD') status = 'scheduled';
-  else if (homescore !== null && awayscore !== null) status = 'finished';
-
-  // Parse matchweek if present
-  const matchweek = matchweekStr ? parseInt(matchweekStr, 10) : null;
-
-  // Generate a unique ID (can be hash of teams + date or use row index)
-  const id = `${homeTeam}-${awayTeam}-${dateStr}`;
+  if (homescore !== null && awayscore !== null) status = 'finished';
 
   return {
     id,
@@ -334,11 +330,12 @@ class SupabaseFixturesScraper {
     homescore,
     awayscore,
     status,
-    venue: venue || null,
+    venue,
     matchweek,
-    matchurl: matchUrl || null
-  } as unknown as ScrapedFixture;
+    matchurl: matchUrl
+  };
 }
+
 
   private determineMatchStatus(scoreText: string): string {
     if (!scoreText || scoreText === '' || scoreText === 'TBD') {
