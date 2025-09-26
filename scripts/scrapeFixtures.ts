@@ -85,13 +85,29 @@ class FixturesScraper {
       // Convert table data to fixtures
       const fixtures = this.convertTableToFixtures(fixturesTable);
       
-      if (fixtures.length > 0) {
-        this.validateFixtureCount(fixtures);
-        this.saveFixtures(fixtures);
-        console.log(`✅ Success: Scraped and saved ${fixtures.length} fixtures to ${FILE_NAME}`);
-      } else {
-        console.warn('⚠️ No valid fixtures extracted from table');
+      console.log(`\n📊 SCRAPING RESULTS:`);
+      console.log(`  - Extracted fixtures: ${fixtures.length}`);
+      
+      if (fixtures.length === 0) {
+        console.error('❌ No fixtures extracted - aborting save');
+        console.log('\n🔧 DEBUG: Table structure:');
+        console.log(`  - Headers: ${fixturesTable.headers.join(' | ')}`);
+        console.log(`  - First 3 rows:`);
+        fixturesTable.rows.slice(0, 3).forEach((row, i) => {
+          console.log(`    Row ${i}: ${row.map(cell => typeof cell === 'object' ? cell.text : cell).join(' | ')}`);
+        });
+        return;
       }
+      
+      this.validateFixtureCount(fixtures);
+      this.saveFixtures(fixtures);
+      
+      console.log(`\n🎉 FINAL SUCCESS SUMMARY:`);
+      console.log(`  - Scraped: ${fixtures.length} fixtures`);
+      console.log(`  - Source: ${FBREF_FIXTURES_URL}`);
+      console.log(`  - Table: ${fixturesTable.caption}`);
+      console.log(`  - File: ${FILE_NAME}`);
+      console.log(`✅ Scraping completed successfully!`);
 
     } catch (error) {
       console.error(`❌ Scraping failed: ${error}`);
@@ -376,33 +392,96 @@ class FixturesScraper {
   }
 
   private saveFixtures(fixtures: Fixture[]) {
+    console.log(`\n💾 STARTING SAVE PROCESS:`);
+    console.log(`  - Current working directory: ${process.cwd()}`);
+    console.log(`  - Script directory: ${__dirname}`);
+    console.log(`  - Target data directory: ${DATA_DIR}`);
+    console.log(`  - Target file path: ${path.join(DATA_DIR, FILE_NAME)}`);
+    console.log(`  - Fixtures to save: ${fixtures.length}`);
+
     this.ensureDataDir();
+    
+    // Verify data directory was created
+    console.log(`  - Data directory exists: ${fs.existsSync(DATA_DIR)}`);
+    if (fs.existsSync(DATA_DIR)) {
+      const dirStats = fs.statSync(DATA_DIR);
+      console.log(`  - Data directory is writable: ${dirStats.isDirectory()}`);
+    }
+
     const filePath = path.join(DATA_DIR, FILE_NAME);
     
     try {
+      console.log(`📝 Preparing JSON data...`);
       const jsonData = JSON.stringify(fixtures, null, 2);
+      console.log(`  - JSON data size: ${jsonData.length} characters`);
+      
+      console.log(`💾 Writing file to: ${filePath}`);
       fs.writeFileSync(filePath, jsonData, 'utf8');
       
-      const stats = fs.statSync(filePath);
-      console.log(`💾 File saved: ${filePath} (${stats.size} bytes)`);
-      
-      // Preview first few fixtures
-      console.log(`\n🔍 Preview (first 3 fixtures):`);
-      fixtures.slice(0, 3).forEach((fixture, i) => {
-        console.log(`  ${i + 1}. ${fixture.date} ${fixture.time} - ${fixture.homeTeam} vs ${fixture.awayTeam}`);
-      });
+      // Verify file was written
+      if (fs.existsSync(filePath)) {
+        const stats = fs.statSync(filePath);
+        console.log(`✅ SUCCESS: File saved successfully!`);
+        console.log(`  - File path: ${filePath}`);
+        console.log(`  - File size: ${stats.size} bytes`);
+        console.log(`  - File modified: ${stats.mtime}`);
+        
+        // Verify file content
+        const savedContent = fs.readFileSync(filePath, 'utf8');
+        const parsedContent = JSON.parse(savedContent);
+        console.log(`  - Verified fixtures in file: ${parsedContent.length}`);
+        
+        // Preview first few fixtures
+        console.log(`\n🔍 Preview (first 3 fixtures):`);
+        fixtures.slice(0, 3).forEach((fixture, i) => {
+          console.log(`  ${i + 1}. ${fixture.date} ${fixture.time} - ${fixture.homeTeam} vs ${fixture.awayTeam}`);
+        });
+        
+      } else {
+        console.error(`❌ ERROR: File was not created at ${filePath}`);
+        throw new Error('File was not created');
+      }
       
     } catch (error) {
-      console.error(`❌ Error saving file: ${error}`);
+      console.error(`❌ Primary save failed: ${error}`);
+      console.error(`Stack trace: ${(error as Error).stack}`);
       
-      // Try alternative location
-      const altPath = path.join(process.cwd(), FILE_NAME);
-      try {
-        fs.writeFileSync(altPath, JSON.stringify(fixtures, null, 2), 'utf8');
-        console.log(`✅ File saved to alternative location: ${altPath}`);
-      } catch (altError) {
-        console.error(`❌ Alternative save failed: ${altError}`);
+      // Try multiple alternative locations
+      const alternativeLocations = [
+        path.join(process.cwd(), 'data', FILE_NAME),
+        path.join(process.cwd(), FILE_NAME),
+        path.join(__dirname, FILE_NAME),
+        path.join(__dirname, '..', FILE_NAME)
+      ];
+      
+      console.log(`🔄 Trying alternative locations...`);
+      
+      for (const altPath of alternativeLocations) {
+        try {
+          console.log(`  Trying: ${altPath}`);
+          
+          // Ensure directory exists
+          const altDir = path.dirname(altPath);
+          if (!fs.existsSync(altDir)) {
+            fs.mkdirSync(altDir, { recursive: true });
+          }
+          
+          fs.writeFileSync(altPath, JSON.stringify(fixtures, null, 2), 'utf8');
+          
+          if (fs.existsSync(altPath)) {
+            const stats = fs.statSync(altPath);
+            console.log(`✅ SUCCESS: Alternative save worked!`);
+            console.log(`  - File path: ${altPath}`);
+            console.log(`  - File size: ${stats.size} bytes`);
+            return; // Exit on success
+          }
+        } catch (altError) {
+          console.log(`  ❌ Failed: ${altError.message}`);
+        }
       }
+      
+      console.error(`❌ ALL SAVE ATTEMPTS FAILED!`);
+      process.exit(1);
     }
   }
 }
