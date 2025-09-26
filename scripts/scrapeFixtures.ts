@@ -228,35 +228,36 @@ private convertTableToFixtures(table: TableData): ScrapedFixture[] {
   console.log(`\n🔄 Converting table to fixtures...`);
   console.log(`📋 Headers: ${table.headers.join(' | ')}`);
 
-  // Detect column mapping (simplified example)
-  const columnMap: ColumnMapping = FixturesConfig.detectColumnMapping(table.headers, table.rows.length);
-  console.log(`🗺️ Column mapping:`, columnMap);
+  // Map headers to column indexes (case-insensitive)
+  const headerLower = table.headers.map(h => h.toLowerCase());
 
-  const getCellText = (cell: string | CellData): string => {
-    if (!cell) return '';
-    return typeof cell === 'string' ? cell : cell.text;
-  };
+  const idxDate = headerLower.indexOf('date');
+  const idxTime = headerLower.indexOf('time');
+  const idxHome = headerLower.indexOf('home');
+  const idxAway = headerLower.indexOf('away');
+  const idxScore = headerLower.indexOf('score');
+  const idxVenue = headerLower.indexOf('venue');
+  const idxMatchReport = headerLower.indexOf('match report');
+  const idxMatchweek = headerLower.indexOf('matchweek');
 
-  const getCellLink = (cell: string | CellData): string | undefined => {
-    if (!cell || typeof cell === 'string') return undefined;
-    return cell.link;
-  };
+  console.log('🗺️ Column mapping:');
+  console.log({ idxDate, idxTime, idxHome, idxAway, idxScore, idxVenue, idxMatchReport, idxMatchweek });
+
+  const getCellText = (idx: number) => (row[idx] ? (typeof row[idx] === 'string' ? row[idx] : row[idx].text) : '');
+  const getCellLink = (idx: number) => (row[idx] && typeof row[idx] === 'object' ? row[idx].link : undefined);
 
   table.rows.forEach((row, rowIndex) => {
-    const dateStr = getCellText(row[columnMap.date]).trim();
-    const timeStr = getCellText(row[columnMap.time]).trim() || '00:00';
-    const homeTeam = getCellText(row[columnMap.home]).trim();
-    const awayTeam = getCellText(row[columnMap.away]).trim();
-    const scoreStr = getCellText(row[columnMap.score]).trim();
-    const venue = getCellText(row[columnMap.venue]).trim() || undefined;
-    const matchUrl = getCellLink(row[columnMap.matchReport]) || undefined;
-    const matchweekStr = getCellText(row[columnMap.matchweek]).trim();
+    const dateStr = getCellText(idxDate).trim();
+    const timeStr = getCellText(idxTime).trim() || '00:00';
+    const homeTeam = getCellText(idxHome).trim();
+    const awayTeam = getCellText(idxAway).trim();
+    const scoreStr = getCellText(idxScore).trim();
+    const venue = getCellText(idxVenue).trim() || undefined;
+    const matchUrl = getCellLink(idxMatchReport);
+    const matchweekStr = getCellText(idxMatchweek).trim();
     const matchweek = matchweekStr ? parseInt(matchweekStr, 10) : null;
 
     if (!dateStr || !homeTeam || !awayTeam) return;
-
-    const datetime = new Date(`${dateStr}T${timeStr}:00Z`).toISOString();
-    const id = `${homeTeam}_${dateStr}_${awayTeam}`.replace(/\s+/g, '_');
 
     let homescore: number | null = null;
     let awayscore: number | null = null;
@@ -269,26 +270,30 @@ private convertTableToFixtures(table: TableData): ScrapedFixture[] {
     let status: 'scheduled' | 'finished' | 'live' | 'postponed' = 'scheduled';
     if (homescore !== null && awayscore !== null) status = 'finished';
 
-    const fixture: SupabaseFixture = {
-      id,
-      datetime,
-      hometeam: homeTeam,
-      awayteam: awayTeam,
-      homescore,
-      awayscore,
-      status,
+    const datetime = new Date(`${dateStr}T${timeStr}:00Z`).toISOString();
+    const id = `${homeTeam}_${dateStr}_${awayTeam}`.replace(/\s+/g, '_');
+
+    const fixture: ScrapedFixture = {
+      date: dateStr,
+      time: timeStr,
+      homeTeam,
+      awayTeam,
+      score: scoreStr,
+      homeScore: homescore,
+      awayScore: awayscore,
       venue,
       matchweek,
-      matchurl: matchUrl,
+      matchURL: matchUrl,
+      status,
     };
 
-    const fixtureKey = `${fixture.datetime}-${homeTeam}-${awayTeam}`;
+    const fixtureKey = `${fixture.date}-${homeTeam}-${awayTeam}`;
     if (!seenFixtures.has(fixtureKey)) {
       fixtures.push(fixture);
       seenFixtures.add(fixtureKey);
 
       if (fixtures.length <= 5) {
-        console.log(`✅ Sample fixture: ${homeTeam} vs ${awayTeam} on ${dateStr}`);
+        console.log(`✅ Sample fixture: ${homeTeam} vs ${awayTeam} on ${dateStr} (${status})`);
       }
     }
   });
