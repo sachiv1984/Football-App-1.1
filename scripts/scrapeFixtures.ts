@@ -137,7 +137,9 @@ class FixturesScraper {
       const id = $table.attr('id') || `table-${tables.length}`;
       let caption = $table.find('caption').text().trim() || $table.prev('h2').text().trim() || `Table ${tables.length + 1}`;
       const headers: string[] = [];
-      $table.find('thead th, thead td').each((_, h) => headers.push($(h).text().trim()));
+      $table.find('thead th, thead td').each((_, h) => {
+      headers.push($(h).text().trim());
+      });
       const rows: (string | CellData)[][] = [];
       $table.find('tbody tr').each((_, r) => {
         const row: (string | CellData)[] = [];
