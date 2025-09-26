@@ -1,4 +1,4 @@
-// config/fixtureConfigs.ts
+// config/fixturesConfigs.ts
 /**
  * Configuration file for Supabase table mappings
  * This file defines how scraped fixtures map to Supabase database tables
