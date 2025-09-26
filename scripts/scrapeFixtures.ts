@@ -90,7 +90,7 @@ function parseDateTime(dateStr: string, timeStr?: string): string {
 /**
  * Extract text and link from cell
  */
-function extractCellData(cell: cheerio.Cheerio<cheerio.Element>): string | CellData {
+function extractCellData(cell: cheerio.Cheerio<any>): string | CellData {
   const text = cell.text().trim();
   const link = cell.find('a').attr('href');
   
