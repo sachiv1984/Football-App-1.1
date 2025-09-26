@@ -8,6 +8,7 @@
  * 2. Better HTML table parsing with debugging
  * 3. Enhanced data validation and error handling
  * 4. More robust column mapping
+ * 5. Fixed table variable scoping issue
  * ===============================================================
  */
 
@@ -247,65 +248,77 @@ async function scrapeAndUpload() {
     const html = await res.text();
     console.log(`Fetched HTML, length: ${html.length} characters`);
 
-console.log('Parsing HTML with Cheerio...');
-const $ = cheerio.load(html);
+    console.log('Parsing HTML with Cheerio...');
+    const $ = cheerio.load(html);
 
-// ----------------- Dynamic Table Inspection -----------------
-const allTables = $('table');
-console.log(`Found ${allTables.length} tables on the page:`);
+    // ----------------- Dynamic Table Inspection -----------------
+    const allTables = $('table');
+    console.log(`Found ${allTables.length} tables on the page:`);
 
-allTables.each((i, tableEl) => {
-  const tableId = $(tableEl).attr('id') || '(no id)';
-  const rowCount = $(tableEl).find('tbody tr').length;
-  console.log(`  Table ${i + 1}: ID='${tableId}', rows=${rowCount}`);
-});
+    allTables.each((i, tableEl) => {
+      const tableId = $(tableEl).attr('id') || '(no id)';
+      const rowCount = $(tableEl).find('tbody tr').length;
+      console.log(`  Table ${i + 1}: ID='${tableId}', rows=${rowCount}`);
+    });
 
-// ----------------- Table Selection -----------------
-// Single declaration for the table variable
-let table = $('table#sched_2025-2026_9_1');
+    // ----------------- Table Selection -----------------
+    // Fixed: Single declaration and proper scoping
+    let selectedTable = $('table#sched_2025-2026_9_1');
 
-if (table.length === 0) {
-  console.log('Primary table selector not found, trying fallbacks...');
-  table = $('table[id*="sched"]').first();
-  if (table.length === 0) table = $('table.stats_table').first();
-}
+    if (selectedTable.length === 0) {
+      console.log('Primary table selector not found, trying fallbacks...');
+      selectedTable = $('table[id*="sched"]').first();
+      if (selectedTable.length === 0) {
+        selectedTable = $('table.stats_table').first();
+      }
+    }
 
-console.log(`Using table ID: '${table.attr('id')}', with ${table.find('tbody tr').length} rows`);
+    if (selectedTable.length === 0) {
+      throw new Error('No suitable table found on the page');
+    }
 
-// ----------------- Extract Table Data -----------------
-const rows: RawRow[] = [];
-table.find('tbody tr').each((index, tr) => {
-  const row: RawRow = [];
-  $(tr).find('td, th').each((_, cell) => {
-    row.push(extractCellData($(cell)));
-  });
+    console.log(`Using table ID: '${selectedTable.attr('id')}', with ${selectedTable.find('tbody tr').length} rows`);
 
-  if (row.length > 0) rows.push(row);
-});
+    // ----------------- Extract Table Data -----------------
+    const rows: RawRow[] = [];
+    selectedTable.find('tbody tr').each((index, tr) => {
+      const row: RawRow = [];
+      $(tr).find('td, th').each((_, cell) => {
+        row.push(extractCellData($(cell)));
+      });
 
-console.log(`Extracted ${rows.length} raw rows from table`);
+      if (row.length > 0) rows.push(row);
+    });
 
-// ----------------- Process and Clean Fixtures -----------------
-console.log('Processing and cleaning fixture data...');
-const fixtures: Fixture[] = rows
-  .map((row, index) => cleanRow(row, index))
-  .filter(Boolean) as Fixture[];
+    console.log(`Extracted ${rows.length} raw rows from table`);
 
-console.log(`Successfully processed ${fixtures.length} valid fixtures`);
+    // Debug: Show structure of first few rows
+    if (rows.length > 0) {
+      console.log('\nFirst 3 raw rows structure:');
+      rows.slice(0, 3).forEach((row, i) => {
+        console.log(`Raw row ${i}:`, row.map(cell => typeof cell === 'object' ? cell.text : cell));
+      });
+    }
 
-// ----------------- Save to JSON -----------------
-console.log(`Saving fixtures to ${JSON_PATH}...`);
-fs.mkdirSync(path.dirname(JSON_PATH), { recursive: true });
-fs.writeFileSync(JSON_PATH, JSON.stringify(fixtures, null, 2), 'utf-8');
-console.log(`✅ JSON saved successfully at ${JSON_PATH}`);
-console.log('Sample fixtures:');
-fixtures.slice(0, 3).forEach((fixture, i) => {
-  console.log(`${i + 1}:`, JSON.stringify(fixture, null, 2));
-});
-console.log('File exists check:', fs.existsSync(JSON_PATH));
+    // ----------------- Process and Clean Fixtures -----------------
+    console.log('Processing and cleaning fixture data...');
+    const fixtures: Fixture[] = rows
+      .map((row, index) => cleanRow(row, index))
+      .filter(Boolean) as Fixture[];
 
+    console.log(`Successfully processed ${fixtures.length} valid fixtures`);
 
-    // Debug: log first few fixtures
+    // ----------------- Save to JSON -----------------
+    console.log(`Saving fixtures to ${JSON_PATH}...`);
+    fs.mkdirSync(path.dirname(JSON_PATH), { recursive: true });
+    fs.writeFileSync(JSON_PATH, JSON.stringify(fixtures, null, 2), 'utf-8');
+    console.log(`✅ JSON saved successfully at ${JSON_PATH}`);
+    
+    // Verify JSON was written correctly
+    const savedJson = fs.readFileSync(JSON_PATH, 'utf-8');
+    const parsedSaved = JSON.parse(savedJson);
+    console.log(`✅ JSON verification: ${parsedSaved.length} fixtures saved to file`);
+    
     console.log('Sample fixtures:');
     fixtures.slice(0, 3).forEach((fixture, i) => {
       console.log(`${i + 1}:`, JSON.stringify(fixture, null, 2));
