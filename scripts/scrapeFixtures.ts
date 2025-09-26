@@ -221,37 +221,82 @@ private findFixturesTable(tables: TableData[]): TableData | null {
   return null;
 }
 
-  private convertTableToFixtures(table: TableData): ScrapedFixture[] {
-    const fixtures: ScrapedFixture[] = [];
-    const colMap: Record<string, number> = {};
-    table.headers.forEach((h, i) => (colMap[h.toLowerCase()] = i));
+private convertTableToFixtures(table: TableData): ScrapedFixture[] {
+  const fixtures: ScrapedFixture[] = [];
+  const seenFixtures = new Set<string>();
 
-    for (const row of table.rows) {
-      const date = row[colMap['date']] ? (row[colMap['date']] as string).trim() : null;
-      const homeTeam = row[colMap['home']] ? (row[colMap['home']] as string).trim() : null;
-      const awayTeam = row[colMap['away']] ? (row[colMap['away']] as string).trim() : null;
-      if (!date || !homeTeam || !awayTeam) continue;
+  console.log(`\n🔄 Converting table to fixtures...`);
+  console.log(`📋 Headers: ${table.headers.join(' | ')}`);
 
-      const time = colMap['time'] !== undefined ? (row[colMap['time']] as string).trim() : undefined;
-      const score = colMap['score'] !== undefined ? (row[colMap['score']] as string).trim() : undefined;
-      let homeScore: number | null = null;
-      let awayScore: number | null = null;
-      if (score && (score.includes('–') || score.includes('-'))) {
-        const [h, a] = score.replace('-', '–').split('–');
-        homeScore = parseInt(h.trim(), 10);
-        awayScore = parseInt(a.trim(), 10);
-      }
-      const venue = colMap['venue'] !== undefined ? (row[colMap['venue']] as string).trim() : undefined;
-      const matchweek = colMap['matchweek'] !== undefined ? parseInt((row[colMap['matchweek']] as string).trim(), 10) : null;
-      const matchURL = colMap['matchurl'] !== undefined ? (row[colMap['matchurl']] as CellData).link : undefined;
+  // Detect column mapping (simplified example)
+  const columnMap: ColumnMapping = FixturesConfig.detectColumnMapping(table.headers, table.rows.length);
+  console.log(`🗺️ Column mapping:`, columnMap);
 
-      const status = homeScore !== null && awayScore !== null ? 'finished' : 'scheduled';
+  const getCellText = (cell: string | CellData): string => {
+    if (!cell) return '';
+    return typeof cell === 'string' ? cell : cell.text;
+  };
 
-      fixtures.push({ date, time, homeTeam, awayTeam, score, homeScore, awayScore, venue, matchweek, matchURL, status });
+  const getCellLink = (cell: string | CellData): string | undefined => {
+    if (!cell || typeof cell === 'string') return undefined;
+    return cell.link;
+  };
+
+  table.rows.forEach((row, rowIndex) => {
+    const dateStr = getCellText(row[columnMap.date]).trim();
+    const timeStr = getCellText(row[columnMap.time]).trim() || '00:00';
+    const homeTeam = getCellText(row[columnMap.home]).trim();
+    const awayTeam = getCellText(row[columnMap.away]).trim();
+    const scoreStr = getCellText(row[columnMap.score]).trim();
+    const venue = getCellText(row[columnMap.venue]).trim() || undefined;
+    const matchUrl = getCellLink(row[columnMap.matchReport]) || undefined;
+    const matchweekStr = getCellText(row[columnMap.matchweek]).trim();
+    const matchweek = matchweekStr ? parseInt(matchweekStr, 10) : null;
+
+    if (!dateStr || !homeTeam || !awayTeam) return;
+
+    const datetime = new Date(`${dateStr}T${timeStr}:00Z`).toISOString();
+    const id = `${homeTeam}_${dateStr}_${awayTeam}`.replace(/\s+/g, '_');
+
+    let homescore: number | null = null;
+    let awayscore: number | null = null;
+    if (scoreStr && (scoreStr.includes('–') || scoreStr.includes('-'))) {
+      const [home, away] = scoreStr.replace('-', '–').split('–');
+      homescore = parseInt(home.trim(), 10);
+      awayscore = parseInt(away.trim(), 10);
     }
 
-    return fixtures;
-  }
+    let status: 'scheduled' | 'finished' | 'live' | 'postponed' = 'scheduled';
+    if (homescore !== null && awayscore !== null) status = 'finished';
+
+    const fixture: SupabaseFixture = {
+      id,
+      datetime,
+      hometeam: homeTeam,
+      awayteam: awayTeam,
+      homescore,
+      awayscore,
+      status,
+      venue,
+      matchweek,
+      matchurl: matchUrl,
+    };
+
+    const fixtureKey = `${fixture.datetime}-${homeTeam}-${awayTeam}`;
+    if (!seenFixtures.has(fixtureKey)) {
+      fixtures.push(fixture);
+      seenFixtures.add(fixtureKey);
+
+      if (fixtures.length <= 5) {
+        console.log(`✅ Sample fixture: ${homeTeam} vs ${awayTeam} on ${dateStr}`);
+      }
+    }
+  });
+
+  console.log(`\n📈 Conversion summary: ${fixtures.length} fixtures extracted`);
+  return fixtures;
+}
+
 
   private convertToSupabaseFormat(scraped: ScrapedFixture[]): SupabaseFixture[] {
     return scraped.map(f => {
