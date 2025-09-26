@@ -243,10 +243,10 @@ private convertTableToFixtures(table: TableData): ScrapedFixture[] {
   console.log('🗺️ Column mapping:');
   console.log({ idxDate, idxTime, idxHome, idxAway, idxScore, idxVenue, idxMatchReport, idxMatchweek });
 
-  const getCellText = (idx: number) => (row[idx] ? (typeof row[idx] === 'string' ? row[idx] : row[idx].text) : '');
-  const getCellLink = (idx: number) => (row[idx] && typeof row[idx] === 'object' ? row[idx].link : undefined);
-
   table.rows.forEach((row, rowIndex) => {
+    const getCellText = (idx: number) => (row[idx] ? (typeof row[idx] === 'string' ? row[idx] : row[idx].text) : '');
+    const getCellLink = (idx: number) => (row[idx] && typeof row[idx] === 'object' ? row[idx].link : undefined);
+
     const dateStr = getCellText(idxDate).trim();
     const timeStr = getCellText(idxTime).trim() || '00:00';
     const homeTeam = getCellText(idxHome).trim();
@@ -301,6 +301,7 @@ private convertTableToFixtures(table: TableData): ScrapedFixture[] {
   console.log(`\n📈 Conversion summary: ${fixtures.length} fixtures extracted`);
   return fixtures;
 }
+
 
 
   private convertToSupabaseFormat(scraped: ScrapedFixture[]): SupabaseFixture[] {
