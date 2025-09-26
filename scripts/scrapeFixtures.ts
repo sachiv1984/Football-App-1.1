@@ -486,7 +486,7 @@ class FixturesScraper {
             return; // Exit on success
           }
         } catch (altError) {
-          console.log(`  ❌ Failed: ${altError.message}`);
+          console.log(`  ❌ Failed: ${altError instanceof Error ? altError.message : String(altError)}`);
         }
       }
       
