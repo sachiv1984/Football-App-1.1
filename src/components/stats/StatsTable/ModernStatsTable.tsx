@@ -253,9 +253,9 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
     return (
       <div className="space-y-6 sm:space-y-8">
-        {/* Team logos and title */}
-        <div className="flex items-center justify-between mb-6 sm:mb-8">
-          <div className="flex items-center">
+        {/* Team logos and title - Using Grid Layout */}
+        <div className="grid grid-cols-3 gap-4 items-center mb-6 sm:mb-8">
+          <div className="flex items-center justify-start">
             {homeTeam.logo ? (
               <img src={homeTeam.logo} alt={homeTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
             ) : (
@@ -265,11 +265,11 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
             )}
           </div>
           
-          <div className="text-center px-2">
+          <div className="text-center">
             <h2 className="text-lg sm:text-2xl font-bold text-gray-900">Team Form</h2>
           </div>
           
-          <div className="flex items-center">
+          <div className="flex items-center justify-end">
             {awayTeam.logo ? (
               <img src={awayTeam.logo} alt={awayTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
             ) : (
@@ -280,10 +280,10 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
           </div>
         </div>
 
-        {/* Form display */}
-        <div className="flex justify-between items-center mb-6 sm:mb-8 px-2 sm:px-0">
-          {/* Home team form */}
-          <div className="flex space-x-1 sm:space-x-2">
+        {/* Form display - Using Grid Layout */}
+        <div className="grid grid-cols-3 gap-4 items-center mb-6 sm:mb-8">
+          {/* Home team form - right aligned */}
+          <div className="flex space-x-1 sm:space-x-2 justify-end">
             {Array.from({ length: 5 - homeResults.length }).map((_, index) => (
               <div key={`empty-home-${index}`} className="w-6 h-6 sm:w-8 sm:h-8 rounded border border-gray-200 bg-gray-50"></div>
             ))}
@@ -293,12 +293,12 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
           </div>
 
           {/* Center form label */}
-          <div className="text-center px-2 sm:px-4">
+          <div className="text-center">
             <span className="text-sm sm:text-lg font-medium text-gray-700">Form</span>
           </div>
 
-          {/* Away team form */}
-          <div className="flex space-x-1 sm:space-x-2">
+          {/* Away team form - left aligned */}
+          <div className="flex space-x-1 sm:space-x-2 justify-start">
             {awayResults.map((result, index) => (
               <FormResult key={`away-${index}`} result={result} />
             ))}
@@ -308,30 +308,38 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
           </div>
         </div>
 
-        {/* Stats comparison */}
+        {/* Stats comparison - Using Grid Layout */}
         <div className="space-y-4 sm:space-y-6">
-          <div className="flex justify-between items-center">
-            <span className="text-lg sm:text-2xl font-medium text-gray-900 min-w-0">{homeStats.matchesPlayed}</span>
-            <span className="text-sm sm:text-lg font-medium text-gray-700 text-center px-2 flex-1">Matches Played</span>
-            <span className="text-lg sm:text-2xl font-medium text-gray-900 min-w-0">{awayStats.matchesPlayed}</span>
+          <div className="grid grid-cols-3 gap-2 sm:gap-4 items-center">
+            <span className="text-lg sm:text-2xl font-medium text-gray-900 text-right">{homeStats.matchesPlayed}</span>
+            <div className="text-center">
+              <span className="text-sm sm:text-lg font-medium text-gray-700">Matches Played</span>
+            </div>
+            <span className="text-lg sm:text-2xl font-medium text-gray-900 text-left">{awayStats.matchesPlayed}</span>
           </div>
 
-          <div className="flex justify-between items-center">
-            <span className="text-lg sm:text-2xl font-medium text-gray-900 min-w-0">{homeStats.won}</span>
-            <span className="text-sm sm:text-lg font-medium text-gray-700 text-center px-2 flex-1">Won</span>
-            <span className="text-lg sm:text-2xl font-medium text-gray-900 min-w-0">{awayStats.won}</span>
+          <div className="grid grid-cols-3 gap-2 sm:gap-4 items-center">
+            <span className="text-lg sm:text-2xl font-medium text-gray-900 text-right">{homeStats.won}</span>
+            <div className="text-center">
+              <span className="text-sm sm:text-lg font-medium text-gray-700">Won</span>
+            </div>
+            <span className="text-lg sm:text-2xl font-medium text-gray-900 text-left">{awayStats.won}</span>
           </div>
 
-          <div className="flex justify-between items-center">
-            <span className="text-lg sm:text-2xl font-medium text-gray-900 min-w-0">{homeStats.drawn}</span>
-            <span className="text-sm sm:text-lg font-medium text-gray-700 text-center px-2 flex-1">Drawn</span>
-            <span className="text-lg sm:text-2xl font-medium text-gray-900 min-w-0">{awayStats.drawn}</span>
+          <div className="grid grid-cols-3 gap-2 sm:gap-4 items-center">
+            <span className="text-lg sm:text-2xl font-medium text-gray-900 text-right">{homeStats.drawn}</span>
+            <div className="text-center">
+              <span className="text-sm sm:text-lg font-medium text-gray-700">Drawn</span>
+            </div>
+            <span className="text-lg sm:text-2xl font-medium text-gray-900 text-left">{awayStats.drawn}</span>
           </div>
 
-          <div className="flex justify-between items-center">
-            <span className="text-lg sm:text-2xl font-medium text-gray-900 min-w-0">{homeStats.lost}</span>
-            <span className="text-sm sm:text-lg font-medium text-gray-700 text-center px-2 flex-1">Lost</span>
-            <span className="text-lg sm:text-2xl font-medium text-gray-900 min-w-0">{awayStats.lost}</span>
+          <div className="grid grid-cols-3 gap-2 sm:gap-4 items-center">
+            <span className="text-lg sm:text-2xl font-medium text-gray-900 text-right">{homeStats.lost}</span>
+            <div className="text-center">
+              <span className="text-sm sm:text-lg font-medium text-gray-700">Lost</span>
+            </div>
+            <span className="text-lg sm:text-2xl font-medium text-gray-900 text-left">{awayStats.lost}</span>
           </div>
         </div>
       </div>
@@ -379,9 +387,9 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
           renderFormContent()
         ) : (
           <div className="space-y-6 sm:space-y-8">
-            {/* Team logos and title */}
-            <div className="flex items-center justify-between mb-6 sm:mb-8">
-              <div className="flex items-center">
+            {/* Team logos and title - Using Grid Layout */}
+            <div className="grid grid-cols-3 gap-4 items-center mb-6 sm:mb-8">
+              <div className="flex items-center justify-start">
                 {homeTeam.logo ? (
                   <img src={homeTeam.logo} alt={homeTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
                 ) : (
@@ -391,11 +399,11 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
                 )}
               </div>
               
-              <div className="text-center px-2">
+              <div className="text-center">
                 <h2 className="text-lg sm:text-2xl font-bold text-gray-900">{getStatCategoryTitle(activeTab)}</h2>
               </div>
               
-              <div className="flex items-center">
+              <div className="flex items-center justify-end">
                 {awayTeam.logo ? (
                   <img src={awayTeam.logo} alt={awayTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
                 ) : (
@@ -406,16 +414,16 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
               </div>
             </div>
 
-            {/* Stats comparison */}
+            {/* Stats comparison - Using Grid Layout */}
             <div className="space-y-4 sm:space-y-6">
               {Object.entries(currentStats).map(([statName, statData]) => {
                 const isMatchesPlayed = statName === 'Matches Played';
                 return (
-                  <div key={statName} className="flex justify-between items-center">
-                    <span className="text-lg sm:text-2xl font-medium text-gray-900 min-w-0 flex-shrink-0 w-16 sm:w-auto text-left">
+                  <div key={statName} className="grid grid-cols-3 gap-2 sm:gap-4 items-center">
+                    <span className="text-lg sm:text-2xl font-medium text-gray-900 text-right">
                       {formatValue(statData.homeValue, statData.unit, isMatchesPlayed)}
                     </span>
-                    <div className="text-center px-2 sm:px-4 flex-1 min-w-0">
+                    <div className="text-center px-1">
                       <span className="text-sm sm:text-lg font-medium text-gray-700 block leading-tight">{statName}</span>
                       {statData.leagueAverage && (
                         <div className="text-xs sm:text-sm text-gray-500 mt-1">
@@ -423,7 +431,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
                         </div>
                       )}
                     </div>
-                    <span className="text-lg sm:text-2xl font-medium text-gray-900 min-w-0 flex-shrink-0 w-16 sm:w-auto text-right">
+                    <span className="text-lg sm:text-2xl font-medium text-gray-900 text-left">
                       {formatValue(statData.awayValue, statData.unit, isMatchesPlayed)}
                     </span>
                   </div>
