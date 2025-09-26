@@ -294,13 +294,20 @@ const fixtures: Fixture[] = rows
 console.log(`Successfully processed ${fixtures.length} valid fixtures`);
 
 // ----------------- Save to JSON -----------------
+// Make path relative to the script file, guarantees "data/fixtures.json"
+const JSON_PATH = path.join(__dirname, '..', 'data', 'fixtures.json');
+
 console.log(`Saving fixtures to ${JSON_PATH}...`);
 fs.mkdirSync(path.dirname(JSON_PATH), { recursive: true });
 fs.writeFileSync(JSON_PATH, JSON.stringify(fixtures, null, 2), 'utf-8');
-console.log(`JSON saved successfully! Sample fixtures:`);
+
+// Confirm the file exists and log sample fixtures
+console.log('JSON saved successfully! Sample fixtures:');
 fixtures.slice(0, 3).forEach((fixture, i) => {
   console.log(`${i + 1}:`, JSON.stringify(fixture, null, 2));
 });
+console.log('File exists check:', fs.existsSync(JSON_PATH));
+
 
     // Debug: log first few fixtures
     console.log('Sample fixtures:');
