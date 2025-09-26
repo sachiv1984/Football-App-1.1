@@ -4,355 +4,186 @@
  * Production-ready FBref Fixtures Scraper
  *
  * Key fixes:
- * 1. Proper datetime parsing and formatting for PostgreSQL
- * 2. Better HTML table parsing with debugging
- * 3. Enhanced data validation and error handling
- * 4. More robust column mapping
+ * 1. Multiple URL attempts for fixtures
+ * 2. More flexible table selector approach
+ * 3. Better debugging and error handling
+ * 4. Season-aware URL construction
  * ===============================================================
  */
 
 import fs from 'fs';
 import path from 'path';
-import { createClient } from '@supabase/supabase-js';
+import { fileURLToPath } from 'url';
 import * as cheerio from 'cheerio';
+import fetch from 'node-fetch';
 
-/* ------------------ Configuration Section ------------------ */
-const FBREF_URL =
-  'https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures';
+/* ------------------ Path Setup ------------------ */
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const DATA_DIR = path.join(__dirname, '..', 'data');
+const FILE_NAME = 'Fixtures.json';
 
-const JSON_PATH = path.join(process.cwd(), 'data', 'fixtures.json');
+/* ------------------ Configuration ------------------ */
+const CURRENT_SEASON = '2025-2026';
+const NEXT_SEASON = '2026-2027';
 
-// Supabase client setup
-const SUPABASE_URL = process.env.SUPABASE_URL!;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+// Try multiple URLs to find fixtures
+const FBREF_URLS = [
+  'https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures',
+  `https://fbref.com/en/comps/9/${CURRENT_SEASON}/schedule/${CURRENT_SEASON}-Premier-League-Scores-and-Fixtures`,
+  `https://fbref.com/en/comps/9/${NEXT_SEASON}/schedule/${NEXT_SEASON}-Premier-League-Scores-and-Fixtures`,
+  'https://fbref.com/en/comps/9/Premier-League-Stats'
+];
 
-/* ------------------ Type Definitions ------------------ */
-interface CellData {
-  text: string;
-  link?: string;
-}
-
-type RawRow = (string | CellData)[];
-
-interface Fixture {
-  id: string;
-  datetime: string; // Will be converted to ISO string for PostgreSQL
-  hometeam: string;
-  awayteam: string;
-  homescore: number | null;
-  awayscore: number | null;
-  status: string;
-  venue: string | null;
-  matchweek: number | null;
-  matchurl: string | null;
-}
-
-/* ------------------ Helper Functions ------------------ */
-
-/**
- * Parse FBref date format to ISO string
- * Expected formats: "2024-08-17", "2024-08-17 15:00", etc.
- */
-function parseDateTime(dateStr: string, timeStr?: string): string {
-  try {
-    let fullDateStr = dateStr.trim();
-    
-    // If we have a separate time string, combine them
-    if (timeStr && timeStr.trim()) {
-      fullDateStr += ` ${timeStr.trim()}`;
+/* ------------------ Scraper Class ------------------ */
+class Scraper {
+  private ensureDataDir() {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
     }
-    
-    // Handle various FBref date formats
-    const date = new Date(fullDateStr);
-    
-    // If date is invalid, try different parsing
-    if (isNaN(date.getTime())) {
-      // Try parsing just the date part and assume 15:00 UTC
-      const dateOnly = new Date(dateStr.trim());
-      if (!isNaN(dateOnly.getTime())) {
-        dateOnly.setUTCHours(15, 0, 0, 0); // Default to 3 PM UTC
-        return dateOnly.toISOString();
-      }
-      
-      // Fallback to current date if all parsing fails
-      console.warn(`Failed to parse date: ${dateStr}, using current date`);
-      return new Date().toISOString();
-    }
-    
-    return date.toISOString();
-  } catch (error) {
-    console.warn(`Date parsing error for "${dateStr}": ${error}`);
-    return new Date().toISOString();
   }
-}
 
-/**
- * Extract text and link from cell
- */
-function extractCellData(cell: cheerio.Cheerio): string | CellData {
-  const text = cell.text().trim();
-  const link = cell.find('a').attr('href');
-  
-  if (link) {
-    const fullLink = link.startsWith('/') ? `https://fbref.com${link}` : link;
-    return { text, link: fullLink };
-  }
-  
-  return text;
-}
+  async scrape() {
+    console.log('🚀 Starting fixture scraping...');
 
-/**
- * Determine match status based on available data
- */
-function determineStatus(homescore: number | null, awayscore: number | null, dateTime: string): string {
-  // If scores are available, match is finished
-  if (homescore !== null && awayscore !== null) {
-    return 'finished';
-  }
-  
-  // Check if match date has passed (rough estimate)
-  const matchDate = new Date(dateTime);
-  const now = new Date();
-  
-  if (matchDate < now) {
-    return 'finished'; // Could also be 'postponed' but we'll default to finished
-  }
-  
-  return 'scheduled';
-}
+    for (const url of FBREF_URLS) {
+      try {
+        console.log(`🔍 Trying URL: ${url}`);
+        const html = await this.fetchHtml(url);
+        const $ = cheerio.load(html);
 
-/* ------------------ Enhanced Data Cleaning Function ------------------ */
-function cleanRow(row: RawRow, rowIndex: number): Fixture | null {
-  try {
-    // Debug: log the row structure for first few rows
-    if (rowIndex < 5) {
-      console.log(`Row ${rowIndex} structure:`, row.map((cell, i) => `${i}: ${typeof cell === 'object' ? cell.text : cell}`));
-    }
-    
-    // FBref table typically has these columns (may vary):
-    // 0: Wk (matchweek)
-    // 1: Day
-    // 2: Date
-    // 3: Time
-    // 4: Home team
-    // 5: xG (home)
-    // 6: Score
-    // 7: xG (away)
-    // 8: Away team
-    // 9: Attendance
-    // 10: Venue
-    // 11: Referee
-    
-    // Extract and validate required fields
-    const matchweekStr = typeof row[0] === 'object' ? row[0].text : (row[0] as string);
-    const dateStr = typeof row[2] === 'object' ? row[2].text : (row[2] as string);
-    const timeStr = typeof row[3] === 'object' ? row[3].text : (row[3] as string);
-    const homeCell = row[4];
-    const scoreStr = typeof row[6] === 'object' ? row[6].text : (row[6] as string);
-    const awayCell = row[8];
-    const venueStr = typeof row[10] === 'object' ? row[10].text : (row[10] as string);
-    
-    // Skip invalid rows
-    if (!matchweekStr || matchweekStr === '-' || matchweekStr === 'Wk') return null;
-    if (!dateStr || dateStr === 'Date') return null;
-    if (!homeCell || !awayCell) return null;
-    
-    // Parse matchweek
-    const matchweek = parseInt(matchweekStr, 10) || null;
-    
-    // Extract team names
-    const hometeam = typeof homeCell === 'object' ? homeCell.text : (homeCell as string);
-    const awayteam = typeof awayCell === 'object' ? awayCell.text : (awayCell as string);
-    
-    if (!hometeam || !awayteam || hometeam === 'Home' || awayteam === 'Away') return null;
-    
-    // Parse scores
-    let homescore: number | null = null;
-    let awayscore: number | null = null;
-    
-    if (scoreStr && scoreStr !== 'Score' && scoreStr.includes('–')) {
-      const [h, a] = scoreStr.split('–').map(s => s.trim());
-      const hScore = parseInt(h, 10);
-      const aScore = parseInt(a, 10);
-      
-      if (!isNaN(hScore) && !isNaN(aScore)) {
-        homescore = hScore;
-        awayscore = aScore;
+        const fixtures = this.parseFixtures($);
+
+        if (fixtures.length > 0) {
+          this.saveFixtures(fixtures);
+          console.log(`✅ Success: Found and saved ${fixtures.length} fixtures to ${FILE_NAME}`);
+          return; // Exit after successful scraping
+        } else {
+          console.log(`⚠️ No fixtures found at ${url}`);
+        }
+      } catch (error) {
+        console.log(`❌ Failed to scrape ${url}: ${error}`);
+        continue; // Try next URL
       }
     }
-    
-    // Parse datetime
-    const datetime = parseDateTime(dateStr, timeStr);
-    
-    // Determine status
-    const status = determineStatus(homescore, awayscore, datetime);
-    
-    // Extract venue
-    const venue = venueStr && venueStr !== 'Venue' ? venueStr : null;
-    
-    // Extract match URL if available
-    let matchurl: string | null = null;
-    if (typeof row[2] === 'object' && row[2].link) {
-      matchurl = row[2].link;
-    } else if (typeof homeCell === 'object' && homeCell.link) {
-      matchurl = homeCell.link;
-    }
-    
-    // Generate CONSISTENT unique ID that doesn't change when match details update
-    // Use a combination that will remain the same regardless of status/score changes
-    const cleanHometeam = hometeam.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-    const cleanAwayteam = awayteam.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-    const dateId = datetime.split('T')[0]; // Use date part only for ID
-    const id = `${dateId}_${cleanHometeam}_vs_${cleanAwayteam}`;
-    
-    const fixture: Fixture = {
-      id,
-      datetime,
-      hometeam,
-      awayteam,
-      homescore,
-      awayscore,
-      status,
-      venue,
-      matchweek,
-      matchurl,
-    };
-    
-    return fixture;
-    
-  } catch (error) {
-    console.error(`Error processing row ${rowIndex}:`, error);
-    return null;
-  }
-}
 
-/* ------------------ Enhanced Main Function ------------------ */
-async function scrapeAndUpload() {
-  try {
-    console.log('Fetching FBref fixtures page...');
-    const res = await fetch(FBREF_URL, {
-      headers: { 
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-        'Accept-Encoding': 'gzip, deflate',
-        'Connection': 'keep-alive',
-      },
+    console.error('❌ All URLs failed. No fixtures could be scraped.');
+  }
+
+  private async fetchHtml(url: string): Promise<string> {
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      }
     });
-    
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    if (!response.ok) {
+      throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
     }
-    
-    const html = await res.text();
-    console.log(`Fetched HTML, length: ${html.length} characters`);
+    return response.text();
+  }
 
-    console.log('Parsing HTML with Cheerio...');
-    const $ = cheerio.load(html);
+  private parseFixtures($: cheerio.CheerioAPI): any[] {
+    const fixtures: any[] = [];
 
-    // Try to find the table - FBref may use different IDs for different seasons
-    let table = $('table#sched_2025-2026_9_1');
-    
-    // Fallback: try other common table selectors
-    if (table.length === 0) {
-      console.log('Primary table selector not found, trying fallbacks...');
-      table = $('table[id*="sched"]').first();
-      
-      if (table.length === 0) {
-        table = $('table.stats_table').first();
-      }
-      
-      if (table.length === 0) {
-        throw new Error('Could not find fixtures table on the page');
+    // Try multiple table selectors
+    const possibleSelectors = [
+      '#sched_2025-2026_9_1_fixtures_and_results',
+      '#sched_2024-2025_9_1_fixtures_and_results', 
+      'table[id*="sched_"][id*="_fixtures_and_results"]',
+      'table[id*="schedule"]',
+      '.stats_table',
+      'table.sortable'
+    ];
+
+    let fixturesTable: cheerio.Cheerio<any> | null = null;
+
+    for (const selector of possibleSelectors) {
+      const table = $(selector).first();
+      if (table.length > 0) {
+        console.log(`✓ Found table with selector: ${selector}`);
+        fixturesTable = table;
+        break;
       }
     }
 
-    console.log(`Found table with ID: ${table.attr('id')}`);
+    if (!fixturesTable) {
+      console.warn('❌ No fixtures table found with any selector.');
+      this.debugTables($);
+      return [];
+    }
 
-    // Extract table data
-    const rows: RawRow[] = [];
-    table.find('tbody tr').each((index, tr) => {
-      const row: RawRow = [];
-      $(tr).find('td, th').each((_, cell) => {
-        row.push(extractCellData($(cell)));
-      });
+    const rows = fixturesTable.find('tbody tr');
+    console.log(`📊 Processing ${rows.length} table rows...`);
+
+    rows.each((i: number, row: any) => {
+      const cells = $(row).find('td');
       
-      if (row.length > 0) {
-        rows.push(row);
+      if (cells.length < 5) {
+        return; // Skip rows with insufficient columns
+      }
+
+      const date = $(cells[0]).text().trim();
+      const time = $(cells[1]).text().trim();
+      const homeTeam = $(cells[2]).text().trim();
+      const awayTeam = $(cells[4]).text().trim();
+
+      // Debug first few rows
+      if (i < 3) {
+        console.log(`Row ${i}: Date: "${date}", Time: "${time}", Home: "${homeTeam}", Away: "${awayTeam}"`);
+      }
+
+      if (date && homeTeam && awayTeam) {
+        fixtures.push({
+          date,
+          time,
+          homeTeam,
+          awayTeam,
+          matchStatus: this.determineMatchStatus($(cells[5]).text().trim())
+        });
       }
     });
 
-    console.log(`Extracted ${rows.length} raw rows from table`);
+    return fixtures;
+  }
 
-    // Clean and validate data
-    console.log('Processing and cleaning fixture data...');
-    const fixtures: Fixture[] = rows
-      .map((row, index) => cleanRow(row, index))
-      .filter(Boolean) as Fixture[];
-
-    console.log(`Successfully processed ${fixtures.length} valid fixtures`);
-
-    // Save to local JSON with pretty formatting
-    console.log(`Saving fixtures to ${JSON_PATH}...`);
-    fs.mkdirSync(path.dirname(JSON_PATH), { recursive: true });
-    fs.writeFileSync(JSON_PATH, JSON.stringify(fixtures, null, 2), 'utf-8');
-
-    // Debug: log first few fixtures
-    console.log('Sample fixtures:');
-    fixtures.slice(0, 3).forEach((fixture, i) => {
-      console.log(`${i + 1}:`, JSON.stringify(fixture, null, 2));
-    });
-
-    // Upload to Supabase
-    if (fixtures.length > 0) {
-      console.log('Uploading to Supabase...');
-      
-      // First, let's test the connection
-      const { data: testData, error: testError } = await supabase
-        .from('fixtures')
-        .select('id')
-        .limit(1);
-        
-      if (testError) {
-        console.error('Supabase connection test failed:', testError);
-        return;
-      }
-      
-      console.log('Supabase connection successful, proceeding with upsert...');
-      
-      // The upsert will automatically handle updates to existing records
-      // based on the primary key (id). This prevents duplicates.
-      const { data, error } = await supabase
-        .from('fixtures')
-        .upsert(fixtures, {
-          onConflict: 'id', // This tells Supabase to update existing records with same ID
-          ignoreDuplicates: false, // We want to update, not ignore
-        })
-        .select(); // This will return the upserted data
-
-      if (error) {
-        console.error('Supabase upsert error:', error);
-        console.error('Error details:', JSON.stringify(error, null, 2));
-      } else {
-        console.log(`✅ Successfully upserted ${data?.length || fixtures.length} fixtures to Supabase`);
-      }
+  private determineMatchStatus(scoreText: string): string {
+    if (!scoreText || scoreText === '') {
+      return 'scheduled';
+    } else if (scoreText.includes('–') || scoreText.includes('-')) {
+      return 'completed';
     } else {
-      console.log('⚠️  No valid fixtures found to upload');
+      return 'scheduled';
     }
+  }
 
-  } catch (err) {
-    console.error('❌ Script failed:', err);
-    
-    // Additional error context
-    if (err instanceof Error) {
-      console.error('Error name:', err.name);
-      console.error('Error message:', err.message);
-      console.error('Error stack:', err.stack);
-    }
+  private debugTables($: cheerio.CheerioAPI) {
+    console.log('🔧 Debug: Available tables on the page:');
+    $('table').each((i, table) => {
+      const id = $(table).attr('id') || 'no-id';
+      const classes = $(table).attr('class') || 'no-classes';
+      console.log(`  Table ${i}: id="${id}", class="${classes}"`);
+    });
+
+    console.log('🔧 Debug: Looking for tables with "sched" in ID:');
+    $('table[id*="sched"]').each((i, table) => {
+      const id = $(table).attr('id');
+      console.log(`  Schedule table: ${id}`);
+    });
+  }
+
+  private saveFixtures(data: any[]) {
+    this.ensureDataDir();
+    const filePath = path.join(DATA_DIR, FILE_NAME);
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
   }
 }
 
-/* ------------------ Run Script ------------------ */
-console.log('🚀 Starting FBref fixtures scraper...');
-scrapeAndUpload();
+/* ------------------ Main Execution ------------------ */
+async function main() {
+  const scraper = new Scraper();
+  await scraper.scrape();
+}
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  main();
+}
