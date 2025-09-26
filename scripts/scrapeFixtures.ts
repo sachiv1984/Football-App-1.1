@@ -130,111 +130,55 @@ class FixturesScraper {
     return response.text();
   }
 
-private extractTables($: cheerio.CheerioAPI): TableData[] {
+private extractFixturesTables($: cheerio.CheerioAPI): TableData[] {
   const tables: TableData[] = [];
 
-  $('table').each((_, tableElement) => {
+  // Only tables with class "matches" are actual fixtures tables
+  $('table.matches').each((_, tableElement) => {
     const $table = $(tableElement);
-    const id = $table.attr('id') || `table-${tables.length}`;
-
-    // Get table caption/title
-    let caption = $table.find('caption').text().trim();
-    if (!caption) {
-      caption = $table.prev('h2, h3').text().trim() ||
-                $table.closest('div').find('h2, h3').first().text().trim() ||
-                `Table ${tables.length + 1}`;
-    }
-
-   // Extract headers (all th and td in first row if <thead> missing)
-const headers: string[] = [];
-const $thead = $table.find('thead');
-if ($thead.length > 0) {
-  $thead.find('th, td').each((_, h) => {
-    headers.push($(h).text().trim());
-    return; // explicitly void
-  });
-} else {
-  $table.find('tr:first th, tr:first td').each((_, h) => {
-    headers.push($(h).text().trim());
-    return; // explicitly void
-  });
-}
-
+    const id = $table.attr('id') || `matches-${tables.length}`;
+    
+    // Extract headers
+    const headers: string[] = [];
+    $table.find('thead th').each((_, h) => headers.push($(h).text().trim()));
 
     // Extract all rows
     const rows: (string | CellData)[][] = [];
-    $table.find('tbody tr, tr').each((_, rowElement) => {
-      const $row = $(rowElement);
+    $table.find('tbody tr').each((_, rowEl) => {
+      const $row = $(rowEl);
       const rowData: (string | CellData)[] = [];
 
-      $row.find('td, th').each((_, cellElement) => {
-        const $cell = $(cellElement);
+      $row.find('td').each((_, cellEl) => {
+        const $cell = $(cellEl);
         const text = $cell.text().trim();
         const link = $cell.find('a').attr('href');
 
-        if (link && link.startsWith('/')) {
-          rowData.push({ text, link: `https://fbref.com${link}` });
-        } else if (link && link.startsWith('http')) {
-          rowData.push({ text, link });
-        } else {
-          rowData.push(text);
-        }
+        if (link && link.startsWith('/')) rowData.push({ text, link: `https://fbref.com${link}` });
+        else if (link && link.startsWith('http')) rowData.push({ text, link });
+        else rowData.push(text);
       });
 
-      if (rowData.length > 0) {
-        rows.push(rowData);
-      }
+      if (rowData.length > 0) rows.push(rowData);
     });
 
-    // Only include tables with meaningful data
     if (headers.length > 0 && rows.length > 0) {
-      tables.push({ id, caption, headers, rows });
+      console.log(`🎯 Found fixtures table: ${id}, Rows: ${rows.length}`);
+      tables.push({ id, caption: '', headers, rows });
     }
   });
 
   return tables;
 }
 
-private findFixturesTable(tables: TableData[]): TableData | null {
-  for (const table of tables) {
-    const caption = table.caption.toLowerCase();
-    const headers = table.headers.map(h => h.toLowerCase()).join(' ');
-
-    // Only pick tables that are actually fixtures, not standings
-    const isFixtures = (
-      caption.includes('fixture') ||
-      caption.includes('schedule') ||
-      caption.includes('scores') ||
-      headers.includes('date') || 
-      headers.includes('home') ||
-      headers.includes('away')
-    );
-
-    // Exclude common league table indicators
-    const isLeagueTable = headers.includes('pts') && headers.includes('gd');
-
-    if (isFixtures && !isLeagueTable) {
-      console.log(`🎯 Found potential fixtures table: "${table.caption}"`);
-      console.log(`   Headers: ${table.headers.join(', ')}`);
-      console.log(`   Rows: ${table.rows.length}`);
-      return table;
-    }
-  }
-
-  return null;
-}
-
-
 private convertTableToFixtures(table: TableData): ScrapedFixture[] {
   const fixtures: ScrapedFixture[] = [];
   const seenFixtures = new Set<string>();
 
-  console.log(`\n🔄 Converting table to fixtures...`);
+  console.log(`\n🔄 Converting table ${table.id} to fixtures...`);
   console.log(`📋 Headers: ${table.headers.join(' | ')}`);
 
-  // Map headers to column indexes (case-insensitive)
+  // Map headers to column indexes
   const headerLower = table.headers.map(h => h.toLowerCase());
-
   const idxDate = headerLower.indexOf('date');
   const idxTime = headerLower.indexOf('time');
   const idxHome = headerLower.indexOf('home');
@@ -244,8 +188,7 @@ private convertTableToFixtures(table: TableData): ScrapedFixture[] {
   const idxMatchReport = headerLower.indexOf('match report');
   const idxMatchweek = headerLower.indexOf('matchweek');
 
-  console.log('🗺️ Column mapping:');
-  console.log({ idxDate, idxTime, idxHome, idxAway, idxScore, idxVenue, idxMatchReport, idxMatchweek });
+  console.log('🗺️ Column mapping:', { idxDate, idxTime, idxHome, idxAway, idxScore, idxVenue, idxMatchReport, idxMatchweek });
 
   table.rows.forEach((row, rowIndex) => {
     const getCellText = (idx: number) => (row[idx] ? (typeof row[idx] === 'string' ? row[idx] : row[idx].text) : '');
@@ -273,9 +216,6 @@ private convertTableToFixtures(table: TableData): ScrapedFixture[] {
 
     let status: 'scheduled' | 'finished' | 'live' | 'postponed' = 'scheduled';
     if (homescore !== null && awayscore !== null) status = 'finished';
-
-    const datetime = new Date(`${dateStr}T${timeStr}:00Z`).toISOString();
-    const id = `${homeTeam}_${dateStr}_${awayTeam}`.replace(/\s+/g, '_');
 
     const fixture: ScrapedFixture = {
       date: dateStr,
@@ -305,6 +245,7 @@ private convertTableToFixtures(table: TableData): ScrapedFixture[] {
   console.log(`\n📈 Conversion summary: ${fixtures.length} fixtures extracted`);
   return fixtures;
 }
+
 
 
 
