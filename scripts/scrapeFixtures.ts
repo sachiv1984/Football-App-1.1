@@ -247,10 +247,10 @@ async function scrapeAndUpload() {
     const html = await res.text();
     console.log(`Fetched HTML, length: ${html.length} characters`);
 
-    console.log('Parsing HTML with Cheerio...');
+console.log('Parsing HTML with Cheerio...');
 const $ = cheerio.load(html);
 
-// Inspect all tables dynamically
+// ----------------- Dynamic Table Inspection -----------------
 const allTables = $('table');
 console.log(`Found ${allTables.length} tables on the page:`);
 
@@ -260,7 +260,8 @@ allTables.each((i, tableEl) => {
   console.log(`  Table ${i + 1}: ID='${tableId}', rows=${rowCount}`);
 });
 
-// Try to find the main fixtures table (current fallback logic)
+// ----------------- Table Selection -----------------
+// Single declaration for the table variable
 let table = $('table#sched_2025-2026_9_1');
 
 if (table.length === 0) {
@@ -271,52 +272,35 @@ if (table.length === 0) {
 
 console.log(`Using table ID: '${table.attr('id')}', with ${table.find('tbody tr').length} rows`);
 
-    // Try to find the table - FBref may use different IDs for different seasons
-    let table = $('table#sched_2025-2026_9_1');
-    
-    // Fallback: try other common table selectors
-    if (table.length === 0) {
-      console.log('Primary table selector not found, trying fallbacks...');
-      table = $('table[id*="sched"]').first();
-      
-      if (table.length === 0) {
-        table = $('table.stats_table').first();
-      }
-      
-      if (table.length === 0) {
-        throw new Error('Could not find fixtures table on the page');
-      }
-    }
+// ----------------- Extract Table Data -----------------
+const rows: RawRow[] = [];
+table.find('tbody tr').each((index, tr) => {
+  const row: RawRow = [];
+  $(tr).find('td, th').each((_, cell) => {
+    row.push(extractCellData($(cell)));
+  });
 
-    console.log(`Found table with ID: ${table.attr('id')}`);
+  if (row.length > 0) rows.push(row);
+});
 
-    // Extract table data
-    const rows: RawRow[] = [];
-    table.find('tbody tr').each((index, tr) => {
-      const row: RawRow = [];
-      $(tr).find('td, th').each((_, cell) => {
-        row.push(extractCellData($(cell)));
-      });
-      
-      if (row.length > 0) {
-        rows.push(row);
-      }
-    });
+console.log(`Extracted ${rows.length} raw rows from table`);
 
-    console.log(`Extracted ${rows.length} raw rows from table`);
+// ----------------- Process and Clean Fixtures -----------------
+console.log('Processing and cleaning fixture data...');
+const fixtures: Fixture[] = rows
+  .map((row, index) => cleanRow(row, index))
+  .filter(Boolean) as Fixture[];
 
-    // Clean and validate data
-    console.log('Processing and cleaning fixture data...');
-    const fixtures: Fixture[] = rows
-      .map((row, index) => cleanRow(row, index))
-      .filter(Boolean) as Fixture[];
+console.log(`Successfully processed ${fixtures.length} valid fixtures`);
 
-    console.log(`Successfully processed ${fixtures.length} valid fixtures`);
-
-    // Save to local JSON with pretty formatting
-    console.log(`Saving fixtures to ${JSON_PATH}...`);
-    fs.mkdirSync(path.dirname(JSON_PATH), { recursive: true });
-    fs.writeFileSync(JSON_PATH, JSON.stringify(fixtures, null, 2), 'utf-8');
+// ----------------- Save to JSON -----------------
+console.log(`Saving fixtures to ${JSON_PATH}...`);
+fs.mkdirSync(path.dirname(JSON_PATH), { recursive: true });
+fs.writeFileSync(JSON_PATH, JSON.stringify(fixtures, null, 2), 'utf-8');
+console.log(`JSON saved successfully! Sample fixtures:`);
+fixtures.slice(0, 3).forEach((fixture, i) => {
+  console.log(`${i + 1}:`, JSON.stringify(fixture, null, 2));
+});
 
     // Debug: log first few fixtures
     console.log('Sample fixtures:');
