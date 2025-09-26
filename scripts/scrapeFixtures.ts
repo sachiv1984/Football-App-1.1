@@ -24,8 +24,8 @@ const DATA_DIR = path.join(__dirname, '..', 'data');
 const FILE_NAME = 'Fixtures.json';
 
 /* ------------------ Configuration ------------------ */
-const CURRENT_SEASON = '2025-2026';
-const NEXT_SEASON = '2026-2027';
+const CURRENT_SEASON = '2024-2025';
+const NEXT_SEASON = '2025-2026';
 
 // Try multiple URLs to find fixtures - prioritize fixtures pages
 const FBREF_URLS = [
@@ -131,37 +131,87 @@ class Scraper {
       const $row = $(row);
       const cells = $row.find('td');
       
+      // Debug first 10 rows to understand the structure
+      if (i < 10) {
+        console.log(`\n--- Row ${i} Debug ---`);
+        console.log(`Cell count: ${cells.length}`);
+        cells.each((cellIndex: number, cell: any) => {
+          const cellText = $(cell).text().trim();
+          console.log(`  Cell ${cellIndex}: "${cellText}"`);
+        });
+      }
+
       // Skip rows with insufficient columns
-      if (cells.length < 5) {
+      if (cells.length < 3) {
+        if (i < 10) console.log(`❌ Skipping row ${i}: insufficient columns (${cells.length})`);
         skippedRows++;
         return;
       }
 
       // Skip header rows or separator rows
       if ($row.hasClass('thead') || $row.find('th').length > 0) {
+        if (i < 10) console.log(`❌ Skipping row ${i}: header/separator row`);
         skippedRows++;
         return;
       }
 
-      const date = $(cells[0]).text().trim();
-      const time = $(cells[1]).text().trim();
-      const homeTeam = $(cells[2]).text().trim();
-      const awayTeam = $(cells[4]).text().trim();
-      const scoreText = cells.length > 5 ? $(cells[5]).text().trim() : '';
+      // Try different column mappings based on table structure
+      let date, time, homeTeam, awayTeam, scoreText;
 
-      // Debug first few rows
+      // Common FBref fixture table formats:
+      // Format 1: Date, Time, Home, Score, Away, ...
+      // Format 2: Wk, Date, Time, Home, xG, Score, xG, Away, ...
+      
+      if (cells.length >= 8) {
+        // Format 2 (with week number and xG columns)
+        date = $(cells[1]).text().trim();
+        time = $(cells[2]).text().trim(); 
+        homeTeam = $(cells[3]).text().trim();
+        awayTeam = $(cells[7]).text().trim();
+        scoreText = $(cells[5]).text().trim();
+      } else if (cells.length >= 5) {
+        // Format 1 (simple format)
+        date = $(cells[0]).text().trim();
+        time = $(cells[1]).text().trim();
+        homeTeam = $(cells[2]).text().trim();
+        awayTeam = $(cells[4]).text().trim();
+        scoreText = cells.length > 5 ? $(cells[5]).text().trim() : '';
+      } else {
+        // Fallback: try first available columns
+        date = $(cells[0]).text().trim();
+        time = cells.length > 1 ? $(cells[1]).text().trim() : '';
+        homeTeam = cells.length > 2 ? $(cells[2]).text().trim() : '';
+        awayTeam = cells.length > 3 ? $(cells[3]).text().trim() : '';
+        scoreText = cells.length > 4 ? $(cells[4]).text().trim() : '';
+      }
+
+      // Debug first few parsed rows
       if (i < 5) {
-        console.log(`Row ${i}: Date: "${date}", Time: "${time}", Home: "${homeTeam}", Away: "${awayTeam}", Score: "${scoreText}"`);
+        console.log(`\n✅ Parsed Row ${i}:`);
+        console.log(`  Date: "${date}"`);
+        console.log(`  Time: "${time}"`);
+        console.log(`  Home: "${homeTeam}"`);
+        console.log(`  Away: "${awayTeam}"`);
+        console.log(`  Score: "${scoreText}"`);
       }
 
       // Skip empty rows or invalid data
       if (!date || !homeTeam || !awayTeam) {
+        if (i < 10) console.log(`❌ Skipping row ${i}: missing required data (date: "${date}", home: "${homeTeam}", away: "${awayTeam}")`);
         skippedRows++;
         return;
       }
 
       // Skip obviously invalid entries (like "Squad" or other non-team names)
       if (homeTeam.toLowerCase().includes('squad') || awayTeam.toLowerCase().includes('squad')) {
+        if (i < 10) console.log(`❌ Skipping row ${i}: contains 'squad' in team names`);
+        skippedRows++;
+        return;
+      }
+
+      // Skip rows where team names are too short or clearly not team names
+      if (homeTeam.length < 3 || awayTeam.length < 3) {
+        if (i < 10) console.log(`❌ Skipping row ${i}: team names too short`);
         skippedRows++;
         return;
       }
