@@ -1,6 +1,6 @@
 [
   {
-    "id": "2025-08-15_Liverpool_vs_Bournemouth",
+    "id": "Liverpool_2025-08-15_Bournemouth",
     "datetime": "2025-08-15T20:00:00.000Z",
     "hometeam": "Liverpool",
     "awayteam": "Bournemouth",
@@ -12,7 +12,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-08-15"
   },
   {
-    "id": "2025-08-16_Aston_Villa_vs_Newcastle_Utd",
+    "id": "Aston_Villa_2025-08-16_Newcastle_Utd",
     "datetime": "2025-08-16T12:30:00.000Z",
     "hometeam": "Aston Villa",
     "awayteam": "Newcastle Utd",
@@ -24,7 +24,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-08-16"
   },
   {
-    "id": "2025-08-16_Sunderland_vs_West_Ham",
+    "id": "Sunderland_2025-08-16_West_Ham",
     "datetime": "2025-08-16T15:00:00.000Z",
     "hometeam": "Sunderland",
     "awayteam": "West Ham",
@@ -36,7 +36,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-08-16"
   },
   {
-    "id": "2025-08-16_Tottenham_vs_Burnley",
+    "id": "Tottenham_2025-08-16_Burnley",
     "datetime": "2025-08-16T15:00:00.000Z",
     "hometeam": "Tottenham",
     "awayteam": "Burnley",
@@ -48,7 +48,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-08-16"
   },
   {
-    "id": "2025-08-16_Brighton_vs_Fulham",
+    "id": "Brighton_2025-08-16_Fulham",
     "datetime": "2025-08-16T15:00:00.000Z",
     "hometeam": "Brighton",
     "awayteam": "Fulham",
@@ -60,7 +60,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-08-16"
   },
   {
-    "id": "2025-08-16_Wolves_vs_Manchester_City",
+    "id": "Wolves_2025-08-16_Manchester_City",
     "datetime": "2025-08-16T17:30:00.000Z",
     "hometeam": "Wolves",
     "awayteam": "Manchester City",
@@ -72,7 +72,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-08-16"
   },
   {
-    "id": "2025-08-17_Nott'ham_Forest_vs_Brentford",
+    "id": "Nott'ham_Forest_2025-08-17_Brentford",
     "datetime": "2025-08-17T14:00:00.000Z",
     "hometeam": "Nott'ham Forest",
     "awayteam": "Brentford",
@@ -84,7 +84,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-08-17"
   },
   {
-    "id": "2025-08-17_Chelsea_vs_Crystal_Palace",
+    "id": "Chelsea_2025-08-17_Crystal_Palace",
     "datetime": "2025-08-17T14:00:00.000Z",
     "hometeam": "Chelsea",
     "awayteam": "Crystal Palace",
@@ -96,7 +96,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-08-17"
   },
   {
-    "id": "2025-08-17_Manchester_Utd_vs_Arsenal",
+    "id": "Manchester_Utd_2025-08-17_Arsenal",
     "datetime": "2025-08-17T16:30:00.000Z",
     "hometeam": "Manchester Utd",
     "awayteam": "Arsenal",
@@ -108,7 +108,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-08-17"
   },
   {
-    "id": "2025-08-18_Leeds_United_vs_Everton",
+    "id": "Leeds_United_2025-08-18_Everton",
     "datetime": "2025-08-18T20:00:00.000Z",
     "hometeam": "Leeds United",
     "awayteam": "Everton",
@@ -120,7 +120,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-08-18"
   },
   {
-    "id": "2025-08-22_West_Ham_vs_Chelsea",
+    "id": "West_Ham_2025-08-22_Chelsea",
     "datetime": "2025-08-22T20:00:00.000Z",
     "hometeam": "West Ham",
     "awayteam": "Chelsea",
@@ -132,7 +132,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-08-22"
   },
   {
-    "id": "2025-08-23_Manchester_City_vs_Tottenham",
+    "id": "Manchester_City_2025-08-23_Tottenham",
     "datetime": "2025-08-23T12:30:00.000Z",
     "hometeam": "Manchester City",
     "awayteam": "Tottenham",
@@ -144,7 +144,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-08-23"
   },
   {
-    "id": "2025-08-23_Bournemouth_vs_Wolves",
+    "id": "Bournemouth_2025-08-23_Wolves",
     "datetime": "2025-08-23T15:00:00.000Z",
     "hometeam": "Bournemouth",
     "awayteam": "Wolves",
@@ -156,7 +156,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-08-23"
   },
   {
-    "id": "2025-08-23_Burnley_vs_Sunderland",
+    "id": "Burnley_2025-08-23_Sunderland",
     "datetime": "2025-08-23T15:00:00.000Z",
     "hometeam": "Burnley",
     "awayteam": "Sunderland",
@@ -168,7 +168,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-08-23"
   },
   {
-    "id": "2025-08-23_Brentford_vs_Aston_Villa",
+    "id": "Brentford_2025-08-23_Aston_Villa",
     "datetime": "2025-08-23T15:00:00.000Z",
     "hometeam": "Brentford",
     "awayteam": "Aston Villa",
@@ -180,7 +180,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-08-23"
   },
   {
-    "id": "2025-08-23_Arsenal_vs_Leeds_United",
+    "id": "Arsenal_2025-08-23_Leeds_United",
     "datetime": "2025-08-23T17:30:00.000Z",
     "hometeam": "Arsenal",
     "awayteam": "Leeds United",
@@ -192,7 +192,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-08-23"
   },
   {
-    "id": "2025-08-24_Crystal_Palace_vs_Nott'ham_Forest",
+    "id": "Crystal_Palace_2025-08-24_Nott'ham_Forest",
     "datetime": "2025-08-24T14:00:00.000Z",
     "hometeam": "Crystal Palace",
     "awayteam": "Nott'ham Forest",
@@ -204,7 +204,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-08-24"
   },
   {
-    "id": "2025-08-24_Everton_vs_Brighton",
+    "id": "Everton_2025-08-24_Brighton",
     "datetime": "2025-08-24T14:00:00.000Z",
     "hometeam": "Everton",
     "awayteam": "Brighton",
@@ -216,7 +216,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-08-24"
   },
   {
-    "id": "2025-08-24_Fulham_vs_Manchester_Utd",
+    "id": "Fulham_2025-08-24_Manchester_Utd",
     "datetime": "2025-08-24T16:30:00.000Z",
     "hometeam": "Fulham",
     "awayteam": "Manchester Utd",
@@ -228,7 +228,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-08-24"
   },
   {
-    "id": "2025-08-25_Newcastle_Utd_vs_Liverpool",
+    "id": "Newcastle_Utd_2025-08-25_Liverpool",
     "datetime": "2025-08-25T20:00:00.000Z",
     "hometeam": "Newcastle Utd",
     "awayteam": "Liverpool",
@@ -240,7 +240,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-08-25"
   },
   {
-    "id": "2025-08-30_Chelsea_vs_Fulham",
+    "id": "Chelsea_2025-08-30_Fulham",
     "datetime": "2025-08-30T12:30:00.000Z",
     "hometeam": "Chelsea",
     "awayteam": "Fulham",
@@ -252,7 +252,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-08-30"
   },
   {
-    "id": "2025-08-30_Tottenham_vs_Bournemouth",
+    "id": "Tottenham_2025-08-30_Bournemouth",
     "datetime": "2025-08-30T15:00:00.000Z",
     "hometeam": "Tottenham",
     "awayteam": "Bournemouth",
@@ -264,7 +264,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-08-30"
   },
   {
-    "id": "2025-08-30_Sunderland_vs_Brentford",
+    "id": "Sunderland_2025-08-30_Brentford",
     "datetime": "2025-08-30T15:00:00.000Z",
     "hometeam": "Sunderland",
     "awayteam": "Brentford",
@@ -276,7 +276,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-08-30"
   },
   {
-    "id": "2025-08-30_Wolves_vs_Everton",
+    "id": "Wolves_2025-08-30_Everton",
     "datetime": "2025-08-30T15:00:00.000Z",
     "hometeam": "Wolves",
     "awayteam": "Everton",
@@ -288,7 +288,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-08-30"
   },
   {
-    "id": "2025-08-30_Manchester_Utd_vs_Burnley",
+    "id": "Manchester_Utd_2025-08-30_Burnley",
     "datetime": "2025-08-30T15:00:00.000Z",
     "hometeam": "Manchester Utd",
     "awayteam": "Burnley",
@@ -300,7 +300,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-08-30"
   },
   {
-    "id": "2025-08-30_Leeds_United_vs_Newcastle_Utd",
+    "id": "Leeds_United_2025-08-30_Newcastle_Utd",
     "datetime": "2025-08-30T17:30:00.000Z",
     "hometeam": "Leeds United",
     "awayteam": "Newcastle Utd",
@@ -312,7 +312,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-08-30"
   },
   {
-    "id": "2025-08-31_Nott'ham_Forest_vs_West_Ham",
+    "id": "Nott'ham_Forest_2025-08-31_West_Ham",
     "datetime": "2025-08-31T14:00:00.000Z",
     "hometeam": "Nott'ham Forest",
     "awayteam": "West Ham",
@@ -324,7 +324,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-08-31"
   },
   {
-    "id": "2025-08-31_Brighton_vs_Manchester_City",
+    "id": "Brighton_2025-08-31_Manchester_City",
     "datetime": "2025-08-31T14:00:00.000Z",
     "hometeam": "Brighton",
     "awayteam": "Manchester City",
@@ -336,7 +336,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-08-31"
   },
   {
-    "id": "2025-08-31_Liverpool_vs_Arsenal",
+    "id": "Liverpool_2025-08-31_Arsenal",
     "datetime": "2025-08-31T16:30:00.000Z",
     "hometeam": "Liverpool",
     "awayteam": "Arsenal",
@@ -348,7 +348,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-08-31"
   },
   {
-    "id": "2025-08-31_Aston_Villa_vs_Crystal_Palace",
+    "id": "Aston_Villa_2025-08-31_Crystal_Palace",
     "datetime": "2025-08-31T19:00:00.000Z",
     "hometeam": "Aston Villa",
     "awayteam": "Crystal Palace",
@@ -360,7 +360,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-08-31"
   },
   {
-    "id": "2025-09-13_Arsenal_vs_Nott'ham_Forest",
+    "id": "Arsenal_2025-09-13_Nott'ham_Forest",
     "datetime": "2025-09-13T12:30:00.000Z",
     "hometeam": "Arsenal",
     "awayteam": "Nott'ham Forest",
@@ -372,7 +372,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-09-13"
   },
   {
-    "id": "2025-09-13_Everton_vs_Aston_Villa",
+    "id": "Everton_2025-09-13_Aston_Villa",
     "datetime": "2025-09-13T15:00:00.000Z",
     "hometeam": "Everton",
     "awayteam": "Aston Villa",
@@ -384,7 +384,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-09-13"
   },
   {
-    "id": "2025-09-13_Fulham_vs_Leeds_United",
+    "id": "Fulham_2025-09-13_Leeds_United",
     "datetime": "2025-09-13T15:00:00.000Z",
     "hometeam": "Fulham",
     "awayteam": "Leeds United",
@@ -396,7 +396,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-09-13"
   },
   {
-    "id": "2025-09-13_Newcastle_Utd_vs_Wolves",
+    "id": "Newcastle_Utd_2025-09-13_Wolves",
     "datetime": "2025-09-13T15:00:00.000Z",
     "hometeam": "Newcastle Utd",
     "awayteam": "Wolves",
@@ -408,7 +408,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-09-13"
   },
   {
-    "id": "2025-09-13_Crystal_Palace_vs_Sunderland",
+    "id": "Crystal_Palace_2025-09-13_Sunderland",
     "datetime": "2025-09-13T15:00:00.000Z",
     "hometeam": "Crystal Palace",
     "awayteam": "Sunderland",
@@ -420,7 +420,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-09-13"
   },
   {
-    "id": "2025-09-13_Bournemouth_vs_Brighton",
+    "id": "Bournemouth_2025-09-13_Brighton",
     "datetime": "2025-09-13T15:00:00.000Z",
     "hometeam": "Bournemouth",
     "awayteam": "Brighton",
@@ -432,7 +432,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-09-13"
   },
   {
-    "id": "2025-09-13_West_Ham_vs_Tottenham",
+    "id": "West_Ham_2025-09-13_Tottenham",
     "datetime": "2025-09-13T17:30:00.000Z",
     "hometeam": "West Ham",
     "awayteam": "Tottenham",
@@ -444,7 +444,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-09-13"
   },
   {
-    "id": "2025-09-13_Brentford_vs_Chelsea",
+    "id": "Brentford_2025-09-13_Chelsea",
     "datetime": "2025-09-13T20:00:00.000Z",
     "hometeam": "Brentford",
     "awayteam": "Chelsea",
@@ -456,7 +456,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-09-13"
   },
   {
-    "id": "2025-09-14_Burnley_vs_Liverpool",
+    "id": "Burnley_2025-09-14_Liverpool",
     "datetime": "2025-09-14T14:00:00.000Z",
     "hometeam": "Burnley",
     "awayteam": "Liverpool",
@@ -468,7 +468,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-09-14"
   },
   {
-    "id": "2025-09-14_Manchester_City_vs_Manchester_Utd",
+    "id": "Manchester_City_2025-09-14_Manchester_Utd",
     "datetime": "2025-09-14T16:30:00.000Z",
     "hometeam": "Manchester City",
     "awayteam": "Manchester Utd",
@@ -480,7 +480,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-09-14"
   },
   {
-    "id": "2025-09-20_Liverpool_vs_Everton",
+    "id": "Liverpool_2025-09-20_Everton",
     "datetime": "2025-09-20T12:30:00.000Z",
     "hometeam": "Liverpool",
     "awayteam": "Everton",
@@ -492,7 +492,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-09-20"
   },
   {
-    "id": "2025-09-20_West_Ham_vs_Crystal_Palace",
+    "id": "West_Ham_2025-09-20_Crystal_Palace",
     "datetime": "2025-09-20T15:00:00.000Z",
     "hometeam": "West Ham",
     "awayteam": "Crystal Palace",
@@ -504,7 +504,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-09-20"
   },
   {
-    "id": "2025-09-20_Brighton_vs_Tottenham",
+    "id": "Brighton_2025-09-20_Tottenham",
     "datetime": "2025-09-20T15:00:00.000Z",
     "hometeam": "Brighton",
     "awayteam": "Tottenham",
@@ -516,7 +516,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-09-20"
   },
   {
-    "id": "2025-09-20_Wolves_vs_Leeds_United",
+    "id": "Wolves_2025-09-20_Leeds_United",
     "datetime": "2025-09-20T15:00:00.000Z",
     "hometeam": "Wolves",
     "awayteam": "Leeds United",
@@ -528,7 +528,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-09-20"
   },
   {
-    "id": "2025-09-20_Burnley_vs_Nott'ham_Forest",
+    "id": "Burnley_2025-09-20_Nott'ham_Forest",
     "datetime": "2025-09-20T15:00:00.000Z",
     "hometeam": "Burnley",
     "awayteam": "Nott'ham Forest",
@@ -540,7 +540,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-09-20"
   },
   {
-    "id": "2025-09-20_Manchester_Utd_vs_Chelsea",
+    "id": "Manchester_Utd_2025-09-20_Chelsea",
     "datetime": "2025-09-20T17:30:00.000Z",
     "hometeam": "Manchester Utd",
     "awayteam": "Chelsea",
@@ -552,7 +552,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-09-20"
   },
   {
-    "id": "2025-09-20_Fulham_vs_Brentford",
+    "id": "Fulham_2025-09-20_Brentford",
     "datetime": "2025-09-20T20:00:00.000Z",
     "hometeam": "Fulham",
     "awayteam": "Brentford",
@@ -564,7 +564,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-09-20"
   },
   {
-    "id": "2025-09-21_Sunderland_vs_Aston_Villa",
+    "id": "Sunderland_2025-09-21_Aston_Villa",
     "datetime": "2025-09-21T14:00:00.000Z",
     "hometeam": "Sunderland",
     "awayteam": "Aston Villa",
@@ -576,7 +576,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-09-21"
   },
   {
-    "id": "2025-09-21_Bournemouth_vs_Newcastle_Utd",
+    "id": "Bournemouth_2025-09-21_Newcastle_Utd",
     "datetime": "2025-09-21T14:00:00.000Z",
     "hometeam": "Bournemouth",
     "awayteam": "Newcastle Utd",
@@ -588,7 +588,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-09-21"
   },
   {
-    "id": "2025-09-21_Arsenal_vs_Manchester_City",
+    "id": "Arsenal_2025-09-21_Manchester_City",
     "datetime": "2025-09-21T16:30:00.000Z",
     "hometeam": "Arsenal",
     "awayteam": "Manchester City",
@@ -600,7 +600,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-09-21"
   },
   {
-    "id": "2025-09-27_Brentford_vs_Manchester_Utd",
+    "id": "Brentford_2025-09-27_Manchester_Utd",
     "datetime": "2025-09-27T12:30:00.000Z",
     "hometeam": "Brentford",
     "awayteam": "Manchester Utd",
@@ -612,7 +612,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-09-27"
   },
   {
-    "id": "2025-09-27_Leeds_United_vs_Bournemouth",
+    "id": "Leeds_United_2025-09-27_Bournemouth",
     "datetime": "2025-09-27T15:00:00.000Z",
     "hometeam": "Leeds United",
     "awayteam": "Bournemouth",
@@ -624,7 +624,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-09-27"
   },
   {
-    "id": "2025-09-27_Crystal_Palace_vs_Liverpool",
+    "id": "Crystal_Palace_2025-09-27_Liverpool",
     "datetime": "2025-09-27T15:00:00.000Z",
     "hometeam": "Crystal Palace",
     "awayteam": "Liverpool",
@@ -636,7 +636,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-09-27"
   },
   {
-    "id": "2025-09-27_Chelsea_vs_Brighton",
+    "id": "Chelsea_2025-09-27_Brighton",
     "datetime": "2025-09-27T15:00:00.000Z",
     "hometeam": "Chelsea",
     "awayteam": "Brighton",
@@ -648,7 +648,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-09-27"
   },
   {
-    "id": "2025-09-27_Manchester_City_vs_Burnley",
+    "id": "Manchester_City_2025-09-27_Burnley",
     "datetime": "2025-09-27T15:00:00.000Z",
     "hometeam": "Manchester City",
     "awayteam": "Burnley",
@@ -660,7 +660,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-09-27"
   },
   {
-    "id": "2025-09-27_Nott'ham_Forest_vs_Sunderland",
+    "id": "Nott'ham_Forest_2025-09-27_Sunderland",
     "datetime": "2025-09-27T17:30:00.000Z",
     "hometeam": "Nott'ham Forest",
     "awayteam": "Sunderland",
@@ -672,7 +672,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-09-27"
   },
   {
-    "id": "2025-09-27_Tottenham_vs_Wolves",
+    "id": "Tottenham_2025-09-27_Wolves",
     "datetime": "2025-09-27T20:00:00.000Z",
     "hometeam": "Tottenham",
     "awayteam": "Wolves",
@@ -684,7 +684,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-09-27"
   },
   {
-    "id": "2025-09-28_Aston_Villa_vs_Fulham",
+    "id": "Aston_Villa_2025-09-28_Fulham",
     "datetime": "2025-09-28T14:00:00.000Z",
     "hometeam": "Aston Villa",
     "awayteam": "Fulham",
@@ -696,7 +696,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-09-28"
   },
   {
-    "id": "2025-09-28_Newcastle_Utd_vs_Arsenal",
+    "id": "Newcastle_Utd_2025-09-28_Arsenal",
     "datetime": "2025-09-28T16:30:00.000Z",
     "hometeam": "Newcastle Utd",
     "awayteam": "Arsenal",
@@ -708,7 +708,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-09-28"
   },
   {
-    "id": "2025-09-29_Everton_vs_West_Ham",
+    "id": "Everton_2025-09-29_West_Ham",
     "datetime": "2025-09-29T20:00:00.000Z",
     "hometeam": "Everton",
     "awayteam": "West Ham",
@@ -720,7 +720,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-09-29"
   },
   {
-    "id": "2025-10-03_Bournemouth_vs_Fulham",
+    "id": "Bournemouth_2025-10-03_Fulham",
     "datetime": "2025-10-03T20:00:00.000Z",
     "hometeam": "Bournemouth",
     "awayteam": "Fulham",
@@ -732,7 +732,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-10-03"
   },
   {
-    "id": "2025-10-04_Leeds_United_vs_Tottenham",
+    "id": "Leeds_United_2025-10-04_Tottenham",
     "datetime": "2025-10-04T12:30:00.000Z",
     "hometeam": "Leeds United",
     "awayteam": "Tottenham",
@@ -744,7 +744,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-10-04"
   },
   {
-    "id": "2025-10-04_Arsenal_vs_West_Ham",
+    "id": "Arsenal_2025-10-04_West_Ham",
     "datetime": "2025-10-04T15:00:00.000Z",
     "hometeam": "Arsenal",
     "awayteam": "West Ham",
@@ -756,7 +756,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-10-04"
   },
   {
-    "id": "2025-10-04_Manchester_Utd_vs_Sunderland",
+    "id": "Manchester_Utd_2025-10-04_Sunderland",
     "datetime": "2025-10-04T15:00:00.000Z",
     "hometeam": "Manchester Utd",
     "awayteam": "Sunderland",
@@ -768,7 +768,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-10-04"
   },
   {
-    "id": "2025-10-04_Chelsea_vs_Liverpool",
+    "id": "Chelsea_2025-10-04_Liverpool",
     "datetime": "2025-10-04T17:30:00.000Z",
     "hometeam": "Chelsea",
     "awayteam": "Liverpool",
@@ -780,7 +780,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-10-04"
   },
   {
-    "id": "2025-10-05_Newcastle_Utd_vs_Nott'ham_Forest",
+    "id": "Newcastle_Utd_2025-10-05_Nott'ham_Forest",
     "datetime": "2025-10-05T14:00:00.000Z",
     "hometeam": "Newcastle Utd",
     "awayteam": "Nott'ham Forest",
@@ -792,7 +792,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-10-05"
   },
   {
-    "id": "2025-10-05_Everton_vs_Crystal_Palace",
+    "id": "Everton_2025-10-05_Crystal_Palace",
     "datetime": "2025-10-05T14:00:00.000Z",
     "hometeam": "Everton",
     "awayteam": "Crystal Palace",
@@ -804,7 +804,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-10-05"
   },
   {
-    "id": "2025-10-05_Wolves_vs_Brighton",
+    "id": "Wolves_2025-10-05_Brighton",
     "datetime": "2025-10-05T14:00:00.000Z",
     "hometeam": "Wolves",
     "awayteam": "Brighton",
@@ -816,7 +816,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-10-05"
   },
   {
-    "id": "2025-10-05_Aston_Villa_vs_Burnley",
+    "id": "Aston_Villa_2025-10-05_Burnley",
     "datetime": "2025-10-05T14:00:00.000Z",
     "hometeam": "Aston Villa",
     "awayteam": "Burnley",
@@ -828,7 +828,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-10-05"
   },
   {
-    "id": "2025-10-05_Brentford_vs_Manchester_City",
+    "id": "Brentford_2025-10-05_Manchester_City",
     "datetime": "2025-10-05T16:30:00.000Z",
     "hometeam": "Brentford",
     "awayteam": "Manchester City",
@@ -840,7 +840,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-10-05"
   },
   {
-    "id": "2025-10-18_Nott'ham_Forest_vs_Chelsea",
+    "id": "Nott'ham_Forest_2025-10-18_Chelsea",
     "datetime": "2025-10-18T12:30:00.000Z",
     "hometeam": "Nott'ham Forest",
     "awayteam": "Chelsea",
@@ -852,7 +852,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-10-18"
   },
   {
-    "id": "2025-10-18_Brighton_vs_Newcastle_Utd",
+    "id": "Brighton_2025-10-18_Newcastle_Utd",
     "datetime": "2025-10-18T15:00:00.000Z",
     "hometeam": "Brighton",
     "awayteam": "Newcastle Utd",
@@ -864,7 +864,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-10-18"
   },
   {
-    "id": "2025-10-18_Burnley_vs_Leeds_United",
+    "id": "Burnley_2025-10-18_Leeds_United",
     "datetime": "2025-10-18T15:00:00.000Z",
     "hometeam": "Burnley",
     "awayteam": "Leeds United",
@@ -876,7 +876,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-10-18"
   },
   {
-    "id": "2025-10-18_Crystal_Palace_vs_Bournemouth",
+    "id": "Crystal_Palace_2025-10-18_Bournemouth",
     "datetime": "2025-10-18T15:00:00.000Z",
     "hometeam": "Crystal Palace",
     "awayteam": "Bournemouth",
@@ -888,7 +888,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-10-18"
   },
   {
-    "id": "2025-10-18_Sunderland_vs_Wolves",
+    "id": "Sunderland_2025-10-18_Wolves",
     "datetime": "2025-10-18T15:00:00.000Z",
     "hometeam": "Sunderland",
     "awayteam": "Wolves",
@@ -900,7 +900,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-10-18"
   },
   {
-    "id": "2025-10-18_Manchester_City_vs_Everton",
+    "id": "Manchester_City_2025-10-18_Everton",
     "datetime": "2025-10-18T15:00:00.000Z",
     "hometeam": "Manchester City",
     "awayteam": "Everton",
@@ -912,7 +912,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-10-18"
   },
   {
-    "id": "2025-10-18_Fulham_vs_Arsenal",
+    "id": "Fulham_2025-10-18_Arsenal",
     "datetime": "2025-10-18T17:30:00.000Z",
     "hometeam": "Fulham",
     "awayteam": "Arsenal",
@@ -924,7 +924,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-10-18"
   },
   {
-    "id": "2025-10-19_Tottenham_vs_Aston_Villa",
+    "id": "Tottenham_2025-10-19_Aston_Villa",
     "datetime": "2025-10-19T14:00:00.000Z",
     "hometeam": "Tottenham",
     "awayteam": "Aston Villa",
@@ -936,7 +936,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-10-19"
   },
   {
-    "id": "2025-10-19_Liverpool_vs_Manchester_Utd",
+    "id": "Liverpool_2025-10-19_Manchester_Utd",
     "datetime": "2025-10-19T16:30:00.000Z",
     "hometeam": "Liverpool",
     "awayteam": "Manchester Utd",
@@ -948,7 +948,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-10-19"
   },
   {
-    "id": "2025-10-20_West_Ham_vs_Brentford",
+    "id": "West_Ham_2025-10-20_Brentford",
     "datetime": "2025-10-20T20:00:00.000Z",
     "hometeam": "West Ham",
     "awayteam": "Brentford",
@@ -960,7 +960,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-10-20"
   },
   {
-    "id": "2025-10-24_Leeds_United_vs_West_Ham",
+    "id": "Leeds_United_2025-10-24_West_Ham",
     "datetime": "2025-10-24T20:00:00.000Z",
     "hometeam": "Leeds United",
     "awayteam": "West Ham",
@@ -972,7 +972,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-10-24"
   },
   {
-    "id": "2025-10-25_Newcastle_Utd_vs_Fulham",
+    "id": "Newcastle_Utd_2025-10-25_Fulham",
     "datetime": "2025-10-25T15:00:00.000Z",
     "hometeam": "Newcastle Utd",
     "awayteam": "Fulham",
@@ -984,7 +984,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-10-25"
   },
   {
-    "id": "2025-10-25_Chelsea_vs_Sunderland",
+    "id": "Chelsea_2025-10-25_Sunderland",
     "datetime": "2025-10-25T15:00:00.000Z",
     "hometeam": "Chelsea",
     "awayteam": "Sunderland",
@@ -996,7 +996,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-10-25"
   },
   {
-    "id": "2025-10-25_Manchester_Utd_vs_Brighton",
+    "id": "Manchester_Utd_2025-10-25_Brighton",
     "datetime": "2025-10-25T17:30:00.000Z",
     "hometeam": "Manchester Utd",
     "awayteam": "Brighton",
@@ -1008,7 +1008,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-10-25"
   },
   {
-    "id": "2025-10-25_Brentford_vs_Liverpool",
+    "id": "Brentford_2025-10-25_Liverpool",
     "datetime": "2025-10-25T20:00:00.000Z",
     "hometeam": "Brentford",
     "awayteam": "Liverpool",
@@ -1020,7 +1020,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-10-25"
   },
   {
-    "id": "2025-10-26_Arsenal_vs_Crystal_Palace",
+    "id": "Arsenal_2025-10-26_Crystal_Palace",
     "datetime": "2025-10-26T14:00:00.000Z",
     "hometeam": "Arsenal",
     "awayteam": "Crystal Palace",
@@ -1032,7 +1032,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-10-26"
   },
   {
-    "id": "2025-10-26_Bournemouth_vs_Nott'ham_Forest",
+    "id": "Bournemouth_2025-10-26_Nott'ham_Forest",
     "datetime": "2025-10-26T14:00:00.000Z",
     "hometeam": "Bournemouth",
     "awayteam": "Nott'ham Forest",
@@ -1044,7 +1044,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-10-26"
   },
   {
-    "id": "2025-10-26_Wolves_vs_Burnley",
+    "id": "Wolves_2025-10-26_Burnley",
     "datetime": "2025-10-26T14:00:00.000Z",
     "hometeam": "Wolves",
     "awayteam": "Burnley",
@@ -1056,7 +1056,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-10-26"
   },
   {
-    "id": "2025-10-26_Aston_Villa_vs_Manchester_City",
+    "id": "Aston_Villa_2025-10-26_Manchester_City",
     "datetime": "2025-10-26T14:00:00.000Z",
     "hometeam": "Aston Villa",
     "awayteam": "Manchester City",
@@ -1068,7 +1068,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-10-26"
   },
   {
-    "id": "2025-10-26_Everton_vs_Tottenham",
+    "id": "Everton_2025-10-26_Tottenham",
     "datetime": "2025-10-26T16:30:00.000Z",
     "hometeam": "Everton",
     "awayteam": "Tottenham",
@@ -1080,7 +1080,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-10-26"
   },
   {
-    "id": "2025-11-01_Nott'ham_Forest_vs_Manchester_Utd",
+    "id": "Nott'ham_Forest_2025-11-01_Manchester_Utd",
     "datetime": "2025-11-01T15:00:00.000Z",
     "hometeam": "Nott'ham Forest",
     "awayteam": "Manchester Utd",
@@ -1092,7 +1092,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-01"
   },
   {
-    "id": "2025-11-01_Brighton_vs_Leeds_United",
+    "id": "Brighton_2025-11-01_Leeds_United",
     "datetime": "2025-11-01T15:00:00.000Z",
     "hometeam": "Brighton",
     "awayteam": "Leeds United",
@@ -1104,7 +1104,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-01"
   },
   {
-    "id": "2025-11-01_Fulham_vs_Wolves",
+    "id": "Fulham_2025-11-01_Wolves",
     "datetime": "2025-11-01T15:00:00.000Z",
     "hometeam": "Fulham",
     "awayteam": "Wolves",
@@ -1116,7 +1116,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-01"
   },
   {
-    "id": "2025-11-01_Burnley_vs_Arsenal",
+    "id": "Burnley_2025-11-01_Arsenal",
     "datetime": "2025-11-01T15:00:00.000Z",
     "hometeam": "Burnley",
     "awayteam": "Arsenal",
@@ -1128,7 +1128,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-01"
   },
   {
-    "id": "2025-11-01_Crystal_Palace_vs_Brentford",
+    "id": "Crystal_Palace_2025-11-01_Brentford",
     "datetime": "2025-11-01T15:00:00.000Z",
     "hometeam": "Crystal Palace",
     "awayteam": "Brentford",
@@ -1140,7 +1140,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-01"
   },
   {
-    "id": "2025-11-01_Tottenham_vs_Chelsea",
+    "id": "Tottenham_2025-11-01_Chelsea",
     "datetime": "2025-11-01T17:30:00.000Z",
     "hometeam": "Tottenham",
     "awayteam": "Chelsea",
@@ -1152,7 +1152,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-01"
   },
   {
-    "id": "2025-11-01_Liverpool_vs_Aston_Villa",
+    "id": "Liverpool_2025-11-01_Aston_Villa",
     "datetime": "2025-11-01T20:00:00.000Z",
     "hometeam": "Liverpool",
     "awayteam": "Aston Villa",
@@ -1164,7 +1164,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-01"
   },
   {
-    "id": "2025-11-02_West_Ham_vs_Newcastle_Utd",
+    "id": "West_Ham_2025-11-02_Newcastle_Utd",
     "datetime": "2025-11-02T14:00:00.000Z",
     "hometeam": "West Ham",
     "awayteam": "Newcastle Utd",
@@ -1176,7 +1176,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-02"
   },
   {
-    "id": "2025-11-02_Manchester_City_vs_Bournemouth",
+    "id": "Manchester_City_2025-11-02_Bournemouth",
     "datetime": "2025-11-02T16:30:00.000Z",
     "hometeam": "Manchester City",
     "awayteam": "Bournemouth",
@@ -1188,7 +1188,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-02"
   },
   {
-    "id": "2025-11-03_Sunderland_vs_Everton",
+    "id": "Sunderland_2025-11-03_Everton",
     "datetime": "2025-11-03T20:00:00.000Z",
     "hometeam": "Sunderland",
     "awayteam": "Everton",
@@ -1200,7 +1200,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-03"
   },
   {
-    "id": "2025-11-08_Tottenham_vs_Manchester_Utd",
+    "id": "Tottenham_2025-11-08_Manchester_Utd",
     "datetime": "2025-11-08T12:30:00.000Z",
     "hometeam": "Tottenham",
     "awayteam": "Manchester Utd",
@@ -1212,7 +1212,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-08"
   },
   {
-    "id": "2025-11-08_West_Ham_vs_Burnley",
+    "id": "West_Ham_2025-11-08_Burnley",
     "datetime": "2025-11-08T15:00:00.000Z",
     "hometeam": "West Ham",
     "awayteam": "Burnley",
@@ -1224,7 +1224,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-08"
   },
   {
-    "id": "2025-11-08_Everton_vs_Fulham",
+    "id": "Everton_2025-11-08_Fulham",
     "datetime": "2025-11-08T15:00:00.000Z",
     "hometeam": "Everton",
     "awayteam": "Fulham",
@@ -1236,7 +1236,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-08"
   },
   {
-    "id": "2025-11-08_Sunderland_vs_Arsenal",
+    "id": "Sunderland_2025-11-08_Arsenal",
     "datetime": "2025-11-08T17:30:00.000Z",
     "hometeam": "Sunderland",
     "awayteam": "Arsenal",
@@ -1248,7 +1248,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-08"
   },
   {
-    "id": "2025-11-08_Chelsea_vs_Wolves",
+    "id": "Chelsea_2025-11-08_Wolves",
     "datetime": "2025-11-08T20:00:00.000Z",
     "hometeam": "Chelsea",
     "awayteam": "Wolves",
@@ -1260,7 +1260,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-08"
   },
   {
-    "id": "2025-11-09_Nott'ham_Forest_vs_Leeds_United",
+    "id": "Nott'ham_Forest_2025-11-09_Leeds_United",
     "datetime": "2025-11-09T14:00:00.000Z",
     "hometeam": "Nott'ham Forest",
     "awayteam": "Leeds United",
@@ -1272,7 +1272,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-09"
   },
   {
-    "id": "2025-11-09_Brentford_vs_Newcastle_Utd",
+    "id": "Brentford_2025-11-09_Newcastle_Utd",
     "datetime": "2025-11-09T14:00:00.000Z",
     "hometeam": "Brentford",
     "awayteam": "Newcastle Utd",
@@ -1284,7 +1284,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-09"
   },
   {
-    "id": "2025-11-09_Aston_Villa_vs_Bournemouth",
+    "id": "Aston_Villa_2025-11-09_Bournemouth",
     "datetime": "2025-11-09T14:00:00.000Z",
     "hometeam": "Aston Villa",
     "awayteam": "Bournemouth",
@@ -1296,7 +1296,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-09"
   },
   {
-    "id": "2025-11-09_Crystal_Palace_vs_Brighton",
+    "id": "Crystal_Palace_2025-11-09_Brighton",
     "datetime": "2025-11-09T14:00:00.000Z",
     "hometeam": "Crystal Palace",
     "awayteam": "Brighton",
@@ -1308,7 +1308,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-09"
   },
   {
-    "id": "2025-11-09_Manchester_City_vs_Liverpool",
+    "id": "Manchester_City_2025-11-09_Liverpool",
     "datetime": "2025-11-09T16:30:00.000Z",
     "hometeam": "Manchester City",
     "awayteam": "Liverpool",
@@ -1320,7 +1320,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-09"
   },
   {
-    "id": "2025-11-22_Burnley_vs_Chelsea",
+    "id": "Burnley_2025-11-22_Chelsea",
     "datetime": "2025-11-22T12:30:00.000Z",
     "hometeam": "Burnley",
     "awayteam": "Chelsea",
@@ -1332,7 +1332,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-22"
   },
   {
-    "id": "2025-11-22_Fulham_vs_Sunderland",
+    "id": "Fulham_2025-11-22_Sunderland",
     "datetime": "2025-11-22T15:00:00.000Z",
     "hometeam": "Fulham",
     "awayteam": "Sunderland",
@@ -1344,7 +1344,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-22"
   },
   {
-    "id": "2025-11-22_Bournemouth_vs_West_Ham",
+    "id": "Bournemouth_2025-11-22_West_Ham",
     "datetime": "2025-11-22T15:00:00.000Z",
     "hometeam": "Bournemouth",
     "awayteam": "West Ham",
@@ -1356,7 +1356,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-22"
   },
   {
-    "id": "2025-11-22_Brighton_vs_Brentford",
+    "id": "Brighton_2025-11-22_Brentford",
     "datetime": "2025-11-22T15:00:00.000Z",
     "hometeam": "Brighton",
     "awayteam": "Brentford",
@@ -1368,7 +1368,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-22"
   },
   {
-    "id": "2025-11-22_Liverpool_vs_Nott'ham_Forest",
+    "id": "Liverpool_2025-11-22_Nott'ham_Forest",
     "datetime": "2025-11-22T15:00:00.000Z",
     "hometeam": "Liverpool",
     "awayteam": "Nott'ham Forest",
@@ -1380,7 +1380,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-22"
   },
   {
-    "id": "2025-11-22_Wolves_vs_Crystal_Palace",
+    "id": "Wolves_2025-11-22_Crystal_Palace",
     "datetime": "2025-11-22T15:00:00.000Z",
     "hometeam": "Wolves",
     "awayteam": "Crystal Palace",
@@ -1392,7 +1392,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-22"
   },
   {
-    "id": "2025-11-22_Newcastle_Utd_vs_Manchester_City",
+    "id": "Newcastle_Utd_2025-11-22_Manchester_City",
     "datetime": "2025-11-22T17:30:00.000Z",
     "hometeam": "Newcastle Utd",
     "awayteam": "Manchester City",
@@ -1404,7 +1404,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-22"
   },
   {
-    "id": "2025-11-23_Leeds_United_vs_Aston_Villa",
+    "id": "Leeds_United_2025-11-23_Aston_Villa",
     "datetime": "2025-11-23T14:00:00.000Z",
     "hometeam": "Leeds United",
     "awayteam": "Aston Villa",
@@ -1416,7 +1416,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-23"
   },
   {
-    "id": "2025-11-23_Arsenal_vs_Tottenham",
+    "id": "Arsenal_2025-11-23_Tottenham",
     "datetime": "2025-11-23T16:30:00.000Z",
     "hometeam": "Arsenal",
     "awayteam": "Tottenham",
@@ -1428,7 +1428,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-23"
   },
   {
-    "id": "2025-11-24_Manchester_Utd_vs_Everton",
+    "id": "Manchester_Utd_2025-11-24_Everton",
     "datetime": "2025-11-24T20:00:00.000Z",
     "hometeam": "Manchester Utd",
     "awayteam": "Everton",
@@ -1440,7 +1440,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-24"
   },
   {
-    "id": "2025-11-29_Manchester_City_vs_Leeds_United",
+    "id": "Manchester_City_2025-11-29_Leeds_United",
     "datetime": "2025-11-29T15:00:00.000Z",
     "hometeam": "Manchester City",
     "awayteam": "Leeds United",
@@ -1452,7 +1452,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-29"
   },
   {
-    "id": "2025-11-29_Sunderland_vs_Bournemouth",
+    "id": "Sunderland_2025-11-29_Bournemouth",
     "datetime": "2025-11-29T15:00:00.000Z",
     "hometeam": "Sunderland",
     "awayteam": "Bournemouth",
@@ -1464,7 +1464,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-29"
   },
   {
-    "id": "2025-11-29_Brentford_vs_Burnley",
+    "id": "Brentford_2025-11-29_Burnley",
     "datetime": "2025-11-29T15:00:00.000Z",
     "hometeam": "Brentford",
     "awayteam": "Burnley",
@@ -1476,7 +1476,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-29"
   },
   {
-    "id": "2025-11-29_Everton_vs_Newcastle_Utd",
+    "id": "Everton_2025-11-29_Newcastle_Utd",
     "datetime": "2025-11-29T17:30:00.000Z",
     "hometeam": "Everton",
     "awayteam": "Newcastle Utd",
@@ -1488,7 +1488,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-29"
   },
   {
-    "id": "2025-11-29_Tottenham_vs_Fulham",
+    "id": "Tottenham_2025-11-29_Fulham",
     "datetime": "2025-11-29T20:00:00.000Z",
     "hometeam": "Tottenham",
     "awayteam": "Fulham",
@@ -1500,7 +1500,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-29"
   },
   {
-    "id": "2025-11-30_Crystal_Palace_vs_Manchester_Utd",
+    "id": "Crystal_Palace_2025-11-30_Manchester_Utd",
     "datetime": "2025-11-30T12:00:00.000Z",
     "hometeam": "Crystal Palace",
     "awayteam": "Manchester Utd",
@@ -1512,7 +1512,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-30"
   },
   {
-    "id": "2025-11-30_Nott'ham_Forest_vs_Brighton",
+    "id": "Nott'ham_Forest_2025-11-30_Brighton",
     "datetime": "2025-11-30T14:05:00.000Z",
     "hometeam": "Nott'ham Forest",
     "awayteam": "Brighton",
@@ -1524,7 +1524,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-30"
   },
   {
-    "id": "2025-11-30_Aston_Villa_vs_Wolves",
+    "id": "Aston_Villa_2025-11-30_Wolves",
     "datetime": "2025-11-30T14:05:00.000Z",
     "hometeam": "Aston Villa",
     "awayteam": "Wolves",
@@ -1536,7 +1536,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-30"
   },
   {
-    "id": "2025-11-30_West_Ham_vs_Liverpool",
+    "id": "West_Ham_2025-11-30_Liverpool",
     "datetime": "2025-11-30T14:05:00.000Z",
     "hometeam": "West Ham",
     "awayteam": "Liverpool",
@@ -1548,7 +1548,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-30"
   },
   {
-    "id": "2025-11-30_Chelsea_vs_Arsenal",
+    "id": "Chelsea_2025-11-30_Arsenal",
     "datetime": "2025-11-30T16:30:00.000Z",
     "hometeam": "Chelsea",
     "awayteam": "Arsenal",
@@ -1560,7 +1560,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-11-30"
   },
   {
-    "id": "2025-12-03_Bournemouth_vs_Everton",
+    "id": "Bournemouth_2025-12-03_Everton",
     "datetime": "2025-12-03T20:00:00.000Z",
     "hometeam": "Bournemouth",
     "awayteam": "Everton",
@@ -1572,7 +1572,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-03"
   },
   {
-    "id": "2025-12-03_Manchester_Utd_vs_West_Ham",
+    "id": "Manchester_Utd_2025-12-03_West_Ham",
     "datetime": "2025-12-03T20:00:00.000Z",
     "hometeam": "Manchester Utd",
     "awayteam": "West Ham",
@@ -1584,7 +1584,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-03"
   },
   {
-    "id": "2025-12-03_Wolves_vs_Nott'ham_Forest",
+    "id": "Wolves_2025-12-03_Nott'ham_Forest",
     "datetime": "2025-12-03T20:00:00.000Z",
     "hometeam": "Wolves",
     "awayteam": "Nott'ham Forest",
@@ -1596,7 +1596,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-03"
   },
   {
-    "id": "2025-12-03_Burnley_vs_Crystal_Palace",
+    "id": "Burnley_2025-12-03_Crystal_Palace",
     "datetime": "2025-12-03T20:00:00.000Z",
     "hometeam": "Burnley",
     "awayteam": "Crystal Palace",
@@ -1608,7 +1608,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-03"
   },
   {
-    "id": "2025-12-03_Brighton_vs_Aston_Villa",
+    "id": "Brighton_2025-12-03_Aston_Villa",
     "datetime": "2025-12-03T20:00:00.000Z",
     "hometeam": "Brighton",
     "awayteam": "Aston Villa",
@@ -1620,7 +1620,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-03"
   },
   {
-    "id": "2025-12-03_Leeds_United_vs_Chelsea",
+    "id": "Leeds_United_2025-12-03_Chelsea",
     "datetime": "2025-12-03T20:00:00.000Z",
     "hometeam": "Leeds United",
     "awayteam": "Chelsea",
@@ -1632,7 +1632,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-03"
   },
   {
-    "id": "2025-12-03_Newcastle_Utd_vs_Tottenham",
+    "id": "Newcastle_Utd_2025-12-03_Tottenham",
     "datetime": "2025-12-03T20:00:00.000Z",
     "hometeam": "Newcastle Utd",
     "awayteam": "Tottenham",
@@ -1644,7 +1644,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-03"
   },
   {
-    "id": "2025-12-03_Fulham_vs_Manchester_City",
+    "id": "Fulham_2025-12-03_Manchester_City",
     "datetime": "2025-12-03T20:00:00.000Z",
     "hometeam": "Fulham",
     "awayteam": "Manchester City",
@@ -1656,7 +1656,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-03"
   },
   {
-    "id": "2025-12-03_Liverpool_vs_Sunderland",
+    "id": "Liverpool_2025-12-03_Sunderland",
     "datetime": "2025-12-03T20:00:00.000Z",
     "hometeam": "Liverpool",
     "awayteam": "Sunderland",
@@ -1668,7 +1668,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-03"
   },
   {
-    "id": "2025-12-03_Arsenal_vs_Brentford",
+    "id": "Arsenal_2025-12-03_Brentford",
     "datetime": "2025-12-03T20:00:00.000Z",
     "hometeam": "Arsenal",
     "awayteam": "Brentford",
@@ -1680,7 +1680,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-03"
   },
   {
-    "id": "2025-12-06_Tottenham_vs_Brentford",
+    "id": "Tottenham_2025-12-06_Brentford",
     "datetime": "2025-12-06T15:00:00.000Z",
     "hometeam": "Tottenham",
     "awayteam": "Brentford",
@@ -1692,7 +1692,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-06"
   },
   {
-    "id": "2025-12-06_Fulham_vs_Crystal_Palace",
+    "id": "Fulham_2025-12-06_Crystal_Palace",
     "datetime": "2025-12-06T15:00:00.000Z",
     "hometeam": "Fulham",
     "awayteam": "Crystal Palace",
@@ -1704,7 +1704,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-06"
   },
   {
-    "id": "2025-12-06_Leeds_United_vs_Liverpool",
+    "id": "Leeds_United_2025-12-06_Liverpool",
     "datetime": "2025-12-06T15:00:00.000Z",
     "hometeam": "Leeds United",
     "awayteam": "Liverpool",
@@ -1716,7 +1716,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-06"
   },
   {
-    "id": "2025-12-06_Aston_Villa_vs_Arsenal",
+    "id": "Aston_Villa_2025-12-06_Arsenal",
     "datetime": "2025-12-06T15:00:00.000Z",
     "hometeam": "Aston Villa",
     "awayteam": "Arsenal",
@@ -1728,7 +1728,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-06"
   },
   {
-    "id": "2025-12-06_Wolves_vs_Manchester_Utd",
+    "id": "Wolves_2025-12-06_Manchester_Utd",
     "datetime": "2025-12-06T15:00:00.000Z",
     "hometeam": "Wolves",
     "awayteam": "Manchester Utd",
@@ -1740,7 +1740,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-06"
   },
   {
-    "id": "2025-12-06_Newcastle_Utd_vs_Burnley",
+    "id": "Newcastle_Utd_2025-12-06_Burnley",
     "datetime": "2025-12-06T15:00:00.000Z",
     "hometeam": "Newcastle Utd",
     "awayteam": "Burnley",
@@ -1752,7 +1752,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-06"
   },
   {
-    "id": "2025-12-06_Manchester_City_vs_Sunderland",
+    "id": "Manchester_City_2025-12-06_Sunderland",
     "datetime": "2025-12-06T15:00:00.000Z",
     "hometeam": "Manchester City",
     "awayteam": "Sunderland",
@@ -1764,7 +1764,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-06"
   },
   {
-    "id": "2025-12-06_Brighton_vs_West_Ham",
+    "id": "Brighton_2025-12-06_West_Ham",
     "datetime": "2025-12-06T15:00:00.000Z",
     "hometeam": "Brighton",
     "awayteam": "West Ham",
@@ -1776,7 +1776,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-06"
   },
   {
-    "id": "2025-12-06_Bournemouth_vs_Chelsea",
+    "id": "Bournemouth_2025-12-06_Chelsea",
     "datetime": "2025-12-06T15:00:00.000Z",
     "hometeam": "Bournemouth",
     "awayteam": "Chelsea",
@@ -1788,7 +1788,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-06"
   },
   {
-    "id": "2025-12-06_Everton_vs_Nott'ham_Forest",
+    "id": "Everton_2025-12-06_Nott'ham_Forest",
     "datetime": "2025-12-06T15:00:00.000Z",
     "hometeam": "Everton",
     "awayteam": "Nott'ham Forest",
@@ -1800,7 +1800,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-06"
   },
   {
-    "id": "2025-12-13_Sunderland_vs_Newcastle_Utd",
+    "id": "Sunderland_2025-12-13_Newcastle_Utd",
     "datetime": "2025-12-13T15:00:00.000Z",
     "hometeam": "Sunderland",
     "awayteam": "Newcastle Utd",
@@ -1812,7 +1812,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-13"
   },
   {
-    "id": "2025-12-13_Nott'ham_Forest_vs_Tottenham",
+    "id": "Nott'ham_Forest_2025-12-13_Tottenham",
     "datetime": "2025-12-13T15:00:00.000Z",
     "hometeam": "Nott'ham Forest",
     "awayteam": "Tottenham",
@@ -1824,7 +1824,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-13"
   },
   {
-    "id": "2025-12-13_Manchester_Utd_vs_Bournemouth",
+    "id": "Manchester_Utd_2025-12-13_Bournemouth",
     "datetime": "2025-12-13T15:00:00.000Z",
     "hometeam": "Manchester Utd",
     "awayteam": "Bournemouth",
@@ -1836,7 +1836,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-13"
   },
   {
-    "id": "2025-12-13_West_Ham_vs_Aston_Villa",
+    "id": "West_Ham_2025-12-13_Aston_Villa",
     "datetime": "2025-12-13T15:00:00.000Z",
     "hometeam": "West Ham",
     "awayteam": "Aston Villa",
@@ -1848,7 +1848,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-13"
   },
   {
-    "id": "2025-12-13_Crystal_Palace_vs_Manchester_City",
+    "id": "Crystal_Palace_2025-12-13_Manchester_City",
     "datetime": "2025-12-13T15:00:00.000Z",
     "hometeam": "Crystal Palace",
     "awayteam": "Manchester City",
@@ -1860,7 +1860,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-13"
   },
   {
-    "id": "2025-12-13_Burnley_vs_Fulham",
+    "id": "Burnley_2025-12-13_Fulham",
     "datetime": "2025-12-13T15:00:00.000Z",
     "hometeam": "Burnley",
     "awayteam": "Fulham",
@@ -1872,7 +1872,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-13"
   },
   {
-    "id": "2025-12-13_Brentford_vs_Leeds_United",
+    "id": "Brentford_2025-12-13_Leeds_United",
     "datetime": "2025-12-13T15:00:00.000Z",
     "hometeam": "Brentford",
     "awayteam": "Leeds United",
@@ -1884,7 +1884,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-13"
   },
   {
-    "id": "2025-12-13_Arsenal_vs_Wolves",
+    "id": "Arsenal_2025-12-13_Wolves",
     "datetime": "2025-12-13T15:00:00.000Z",
     "hometeam": "Arsenal",
     "awayteam": "Wolves",
@@ -1896,7 +1896,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-13"
   },
   {
-    "id": "2025-12-13_Liverpool_vs_Brighton",
+    "id": "Liverpool_2025-12-13_Brighton",
     "datetime": "2025-12-13T15:00:00.000Z",
     "hometeam": "Liverpool",
     "awayteam": "Brighton",
@@ -1908,7 +1908,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-13"
   },
   {
-    "id": "2025-12-13_Chelsea_vs_Everton",
+    "id": "Chelsea_2025-12-13_Everton",
     "datetime": "2025-12-13T15:00:00.000Z",
     "hometeam": "Chelsea",
     "awayteam": "Everton",
@@ -1920,7 +1920,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-13"
   },
   {
-    "id": "2025-12-20_Aston_Villa_vs_Manchester_Utd",
+    "id": "Aston_Villa_2025-12-20_Manchester_Utd",
     "datetime": "2025-12-20T15:00:00.000Z",
     "hometeam": "Aston Villa",
     "awayteam": "Manchester Utd",
@@ -1932,7 +1932,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-20"
   },
   {
-    "id": "2025-12-20_Tottenham_vs_Liverpool",
+    "id": "Tottenham_2025-12-20_Liverpool",
     "datetime": "2025-12-20T15:00:00.000Z",
     "hometeam": "Tottenham",
     "awayteam": "Liverpool",
@@ -1944,7 +1944,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-20"
   },
   {
-    "id": "2025-12-20_Wolves_vs_Brentford",
+    "id": "Wolves_2025-12-20_Brentford",
     "datetime": "2025-12-20T15:00:00.000Z",
     "hometeam": "Wolves",
     "awayteam": "Brentford",
@@ -1956,7 +1956,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-20"
   },
   {
-    "id": "2025-12-20_Brighton_vs_Sunderland",
+    "id": "Brighton_2025-12-20_Sunderland",
     "datetime": "2025-12-20T15:00:00.000Z",
     "hometeam": "Brighton",
     "awayteam": "Sunderland",
@@ -1968,7 +1968,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-20"
   },
   {
-    "id": "2025-12-20_Bournemouth_vs_Burnley",
+    "id": "Bournemouth_2025-12-20_Burnley",
     "datetime": "2025-12-20T15:00:00.000Z",
     "hometeam": "Bournemouth",
     "awayteam": "Burnley",
@@ -1980,7 +1980,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-20"
   },
   {
-    "id": "2025-12-20_Newcastle_Utd_vs_Chelsea",
+    "id": "Newcastle_Utd_2025-12-20_Chelsea",
     "datetime": "2025-12-20T15:00:00.000Z",
     "hometeam": "Newcastle Utd",
     "awayteam": "Chelsea",
@@ -1992,7 +1992,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-20"
   },
   {
-    "id": "2025-12-20_Leeds_United_vs_Crystal_Palace",
+    "id": "Leeds_United_2025-12-20_Crystal_Palace",
     "datetime": "2025-12-20T15:00:00.000Z",
     "hometeam": "Leeds United",
     "awayteam": "Crystal Palace",
@@ -2004,7 +2004,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-20"
   },
   {
-    "id": "2025-12-20_Fulham_vs_Nott'ham_Forest",
+    "id": "Fulham_2025-12-20_Nott'ham_Forest",
     "datetime": "2025-12-20T15:00:00.000Z",
     "hometeam": "Fulham",
     "awayteam": "Nott'ham Forest",
@@ -2016,7 +2016,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-20"
   },
   {
-    "id": "2025-12-20_Everton_vs_Arsenal",
+    "id": "Everton_2025-12-20_Arsenal",
     "datetime": "2025-12-20T15:00:00.000Z",
     "hometeam": "Everton",
     "awayteam": "Arsenal",
@@ -2028,7 +2028,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-20"
   },
   {
-    "id": "2025-12-20_Manchester_City_vs_West_Ham",
+    "id": "Manchester_City_2025-12-20_West_Ham",
     "datetime": "2025-12-20T15:00:00.000Z",
     "hometeam": "Manchester City",
     "awayteam": "West Ham",
@@ -2040,7 +2040,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-20"
   },
   {
-    "id": "2025-12-27_West_Ham_vs_Fulham",
+    "id": "West_Ham_2025-12-27_Fulham",
     "datetime": "2025-12-27T15:00:00.000Z",
     "hometeam": "West Ham",
     "awayteam": "Fulham",
@@ -2052,7 +2052,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-27"
   },
   {
-    "id": "2025-12-27_Liverpool_vs_Wolves",
+    "id": "Liverpool_2025-12-27_Wolves",
     "datetime": "2025-12-27T15:00:00.000Z",
     "hometeam": "Liverpool",
     "awayteam": "Wolves",
@@ -2064,7 +2064,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-27"
   },
   {
-    "id": "2025-12-27_Crystal_Palace_vs_Tottenham",
+    "id": "Crystal_Palace_2025-12-27_Tottenham",
     "datetime": "2025-12-27T15:00:00.000Z",
     "hometeam": "Crystal Palace",
     "awayteam": "Tottenham",
@@ -2076,7 +2076,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-27"
   },
   {
-    "id": "2025-12-27_Burnley_vs_Everton",
+    "id": "Burnley_2025-12-27_Everton",
     "datetime": "2025-12-27T15:00:00.000Z",
     "hometeam": "Burnley",
     "awayteam": "Everton",
@@ -2088,7 +2088,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-27"
   },
   {
-    "id": "2025-12-27_Nott'ham_Forest_vs_Manchester_City",
+    "id": "Nott'ham_Forest_2025-12-27_Manchester_City",
     "datetime": "2025-12-27T15:00:00.000Z",
     "hometeam": "Nott'ham Forest",
     "awayteam": "Manchester City",
@@ -2100,7 +2100,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-27"
   },
   {
-    "id": "2025-12-27_Chelsea_vs_Aston_Villa",
+    "id": "Chelsea_2025-12-27_Aston_Villa",
     "datetime": "2025-12-27T15:00:00.000Z",
     "hometeam": "Chelsea",
     "awayteam": "Aston Villa",
@@ -2112,7 +2112,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-27"
   },
   {
-    "id": "2025-12-27_Arsenal_vs_Brighton",
+    "id": "Arsenal_2025-12-27_Brighton",
     "datetime": "2025-12-27T15:00:00.000Z",
     "hometeam": "Arsenal",
     "awayteam": "Brighton",
@@ -2124,7 +2124,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-27"
   },
   {
-    "id": "2025-12-27_Manchester_Utd_vs_Newcastle_Utd",
+    "id": "Manchester_Utd_2025-12-27_Newcastle_Utd",
     "datetime": "2025-12-27T15:00:00.000Z",
     "hometeam": "Manchester Utd",
     "awayteam": "Newcastle Utd",
@@ -2136,7 +2136,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-27"
   },
   {
-    "id": "2025-12-27_Brentford_vs_Bournemouth",
+    "id": "Brentford_2025-12-27_Bournemouth",
     "datetime": "2025-12-27T15:00:00.000Z",
     "hometeam": "Brentford",
     "awayteam": "Bournemouth",
@@ -2148,7 +2148,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-27"
   },
   {
-    "id": "2025-12-27_Sunderland_vs_Leeds_United",
+    "id": "Sunderland_2025-12-27_Leeds_United",
     "datetime": "2025-12-27T15:00:00.000Z",
     "hometeam": "Sunderland",
     "awayteam": "Leeds United",
@@ -2160,7 +2160,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-27"
   },
   {
-    "id": "2025-12-30_Arsenal_vs_Aston_Villa",
+    "id": "Arsenal_2025-12-30_Aston_Villa",
     "datetime": "2025-12-30T20:00:00.000Z",
     "hometeam": "Arsenal",
     "awayteam": "Aston Villa",
@@ -2172,7 +2172,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-30"
   },
   {
-    "id": "2025-12-30_Sunderland_vs_Manchester_City",
+    "id": "Sunderland_2025-12-30_Manchester_City",
     "datetime": "2025-12-30T20:00:00.000Z",
     "hometeam": "Sunderland",
     "awayteam": "Manchester City",
@@ -2184,7 +2184,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-30"
   },
   {
-    "id": "2025-12-30_Nott'ham_Forest_vs_Everton",
+    "id": "Nott'ham_Forest_2025-12-30_Everton",
     "datetime": "2025-12-30T20:00:00.000Z",
     "hometeam": "Nott'ham Forest",
     "awayteam": "Everton",
@@ -2196,7 +2196,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-30"
   },
   {
-    "id": "2025-12-30_Chelsea_vs_Bournemouth",
+    "id": "Chelsea_2025-12-30_Bournemouth",
     "datetime": "2025-12-30T20:00:00.000Z",
     "hometeam": "Chelsea",
     "awayteam": "Bournemouth",
@@ -2208,7 +2208,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-30"
   },
   {
-    "id": "2025-12-30_Brentford_vs_Tottenham",
+    "id": "Brentford_2025-12-30_Tottenham",
     "datetime": "2025-12-30T20:00:00.000Z",
     "hometeam": "Brentford",
     "awayteam": "Tottenham",
@@ -2220,7 +2220,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-30"
   },
   {
-    "id": "2025-12-30_Liverpool_vs_Leeds_United",
+    "id": "Liverpool_2025-12-30_Leeds_United",
     "datetime": "2025-12-30T20:00:00.000Z",
     "hometeam": "Liverpool",
     "awayteam": "Leeds United",
@@ -2232,7 +2232,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-30"
   },
   {
-    "id": "2025-12-30_West_Ham_vs_Brighton",
+    "id": "West_Ham_2025-12-30_Brighton",
     "datetime": "2025-12-30T20:00:00.000Z",
     "hometeam": "West Ham",
     "awayteam": "Brighton",
@@ -2244,7 +2244,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-30"
   },
   {
-    "id": "2025-12-30_Crystal_Palace_vs_Fulham",
+    "id": "Crystal_Palace_2025-12-30_Fulham",
     "datetime": "2025-12-30T20:00:00.000Z",
     "hometeam": "Crystal Palace",
     "awayteam": "Fulham",
@@ -2256,7 +2256,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-30"
   },
   {
-    "id": "2025-12-30_Burnley_vs_Newcastle_Utd",
+    "id": "Burnley_2025-12-30_Newcastle_Utd",
     "datetime": "2025-12-30T20:00:00.000Z",
     "hometeam": "Burnley",
     "awayteam": "Newcastle Utd",
@@ -2268,7 +2268,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-30"
   },
   {
-    "id": "2025-12-30_Manchester_Utd_vs_Wolves",
+    "id": "Manchester_Utd_2025-12-30_Wolves",
     "datetime": "2025-12-30T20:00:00.000Z",
     "hometeam": "Manchester Utd",
     "awayteam": "Wolves",
@@ -2280,7 +2280,7 @@
     "matchurl": "https://fbref.com/en/matches/2025-12-30"
   },
   {
-    "id": "2026-01-03_Fulham_vs_Liverpool",
+    "id": "Fulham_2026-01-03_Liverpool",
     "datetime": "2026-01-03T15:00:00.000Z",
     "hometeam": "Fulham",
     "awayteam": "Liverpool",
@@ -2292,7 +2292,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-03"
   },
   {
-    "id": "2026-01-03_Manchester_City_vs_Chelsea",
+    "id": "Manchester_City_2026-01-03_Chelsea",
     "datetime": "2026-01-03T15:00:00.000Z",
     "hometeam": "Manchester City",
     "awayteam": "Chelsea",
@@ -2304,7 +2304,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-03"
   },
   {
-    "id": "2026-01-03_Wolves_vs_West_Ham",
+    "id": "Wolves_2026-01-03_West_Ham",
     "datetime": "2026-01-03T15:00:00.000Z",
     "hometeam": "Wolves",
     "awayteam": "West Ham",
@@ -2316,7 +2316,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-03"
   },
   {
-    "id": "2026-01-03_Aston_Villa_vs_Nott'ham_Forest",
+    "id": "Aston_Villa_2026-01-03_Nott'ham_Forest",
     "datetime": "2026-01-03T15:00:00.000Z",
     "hometeam": "Aston Villa",
     "awayteam": "Nott'ham Forest",
@@ -2328,7 +2328,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-03"
   },
   {
-    "id": "2026-01-03_Newcastle_Utd_vs_Crystal_Palace",
+    "id": "Newcastle_Utd_2026-01-03_Crystal_Palace",
     "datetime": "2026-01-03T15:00:00.000Z",
     "hometeam": "Newcastle Utd",
     "awayteam": "Crystal Palace",
@@ -2340,7 +2340,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-03"
   },
   {
-    "id": "2026-01-03_Everton_vs_Brentford",
+    "id": "Everton_2026-01-03_Brentford",
     "datetime": "2026-01-03T15:00:00.000Z",
     "hometeam": "Everton",
     "awayteam": "Brentford",
@@ -2352,7 +2352,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-03"
   },
   {
-    "id": "2026-01-03_Bournemouth_vs_Arsenal",
+    "id": "Bournemouth_2026-01-03_Arsenal",
     "datetime": "2026-01-03T15:00:00.000Z",
     "hometeam": "Bournemouth",
     "awayteam": "Arsenal",
@@ -2364,7 +2364,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-03"
   },
   {
-    "id": "2026-01-03_Leeds_United_vs_Manchester_Utd",
+    "id": "Leeds_United_2026-01-03_Manchester_Utd",
     "datetime": "2026-01-03T15:00:00.000Z",
     "hometeam": "Leeds United",
     "awayteam": "Manchester Utd",
@@ -2376,7 +2376,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-03"
   },
   {
-    "id": "2026-01-03_Brighton_vs_Burnley",
+    "id": "Brighton_2026-01-03_Burnley",
     "datetime": "2026-01-03T15:00:00.000Z",
     "hometeam": "Brighton",
     "awayteam": "Burnley",
@@ -2388,7 +2388,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-03"
   },
   {
-    "id": "2026-01-03_Tottenham_vs_Sunderland",
+    "id": "Tottenham_2026-01-03_Sunderland",
     "datetime": "2026-01-03T15:00:00.000Z",
     "hometeam": "Tottenham",
     "awayteam": "Sunderland",
@@ -2400,7 +2400,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-03"
   },
   {
-    "id": "2026-01-07_Manchester_City_vs_Brighton",
+    "id": "Manchester_City_2026-01-07_Brighton",
     "datetime": "2026-01-07T20:00:00.000Z",
     "hometeam": "Manchester City",
     "awayteam": "Brighton",
@@ -2412,7 +2412,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-07"
   },
   {
-    "id": "2026-01-07_West_Ham_vs_Nott'ham_Forest",
+    "id": "West_Ham_2026-01-07_Nott'ham_Forest",
     "datetime": "2026-01-07T20:00:00.000Z",
     "hometeam": "West Ham",
     "awayteam": "Nott'ham Forest",
@@ -2424,7 +2424,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-07"
   },
   {
-    "id": "2026-01-07_Crystal_Palace_vs_Aston_Villa",
+    "id": "Crystal_Palace_2026-01-07_Aston_Villa",
     "datetime": "2026-01-07T20:00:00.000Z",
     "hometeam": "Crystal Palace",
     "awayteam": "Aston Villa",
@@ -2436,7 +2436,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-07"
   },
   {
-    "id": "2026-01-07_Burnley_vs_Manchester_Utd",
+    "id": "Burnley_2026-01-07_Manchester_Utd",
     "datetime": "2026-01-07T20:00:00.000Z",
     "hometeam": "Burnley",
     "awayteam": "Manchester Utd",
@@ -2448,7 +2448,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-07"
   },
   {
-    "id": "2026-01-07_Arsenal_vs_Liverpool",
+    "id": "Arsenal_2026-01-07_Liverpool",
     "datetime": "2026-01-07T20:00:00.000Z",
     "hometeam": "Arsenal",
     "awayteam": "Liverpool",
@@ -2460,7 +2460,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-07"
   },
   {
-    "id": "2026-01-07_Everton_vs_Wolves",
+    "id": "Everton_2026-01-07_Wolves",
     "datetime": "2026-01-07T20:00:00.000Z",
     "hometeam": "Everton",
     "awayteam": "Wolves",
@@ -2472,7 +2472,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-07"
   },
   {
-    "id": "2026-01-07_Newcastle_Utd_vs_Leeds_United",
+    "id": "Newcastle_Utd_2026-01-07_Leeds_United",
     "datetime": "2026-01-07T20:00:00.000Z",
     "hometeam": "Newcastle Utd",
     "awayteam": "Leeds United",
@@ -2484,7 +2484,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-07"
   },
   {
-    "id": "2026-01-07_Brentford_vs_Sunderland",
+    "id": "Brentford_2026-01-07_Sunderland",
     "datetime": "2026-01-07T20:00:00.000Z",
     "hometeam": "Brentford",
     "awayteam": "Sunderland",
@@ -2496,7 +2496,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-07"
   },
   {
-    "id": "2026-01-07_Bournemouth_vs_Tottenham",
+    "id": "Bournemouth_2026-01-07_Tottenham",
     "datetime": "2026-01-07T20:00:00.000Z",
     "hometeam": "Bournemouth",
     "awayteam": "Tottenham",
@@ -2508,7 +2508,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-07"
   },
   {
-    "id": "2026-01-07_Fulham_vs_Chelsea",
+    "id": "Fulham_2026-01-07_Chelsea",
     "datetime": "2026-01-07T20:00:00.000Z",
     "hometeam": "Fulham",
     "awayteam": "Chelsea",
@@ -2520,7 +2520,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-07"
   },
   {
-    "id": "2026-01-17_Leeds_United_vs_Fulham",
+    "id": "Leeds_United_2026-01-17_Fulham",
     "datetime": "2026-01-17T15:00:00.000Z",
     "hometeam": "Leeds United",
     "awayteam": "Fulham",
@@ -2532,7 +2532,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-17"
   },
   {
-    "id": "2026-01-17_Liverpool_vs_Burnley",
+    "id": "Liverpool_2026-01-17_Burnley",
     "datetime": "2026-01-17T15:00:00.000Z",
     "hometeam": "Liverpool",
     "awayteam": "Burnley",
@@ -2544,7 +2544,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-17"
   },
   {
-    "id": "2026-01-17_Manchester_Utd_vs_Manchester_City",
+    "id": "Manchester_Utd_2026-01-17_Manchester_City",
     "datetime": "2026-01-17T15:00:00.000Z",
     "hometeam": "Manchester Utd",
     "awayteam": "Manchester City",
@@ -2556,7 +2556,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-17"
   },
   {
-    "id": "2026-01-17_Tottenham_vs_West_Ham",
+    "id": "Tottenham_2026-01-17_West_Ham",
     "datetime": "2026-01-17T15:00:00.000Z",
     "hometeam": "Tottenham",
     "awayteam": "West Ham",
@@ -2568,7 +2568,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-17"
   },
   {
-    "id": "2026-01-17_Aston_Villa_vs_Everton",
+    "id": "Aston_Villa_2026-01-17_Everton",
     "datetime": "2026-01-17T15:00:00.000Z",
     "hometeam": "Aston Villa",
     "awayteam": "Everton",
@@ -2580,7 +2580,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-17"
   },
   {
-    "id": "2026-01-17_Nott'ham_Forest_vs_Arsenal",
+    "id": "Nott'ham_Forest_2026-01-17_Arsenal",
     "datetime": "2026-01-17T15:00:00.000Z",
     "hometeam": "Nott'ham Forest",
     "awayteam": "Arsenal",
@@ -2592,7 +2592,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-17"
   },
   {
-    "id": "2026-01-17_Chelsea_vs_Brentford",
+    "id": "Chelsea_2026-01-17_Brentford",
     "datetime": "2026-01-17T15:00:00.000Z",
     "hometeam": "Chelsea",
     "awayteam": "Brentford",
@@ -2604,7 +2604,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-17"
   },
   {
-    "id": "2026-01-17_Sunderland_vs_Crystal_Palace",
+    "id": "Sunderland_2026-01-17_Crystal_Palace",
     "datetime": "2026-01-17T15:00:00.000Z",
     "hometeam": "Sunderland",
     "awayteam": "Crystal Palace",
@@ -2616,7 +2616,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-17"
   },
   {
-    "id": "2026-01-17_Wolves_vs_Newcastle_Utd",
+    "id": "Wolves_2026-01-17_Newcastle_Utd",
     "datetime": "2026-01-17T15:00:00.000Z",
     "hometeam": "Wolves",
     "awayteam": "Newcastle Utd",
@@ -2628,7 +2628,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-17"
   },
   {
-    "id": "2026-01-17_Brighton_vs_Bournemouth",
+    "id": "Brighton_2026-01-17_Bournemouth",
     "datetime": "2026-01-17T15:00:00.000Z",
     "hometeam": "Brighton",
     "awayteam": "Bournemouth",
@@ -2640,7 +2640,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-17"
   },
   {
-    "id": "2026-01-24_Arsenal_vs_Manchester_Utd",
+    "id": "Arsenal_2026-01-24_Manchester_Utd",
     "datetime": "2026-01-24T15:00:00.000Z",
     "hometeam": "Arsenal",
     "awayteam": "Manchester Utd",
@@ -2652,7 +2652,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-24"
   },
   {
-    "id": "2026-01-24_Fulham_vs_Brighton",
+    "id": "Fulham_2026-01-24_Brighton",
     "datetime": "2026-01-24T15:00:00.000Z",
     "hometeam": "Fulham",
     "awayteam": "Brighton",
@@ -2664,7 +2664,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-24"
   },
   {
-    "id": "2026-01-24_Manchester_City_vs_Wolves",
+    "id": "Manchester_City_2026-01-24_Wolves",
     "datetime": "2026-01-24T15:00:00.000Z",
     "hometeam": "Manchester City",
     "awayteam": "Wolves",
@@ -2676,7 +2676,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-24"
   },
   {
-    "id": "2026-01-24_Brentford_vs_Nott'ham_Forest",
+    "id": "Brentford_2026-01-24_Nott'ham_Forest",
     "datetime": "2026-01-24T15:00:00.000Z",
     "hometeam": "Brentford",
     "awayteam": "Nott'ham Forest",
@@ -2688,7 +2688,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-24"
   },
   {
-    "id": "2026-01-24_West_Ham_vs_Sunderland",
+    "id": "West_Ham_2026-01-24_Sunderland",
     "datetime": "2026-01-24T15:00:00.000Z",
     "hometeam": "West Ham",
     "awayteam": "Sunderland",
@@ -2700,7 +2700,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-24"
   },
   {
-    "id": "2026-01-24_Everton_vs_Leeds_United",
+    "id": "Everton_2026-01-24_Leeds_United",
     "datetime": "2026-01-24T15:00:00.000Z",
     "hometeam": "Everton",
     "awayteam": "Leeds United",
@@ -2712,7 +2712,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-24"
   },
   {
-    "id": "2026-01-24_Bournemouth_vs_Liverpool",
+    "id": "Bournemouth_2026-01-24_Liverpool",
     "datetime": "2026-01-24T15:00:00.000Z",
     "hometeam": "Bournemouth",
     "awayteam": "Liverpool",
@@ -2724,7 +2724,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-24"
   },
   {
-    "id": "2026-01-24_Crystal_Palace_vs_Chelsea",
+    "id": "Crystal_Palace_2026-01-24_Chelsea",
     "datetime": "2026-01-24T15:00:00.000Z",
     "hometeam": "Crystal Palace",
     "awayteam": "Chelsea",
@@ -2736,7 +2736,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-24"
   },
   {
-    "id": "2026-01-24_Burnley_vs_Tottenham",
+    "id": "Burnley_2026-01-24_Tottenham",
     "datetime": "2026-01-24T15:00:00.000Z",
     "hometeam": "Burnley",
     "awayteam": "Tottenham",
@@ -2748,7 +2748,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-24"
   },
   {
-    "id": "2026-01-24_Newcastle_Utd_vs_Aston_Villa",
+    "id": "Newcastle_Utd_2026-01-24_Aston_Villa",
     "datetime": "2026-01-24T15:00:00.000Z",
     "hometeam": "Newcastle Utd",
     "awayteam": "Aston Villa",
@@ -2760,7 +2760,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-24"
   },
   {
-    "id": "2026-01-31_Nott'ham_Forest_vs_Crystal_Palace",
+    "id": "Nott'ham_Forest_2026-01-31_Crystal_Palace",
     "datetime": "2026-01-31T15:00:00.000Z",
     "hometeam": "Nott'ham Forest",
     "awayteam": "Crystal Palace",
@@ -2772,7 +2772,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-31"
   },
   {
-    "id": "2026-01-31_Chelsea_vs_West_Ham",
+    "id": "Chelsea_2026-01-31_West_Ham",
     "datetime": "2026-01-31T15:00:00.000Z",
     "hometeam": "Chelsea",
     "awayteam": "West Ham",
@@ -2784,7 +2784,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-31"
   },
   {
-    "id": "2026-01-31_Liverpool_vs_Newcastle_Utd",
+    "id": "Liverpool_2026-01-31_Newcastle_Utd",
     "datetime": "2026-01-31T15:00:00.000Z",
     "hometeam": "Liverpool",
     "awayteam": "Newcastle Utd",
@@ -2796,7 +2796,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-31"
   },
   {
-    "id": "2026-01-31_Tottenham_vs_Manchester_City",
+    "id": "Tottenham_2026-01-31_Manchester_City",
     "datetime": "2026-01-31T15:00:00.000Z",
     "hometeam": "Tottenham",
     "awayteam": "Manchester City",
@@ -2808,7 +2808,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-31"
   },
   {
-    "id": "2026-01-31_Aston_Villa_vs_Brentford",
+    "id": "Aston_Villa_2026-01-31_Brentford",
     "datetime": "2026-01-31T15:00:00.000Z",
     "hometeam": "Aston Villa",
     "awayteam": "Brentford",
@@ -2820,7 +2820,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-31"
   },
   {
-    "id": "2026-01-31_Brighton_vs_Everton",
+    "id": "Brighton_2026-01-31_Everton",
     "datetime": "2026-01-31T15:00:00.000Z",
     "hometeam": "Brighton",
     "awayteam": "Everton",
@@ -2832,7 +2832,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-31"
   },
   {
-    "id": "2026-01-31_Leeds_United_vs_Arsenal",
+    "id": "Leeds_United_2026-01-31_Arsenal",
     "datetime": "2026-01-31T15:00:00.000Z",
     "hometeam": "Leeds United",
     "awayteam": "Arsenal",
@@ -2844,7 +2844,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-31"
   },
   {
-    "id": "2026-01-31_Sunderland_vs_Burnley",
+    "id": "Sunderland_2026-01-31_Burnley",
     "datetime": "2026-01-31T15:00:00.000Z",
     "hometeam": "Sunderland",
     "awayteam": "Burnley",
@@ -2856,7 +2856,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-31"
   },
   {
-    "id": "2026-01-31_Wolves_vs_Bournemouth",
+    "id": "Wolves_2026-01-31_Bournemouth",
     "datetime": "2026-01-31T15:00:00.000Z",
     "hometeam": "Wolves",
     "awayteam": "Bournemouth",
@@ -2868,7 +2868,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-31"
   },
   {
-    "id": "2026-01-31_Manchester_Utd_vs_Fulham",
+    "id": "Manchester_Utd_2026-01-31_Fulham",
     "datetime": "2026-01-31T15:00:00.000Z",
     "hometeam": "Manchester Utd",
     "awayteam": "Fulham",
@@ -2880,7 +2880,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-01-31"
   },
   {
-    "id": "2026-02-07_Newcastle_Utd_vs_Brentford",
+    "id": "Newcastle_Utd_2026-02-07_Brentford",
     "datetime": "2026-02-07T15:00:00.000Z",
     "hometeam": "Newcastle Utd",
     "awayteam": "Brentford",
@@ -2892,7 +2892,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-07"
   },
   {
-    "id": "2026-02-07_Bournemouth_vs_Aston_Villa",
+    "id": "Bournemouth_2026-02-07_Aston_Villa",
     "datetime": "2026-02-07T15:00:00.000Z",
     "hometeam": "Bournemouth",
     "awayteam": "Aston Villa",
@@ -2904,7 +2904,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-07"
   },
   {
-    "id": "2026-02-07_Manchester_Utd_vs_Tottenham",
+    "id": "Manchester_Utd_2026-02-07_Tottenham",
     "datetime": "2026-02-07T15:00:00.000Z",
     "hometeam": "Manchester Utd",
     "awayteam": "Tottenham",
@@ -2916,7 +2916,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-07"
   },
   {
-    "id": "2026-02-07_Wolves_vs_Chelsea",
+    "id": "Wolves_2026-02-07_Chelsea",
     "datetime": "2026-02-07T15:00:00.000Z",
     "hometeam": "Wolves",
     "awayteam": "Chelsea",
@@ -2928,7 +2928,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-07"
   },
   {
-    "id": "2026-02-07_Brighton_vs_Crystal_Palace",
+    "id": "Brighton_2026-02-07_Crystal_Palace",
     "datetime": "2026-02-07T15:00:00.000Z",
     "hometeam": "Brighton",
     "awayteam": "Crystal Palace",
@@ -2940,7 +2940,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-07"
   },
   {
-    "id": "2026-02-07_Liverpool_vs_Manchester_City",
+    "id": "Liverpool_2026-02-07_Manchester_City",
     "datetime": "2026-02-07T15:00:00.000Z",
     "hometeam": "Liverpool",
     "awayteam": "Manchester City",
@@ -2952,7 +2952,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-07"
   },
   {
-    "id": "2026-02-07_Arsenal_vs_Sunderland",
+    "id": "Arsenal_2026-02-07_Sunderland",
     "datetime": "2026-02-07T15:00:00.000Z",
     "hometeam": "Arsenal",
     "awayteam": "Sunderland",
@@ -2964,7 +2964,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-07"
   },
   {
-    "id": "2026-02-07_Leeds_United_vs_Nott'ham_Forest",
+    "id": "Leeds_United_2026-02-07_Nott'ham_Forest",
     "datetime": "2026-02-07T15:00:00.000Z",
     "hometeam": "Leeds United",
     "awayteam": "Nott'ham Forest",
@@ -2976,7 +2976,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-07"
   },
   {
-    "id": "2026-02-07_Burnley_vs_West_Ham",
+    "id": "Burnley_2026-02-07_West_Ham",
     "datetime": "2026-02-07T15:00:00.000Z",
     "hometeam": "Burnley",
     "awayteam": "West Ham",
@@ -2988,7 +2988,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-07"
   },
   {
-    "id": "2026-02-07_Fulham_vs_Everton",
+    "id": "Fulham_2026-02-07_Everton",
     "datetime": "2026-02-07T15:00:00.000Z",
     "hometeam": "Fulham",
     "awayteam": "Everton",
@@ -3000,7 +3000,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-07"
   },
   {
-    "id": "2026-02-11_Everton_vs_Bournemouth",
+    "id": "Everton_2026-02-11_Bournemouth",
     "datetime": "2026-02-11T20:00:00.000Z",
     "hometeam": "Everton",
     "awayteam": "Bournemouth",
@@ -3012,7 +3012,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-11"
   },
   {
-    "id": "2026-02-11_Nott'ham_Forest_vs_Wolves",
+    "id": "Nott'ham_Forest_2026-02-11_Wolves",
     "datetime": "2026-02-11T20:00:00.000Z",
     "hometeam": "Nott'ham Forest",
     "awayteam": "Wolves",
@@ -3024,7 +3024,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-11"
   },
   {
-    "id": "2026-02-11_Chelsea_vs_Leeds_United",
+    "id": "Chelsea_2026-02-11_Leeds_United",
     "datetime": "2026-02-11T20:00:00.000Z",
     "hometeam": "Chelsea",
     "awayteam": "Leeds United",
@@ -3036,7 +3036,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-11"
   },
   {
-    "id": "2026-02-11_Crystal_Palace_vs_Burnley",
+    "id": "Crystal_Palace_2026-02-11_Burnley",
     "datetime": "2026-02-11T20:00:00.000Z",
     "hometeam": "Crystal Palace",
     "awayteam": "Burnley",
@@ -3048,7 +3048,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-11"
   },
   {
-    "id": "2026-02-11_Sunderland_vs_Liverpool",
+    "id": "Sunderland_2026-02-11_Liverpool",
     "datetime": "2026-02-11T20:00:00.000Z",
     "hometeam": "Sunderland",
     "awayteam": "Liverpool",
@@ -3060,7 +3060,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-11"
   },
   {
-    "id": "2026-02-11_West_Ham_vs_Manchester_Utd",
+    "id": "West_Ham_2026-02-11_Manchester_Utd",
     "datetime": "2026-02-11T20:00:00.000Z",
     "hometeam": "West Ham",
     "awayteam": "Manchester Utd",
@@ -3072,7 +3072,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-11"
   },
   {
-    "id": "2026-02-11_Manchester_City_vs_Fulham",
+    "id": "Manchester_City_2026-02-11_Fulham",
     "datetime": "2026-02-11T20:00:00.000Z",
     "hometeam": "Manchester City",
     "awayteam": "Fulham",
@@ -3084,7 +3084,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-11"
   },
   {
-    "id": "2026-02-11_Aston_Villa_vs_Brighton",
+    "id": "Aston_Villa_2026-02-11_Brighton",
     "datetime": "2026-02-11T20:00:00.000Z",
     "hometeam": "Aston Villa",
     "awayteam": "Brighton",
@@ -3096,7 +3096,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-11"
   },
   {
-    "id": "2026-02-11_Tottenham_vs_Newcastle_Utd",
+    "id": "Tottenham_2026-02-11_Newcastle_Utd",
     "datetime": "2026-02-11T20:00:00.000Z",
     "hometeam": "Tottenham",
     "awayteam": "Newcastle Utd",
@@ -3108,7 +3108,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-11"
   },
   {
-    "id": "2026-02-11_Brentford_vs_Arsenal",
+    "id": "Brentford_2026-02-11_Arsenal",
     "datetime": "2026-02-11T20:00:00.000Z",
     "hometeam": "Brentford",
     "awayteam": "Arsenal",
@@ -3120,7 +3120,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-11"
   },
   {
-    "id": "2026-02-21_Aston_Villa_vs_Leeds_United",
+    "id": "Aston_Villa_2026-02-21_Leeds_United",
     "datetime": "2026-02-21T15:00:00.000Z",
     "hometeam": "Aston Villa",
     "awayteam": "Leeds United",
@@ -3132,7 +3132,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-21"
   },
   {
-    "id": "2026-02-21_Everton_vs_Manchester_Utd",
+    "id": "Everton_2026-02-21_Manchester_Utd",
     "datetime": "2026-02-21T15:00:00.000Z",
     "hometeam": "Everton",
     "awayteam": "Manchester Utd",
@@ -3144,7 +3144,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-21"
   },
   {
-    "id": "2026-02-21_Chelsea_vs_Burnley",
+    "id": "Chelsea_2026-02-21_Burnley",
     "datetime": "2026-02-21T15:00:00.000Z",
     "hometeam": "Chelsea",
     "awayteam": "Burnley",
@@ -3156,7 +3156,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-21"
   },
   {
-    "id": "2026-02-21_Tottenham_vs_Arsenal",
+    "id": "Tottenham_2026-02-21_Arsenal",
     "datetime": "2026-02-21T15:00:00.000Z",
     "hometeam": "Tottenham",
     "awayteam": "Arsenal",
@@ -3168,7 +3168,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-21"
   },
   {
-    "id": "2026-02-21_Nott'ham_Forest_vs_Liverpool",
+    "id": "Nott'ham_Forest_2026-02-21_Liverpool",
     "datetime": "2026-02-21T15:00:00.000Z",
     "hometeam": "Nott'ham Forest",
     "awayteam": "Liverpool",
@@ -3180,7 +3180,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-21"
   },
   {
-    "id": "2026-02-21_Brentford_vs_Brighton",
+    "id": "Brentford_2026-02-21_Brighton",
     "datetime": "2026-02-21T15:00:00.000Z",
     "hometeam": "Brentford",
     "awayteam": "Brighton",
@@ -3192,7 +3192,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-21"
   },
   {
-    "id": "2026-02-21_West_Ham_vs_Bournemouth",
+    "id": "West_Ham_2026-02-21_Bournemouth",
     "datetime": "2026-02-21T15:00:00.000Z",
     "hometeam": "West Ham",
     "awayteam": "Bournemouth",
@@ -3204,7 +3204,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-21"
   },
   {
-    "id": "2026-02-21_Sunderland_vs_Fulham",
+    "id": "Sunderland_2026-02-21_Fulham",
     "datetime": "2026-02-21T15:00:00.000Z",
     "hometeam": "Sunderland",
     "awayteam": "Fulham",
@@ -3216,7 +3216,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-21"
   },
   {
-    "id": "2026-02-21_Crystal_Palace_vs_Wolves",
+    "id": "Crystal_Palace_2026-02-21_Wolves",
     "datetime": "2026-02-21T15:00:00.000Z",
     "hometeam": "Crystal Palace",
     "awayteam": "Wolves",
@@ -3228,7 +3228,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-21"
   },
   {
-    "id": "2026-02-21_Manchester_City_vs_Newcastle_Utd",
+    "id": "Manchester_City_2026-02-21_Newcastle_Utd",
     "datetime": "2026-02-21T15:00:00.000Z",
     "hometeam": "Manchester City",
     "awayteam": "Newcastle Utd",
@@ -3240,7 +3240,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-21"
   },
   {
-    "id": "2026-02-28_Newcastle_Utd_vs_Everton",
+    "id": "Newcastle_Utd_2026-02-28_Everton",
     "datetime": "2026-02-28T15:00:00.000Z",
     "hometeam": "Newcastle Utd",
     "awayteam": "Everton",
@@ -3252,7 +3252,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-28"
   },
   {
-    "id": "2026-02-28_Burnley_vs_Brentford",
+    "id": "Burnley_2026-02-28_Brentford",
     "datetime": "2026-02-28T15:00:00.000Z",
     "hometeam": "Burnley",
     "awayteam": "Brentford",
@@ -3264,7 +3264,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-28"
   },
   {
-    "id": "2026-02-28_Brighton_vs_Nott'ham_Forest",
+    "id": "Brighton_2026-02-28_Nott'ham_Forest",
     "datetime": "2026-02-28T15:00:00.000Z",
     "hometeam": "Brighton",
     "awayteam": "Nott'ham Forest",
@@ -3276,7 +3276,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-28"
   },
   {
-    "id": "2026-02-28_Bournemouth_vs_Sunderland",
+    "id": "Bournemouth_2026-02-28_Sunderland",
     "datetime": "2026-02-28T15:00:00.000Z",
     "hometeam": "Bournemouth",
     "awayteam": "Sunderland",
@@ -3288,7 +3288,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-28"
   },
   {
-    "id": "2026-02-28_Liverpool_vs_West_Ham",
+    "id": "Liverpool_2026-02-28_West_Ham",
     "datetime": "2026-02-28T15:00:00.000Z",
     "hometeam": "Liverpool",
     "awayteam": "West Ham",
@@ -3300,7 +3300,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-28"
   },
   {
-    "id": "2026-02-28_Manchester_Utd_vs_Crystal_Palace",
+    "id": "Manchester_Utd_2026-02-28_Crystal_Palace",
     "datetime": "2026-02-28T15:00:00.000Z",
     "hometeam": "Manchester Utd",
     "awayteam": "Crystal Palace",
@@ -3312,7 +3312,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-28"
   },
   {
-    "id": "2026-02-28_Fulham_vs_Tottenham",
+    "id": "Fulham_2026-02-28_Tottenham",
     "datetime": "2026-02-28T15:00:00.000Z",
     "hometeam": "Fulham",
     "awayteam": "Tottenham",
@@ -3324,7 +3324,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-28"
   },
   {
-    "id": "2026-02-28_Leeds_United_vs_Manchester_City",
+    "id": "Leeds_United_2026-02-28_Manchester_City",
     "datetime": "2026-02-28T15:00:00.000Z",
     "hometeam": "Leeds United",
     "awayteam": "Manchester City",
@@ -3336,7 +3336,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-28"
   },
   {
-    "id": "2026-02-28_Wolves_vs_Aston_Villa",
+    "id": "Wolves_2026-02-28_Aston_Villa",
     "datetime": "2026-02-28T15:00:00.000Z",
     "hometeam": "Wolves",
     "awayteam": "Aston Villa",
@@ -3348,7 +3348,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-28"
   },
   {
-    "id": "2026-02-28_Arsenal_vs_Chelsea",
+    "id": "Arsenal_2026-02-28_Chelsea",
     "datetime": "2026-02-28T15:00:00.000Z",
     "hometeam": "Arsenal",
     "awayteam": "Chelsea",
@@ -3360,7 +3360,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-02-28"
   },
   {
-    "id": "2026-03-04_Brighton_vs_Arsenal",
+    "id": "Brighton_2026-03-04_Arsenal",
     "datetime": "2026-03-04T20:00:00.000Z",
     "hometeam": "Brighton",
     "awayteam": "Arsenal",
@@ -3372,7 +3372,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-03-04"
   },
   {
-    "id": "2026-03-04_Wolves_vs_Liverpool",
+    "id": "Wolves_2026-03-04_Liverpool",
     "datetime": "2026-03-04T20:00:00.000Z",
     "hometeam": "Wolves",
     "awayteam": "Liverpool",
@@ -3384,7 +3384,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-03-04"
   },
   {
-    "id": "2026-03-04_Everton_vs_Burnley",
+    "id": "Everton_2026-03-04_Burnley",
     "datetime": "2026-03-04T20:00:00.000Z",
     "hometeam": "Everton",
     "awayteam": "Burnley",
@@ -3396,7 +3396,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-03-04"
   },
   {
-    "id": "2026-03-04_Aston_Villa_vs_Chelsea",
+    "id": "Aston_Villa_2026-03-04_Chelsea",
     "datetime": "2026-03-04T20:00:00.000Z",
     "hometeam": "Aston Villa",
     "awayteam": "Chelsea",
@@ -3408,7 +3408,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-03-04"
   },
   {
-    "id": "2026-03-04_Tottenham_vs_Crystal_Palace",
+    "id": "Tottenham_2026-03-04_Crystal_Palace",
     "datetime": "2026-03-04T20:00:00.000Z",
     "hometeam": "Tottenham",
     "awayteam": "Crystal Palace",
@@ -3420,7 +3420,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-03-04"
   },
   {
-    "id": "2026-03-04_Fulham_vs_West_Ham",
+    "id": "Fulham_2026-03-04_West_Ham",
     "datetime": "2026-03-04T20:00:00.000Z",
     "hometeam": "Fulham",
     "awayteam": "West Ham",
@@ -3432,7 +3432,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-03-04"
   },
   {
-    "id": "2026-03-04_Newcastle_Utd_vs_Manchester_Utd",
+    "id": "Newcastle_Utd_2026-03-04_Manchester_Utd",
     "datetime": "2026-03-04T20:00:00.000Z",
     "hometeam": "Newcastle Utd",
     "awayteam": "Manchester Utd",
@@ -3444,7 +3444,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-03-04"
   },
   {
-    "id": "2026-03-04_Bournemouth_vs_Brentford",
+    "id": "Bournemouth_2026-03-04_Brentford",
     "datetime": "2026-03-04T20:00:00.000Z",
     "hometeam": "Bournemouth",
     "awayteam": "Brentford",
@@ -3456,7 +3456,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-03-04"
   },
   {
-    "id": "2026-03-04_Manchester_City_vs_Nott'ham_Forest",
+    "id": "Manchester_City_2026-03-04_Nott'ham_Forest",
     "datetime": "2026-03-04T20:00:00.000Z",
     "hometeam": "Manchester City",
     "awayteam": "Nott'ham Forest",
@@ -3468,7 +3468,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-03-04"
   },
   {
-    "id": "2026-03-04_Leeds_United_vs_Sunderland",
+    "id": "Leeds_United_2026-03-04_Sunderland",
     "datetime": "2026-03-04T20:00:00.000Z",
     "hometeam": "Leeds United",
     "awayteam": "Sunderland",
@@ -3480,7 +3480,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-03-04"
   },
   {
-    "id": "2026-03-14_Brentford_vs_Wolves",
+    "id": "Brentford_2026-03-14_Wolves",
     "datetime": "2026-03-14T15:00:00.000Z",
     "hometeam": "Brentford",
     "awayteam": "Wolves",
@@ -3492,7 +3492,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-03-14"
   },
   {
-    "id": "2026-03-14_Burnley_vs_Bournemouth",
+    "id": "Burnley_2026-03-14_Bournemouth",
     "datetime": "2026-03-14T15:00:00.000Z",
     "hometeam": "Burnley",
     "awayteam": "Bournemouth",
@@ -3504,7 +3504,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-03-14"
   },
   {
-    "id": "2026-03-14_West_Ham_vs_Manchester_City",
+    "id": "West_Ham_2026-03-14_Manchester_City",
     "datetime": "2026-03-14T15:00:00.000Z",
     "hometeam": "West Ham",
     "awayteam": "Manchester City",
@@ -3516,7 +3516,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-03-14"
   },
   {
-    "id": "2026-03-14_Liverpool_vs_Tottenham",
+    "id": "Liverpool_2026-03-14_Tottenham",
     "datetime": "2026-03-14T15:00:00.000Z",
     "hometeam": "Liverpool",
     "awayteam": "Tottenham",
@@ -3528,7 +3528,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-03-14"
   },
   {
-    "id": "2026-03-14_Sunderland_vs_Brighton",
+    "id": "Sunderland_2026-03-14_Brighton",
     "datetime": "2026-03-14T15:00:00.000Z",
     "hometeam": "Sunderland",
     "awayteam": "Brighton",
@@ -3540,7 +3540,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-03-14"
   },
   {
-    "id": "2026-03-14_Manchester_Utd_vs_Aston_Villa",
+    "id": "Manchester_Utd_2026-03-14_Aston_Villa",
     "datetime": "2026-03-14T15:00:00.000Z",
     "hometeam": "Manchester Utd",
     "awayteam": "Aston Villa",
@@ -3552,7 +3552,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-03-14"
   },
   {
-    "id": "2026-03-14_Chelsea_vs_Newcastle_Utd",
+    "id": "Chelsea_2026-03-14_Newcastle_Utd",
     "datetime": "2026-03-14T15:00:00.000Z",
     "hometeam": "Chelsea",
     "awayteam": "Newcastle Utd",
@@ -3564,7 +3564,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-03-14"
   },
   {
-    "id": "2026-03-14_Crystal_Palace_vs_Leeds_United",
+    "id": "Crystal_Palace_2026-03-14_Leeds_United",
     "datetime": "2026-03-14T15:00:00.000Z",
     "hometeam": "Crystal Palace",
     "awayteam": "Leeds United",
@@ -3576,7 +3576,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-03-14"
   },
   {
-    "id": "2026-03-14_Arsenal_vs_Everton",
+    "id": "Arsenal_2026-03-14_Everton",
     "datetime": "2026-03-14T15:00:00.000Z",
     "hometeam": "Arsenal",
     "awayteam": "Everton",
@@ -3588,7 +3588,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-03-14"
   },
   {
-    "id": "2026-03-14_Nott'ham_Forest_vs_Fulham",
+    "id": "Nott'ham_Forest_2026-03-14_Fulham",
     "datetime": "2026-03-14T15:00:00.000Z",
     "hometeam": "Nott'ham Forest",
     "awayteam": "Fulham",
@@ -3600,7 +3600,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-03-14"
   },
   {
-    "id": "2026-03-21_Leeds_United_vs_Brentford",
+    "id": "Leeds_United_2026-03-21_Brentford",
     "datetime": "2026-03-21T15:00:00.000Z",
     "hometeam": "Leeds United",
     "awayteam": "Brentford",
@@ -3612,7 +3612,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-03-21"
   },
   {
-    "id": "2026-03-21_Manchester_City_vs_Crystal_Palace",
+    "id": "Manchester_City_2026-03-21_Crystal_Palace",
     "datetime": "2026-03-21T15:00:00.000Z",
     "hometeam": "Manchester City",
     "awayteam": "Crystal Palace",
@@ -3624,7 +3624,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-03-21"
   },
   {
-    "id": "2026-03-21_Tottenham_vs_Nott'ham_Forest",
+    "id": "Tottenham_2026-03-21_Nott'ham_Forest",
     "datetime": "2026-03-21T15:00:00.000Z",
     "hometeam": "Tottenham",
     "awayteam": "Nott'ham Forest",
@@ -3636,7 +3636,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-03-21"
   },
   {
-    "id": "2026-03-21_Wolves_vs_Arsenal",
+    "id": "Wolves_2026-03-21_Arsenal",
     "datetime": "2026-03-21T15:00:00.000Z",
     "hometeam": "Wolves",
     "awayteam": "Arsenal",
@@ -3648,7 +3648,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-03-21"
   },
   {
-    "id": "2026-03-21_Bournemouth_vs_Manchester_Utd",
+    "id": "Bournemouth_2026-03-21_Manchester_Utd",
     "datetime": "2026-03-21T15:00:00.000Z",
     "hometeam": "Bournemouth",
     "awayteam": "Manchester Utd",
@@ -3660,7 +3660,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-03-21"
   },
   {
-    "id": "2026-03-21_Newcastle_Utd_vs_Sunderland",
+    "id": "Newcastle_Utd_2026-03-21_Sunderland",
     "datetime": "2026-03-21T15:00:00.000Z",
     "hometeam": "Newcastle Utd",
     "awayteam": "Sunderland",
@@ -3672,7 +3672,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-03-21"
   },
   {
-    "id": "2026-03-21_Everton_vs_Chelsea",
+    "id": "Everton_2026-03-21_Chelsea",
     "datetime": "2026-03-21T15:00:00.000Z",
     "hometeam": "Everton",
     "awayteam": "Chelsea",
@@ -3684,7 +3684,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-03-21"
   },
   {
-    "id": "2026-03-21_Brighton_vs_Liverpool",
+    "id": "Brighton_2026-03-21_Liverpool",
     "datetime": "2026-03-21T15:00:00.000Z",
     "hometeam": "Brighton",
     "awayteam": "Liverpool",
@@ -3696,7 +3696,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-03-21"
   },
   {
-    "id": "2026-03-21_Aston_Villa_vs_West_Ham",
+    "id": "Aston_Villa_2026-03-21_West_Ham",
     "datetime": "2026-03-21T15:00:00.000Z",
     "hometeam": "Aston Villa",
     "awayteam": "West Ham",
@@ -3708,7 +3708,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-03-21"
   },
   {
-    "id": "2026-03-21_Fulham_vs_Burnley",
+    "id": "Fulham_2026-03-21_Burnley",
     "datetime": "2026-03-21T15:00:00.000Z",
     "hometeam": "Fulham",
     "awayteam": "Burnley",
@@ -3720,7 +3720,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-03-21"
   },
   {
-    "id": "2026-04-11_Nott'ham_Forest_vs_Aston_Villa",
+    "id": "Nott'ham_Forest_2026-04-11_Aston_Villa",
     "datetime": "2026-04-11T15:00:00.000Z",
     "hometeam": "Nott'ham Forest",
     "awayteam": "Aston Villa",
@@ -3732,7 +3732,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-04-11"
   },
   {
-    "id": "2026-04-11_Chelsea_vs_Manchester_City",
+    "id": "Chelsea_2026-04-11_Manchester_City",
     "datetime": "2026-04-11T15:00:00.000Z",
     "hometeam": "Chelsea",
     "awayteam": "Manchester City",
@@ -3744,7 +3744,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-04-11"
   },
   {
-    "id": "2026-04-11_Crystal_Palace_vs_Newcastle_Utd",
+    "id": "Crystal_Palace_2026-04-11_Newcastle_Utd",
     "datetime": "2026-04-11T15:00:00.000Z",
     "hometeam": "Crystal Palace",
     "awayteam": "Newcastle Utd",
@@ -3756,7 +3756,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-04-11"
   },
   {
-    "id": "2026-04-11_Sunderland_vs_Tottenham",
+    "id": "Sunderland_2026-04-11_Tottenham",
     "datetime": "2026-04-11T15:00:00.000Z",
     "hometeam": "Sunderland",
     "awayteam": "Tottenham",
@@ -3768,7 +3768,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-04-11"
   },
   {
-    "id": "2026-04-11_Arsenal_vs_Bournemouth",
+    "id": "Arsenal_2026-04-11_Bournemouth",
     "datetime": "2026-04-11T15:00:00.000Z",
     "hometeam": "Arsenal",
     "awayteam": "Bournemouth",
@@ -3780,7 +3780,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-04-11"
   },
   {
-    "id": "2026-04-11_West_Ham_vs_Wolves",
+    "id": "West_Ham_2026-04-11_Wolves",
     "datetime": "2026-04-11T15:00:00.000Z",
     "hometeam": "West Ham",
     "awayteam": "Wolves",
@@ -3792,7 +3792,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-04-11"
   },
   {
-    "id": "2026-04-11_Burnley_vs_Brighton",
+    "id": "Burnley_2026-04-11_Brighton",
     "datetime": "2026-04-11T15:00:00.000Z",
     "hometeam": "Burnley",
     "awayteam": "Brighton",
@@ -3804,7 +3804,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-04-11"
   },
   {
-    "id": "2026-04-11_Manchester_Utd_vs_Leeds_United",
+    "id": "Manchester_Utd_2026-04-11_Leeds_United",
     "datetime": "2026-04-11T15:00:00.000Z",
     "hometeam": "Manchester Utd",
     "awayteam": "Leeds United",
@@ -3816,7 +3816,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-04-11"
   },
   {
-    "id": "2026-04-11_Liverpool_vs_Fulham",
+    "id": "Liverpool_2026-04-11_Fulham",
     "datetime": "2026-04-11T15:00:00.000Z",
     "hometeam": "Liverpool",
     "awayteam": "Fulham",
@@ -3828,7 +3828,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-04-11"
   },
   {
-    "id": "2026-04-11_Brentford_vs_Everton",
+    "id": "Brentford_2026-04-11_Everton",
     "datetime": "2026-04-11T15:00:00.000Z",
     "hometeam": "Brentford",
     "awayteam": "Everton",
@@ -3840,7 +3840,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-04-11"
   },
   {
-    "id": "2026-04-18_Tottenham_vs_Brighton",
+    "id": "Tottenham_2026-04-18_Brighton",
     "datetime": "2026-04-18T15:00:00.000Z",
     "hometeam": "Tottenham",
     "awayteam": "Brighton",
@@ -3852,7 +3852,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-04-18"
   },
   {
-    "id": "2026-04-18_Manchester_City_vs_Arsenal",
+    "id": "Manchester_City_2026-04-18_Arsenal",
     "datetime": "2026-04-18T15:00:00.000Z",
     "hometeam": "Manchester City",
     "awayteam": "Arsenal",
@@ -3864,7 +3864,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-04-18"
   },
   {
-    "id": "2026-04-18_Nott'ham_Forest_vs_Burnley",
+    "id": "Nott'ham_Forest_2026-04-18_Burnley",
     "datetime": "2026-04-18T15:00:00.000Z",
     "hometeam": "Nott'ham Forest",
     "awayteam": "Burnley",
@@ -3876,7 +3876,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-04-18"
   },
   {
-    "id": "2026-04-18_Leeds_United_vs_Wolves",
+    "id": "Leeds_United_2026-04-18_Wolves",
     "datetime": "2026-04-18T15:00:00.000Z",
     "hometeam": "Leeds United",
     "awayteam": "Wolves",
@@ -3888,7 +3888,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-04-18"
   },
   {
-    "id": "2026-04-18_Everton_vs_Liverpool",
+    "id": "Everton_2026-04-18_Liverpool",
     "datetime": "2026-04-18T15:00:00.000Z",
     "hometeam": "Everton",
     "awayteam": "Liverpool",
@@ -3900,7 +3900,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-04-18"
   },
   {
-    "id": "2026-04-18_Chelsea_vs_Manchester_Utd",
+    "id": "Chelsea_2026-04-18_Manchester_Utd",
     "datetime": "2026-04-18T15:00:00.000Z",
     "hometeam": "Chelsea",
     "awayteam": "Manchester Utd",
@@ -3912,7 +3912,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-04-18"
   },
   {
-    "id": "2026-04-18_Newcastle_Utd_vs_Bournemouth",
+    "id": "Newcastle_Utd_2026-04-18_Bournemouth",
     "datetime": "2026-04-18T15:00:00.000Z",
     "hometeam": "Newcastle Utd",
     "awayteam": "Bournemouth",
@@ -3924,7 +3924,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-04-18"
   },
   {
-    "id": "2026-04-18_Crystal_Palace_vs_West_Ham",
+    "id": "Crystal_Palace_2026-04-18_West_Ham",
     "datetime": "2026-04-18T15:00:00.000Z",
     "hometeam": "Crystal Palace",
     "awayteam": "West Ham",
@@ -3936,7 +3936,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-04-18"
   },
   {
-    "id": "2026-04-18_Brentford_vs_Fulham",
+    "id": "Brentford_2026-04-18_Fulham",
     "datetime": "2026-04-18T15:00:00.000Z",
     "hometeam": "Brentford",
     "awayteam": "Fulham",
@@ -3948,7 +3948,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-04-18"
   },
   {
-    "id": "2026-04-18_Aston_Villa_vs_Sunderland",
+    "id": "Aston_Villa_2026-04-18_Sunderland",
     "datetime": "2026-04-18T15:00:00.000Z",
     "hometeam": "Aston Villa",
     "awayteam": "Sunderland",
@@ -3960,7 +3960,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-04-18"
   },
   {
-    "id": "2026-04-25_Bournemouth_vs_Leeds_United",
+    "id": "Bournemouth_2026-04-25_Leeds_United",
     "datetime": "2026-04-25T15:00:00.000Z",
     "hometeam": "Bournemouth",
     "awayteam": "Leeds United",
@@ -3972,7 +3972,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-04-25"
   },
   {
-    "id": "2026-04-25_Sunderland_vs_Nott'ham_Forest",
+    "id": "Sunderland_2026-04-25_Nott'ham_Forest",
     "datetime": "2026-04-25T15:00:00.000Z",
     "hometeam": "Sunderland",
     "awayteam": "Nott'ham Forest",
@@ -3984,7 +3984,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-04-25"
   },
   {
-    "id": "2026-04-25_Manchester_Utd_vs_Brentford",
+    "id": "Manchester_Utd_2026-04-25_Brentford",
     "datetime": "2026-04-25T15:00:00.000Z",
     "hometeam": "Manchester Utd",
     "awayteam": "Brentford",
@@ -3996,7 +3996,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-04-25"
   },
   {
-    "id": "2026-04-25_Burnley_vs_Manchester_City",
+    "id": "Burnley_2026-04-25_Manchester_City",
     "datetime": "2026-04-25T15:00:00.000Z",
     "hometeam": "Burnley",
     "awayteam": "Manchester City",
@@ -4008,7 +4008,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-04-25"
   },
   {
-    "id": "2026-04-25_Arsenal_vs_Newcastle_Utd",
+    "id": "Arsenal_2026-04-25_Newcastle_Utd",
     "datetime": "2026-04-25T15:00:00.000Z",
     "hometeam": "Arsenal",
     "awayteam": "Newcastle Utd",
@@ -4020,7 +4020,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-04-25"
   },
   {
-    "id": "2026-04-25_Wolves_vs_Tottenham",
+    "id": "Wolves_2026-04-25_Tottenham",
     "datetime": "2026-04-25T15:00:00.000Z",
     "hometeam": "Wolves",
     "awayteam": "Tottenham",
@@ -4032,7 +4032,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-04-25"
   },
   {
-    "id": "2026-04-25_Fulham_vs_Aston_Villa",
+    "id": "Fulham_2026-04-25_Aston_Villa",
     "datetime": "2026-04-25T15:00:00.000Z",
     "hometeam": "Fulham",
     "awayteam": "Aston Villa",
@@ -4044,7 +4044,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-04-25"
   },
   {
-    "id": "2026-04-25_Brighton_vs_Chelsea",
+    "id": "Brighton_2026-04-25_Chelsea",
     "datetime": "2026-04-25T15:00:00.000Z",
     "hometeam": "Brighton",
     "awayteam": "Chelsea",
@@ -4056,7 +4056,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-04-25"
   },
   {
-    "id": "2026-04-25_Liverpool_vs_Crystal_Palace",
+    "id": "Liverpool_2026-04-25_Crystal_Palace",
     "datetime": "2026-04-25T15:00:00.000Z",
     "hometeam": "Liverpool",
     "awayteam": "Crystal Palace",
@@ -4068,7 +4068,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-04-25"
   },
   {
-    "id": "2026-04-25_West_Ham_vs_Everton",
+    "id": "West_Ham_2026-04-25_Everton",
     "datetime": "2026-04-25T15:00:00.000Z",
     "hometeam": "West Ham",
     "awayteam": "Everton",
@@ -4080,7 +4080,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-04-25"
   },
   {
-    "id": "2026-05-02_Arsenal_vs_Fulham",
+    "id": "Arsenal_2026-05-02_Fulham",
     "datetime": "2026-05-02T15:00:00.000Z",
     "hometeam": "Arsenal",
     "awayteam": "Fulham",
@@ -4092,7 +4092,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-05-02"
   },
   {
-    "id": "2026-05-02_Wolves_vs_Sunderland",
+    "id": "Wolves_2026-05-02_Sunderland",
     "datetime": "2026-05-02T15:00:00.000Z",
     "hometeam": "Wolves",
     "awayteam": "Sunderland",
@@ -4104,7 +4104,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-05-02"
   },
   {
-    "id": "2026-05-02_Bournemouth_vs_Crystal_Palace",
+    "id": "Bournemouth_2026-05-02_Crystal_Palace",
     "datetime": "2026-05-02T15:00:00.000Z",
     "hometeam": "Bournemouth",
     "awayteam": "Crystal Palace",
@@ -4116,7 +4116,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-05-02"
   },
   {
-    "id": "2026-05-02_Newcastle_Utd_vs_Brighton",
+    "id": "Newcastle_Utd_2026-05-02_Brighton",
     "datetime": "2026-05-02T15:00:00.000Z",
     "hometeam": "Newcastle Utd",
     "awayteam": "Brighton",
@@ -4128,7 +4128,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-05-02"
   },
   {
-    "id": "2026-05-02_Aston_Villa_vs_Tottenham",
+    "id": "Aston_Villa_2026-05-02_Tottenham",
     "datetime": "2026-05-02T15:00:00.000Z",
     "hometeam": "Aston Villa",
     "awayteam": "Tottenham",
@@ -4140,7 +4140,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-05-02"
   },
   {
-    "id": "2026-05-02_Manchester_Utd_vs_Liverpool",
+    "id": "Manchester_Utd_2026-05-02_Liverpool",
     "datetime": "2026-05-02T15:00:00.000Z",
     "hometeam": "Manchester Utd",
     "awayteam": "Liverpool",
@@ -4152,7 +4152,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-05-02"
   },
   {
-    "id": "2026-05-02_Leeds_United_vs_Burnley",
+    "id": "Leeds_United_2026-05-02_Burnley",
     "datetime": "2026-05-02T15:00:00.000Z",
     "hometeam": "Leeds United",
     "awayteam": "Burnley",
@@ -4164,7 +4164,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-05-02"
   },
   {
-    "id": "2026-05-02_Everton_vs_Manchester_City",
+    "id": "Everton_2026-05-02_Manchester_City",
     "datetime": "2026-05-02T15:00:00.000Z",
     "hometeam": "Everton",
     "awayteam": "Manchester City",
@@ -4176,7 +4176,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-05-02"
   },
   {
-    "id": "2026-05-02_Brentford_vs_West_Ham",
+    "id": "Brentford_2026-05-02_West_Ham",
     "datetime": "2026-05-02T15:00:00.000Z",
     "hometeam": "Brentford",
     "awayteam": "West Ham",
@@ -4188,7 +4188,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-05-02"
   },
   {
-    "id": "2026-05-02_Chelsea_vs_Nott'ham_Forest",
+    "id": "Chelsea_2026-05-02_Nott'ham_Forest",
     "datetime": "2026-05-02T15:00:00.000Z",
     "hometeam": "Chelsea",
     "awayteam": "Nott'ham Forest",
@@ -4200,7 +4200,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-05-02"
   },
   {
-    "id": "2026-05-09_West_Ham_vs_Arsenal",
+    "id": "West_Ham_2026-05-09_Arsenal",
     "datetime": "2026-05-09T15:00:00.000Z",
     "hometeam": "West Ham",
     "awayteam": "Arsenal",
@@ -4212,7 +4212,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-05-09"
   },
   {
-    "id": "2026-05-09_Brighton_vs_Wolves",
+    "id": "Brighton_2026-05-09_Wolves",
     "datetime": "2026-05-09T15:00:00.000Z",
     "hometeam": "Brighton",
     "awayteam": "Wolves",
@@ -4224,7 +4224,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-05-09"
   },
   {
-    "id": "2026-05-09_Tottenham_vs_Leeds_United",
+    "id": "Tottenham_2026-05-09_Leeds_United",
     "datetime": "2026-05-09T15:00:00.000Z",
     "hometeam": "Tottenham",
     "awayteam": "Leeds United",
@@ -4236,7 +4236,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-05-09"
   },
   {
-    "id": "2026-05-09_Crystal_Palace_vs_Everton",
+    "id": "Crystal_Palace_2026-05-09_Everton",
     "datetime": "2026-05-09T15:00:00.000Z",
     "hometeam": "Crystal Palace",
     "awayteam": "Everton",
@@ -4248,7 +4248,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-05-09"
   },
   {
-    "id": "2026-05-09_Manchester_City_vs_Brentford",
+    "id": "Manchester_City_2026-05-09_Brentford",
     "datetime": "2026-05-09T15:00:00.000Z",
     "hometeam": "Manchester City",
     "awayteam": "Brentford",
@@ -4260,7 +4260,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-05-09"
   },
   {
-    "id": "2026-05-09_Nott'ham_Forest_vs_Newcastle_Utd",
+    "id": "Nott'ham_Forest_2026-05-09_Newcastle_Utd",
     "datetime": "2026-05-09T15:00:00.000Z",
     "hometeam": "Nott'ham Forest",
     "awayteam": "Newcastle Utd",
@@ -4272,7 +4272,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-05-09"
   },
   {
-    "id": "2026-05-09_Burnley_vs_Aston_Villa",
+    "id": "Burnley_2026-05-09_Aston_Villa",
     "datetime": "2026-05-09T15:00:00.000Z",
     "hometeam": "Burnley",
     "awayteam": "Aston Villa",
@@ -4284,7 +4284,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-05-09"
   },
   {
-    "id": "2026-05-09_Fulham_vs_Bournemouth",
+    "id": "Fulham_2026-05-09_Bournemouth",
     "datetime": "2026-05-09T15:00:00.000Z",
     "hometeam": "Fulham",
     "awayteam": "Bournemouth",
@@ -4296,7 +4296,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-05-09"
   },
   {
-    "id": "2026-05-09_Liverpool_vs_Chelsea",
+    "id": "Liverpool_2026-05-09_Chelsea",
     "datetime": "2026-05-09T15:00:00.000Z",
     "hometeam": "Liverpool",
     "awayteam": "Chelsea",
@@ -4308,7 +4308,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-05-09"
   },
   {
-    "id": "2026-05-09_Sunderland_vs_Manchester_Utd",
+    "id": "Sunderland_2026-05-09_Manchester_Utd",
     "datetime": "2026-05-09T15:00:00.000Z",
     "hometeam": "Sunderland",
     "awayteam": "Manchester Utd",
@@ -4320,7 +4320,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-05-09"
   },
   {
-    "id": "2026-05-17_Everton_vs_Sunderland",
+    "id": "Everton_2026-05-17_Sunderland",
     "datetime": "2026-05-17T15:00:00.000Z",
     "hometeam": "Everton",
     "awayteam": "Sunderland",
@@ -4332,7 +4332,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-05-17"
   },
   {
-    "id": "2026-05-17_Leeds_United_vs_Brighton",
+    "id": "Leeds_United_2026-05-17_Brighton",
     "datetime": "2026-05-17T15:00:00.000Z",
     "hometeam": "Leeds United",
     "awayteam": "Brighton",
@@ -4344,7 +4344,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-05-17"
   },
   {
-    "id": "2026-05-17_Chelsea_vs_Tottenham",
+    "id": "Chelsea_2026-05-17_Tottenham",
     "datetime": "2026-05-17T15:00:00.000Z",
     "hometeam": "Chelsea",
     "awayteam": "Tottenham",
@@ -4356,7 +4356,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-05-17"
   },
   {
-    "id": "2026-05-17_Manchester_Utd_vs_Nott'ham_Forest",
+    "id": "Manchester_Utd_2026-05-17_Nott'ham_Forest",
     "datetime": "2026-05-17T15:00:00.000Z",
     "hometeam": "Manchester Utd",
     "awayteam": "Nott'ham Forest",
@@ -4368,7 +4368,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-05-17"
   },
   {
-    "id": "2026-05-17_Newcastle_Utd_vs_West_Ham",
+    "id": "Newcastle_Utd_2026-05-17_West_Ham",
     "datetime": "2026-05-17T15:00:00.000Z",
     "hometeam": "Newcastle Utd",
     "awayteam": "West Ham",
@@ -4380,7 +4380,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-05-17"
   },
   {
-    "id": "2026-05-17_Wolves_vs_Fulham",
+    "id": "Wolves_2026-05-17_Fulham",
     "datetime": "2026-05-17T15:00:00.000Z",
     "hometeam": "Wolves",
     "awayteam": "Fulham",
@@ -4392,7 +4392,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-05-17"
   },
   {
-    "id": "2026-05-17_Aston_Villa_vs_Liverpool",
+    "id": "Aston_Villa_2026-05-17_Liverpool",
     "datetime": "2026-05-17T15:00:00.000Z",
     "hometeam": "Aston Villa",
     "awayteam": "Liverpool",
@@ -4404,7 +4404,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-05-17"
   },
   {
-    "id": "2026-05-17_Brentford_vs_Crystal_Palace",
+    "id": "Brentford_2026-05-17_Crystal_Palace",
     "datetime": "2026-05-17T15:00:00.000Z",
     "hometeam": "Brentford",
     "awayteam": "Crystal Palace",
@@ -4416,7 +4416,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-05-17"
   },
   {
-    "id": "2026-05-17_Arsenal_vs_Burnley",
+    "id": "Arsenal_2026-05-17_Burnley",
     "datetime": "2026-05-17T15:00:00.000Z",
     "hometeam": "Arsenal",
     "awayteam": "Burnley",
@@ -4428,7 +4428,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-05-17"
   },
   {
-    "id": "2026-05-17_Bournemouth_vs_Manchester_City",
+    "id": "Bournemouth_2026-05-17_Manchester_City",
     "datetime": "2026-05-17T15:00:00.000Z",
     "hometeam": "Bournemouth",
     "awayteam": "Manchester City",
@@ -4440,7 +4440,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-05-17"
   },
   {
-    "id": "2026-05-24_Crystal_Palace_vs_Arsenal",
+    "id": "Crystal_Palace_2026-05-24_Arsenal",
     "datetime": "2026-05-24T16:00:00.000Z",
     "hometeam": "Crystal Palace",
     "awayteam": "Arsenal",
@@ -4452,7 +4452,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-05-24"
   },
   {
-    "id": "2026-05-24_Manchester_City_vs_Aston_Villa",
+    "id": "Manchester_City_2026-05-24_Aston_Villa",
     "datetime": "2026-05-24T16:00:00.000Z",
     "hometeam": "Manchester City",
     "awayteam": "Aston Villa",
@@ -4464,7 +4464,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-05-24"
   },
   {
-    "id": "2026-05-24_West_Ham_vs_Leeds_United",
+    "id": "West_Ham_2026-05-24_Leeds_United",
     "datetime": "2026-05-24T16:00:00.000Z",
     "hometeam": "West Ham",
     "awayteam": "Leeds United",
@@ -4476,7 +4476,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-05-24"
   },
   {
-    "id": "2026-05-24_Tottenham_vs_Everton",
+    "id": "Tottenham_2026-05-24_Everton",
     "datetime": "2026-05-24T16:00:00.000Z",
     "hometeam": "Tottenham",
     "awayteam": "Everton",
@@ -4488,7 +4488,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-05-24"
   },
   {
-    "id": "2026-05-24_Brighton_vs_Manchester_Utd",
+    "id": "Brighton_2026-05-24_Manchester_Utd",
     "datetime": "2026-05-24T16:00:00.000Z",
     "hometeam": "Brighton",
     "awayteam": "Manchester Utd",
@@ -4500,7 +4500,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-05-24"
   },
   {
-    "id": "2026-05-24_Liverpool_vs_Brentford",
+    "id": "Liverpool_2026-05-24_Brentford",
     "datetime": "2026-05-24T16:00:00.000Z",
     "hometeam": "Liverpool",
     "awayteam": "Brentford",
@@ -4512,7 +4512,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-05-24"
   },
   {
-    "id": "2026-05-24_Fulham_vs_Newcastle_Utd",
+    "id": "Fulham_2026-05-24_Newcastle_Utd",
     "datetime": "2026-05-24T16:00:00.000Z",
     "hometeam": "Fulham",
     "awayteam": "Newcastle Utd",
@@ -4524,7 +4524,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-05-24"
   },
   {
-    "id": "2026-05-24_Nott'ham_Forest_vs_Bournemouth",
+    "id": "Nott'ham_Forest_2026-05-24_Bournemouth",
     "datetime": "2026-05-24T16:00:00.000Z",
     "hometeam": "Nott'ham Forest",
     "awayteam": "Bournemouth",
@@ -4536,7 +4536,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-05-24"
   },
   {
-    "id": "2026-05-24_Sunderland_vs_Chelsea",
+    "id": "Sunderland_2026-05-24_Chelsea",
     "datetime": "2026-05-24T16:00:00.000Z",
     "hometeam": "Sunderland",
     "awayteam": "Chelsea",
@@ -4548,7 +4548,7 @@
     "matchurl": "https://fbref.com/en/matches/2026-05-24"
   },
   {
-    "id": "2026-05-24_Burnley_vs_Wolves",
+    "id": "Burnley_2026-05-24_Wolves",
     "datetime": "2026-05-24T16:00:00.000Z",
     "hometeam": "Burnley",
     "awayteam": "Wolves",
