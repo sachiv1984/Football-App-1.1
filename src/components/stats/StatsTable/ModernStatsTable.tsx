@@ -74,69 +74,8 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     autoLoad ? awayTeam.name : undefined
   );
 
-  // Updated mock data to include goals
-  const mockStats = {
-    recentForm: {
-      homeResults: ['W', 'L', 'W', 'D', 'W'] as ('W' | 'D' | 'L')[],
-      awayResults: ['L', 'W', 'D', 'W', 'L'] as ('W' | 'D' | 'L')[],
-      homeStats: { matchesPlayed: 28, won: 18, drawn: 6, lost: 4 },
-      awayStats: { matchesPlayed: 28, won: 12, drawn: 8, lost: 8 }
-    },
-    // NEW: Goals mock data
-    goalsMatchesPlayed: { homeValue: 28, awayValue: 28 },
-    goalsFor: { homeValue: 2.1, awayValue: 1.8 },
-    goalsAgainst: { homeValue: 1.2, awayValue: 1.6 },
-    totalGoals: { homeValue: 3.3, awayValue: 3.4 },
-    over15MatchGoals: { homeValue: 85, awayValue: 82 },
-    over25MatchGoals: { homeValue: 68, awayValue: 71 },
-    over35MatchGoals: { homeValue: 43, awayValue: 46 },
-    bothTeamsToScore: { homeValue: 64, awayValue: 68 },
-    
-    // Existing corners data (updated to show averages)
-    cornersMatchesPlayed: { homeValue: 28, awayValue: 28 },
-    cornersTaken: { homeValue: 5.57, awayValue: 4.79 },
-    cornersAgainst: { homeValue: 3.50, awayValue: 5.07 },
-    totalCorners: { homeValue: 9.07, awayValue: 9.86 },
-    over75MatchCorners: { homeValue: 89, awayValue: 82 },
-    over85MatchCorners: { homeValue: 82, awayValue: 75 },
-    over95MatchCorners: { homeValue: 75, awayValue: 68 },
-    over105MatchCorners: { homeValue: 64, awayValue: 57 },
-    over115MatchCorners: { homeValue: 50, awayValue: 43 },
-    
-    // Cards data (updated to show averages)
-    cardsMatchesPlayed: { homeValue: 28, awayValue: 28 },
-    cardsShown: { homeValue: 2.39, awayValue: 1.93 },
-    cardsAgainst: { homeValue: 1.50, awayValue: 2.07 },
-    totalCards: { homeValue: 3.89, awayValue: 4.00 },
-    over05TeamCards: { homeValue: 100, awayValue: 96 },
-    over15TeamCards: { homeValue: 93, awayValue: 89 },
-    over25TeamCards: { homeValue: 79, awayValue: 71 },
-    over35TeamCards: { homeValue: 57, awayValue: 46 },
-    
-    // Shooting data (updated to show averages)
-    shootingMatchesPlayed: { homeValue: 28, awayValue: 28 },
-    shots: { homeValue: 13.50, awayValue: 11.46 },
-    shotsAgainst: { homeValue: 10.25, awayValue: 12.71 },
-    shotsOnTarget: { homeValue: 5.07, awayValue: 4.21 },
-    shotsOnTargetAgainst: { homeValue: 3.50, awayValue: 4.79 },
-    over25TeamShotsOnTarget: { homeValue: 96, awayValue: 89 },
-    over35TeamShotsOnTarget: { homeValue: 89, awayValue: 82 },
-    over45TeamShotsOnTarget: { homeValue: 82, awayValue: 71 },
-    over55TeamShotsOnTarget: { homeValue: 68, awayValue: 57 },
-    
-    // Fouls data (updated to show averages)
-    foulsMatchesPlayed: { homeValue: 28, awayValue: 28 },
-    foulsCommitted: { homeValue: 11.57, awayValue: 10.64 },
-    foulsWon: { homeValue: 9.86, awayValue: 11.14 },
-    totalFouls: { homeValue: 21.43, awayValue: 21.78 },
-    over85TeamFoulsCommitted: { homeValue: 93, awayValue: 86 },
-    over95TeamFoulsCommitted: { homeValue: 86, awayValue: 79 },
-    over105TeamFoulsCommitted: { homeValue: 79, awayValue: 71 },
-    over115TeamFoulsCommitted: { homeValue: 71, awayValue: 64 }
-  };
-
-  // Determine which stats to use: propStats > fetchedStats > mockStats
-  const effectiveStats = propStats || fetchedStats || mockStats;
+  // Determine which stats to use: propStats > fetchedStats
+  const effectiveStats = propStats || fetchedStats;
 
   // Loading state
   if (showLoadingState && autoLoad && loading && !propStats) {
@@ -172,10 +111,24 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     );
   }
 
+  // No data state
+  if (!effectiveStats) {
+    return (
+      <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
+        <div className="p-6 text-center">
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <div className="text-gray-600 font-medium mb-2">📊 No Statistics Available</div>
+            <p className="text-gray-700 text-sm">No statistics data is currently available for these teams.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Updated tabs to include goals
   const tabs: { key: StatCategory; label: string }[] = [
     { key: 'form', label: 'Form' },
-    { key: 'goals', label: 'Goals' },        // NEW: Goals tab
+    { key: 'goals', label: 'Goals' },
     { key: 'corners', label: 'Corners' },
     { key: 'cards', label: 'Cards' },
     { key: 'shooting', label: 'Shooting' },
@@ -188,7 +141,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
       case 'form':
         return 'Team Form';
       case 'goals':
-        return 'Team Goals';           // NEW
+        return 'Team Goals';
       case 'corners':
         return 'Team Corners';
       case 'cards':
@@ -213,7 +166,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     };
 
     switch (category) {
-      case 'goals':  // NEW: Goals case
+      case 'goals':
         return {
           'Matches Played': getStat('goalsMatchesPlayed'),
           'Goals For': getStat('goalsFor'),
@@ -413,8 +366,10 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
         </p>
         {autoLoad && (fetchedStats ? (
           <span className="text-xs text-green-600 font-medium">Live Data</span>
+        ) : propStats ? (
+          <span className="text-xs text-blue-600 font-medium">Custom Data</span>
         ) : (
-          <span className="text-xs text-orange-600 font-medium">Sample Data</span>
+          <span className="text-xs text-gray-600 font-medium">No Data</span>
         ))}
       </div>
 
