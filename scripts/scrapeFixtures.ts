@@ -17,7 +17,10 @@ import fetch from 'node-fetch';
 /* ------------------ Path Setup ------------------ */
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const DATA_DIR = path.join(__dirname, '..', 'data');
+
+// Fix: Go up to project root, not relative to dist folder
+const PROJECT_ROOT = process.cwd(); // This will be the repo root in GitHub Actions
+const DATA_DIR = path.join(PROJECT_ROOT, 'data');
 const FILE_NAME = 'Fixtures.json';
 
 /* ------------------ Configuration ------------------ */
