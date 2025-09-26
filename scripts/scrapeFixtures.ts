@@ -200,17 +200,20 @@ private findFixturesTable(tables: TableData[]): TableData | null {
     const caption = table.caption.toLowerCase();
     const headers = table.headers.map(h => h.toLowerCase()).join(' ');
 
-    const hasFixtureIndicators = (
+    // Only pick tables that are actually fixtures, not standings
+    const isFixtures = (
       caption.includes('fixture') ||
       caption.includes('schedule') ||
       caption.includes('scores') ||
-      headers.includes('date') ||
-      headers.includes('time') ||
+      headers.includes('date') || 
       headers.includes('home') ||
       headers.includes('away')
     );
 
-    if (hasFixtureIndicators) {
+    // Exclude common league table indicators
+    const isLeagueTable = headers.includes('pts') && headers.includes('gd');
+
+    if (isFixtures && !isLeagueTable) {
       console.log(`🎯 Found potential fixtures table: "${table.caption}"`);
       console.log(`   Headers: ${table.headers.join(', ')}`);
       console.log(`   Rows: ${table.rows.length}`);
@@ -220,6 +223,7 @@ private findFixturesTable(tables: TableData[]): TableData | null {
 
   return null;
 }
+
 
 private convertTableToFixtures(table: TableData): ScrapedFixture[] {
   const fixtures: ScrapedFixture[] = [];
