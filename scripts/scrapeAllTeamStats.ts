@@ -535,7 +535,6 @@ class DebugScraper {
     };
   }
 }
-
 /* ------------------ ScraperManager ------------------ */
 class ScraperManager {
   private scraper = new DebugScraper();
@@ -562,7 +561,7 @@ class ScraperManager {
       const teamsToScrape = SCRAPE_MODE === SCRAPE_MODES.ALL ? AVAILABLE_TEAMS : [AVAILABLE_TEAMS[SINGLE_TEAM_INDEX]];
       console.log(`📋 Total teams to scrape: ${teamsToScrape.length}`);
       
-      // Create fresh results array for each stat type
+      // FIXED: Create fresh results array for each stat type - MOVED INSIDE THE LOOP
       const statResults: any[] = [];
       let supabaseSuccessCount = 0;
       
@@ -630,10 +629,11 @@ class ScraperManager {
         }
       }
 
-      // Save local JSON file
+      // Save local JSON file - statResults now only contains current stat type data
       const filename = `Team${stat.name.replace(/\s+/g, '')}Stats.json`;
       this.scraper.saveFile(filename, JSON.stringify(statResults, null, 2));
-      console.log(`\n💾 All ${stat.name} data saved to data/${filename}`);
+      console.log(`\n💾 ${stat.name} data saved to data/${filename}`);
+      console.log(`📈 Records in this file: ${statResults.length}`);
       console.log(`📤 Supabase exports successful: ${supabaseSuccessCount}/${teamsToScrape.length}`);
 
       // Add delay before next stat scrape
