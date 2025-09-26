@@ -24,8 +24,8 @@ const DATA_DIR = path.join(__dirname, '..', 'data');
 const FILE_NAME = 'Fixtures.json';
 
 /* ------------------ Configuration ------------------ */
-const CURRENT_SEASON = '2025-2026';
-const NEXT_SEASON = '2026-2027';
+const CURRENT_SEASON = '2024-2025';
+const NEXT_SEASON = '2025-2026';
 
 // Try multiple URLs to find fixtures - prioritize fixtures pages
 const FBREF_URLS = [
@@ -148,41 +148,48 @@ class Scraper {
         return;
       }
 
-      // Skip header rows or separator rows
-      if ($row.hasClass('thead') || $row.find('th').length > 0) {
-        if (i < 10) console.log(`❌ Skipping row ${i}: header/separator row`);
+      // Skip actual header rows (contains th elements or header text)
+      const hasThElements = $row.find('th').length > 0;
+      const isHeaderText = $(cells[0]).text().trim().toLowerCase() === 'date' || 
+                          $(cells[1]).text().trim().toLowerCase() === 'date' ||
+                          $(cells[3]).text().trim().toLowerCase() === 'home';
+      
+      if (hasThElements || isHeaderText) {
+        if (i < 10) console.log(`❌ Skipping row ${i}: actual header row`);
         skippedRows++;
         return;
       }
 
-      // Try different column mappings based on table structure
+      // Extract data based on the 13-column format we discovered:
+      // Day | Date | Time | Home | xG | Score | xG | Away | Attendance | Venue | Referee | Report | Notes
       let date, time, homeTeam, awayTeam, scoreText;
-
-      // Common FBref fixture table formats:
-      // Format 1: Date, Time, Home, Score, Away, ...
-      // Format 2: Wk, Date, Time, Home, xG, Score, xG, Away, ...
       
-      if (cells.length >= 8) {
-        // Format 2 (with week number and xG columns)
+      if (cells.length >= 13) {
+        // Full 13-column format
+        date = $(cells[1]).text().trim();      // Date
+        time = $(cells[2]).text().trim();      // Time  
+        homeTeam = $(cells[3]).text().trim();  // Home team
+        scoreText = $(cells[5]).text().trim(); // Score
+        awayTeam = $(cells[7]).text().trim();  // Away team
+      } else if (cells.length >= 8) {
+        // Shortened format (8+ columns)
         date = $(cells[1]).text().trim();
         time = $(cells[2]).text().trim(); 
         homeTeam = $(cells[3]).text().trim();
         awayTeam = $(cells[7]).text().trim();
         scoreText = $(cells[5]).text().trim();
       } else if (cells.length >= 5) {
-        // Format 1 (simple format)
+        // Simple format (5+ columns)
         date = $(cells[0]).text().trim();
         time = $(cells[1]).text().trim();
         homeTeam = $(cells[2]).text().trim();
         awayTeam = $(cells[4]).text().trim();
         scoreText = cells.length > 5 ? $(cells[5]).text().trim() : '';
       } else {
-        // Fallback: try first available columns
-        date = $(cells[0]).text().trim();
-        time = cells.length > 1 ? $(cells[1]).text().trim() : '';
-        homeTeam = cells.length > 2 ? $(cells[2]).text().trim() : '';
-        awayTeam = cells.length > 3 ? $(cells[3]).text().trim() : '';
-        scoreText = cells.length > 4 ? $(cells[4]).text().trim() : '';
+        // Insufficient columns
+        if (i < 10) console.log(`❌ Skipping row ${i}: insufficient columns (${cells.length})`);
+        skippedRows++;
+        return;
       }
 
       // Debug first few parsed rows
