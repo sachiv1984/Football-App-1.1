@@ -158,12 +158,31 @@ class FixturesScraper {
   }
 
   private findFixturesTable(tables: TableData[]): TableData | null {
-    for (const table of tables) {
-      const headerStr = table.headers.join(' ').toLowerCase();
-      if (headerStr.includes('date') && headerStr.includes('home') && headerStr.includes('away')) return table;
+  // FBref fixtures tables usually have these headers
+  const REQUIRED_HEADERS = ['date', 'time', 'home', 'away'];
+
+  for (const table of tables) {
+    const caption = table.caption.toLowerCase();
+    const lowerHeaders = table.headers.map(h => h.toLowerCase());
+
+    // Check if headers contain all required fields
+    const hasRequiredHeaders = REQUIRED_HEADERS.every(h => lowerHeaders.includes(h));
+
+    // Also consider table captions with keywords
+    const hasFixtureKeywords = caption.includes('fixture') || caption.includes('schedule') || caption.includes('scores');
+
+    if (hasRequiredHeaders || hasFixtureKeywords) {
+      console.log(`🎯 Found fixtures table: "${table.caption}"`);
+      console.log(`   Headers: ${table.headers.join(', ')}`);
+      console.log(`   Rows: ${table.rows.length}`);
+      return table;
     }
-    return null;
   }
+
+  console.warn('❌ No fixtures table found');
+  return null;
+}
+
 
   private convertTableToFixtures(table: TableData): ScrapedFixture[] {
     const fixtures: ScrapedFixture[] = [];
