@@ -203,7 +203,7 @@ function cleanRow(row: RawRow, rowIndex: number): Fixture | null {
     const cleanHometeam = hometeam.replace(/\s+/g, '_');
     const cleanAwayteam = awayteam.replace(/\s+/g, '_');
     const dateId = datetime.split('T')[0]; // Use date part only for ID
-    const id = `${dateId}_${cleanHometeam}_vs_${cleanAwayteam}`;
+    const id = `${cleanHometeam}_${dateId}_${cleanAwayteam}`;
     
     const fixture: Fixture = {
       id,
