@@ -25,7 +25,7 @@ const DATA_DIR = path.join(__dirname, '..', 'data');
 const FILE_NAME = 'Fixtures.json';
 
 /* ------------------ Configuration ------------------ */
-const FBREF_URL = 'https://fbref.com/en/comps/9/Premier-League-Stats';
+const FBREF_URL = 'https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures';
 
 /* ------------------ Scraper Class ------------------ */
 class Scraper {
