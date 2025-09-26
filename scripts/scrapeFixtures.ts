@@ -55,6 +55,13 @@ class Scraper {
         const fixtures = this.parseFixtures($);
 
         if (fixtures.length > 0) {
+          // Validate fixture count (Premier League should have 380 fixtures)
+          if (fixtures.length !== 380) {
+            console.warn(`⚠️ Warning: Expected 380 fixtures, but found ${fixtures.length}`);
+            console.log(`📊 Fixture breakdown:`);
+            this.analyzeFixtures(fixtures);
+          }
+          
           this.saveFixtures(fixtures);
           console.log(`✅ Success: Found and saved ${fixtures.length} fixtures to ${FILE_NAME}`);
           return; // Exit after successful scraping
@@ -84,6 +91,7 @@ class Scraper {
 
   private parseFixtures($: cheerio.CheerioAPI): any[] {
     const fixtures: any[] = [];
+    const seenFixtures = new Set<string>(); // Track duplicates
 
     // Try multiple table selectors
     const possibleSelectors = [
@@ -115,33 +123,75 @@ class Scraper {
     const rows = fixturesTable.find('tbody tr');
     console.log(`📊 Processing ${rows.length} table rows...`);
 
+    let validRows = 0;
+    let skippedRows = 0;
+    let duplicateRows = 0;
+
     rows.each((i: number, row: any) => {
-      const cells = $(row).find('td');
+      const $row = $(row);
+      const cells = $row.find('td');
       
+      // Skip rows with insufficient columns
       if (cells.length < 5) {
-        return; // Skip rows with insufficient columns
+        skippedRows++;
+        return;
+      }
+
+      // Skip header rows or separator rows
+      if ($row.hasClass('thead') || $row.find('th').length > 0) {
+        skippedRows++;
+        return;
       }
 
       const date = $(cells[0]).text().trim();
       const time = $(cells[1]).text().trim();
       const homeTeam = $(cells[2]).text().trim();
       const awayTeam = $(cells[4]).text().trim();
+      const scoreText = cells.length > 5 ? $(cells[5]).text().trim() : '';
 
       // Debug first few rows
-      if (i < 3) {
-        console.log(`Row ${i}: Date: "${date}", Time: "${time}", Home: "${homeTeam}", Away: "${awayTeam}"`);
+      if (i < 5) {
+        console.log(`Row ${i}: Date: "${date}", Time: "${time}", Home: "${homeTeam}", Away: "${awayTeam}", Score: "${scoreText}"`);
       }
 
-      if (date && homeTeam && awayTeam) {
-        fixtures.push({
-          date,
-          time,
-          homeTeam,
-          awayTeam,
-          matchStatus: this.determineMatchStatus($(cells[5]).text().trim())
-        });
+      // Skip empty rows or invalid data
+      if (!date || !homeTeam || !awayTeam) {
+        skippedRows++;
+        return;
       }
+
+      // Skip obviously invalid entries (like "Squad" or other non-team names)
+      if (homeTeam.toLowerCase().includes('squad') || awayTeam.toLowerCase().includes('squad')) {
+        skippedRows++;
+        return;
+      }
+
+      // Create unique identifier for duplicate detection
+      const fixtureKey = `${date}-${homeTeam}-${awayTeam}`;
+      if (seenFixtures.has(fixtureKey)) {
+        duplicateRows++;
+        return;
+      }
+      seenFixtures.add(fixtureKey);
+
+      // Valid fixture found
+      validRows++;
+      fixtures.push({
+        date,
+        time: time || 'TBD',
+        homeTeam,
+        awayTeam,
+        matchStatus: this.determineMatchStatus(scoreText),
+        score: scoreText || null
+      });
     });
+
+    console.log(`📈 Processing summary:`);
+    console.log(`  - Total rows processed: ${rows.length}`);
+    console.log(`  - Valid fixtures: ${validRows}`);
+    console.log(`  - Skipped rows: ${skippedRows}`);
+    console.log(`  - Duplicate rows: ${duplicateRows}`);
+    console.log(`  - Final fixture count: ${fixtures.length}`);
 
     return fixtures;
   }
@@ -169,6 +219,41 @@ class Scraper {
       const id = $(table).attr('id');
       console.log(`  Schedule table: ${id}`);
     });
+  }
+
+  private analyzeFixtures(fixtures: any[]) {
+    const teamCounts = new Map<string, number>();
+    const dateRange = { earliest: '', latest: '' };
+    
+    fixtures.forEach((fixture, index) => {
+      // Count home games for each team
+      const home = fixture.homeTeam;
+      const away = fixture.awayTeam;
+      
+      teamCounts.set(home, (teamCounts.get(home) || 0) + 1);
+      teamCounts.set(away, (teamCounts.get(away) || 0) + 1);
+      
+      // Track date range
+      if (index === 0) {
+        dateRange.earliest = fixture.date;
+        dateRange.latest = fixture.date;
+      } else {
+        if (fixture.date < dateRange.earliest) dateRange.earliest = fixture.date;
+        if (fixture.date > dateRange.latest) dateRange.latest = fixture.date;
+      }
+    });
+
+    console.log(`  - Date range: ${dateRange.earliest} to ${dateRange.latest}`);
+    console.log(`  - Unique teams: ${teamCounts.size}`);
+    
+    // Check if any team has wrong number of fixtures (should be 38 for each team)
+    const incorrectCounts = Array.from(teamCounts.entries())
+      .filter(([team, count]) => count !== 38)
+      .slice(0, 5); // Show first 5 problematic teams
+      
+    if (incorrectCounts.length > 0) {
+      console.log(`  - Teams with incorrect fixture counts:`, incorrectCounts);
+    }
   }
 
   private saveFixtures(data: any[]) {
