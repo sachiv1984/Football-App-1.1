@@ -310,13 +310,13 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
         {/* Stats comparison - Using Grid Layout */}
         <div className="space-y-4 sm:space-y-6">
-          <div className="grid grid-cols-3 gap-2 sm:gap-4 items-center">
-            <span className="text-lg sm:text-2xl font-medium text-gray-900 text-right">{homeStats.matchesPlayed}</span>
-            <div className="text-center">
-              <span className="text-sm sm:text-lg font-medium text-gray-700">Matches Played</span>
-            </div>
-            <span className="text-lg sm:text-2xl font-medium text-gray-900 text-left">{awayStats.matchesPlayed}</span>
-          </div>
+  <div className="grid grid-cols-3 gap-2 sm:gap-4 items-center">
+    <span className="text-lg sm:text-2xl font-medium text-gray-900 text-center">{homeStats.matchesPlayed}</span>
+    <div className="text-center">
+      <span className="text-sm sm:text-lg font-medium text-gray-700">Matches Played</span>
+    </div>
+    <span className="text-lg sm:text-2xl font-medium text-gray-900 text-center">{awayStats.matchesPlayed}</span>
+  </div>
 
           <div className="grid grid-cols-3 gap-2 sm:gap-4 items-center">
             <span className="text-lg sm:text-2xl font-medium text-gray-900 text-right">{homeStats.won}</span>
@@ -414,30 +414,30 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
               </div>
             </div>
 
-            {/* Stats comparison - Using Grid Layout */}
-            <div className="space-y-4 sm:space-y-6">
-              {Object.entries(currentStats).map(([statName, statData]) => {
-                const isMatchesPlayed = statName === 'Matches Played';
-                return (
-                  <div key={statName} className="grid grid-cols-3 gap-2 sm:gap-4 items-center">
-                    <span className="text-lg sm:text-2xl font-medium text-gray-900 text-right">
-                      {formatValue(statData.homeValue, statData.unit, isMatchesPlayed)}
-                    </span>
-                    <div className="text-center px-1">
-                      <span className="text-sm sm:text-lg font-medium text-gray-700 block leading-tight">{statName}</span>
-                      {statData.leagueAverage && (
-                        <div className="text-xs sm:text-sm text-gray-500 mt-1">
-                          Avg: {formatValue(statData.leagueAverage, statData.unit, isMatchesPlayed)}
-                        </div>
-                      )}
-                    </div>
-                    <span className="text-lg sm:text-2xl font-medium text-gray-900 text-left">
-                      {formatValue(statData.awayValue, statData.unit, isMatchesPlayed)}
-                    </span>
-                  </div>
-                );
-              })}
+       {/* Stats comparison - Using Grid Layout */}
+<div className="space-y-4 sm:space-y-6">
+  {Object.entries(currentStats).map(([statName, statData]) => {
+    const isMatchesPlayed = statName === 'Matches Played';
+    return (
+      <div key={statName} className="grid grid-cols-3 gap-2 sm:gap-4 items-center">
+        <span className="text-lg sm:text-2xl font-medium text-gray-900 text-center">
+          {formatValue(statData.homeValue, statData.unit, isMatchesPlayed)}
+        </span>
+        <div className="text-center px-1">
+          <span className="text-sm sm:text-lg font-medium text-gray-700 block leading-tight">{statName}</span>
+          {statData.leagueAverage && (
+            <div className="text-xs sm:text-sm text-gray-500 mt-1">
+              Avg: {formatValue(statData.leagueAverage, statData.unit, isMatchesPlayed)}
             </div>
+          )}
+        </div>
+        <span className="text-lg sm:text-2xl font-medium text-gray-900 text-center">
+          {formatValue(statData.awayValue, statData.unit, isMatchesPlayed)}
+        </span>
+      </div>
+    );
+  })}
+</div>
           </div>
         )}
       </div>
