@@ -276,7 +276,6 @@ class SupabaseFixturesScraper {
 
     return fixtures;
   }
-
 private extractFixtureFromRow(row: (string | CellData)[], columnMap: ColumnMapping): SupabaseFixture | null {
   const getCellText = (index: number): string => {
     const cell = row[index];
@@ -304,9 +303,8 @@ private extractFixtureFromRow(row: (string | CellData)[], columnMap: ColumnMappi
   const datetimeObj = new Date(`${dateStr}T${timeStr}:00Z`);
   const datetime = datetimeObj.toISOString();
 
-  // Generate ID
-  const hour = datetimeObj.getUTCHours();
-  const formattedDate = `${dateStr}${hour}`;
+  // Generate ID with YYYY-MM-DD
+  const formattedDate = dateStr; // already YYYY-MM-DD
   const id = `${homeTeam}_${formattedDate}_${awayTeam}`.replace(/\s+/g, '_');
 
   // Parse scores
@@ -335,6 +333,7 @@ private extractFixtureFromRow(row: (string | CellData)[], columnMap: ColumnMappi
     matchurl: matchUrl
   };
 }
+
 
 
   private determineMatchStatus(scoreText: string): string {
