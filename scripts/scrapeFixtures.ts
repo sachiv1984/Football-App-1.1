@@ -248,7 +248,28 @@ async function scrapeAndUpload() {
     console.log(`Fetched HTML, length: ${html.length} characters`);
 
     console.log('Parsing HTML with Cheerio...');
-    const $ = cheerio.load(html);
+const $ = cheerio.load(html);
+
+// Inspect all tables dynamically
+const allTables = $('table');
+console.log(`Found ${allTables.length} tables on the page:`);
+
+allTables.each((i, tableEl) => {
+  const tableId = $(tableEl).attr('id') || '(no id)';
+  const rowCount = $(tableEl).find('tbody tr').length;
+  console.log(`  Table ${i + 1}: ID='${tableId}', rows=${rowCount}`);
+});
+
+// Try to find the main fixtures table (current fallback logic)
+let table = $('table#sched_2025-2026_9_1');
+
+if (table.length === 0) {
+  console.log('Primary table selector not found, trying fallbacks...');
+  table = $('table[id*="sched"]').first();
+  if (table.length === 0) table = $('table.stats_table').first();
+}
+
+console.log(`Using table ID: '${table.attr('id')}', with ${table.find('tbody tr').length} rows`);
 
     // Try to find the table - FBref may use different IDs for different seasons
     let table = $('table#sched_2025-2026_9_1');
