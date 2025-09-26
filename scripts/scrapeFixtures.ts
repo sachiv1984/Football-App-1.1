@@ -24,8 +24,8 @@ const DATA_DIR = path.join(__dirname, '..', 'data');
 const FILE_NAME = 'Fixtures.json';
 
 /* ------------------ Configuration ------------------ */
-const CURRENT_SEASON = '2024-2025';
-const NEXT_SEASON = '2025-2026';
+const CURRENT_SEASON = '2025-2026';
+const NEXT_SEASON = '2026-2027';
 
 // Try multiple URLs to find fixtures - prioritize fixtures pages
 const FBREF_URLS = [
