@@ -294,11 +294,11 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
           </div>
         </div>
 
-        {/* Form display - Enhanced Grid Layout with Overflow Protection */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-4 items-center mb-6 sm:mb-8">
-          {/* Home team form - centered with responsive overflow */}
+        {/* Form display - Flexible Grid Layout for Form Badges */}
+        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-2 sm:gap-4 items-center mb-6 sm:mb-8">
+          {/* Home team form - centered with flexible width */}
           <div className="flex justify-center min-w-0">
-            <div className="flex space-x-1 sm:space-x-2 overflow-x-auto scrollbar-hide max-w-full">
+            <div className="flex space-x-1 sm:space-x-2">
               {Array.from({ length: 5 - homeResults.length }).map((_, index) => (
                 <div key={`empty-home-${index}`} className="w-6 h-6 sm:w-8 sm:h-8 rounded border border-gray-200 bg-gray-50 flex-shrink-0"></div>
               ))}
@@ -310,14 +310,14 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
             </div>
           </div>
 
-          {/* Center form label */}
-          <div className="text-center px-1 min-w-0">
-            <span className="text-sm sm:text-base lg:text-lg font-medium text-gray-700">Form</span>
+          {/* Center form label - auto width */}
+          <div className="text-center px-2 sm:px-4">
+            <span className="text-sm sm:text-base lg:text-lg font-medium text-gray-700 whitespace-nowrap">Form</span>
           </div>
 
-          {/* Away team form - centered with responsive overflow */}
+          {/* Away team form - centered with flexible width */}
           <div className="flex justify-center min-w-0">
-            <div className="flex space-x-1 sm:space-x-2 overflow-x-auto scrollbar-hide max-w-full">
+            <div className="flex space-x-1 sm:space-x-2">
               {awayResults.map((result, index) => (
                 <div key={`away-${index}`} className="flex-shrink-0">
                   <FormResult result={result} />
@@ -330,9 +330,9 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
           </div>
         </div>
 
-        {/* Stats comparison - Enhanced Grid Layout with Better Text Handling */}
+        {/* Stats comparison - Flexible Grid Layout */}
         <div className="space-y-3 sm:space-y-4">
-          <div className="grid grid-cols-[1fr_2fr_1fr] gap-2 sm:gap-4 items-center py-2">
+          <div className="grid grid-cols-[minmax(0,1fr)_minmax(120px,2fr)_minmax(0,1fr)] gap-2 sm:gap-4 items-center py-2">
             <div className="text-center min-w-0">
               <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">{homeStats.matchesPlayed}</span>
             </div>
@@ -344,7 +344,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-[1fr_2fr_1fr] gap-2 sm:gap-4 items-center py-2">
+          <div className="grid grid-cols-[minmax(0,1fr)_minmax(120px,2fr)_minmax(0,1fr)] gap-2 sm:gap-4 items-center py-2">
             <div className="text-center min-w-0">
               <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">{homeStats.won}</span>
             </div>
@@ -356,7 +356,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-[1fr_2fr_1fr] gap-2 sm:gap-4 items-center py-2">
+          <div className="grid grid-cols-[minmax(0,1fr)_minmax(120px,2fr)_minmax(0,1fr)] gap-2 sm:gap-4 items-center py-2">
             <div className="text-center min-w-0">
               <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">{homeStats.drawn}</span>
             </div>
@@ -368,7 +368,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-[1fr_2fr_1fr] gap-2 sm:gap-4 items-center py-2">
+          <div className="grid grid-cols-[minmax(0,1fr)_minmax(120px,2fr)_minmax(0,1fr)] gap-2 sm:gap-4 items-center py-2">
             <div className="text-center min-w-0">
               <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">{homeStats.lost}</span>
             </div>
@@ -466,12 +466,12 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
               </div>
             </div>
 
-            {/* Stats comparison - Enhanced Grid Layout with Better Text Handling */}
+            {/* Stats comparison - Flexible Grid Layout */}
             <div className="space-y-3 sm:space-y-4">
               {Object.entries(currentStats).map(([statName, statData]) => {
                 const isMatchesPlayed = statName === 'Matches Played';
                 return (
-                  <div key={statName} className="grid grid-cols-[1fr_2fr_1fr] gap-2 sm:gap-4 items-center py-2">
+                  <div key={statName} className="grid grid-cols-[minmax(0,1fr)_minmax(120px,2fr)_minmax(0,1fr)] gap-2 sm:gap-4 items-center py-2">
                     <div className="text-center min-w-0">
                       <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">
                         {formatValue(statData.homeValue, statData.unit, isMatchesPlayed)}
