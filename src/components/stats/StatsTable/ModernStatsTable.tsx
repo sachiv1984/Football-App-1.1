@@ -253,93 +253,131 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
     return (
       <div className="space-y-6 sm:space-y-8">
-        {/* Team logos and title - Using Grid Layout */}
-        <div className="grid grid-cols-3 gap-4 items-center mb-6 sm:mb-8">
-          <div className="flex items-center justify-start">
-            {homeTeam.logo ? (
-              <img src={homeTeam.logo} alt={homeTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
-            ) : (
-              <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                <span className="text-gray-600 font-semibold text-xs sm:text-sm">{homeTeam.shortName?.charAt(0) || homeTeam.name.charAt(0)}</span>
+        {/* Team logos and title - Enhanced Grid Layout */}
+        <div className="grid grid-cols-3 gap-2 sm:gap-4 items-center mb-6 sm:mb-8">
+          <div className="flex items-center justify-center">
+            <div className="flex flex-col items-center space-y-1 sm:space-y-2">
+              {homeTeam.logo ? (
+                <img src={homeTeam.logo} alt={homeTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
+              ) : (
+                <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                  <span className="text-gray-600 font-semibold text-xs sm:text-sm">{homeTeam.shortName?.charAt(0) || homeTeam.name.charAt(0)}</span>
+                </div>
+              )}
+              <div className="text-center min-w-0">
+                <div className="text-xs sm:text-sm font-medium text-gray-900 truncate max-w-[80px] sm:max-w-[120px]">
+                  {homeTeam.shortName || homeTeam.name}
+                </div>
               </div>
-            )}
+            </div>
           </div>
           
-          <div className="text-center">
-            <h2 className="text-lg sm:text-2xl font-bold text-gray-900">Team Form</h2>
+          <div className="text-center px-1">
+            <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 leading-tight">Team Form</h2>
           </div>
           
-          <div className="flex items-center justify-end">
-            {awayTeam.logo ? (
-              <img src={awayTeam.logo} alt={awayTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
-            ) : (
-              <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                <span className="text-gray-600 font-semibold text-xs sm:text-sm">{awayTeam.shortName?.charAt(0) || awayTeam.name.charAt(0)}</span>
+          <div className="flex items-center justify-center">
+            <div className="flex flex-col items-center space-y-1 sm:space-y-2">
+              {awayTeam.logo ? (
+                <img src={awayTeam.logo} alt={awayTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
+              ) : (
+                <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                  <span className="text-gray-600 font-semibold text-xs sm:text-sm">{awayTeam.shortName?.charAt(0) || awayTeam.name.charAt(0)}</span>
+                </div>
+              )}
+              <div className="text-center min-w-0">
+                <div className="text-xs sm:text-sm font-medium text-gray-900 truncate max-w-[80px] sm:max-w-[120px]">
+                  {awayTeam.shortName || awayTeam.name}
+                </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
 
-        {/* Form display - Using Grid Layout */}
-        <div className="grid grid-cols-3 gap-4 items-center mb-6 sm:mb-8">
-          {/* Home team form - centered */}
-          <div className="flex space-x-1 sm:space-x-2 justify-center">
-            {Array.from({ length: 5 - homeResults.length }).map((_, index) => (
-              <div key={`empty-home-${index}`} className="w-6 h-6 sm:w-8 sm:h-8 rounded border border-gray-200 bg-gray-50"></div>
-            ))}
-            {homeResults.map((result, index) => (
-              <FormResult key={`home-${index}`} result={result} />
-            ))}
+        {/* Form display - Enhanced Grid Layout with Overflow Protection */}
+        <div className="grid grid-cols-3 gap-2 sm:gap-4 items-center mb-6 sm:mb-8">
+          {/* Home team form - centered with responsive overflow */}
+          <div className="flex justify-center min-w-0">
+            <div className="flex space-x-1 sm:space-x-2 overflow-x-auto scrollbar-hide max-w-full">
+              {Array.from({ length: 5 - homeResults.length }).map((_, index) => (
+                <div key={`empty-home-${index}`} className="w-6 h-6 sm:w-8 sm:h-8 rounded border border-gray-200 bg-gray-50 flex-shrink-0"></div>
+              ))}
+              {homeResults.map((result, index) => (
+                <div key={`home-${index}`} className="flex-shrink-0">
+                  <FormResult result={result} />
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Center form label */}
-          <div className="text-center">
-            <span className="text-sm sm:text-lg font-medium text-gray-700">Form</span>
+          <div className="text-center px-1 min-w-0">
+            <span className="text-sm sm:text-base lg:text-lg font-medium text-gray-700">Form</span>
           </div>
 
-          {/* Away team form - centered */}
-          <div className="flex space-x-1 sm:space-x-2 justify-center">
-            {awayResults.map((result, index) => (
-              <FormResult key={`away-${index}`} result={result} />
-            ))}
-            {Array.from({ length: 5 - awayResults.length }).map((_, index) => (
-              <div key={`empty-away-${index}`} className="w-6 h-6 sm:w-8 sm:h-8 rounded border border-gray-200 bg-gray-50"></div>
-            ))}
+          {/* Away team form - centered with responsive overflow */}
+          <div className="flex justify-center min-w-0">
+            <div className="flex space-x-1 sm:space-x-2 overflow-x-auto scrollbar-hide max-w-full">
+              {awayResults.map((result, index) => (
+                <div key={`away-${index}`} className="flex-shrink-0">
+                  <FormResult result={result} />
+                </div>
+              ))}
+              {Array.from({ length: 5 - awayResults.length }).map((_, index) => (
+                <div key={`empty-away-${index}`} className="w-6 h-6 sm:w-8 sm:h-8 rounded border border-gray-200 bg-gray-50 flex-shrink-0"></div>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Stats comparison - Using Grid Layout */}
-        <div className="space-y-4 sm:space-y-6">
-          <div className="grid grid-cols-3 gap-2 sm:gap-4 items-center">
-            <span className="text-lg sm:text-2xl font-medium text-gray-900 text-center">{homeStats.matchesPlayed}</span>
-            <div className="text-center">
-              <span className="text-sm sm:text-lg font-medium text-gray-700">Matches Played</span>
+        {/* Stats comparison - Enhanced Grid Layout with Better Text Handling */}
+        <div className="space-y-3 sm:space-y-4">
+          <div className="grid grid-cols-[1fr_2fr_1fr] gap-2 sm:gap-4 items-center py-2">
+            <div className="text-center min-w-0">
+              <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">{homeStats.matchesPlayed}</span>
             </div>
-            <span className="text-lg sm:text-2xl font-medium text-gray-900 text-center">{awayStats.matchesPlayed}</span>
+            <div className="text-center px-1 min-w-0">
+              <span className="text-sm sm:text-base lg:text-lg font-medium text-gray-700 block leading-tight">Matches Played</span>
+            </div>
+            <div className="text-center min-w-0">
+              <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">{awayStats.matchesPlayed}</span>
+            </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 sm:gap-4 items-center">
-            <span className="text-lg sm:text-2xl font-medium text-gray-900 text-center">{homeStats.won}</span>
-            <div className="text-center">
-              <span className="text-sm sm:text-lg font-medium text-gray-700">Won</span>
+          <div className="grid grid-cols-[1fr_2fr_1fr] gap-2 sm:gap-4 items-center py-2">
+            <div className="text-center min-w-0">
+              <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">{homeStats.won}</span>
             </div>
-            <span className="text-lg sm:text-2xl font-medium text-gray-900 text-center">{awayStats.won}</span>
+            <div className="text-center px-1 min-w-0">
+              <span className="text-sm sm:text-base lg:text-lg font-medium text-gray-700 block leading-tight">Won</span>
+            </div>
+            <div className="text-center min-w-0">
+              <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">{awayStats.won}</span>
+            </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 sm:gap-4 items-center">
-            <span className="text-lg sm:text-2xl font-medium text-gray-900 text-center">{homeStats.drawn}</span>
-            <div className="text-center">
-              <span className="text-sm sm:text-lg font-medium text-gray-700">Drawn</span>
+          <div className="grid grid-cols-[1fr_2fr_1fr] gap-2 sm:gap-4 items-center py-2">
+            <div className="text-center min-w-0">
+              <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">{homeStats.drawn}</span>
             </div>
-            <span className="text-lg sm:text-2xl font-medium text-gray-900 text-center">{awayStats.drawn}</span>
+            <div className="text-center px-1 min-w-0">
+              <span className="text-sm sm:text-base lg:text-lg font-medium text-gray-700 block leading-tight">Drawn</span>
+            </div>
+            <div className="text-center min-w-0">
+              <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">{awayStats.drawn}</span>
+            </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 sm:gap-4 items-center">
-            <span className="text-lg sm:text-2xl font-medium text-gray-900 text-center">{homeStats.lost}</span>
-            <div className="text-center">
-              <span className="text-sm sm:text-lg font-medium text-gray-700">Lost</span>
+          <div className="grid grid-cols-[1fr_2fr_1fr] gap-2 sm:gap-4 items-center py-2">
+            <div className="text-center min-w-0">
+              <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">{homeStats.lost}</span>
             </div>
-            <span className="text-lg sm:text-2xl font-medium text-gray-900 text-center">{awayStats.lost}</span>
+            <div className="text-center px-1 min-w-0">
+              <span className="text-sm sm:text-base lg:text-lg font-medium text-gray-700 block leading-tight">Lost</span>
+            </div>
+            <div className="text-center min-w-0">
+              <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">{awayStats.lost}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -387,53 +425,73 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
           renderFormContent()
         ) : (
           <div className="space-y-6 sm:space-y-8">
-            {/* Team logos and title - Using Grid Layout */}
-            <div className="grid grid-cols-3 gap-4 items-center mb-6 sm:mb-8">
-              <div className="flex items-center justify-start">
-                {homeTeam.logo ? (
-                  <img src={homeTeam.logo} alt={homeTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
-                ) : (
-                  <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                    <span className="text-gray-600 font-semibold text-xs sm:text-sm">{homeTeam.shortName?.charAt(0) || homeTeam.name.charAt(0)}</span>
+            {/* Team logos and title - Enhanced Grid Layout */}
+            <div className="grid grid-cols-3 gap-2 sm:gap-4 items-center mb-6 sm:mb-8">
+              <div className="flex items-center justify-center">
+                <div className="flex flex-col items-center space-y-1 sm:space-y-2">
+                  {homeTeam.logo ? (
+                    <img src={homeTeam.logo} alt={homeTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
+                  ) : (
+                    <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                      <span className="text-gray-600 font-semibold text-xs sm:text-sm">{homeTeam.shortName?.charAt(0) || homeTeam.name.charAt(0)}</span>
+                    </div>
+                  )}
+                  <div className="text-center min-w-0">
+                    <div className="text-xs sm:text-sm font-medium text-gray-900 truncate max-w-[80px] sm:max-w-[120px]">
+                      {homeTeam.shortName || homeTeam.name}
+                    </div>
                   </div>
-                )}
+                </div>
               </div>
               
-              <div className="text-center">
-                <h2 className="text-lg sm:text-2xl font-bold text-gray-900">{getStatCategoryTitle(activeTab)}</h2>
+              <div className="text-center px-1">
+                <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 leading-tight">{getStatCategoryTitle(activeTab)}</h2>
               </div>
               
-              <div className="flex items-center justify-end">
-                {awayTeam.logo ? (
-                  <img src={awayTeam.logo} alt={awayTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
-                ) : (
-                  <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                    <span className="text-gray-600 font-semibold text-xs sm:text-sm">{awayTeam.shortName?.charAt(0) || awayTeam.name.charAt(0)}</span>
+              <div className="flex items-center justify-center">
+                <div className="flex flex-col items-center space-y-1 sm:space-y-2">
+                  {awayTeam.logo ? (
+                    <img src={awayTeam.logo} alt={awayTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
+                  ) : (
+                    <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                      <span className="text-gray-600 font-semibold text-xs sm:text-sm">{awayTeam.shortName?.charAt(0) || awayTeam.name.charAt(0)}</span>
+                    </div>
+                  )}
+                  <div className="text-center min-w-0">
+                    <div className="text-xs sm:text-sm font-medium text-gray-900 truncate max-w-[80px] sm:max-w-[120px]">
+                      {awayTeam.shortName || awayTeam.name}
+                    </div>
                   </div>
-                )}
+                </div>
               </div>
             </div>
 
-            {/* Stats comparison - Using Grid Layout */}
-            <div className="space-y-4 sm:space-y-6">
+            {/* Stats comparison - Enhanced Grid Layout with Better Text Handling */}
+            <div className="space-y-3 sm:space-y-4">
               {Object.entries(currentStats).map(([statName, statData]) => {
                 const isMatchesPlayed = statName === 'Matches Played';
                 return (
-                  <div key={statName} className="grid grid-cols-3 gap-2 sm:gap-4 items-center">
-                    <span className="text-lg sm:text-2xl font-medium text-gray-900 text-center">
-                      {formatValue(statData.homeValue, statData.unit, isMatchesPlayed)}
-                    </span>
-                    <div className="text-center px-1">
-                      <span className="text-sm sm:text-lg font-medium text-gray-700 block leading-tight">{statName}</span>
+                  <div key={statName} className="grid grid-cols-[1fr_2fr_1fr] gap-2 sm:gap-4 items-center py-2">
+                    <div className="text-center min-w-0">
+                      <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">
+                        {formatValue(statData.homeValue, statData.unit, isMatchesPlayed)}
+                      </span>
+                    </div>
+                    <div className="text-center px-1 min-w-0">
+                      <span className="text-sm sm:text-base lg:text-lg font-medium text-gray-700 block leading-tight break-words">
+                        {statName}
+                      </span>
                       {statData.leagueAverage && (
                         <div className="text-xs sm:text-sm text-gray-500 mt-1">
                           Avg: {formatValue(statData.leagueAverage, statData.unit, isMatchesPlayed)}
                         </div>
                       )}
                     </div>
-                    <span className="text-lg sm:text-2xl font-medium text-gray-900 text-center">
-                      {formatValue(statData.awayValue, statData.unit, isMatchesPlayed)}
-                    </span>
+                    <div className="text-center min-w-0">
+                      <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">
+                        {formatValue(statData.awayValue, statData.unit, isMatchesPlayed)}
+                      </span>
+                    </div>
                   </div>
                 );
               })}
