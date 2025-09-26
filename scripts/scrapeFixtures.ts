@@ -1,13 +1,10 @@
 // scripts/scrapeFixtures.ts
 /**
  * ===============================================================
- * Production-ready FBref Fixtures Scraper
+ * FBref Fixtures Scraper - Using Working React Component Logic
  *
- * Key fixes:
- * 1. Multiple URL attempts for fixtures
- * 2. More flexible table selector approach
- * 3. Better debugging and error handling
- * 4. Season-aware URL construction
+ * This version uses the same successful approach as the React component
+ * that extracts table data and then processes it for fixtures.
  * ===============================================================
  */
 
@@ -24,18 +21,34 @@ const DATA_DIR = path.join(__dirname, '..', 'data');
 const FILE_NAME = 'Fixtures.json';
 
 /* ------------------ Configuration ------------------ */
-const CURRENT_SEASON = '2024-2025';
-const NEXT_SEASON = '2025-2026';
+const FBREF_FIXTURES_URL = 'https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures';
 
-// Try multiple URLs to find fixtures - prioritize fixtures pages
-const FBREF_URLS = [
-  'https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures',
-  `https://fbref.com/en/comps/9/${CURRENT_SEASON}/schedule/${CURRENT_SEASON}-Premier-League-Scores-and-Fixtures`,
-  `https://fbref.com/en/comps/9/${NEXT_SEASON}/schedule/${NEXT_SEASON}-Premier-League-Scores-and-Fixtures`
-];
+/* ------------------ Interfaces ------------------ */
+interface CellData {
+  text: string;
+  link?: string;
+}
+
+interface TableData {
+  id: string;
+  caption: string;
+  headers: string[];
+  rows: (string | CellData)[][];
+}
+
+interface Fixture {
+  date: string;
+  time: string;
+  homeTeam: string;
+  awayTeam: string;
+  matchStatus: string;
+  score?: string | null;
+  venue?: string;
+  referee?: string;
+}
 
 /* ------------------ Scraper Class ------------------ */
-class Scraper {
+class FixturesScraper {
   private ensureDataDir() {
     if (!fs.existsSync(DATA_DIR)) {
       fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -45,336 +58,350 @@ class Scraper {
   async scrape() {
     console.log('🚀 Starting fixture scraping...');
 
-    for (const url of FBREF_URLS) {
-      try {
-        console.log(`🔍 Trying URL: ${url}`);
-        const html = await this.fetchHtml(url);
-        const $ = cheerio.load(html);
+    try {
+      const html = await this.fetchHtml(FBREF_FIXTURES_URL);
+      console.log('✅ HTML fetched successfully');
 
-        const fixtures = this.parseFixtures($);
+      const $ = cheerio.load(html);
+      const pageTitle = $('title').text();
+      console.log(`📄 Page title: "${pageTitle}"`);
 
-        if (fixtures.length > 0) {
-          // Validate fixture count (Premier League should have 380 fixtures)
-          if (fixtures.length !== 380) {
-            console.warn(`⚠️ Warning: Expected 380 fixtures, but found ${fixtures.length}`);
-            console.log(`📊 Fixture breakdown:`);
-            this.analyzeFixtures(fixtures);
-          }
-          
-          this.saveFixtures(fixtures);
-          console.log(`✅ Success: Found and saved ${fixtures.length} fixtures to ${FILE_NAME}`);
-          return; // Exit after successful scraping
-        } else {
-          console.log(`⚠️ No fixtures found at ${url}`);
-        }
-      } catch (error) {
-        console.log(`❌ Failed to scrape ${url}: ${error}`);
-        continue; // Try next URL
+      // Extract all tables using the same logic as the React component
+      const tables = this.extractTables($);
+      console.log(`📊 Found ${tables.length} tables on page`);
+
+      // Find the fixtures table
+      const fixturesTable = this.findFixturesTable(tables);
+      
+      if (!fixturesTable) {
+        console.warn('❌ No fixtures table found');
+        this.debugTables(tables);
+        return;
       }
-    }
 
-    console.error('❌ All URLs failed. No fixtures could be scraped.');
+      console.log(`✅ Found fixtures table: "${fixturesTable.caption}"`);
+      console.log(`📈 Table has ${fixturesTable.rows.length} rows and ${fixturesTable.headers.length} columns`);
+
+      // Convert table data to fixtures
+      const fixtures = this.convertTableToFixtures(fixturesTable);
+      
+      if (fixtures.length > 0) {
+        this.validateFixtureCount(fixtures);
+        this.saveFixtures(fixtures);
+        console.log(`✅ Success: Scraped and saved ${fixtures.length} fixtures to ${FILE_NAME}`);
+      } else {
+        console.warn('⚠️ No valid fixtures extracted from table');
+      }
+
+    } catch (error) {
+      console.error(`❌ Scraping failed: ${error}`);
+    }
   }
 
   private async fetchHtml(url: string): Promise<string> {
+    console.log(`🔍 Fetching: ${url}`);
     const response = await fetch(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
       }
     });
+
     if (!response.ok) {
       throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
     }
+
     return response.text();
   }
 
-  private parseFixtures($: cheerio.CheerioAPI): any[] {
-    const fixtures: any[] = [];
-    const seenFixtures = new Set<string>(); // Track duplicates
+  private extractTables($: cheerio.CheerioAPI): TableData[] {
+    const tables: TableData[] = [];
 
-    // Try multiple table selectors - focus on fixtures tables
-    const possibleSelectors = [
-      'table[id*="sched"][id*="fixtures_and_results"]',
-      '#sched_2024-2025_9_1',
-      '#sched_2025-2026_9_1', 
-      'table[id*="schedule"]',
-      'table.stats_table',
-      'table.sortable.stats_table',
-      '.table_container table'
-    ];
-
-    let fixturesTable: cheerio.Cheerio<any> | null = null;
-
-    for (const selector of possibleSelectors) {
-      const table = $(selector).first();
-      if (table.length > 0) {
-        console.log(`✓ Found table with selector: ${selector}`);
-        fixturesTable = table;
-        break;
-      }
-    }
-
-    if (!fixturesTable) {
-      console.warn('❌ No fixtures table found with any selector.');
-      this.debugTables($);
-      return [];
-    }
-
-    const rows = fixturesTable.find('tbody tr');
-    console.log(`📊 Processing ${rows.length} table rows...`);
-
-    let validRows = 0;
-    let skippedRows = 0;
-    let duplicateRows = 0;
-
-    rows.each((i: number, row: any) => {
-      const $row = $(row);
-      const cells = $row.find('td');
+    $('table').each((_, tableElement) => {
+      const $table = $(tableElement);
+      const id = $table.attr('id') || `table-${tables.length}`;
       
-      // Debug first 10 rows to understand the structure
-      if (i < 10) {
-        console.log(`\n--- Row ${i} Debug ---`);
-        console.log(`Cell count: ${cells.length}`);
-        cells.each((cellIndex: number, cell: any) => {
-          const cellText = $(cell).text().trim();
-          console.log(`  Cell ${cellIndex}: "${cellText}"`);
+      // Get table caption/title
+      let caption = $table.find('caption').text().trim();
+      if (!caption) {
+        caption = $table.prev('h2').text().trim() || 
+                 $table.closest('div').find('h2, h3').first().text().trim() || 
+                 `Table ${tables.length + 1}`;
+      }
+
+      // Extract headers
+      const headers: string[] = [];
+      $table.find('thead th, thead td').each((_, headerElement) => {
+        const headerText = $(headerElement).text().trim();
+        headers.push(headerText);
+      });
+
+      // If no thead, try first row
+      if (headers.length === 0) {
+        $table.find('tbody tr:first th, tbody tr:first td').each((_, headerElement) => {
+          const headerText = $(headerElement).text().trim();
+          headers.push(headerText);
         });
       }
 
-      // Skip rows with insufficient columns
-      if (cells.length < 3) {
-        if (i < 10) console.log(`❌ Skipping row ${i}: insufficient columns (${cells.length})`);
-        skippedRows++;
-        return;
-      }
-
-      // Skip actual header rows (contains th elements or header text)
-      const hasThElements = $row.find('th').length > 0;
-      const isHeaderText = $(cells[0]).text().trim().toLowerCase() === 'date' || 
-                          $(cells[1]).text().trim().toLowerCase() === 'date' ||
-                          $(cells[3]).text().trim().toLowerCase() === 'home';
+      // Extract rows
+      const rows: (string | CellData)[][] = [];
+      const selector = headers.length === 0 ? 'tbody tr, tr' : 'tbody tr:not(:first), tr:not(:first)';
       
-      if (hasThElements || isHeaderText) {
-        if (i < 10) console.log(`❌ Skipping row ${i}: actual header row`);
-        skippedRows++;
-        return;
-      }
+      $table.find(selector).each((_, rowElement) => {
+        const $row = $(rowElement);
+        const rowData: (string | CellData)[] = [];
+        
+        $row.find('td, th').each((_, cellElement) => {
+          const $cell = $(cellElement);
+          const text = $cell.text().trim();
+          const link = $cell.find('a').attr('href');
+          
+          if (link && link.startsWith('/')) {
+            rowData.push({ text, link: `https://fbref.com${link}` });
+          } else if (link && link.startsWith('http')) {
+            rowData.push({ text, link });
+          } else {
+            rowData.push(text);
+          }
+        });
 
-      // Extract data based on the 13-column format we discovered:
-      // Day | Date | Time | Home | xG | Score | xG | Away | Attendance | Venue | Referee | Report | Notes
-      let date, time, homeTeam, awayTeam, scoreText;
-      
-      if (cells.length >= 13) {
-        // Full 13-column format
-        date = $(cells[1]).text().trim();      // Date
-        time = $(cells[2]).text().trim();      // Time  
-        homeTeam = $(cells[3]).text().trim();  // Home team
-        scoreText = $(cells[5]).text().trim(); // Score
-        awayTeam = $(cells[7]).text().trim();  // Away team
-      } else if (cells.length >= 8) {
-        // Shortened format (8+ columns)
-        date = $(cells[1]).text().trim();
-        time = $(cells[2]).text().trim(); 
-        homeTeam = $(cells[3]).text().trim();
-        awayTeam = $(cells[7]).text().trim();
-        scoreText = $(cells[5]).text().trim();
-      } else if (cells.length >= 5) {
-        // Simple format (5+ columns)
-        date = $(cells[0]).text().trim();
-        time = $(cells[1]).text().trim();
-        homeTeam = $(cells[2]).text().trim();
-        awayTeam = $(cells[4]).text().trim();
-        scoreText = cells.length > 5 ? $(cells[5]).text().trim() : '';
-      } else {
-        // Insufficient columns
-        if (i < 10) console.log(`❌ Skipping row ${i}: insufficient columns (${cells.length})`);
-        skippedRows++;
-        return;
-      }
-
-      // Debug first few parsed rows
-      if (i < 5) {
-        console.log(`\n✅ Parsed Row ${i}:`);
-        console.log(`  Date: "${date}"`);
-        console.log(`  Time: "${time}"`);
-        console.log(`  Home: "${homeTeam}"`);
-        console.log(`  Away: "${awayTeam}"`);
-        console.log(`  Score: "${scoreText}"`);
-      }
-
-      // Skip empty rows or invalid data
-      if (!date || !homeTeam || !awayTeam) {
-        if (i < 10) console.log(`❌ Skipping row ${i}: missing required data (date: "${date}", home: "${homeTeam}", away: "${awayTeam}")`);
-        skippedRows++;
-        return;
-      }
-
-      // Skip obviously invalid entries (like "Squad" or other non-team names)
-      if (homeTeam.toLowerCase().includes('squad') || awayTeam.toLowerCase().includes('squad')) {
-        if (i < 10) console.log(`❌ Skipping row ${i}: contains 'squad' in team names`);
-        skippedRows++;
-        return;
-      }
-
-      // Skip rows where team names are too short or clearly not team names
-      if (homeTeam.length < 3 || awayTeam.length < 3) {
-        if (i < 10) console.log(`❌ Skipping row ${i}: team names too short`);
-        skippedRows++;
-        return;
-      }
-
-      // Create unique identifier for duplicate detection
-      const fixtureKey = `${date}-${homeTeam}-${awayTeam}`;
-      if (seenFixtures.has(fixtureKey)) {
-        duplicateRows++;
-        return;
-      }
-      seenFixtures.add(fixtureKey);
-
-      // Valid fixture found
-      validRows++;
-      fixtures.push({
-        date,
-        time: time || 'TBD',
-        homeTeam,
-        awayTeam,
-        matchStatus: this.determineMatchStatus(scoreText),
-        score: scoreText || null
+        if (rowData.length > 0) {
+          rows.push(rowData);
+        }
       });
+
+      // Only include tables with meaningful data
+      if (headers.length > 0 && rows.length > 0) {
+        tables.push({ id, caption, headers, rows });
+      }
     });
 
-    console.log(`📈 Processing summary:`);
-    console.log(`  - Total rows processed: ${rows.length}`);
-    console.log(`  - Valid fixtures: ${validRows}`);
-    console.log(`  - Skipped rows: ${skippedRows}`);
-    console.log(`  - Duplicate rows: ${duplicateRows}`);
-    console.log(`  - Final fixture count: ${fixtures.length}`);
+    return tables;
+  }
+
+  private findFixturesTable(tables: TableData[]): TableData | null {
+    // Look for tables that contain fixture data
+    for (const table of tables) {
+      const caption = table.caption.toLowerCase();
+      const headers = table.headers.map(h => h.toLowerCase()).join(' ');
+      
+      // Check if this looks like a fixtures table
+      const hasFixtureIndicators = (
+        caption.includes('fixture') ||
+        caption.includes('schedule') ||
+        caption.includes('scores') ||
+        headers.includes('date') ||
+        headers.includes('time') ||
+        headers.includes('home') ||
+        headers.includes('away')
+      );
+
+      if (hasFixtureIndicators && table.rows.length > 50) {
+        console.log(`🎯 Found potential fixtures table: "${table.caption}"`);
+        console.log(`   Headers: ${table.headers.join(', ')}`);
+        console.log(`   Rows: ${table.rows.length}`);
+        return table;
+      }
+    }
+
+    return null;
+  }
+
+  private convertTableToFixtures(table: TableData): Fixture[] {
+    const fixtures: Fixture[] = [];
+    const seenFixtures = new Set<string>();
+
+    console.log(`\n🔄 Converting table to fixtures...`);
+    console.log(`📋 Headers: ${table.headers.join(' | ')}`);
+
+    // Try to identify column indices
+    const columnMap = this.identifyColumns(table.headers);
+    console.log(`🗺️ Column mapping:`, columnMap);
+
+    let validCount = 0;
+    let skippedCount = 0;
+
+    for (let i = 0; i < table.rows.length; i++) {
+      const row = table.rows[i];
+      
+      if (i < 5) {
+        console.log(`\n--- Row ${i} ---`);
+        row.forEach((cell, idx) => {
+          const cellText = typeof cell === 'object' ? cell.text : cell;
+          console.log(`  [${idx}]: "${cellText}"`);
+        });
+      }
+
+      const fixture = this.extractFixtureFromRow(row, columnMap);
+      
+      if (fixture) {
+        const fixtureKey = `${fixture.date}-${fixture.homeTeam}-${fixture.awayTeam}`;
+        
+        if (!seenFixtures.has(fixtureKey)) {
+          seenFixtures.add(fixtureKey);
+          fixtures.push(fixture);
+          validCount++;
+          
+          if (validCount <= 5) {
+            console.log(`✅ Valid fixture: ${fixture.homeTeam} vs ${fixture.awayTeam} on ${fixture.date}`);
+          }
+        }
+      } else {
+        skippedCount++;
+      }
+    }
+
+    console.log(`\n📈 Conversion summary:`);
+    console.log(`  - Total rows: ${table.rows.length}`);
+    console.log(`  - Valid fixtures: ${validCount}`);
+    console.log(`  - Skipped rows: ${skippedCount}`);
 
     return fixtures;
   }
 
+  private identifyColumns(headers: string[]): Record<string, number> {
+    const columnMap: Record<string, number> = {};
+    
+    headers.forEach((header, index) => {
+      const lowerHeader = header.toLowerCase();
+      
+      if (lowerHeader.includes('date')) columnMap.date = index;
+      if (lowerHeader.includes('time')) columnMap.time = index;
+      if (lowerHeader.includes('home')) columnMap.home = index;
+      if (lowerHeader.includes('away')) columnMap.away = index;
+      if (lowerHeader.includes('score') || lowerHeader === 'score') columnMap.score = index;
+      if (lowerHeader.includes('venue')) columnMap.venue = index;
+      if (lowerHeader.includes('referee')) columnMap.referee = index;
+    });
+
+    // If no explicit headers found, use common FBref patterns
+    if (Object.keys(columnMap).length < 3) {
+      console.log('🔍 No clear headers found, using positional mapping...');
+      // Common pattern: Day | Date | Time | Home | xG | Score | xG | Away | ...
+      if (headers.length >= 8) {
+        columnMap.date = 1;
+        columnMap.time = 2;
+        columnMap.home = 3;
+        columnMap.score = 5;
+        columnMap.away = 7;
+        if (headers.length > 9) columnMap.venue = 9;
+        if (headers.length > 10) columnMap.referee = 10;
+      }
+    }
+
+    return columnMap;
+  }
+
+  private extractFixtureFromRow(row: (string | CellData)[], columnMap: Record<string, number>): Fixture | null {
+    const getCellText = (index: number): string => {
+      if (index < 0 || index >= row.length) return '';
+      const cell = row[index];
+      return typeof cell === 'object' ? cell.text : cell;
+    };
+
+    const date = getCellText(columnMap.date || 1).trim();
+    const time = getCellText(columnMap.time || 2).trim();
+    const homeTeam = getCellText(columnMap.home || 3).trim();
+    const awayTeam = getCellText(columnMap.away || 7).trim();
+    const score = getCellText(columnMap.score || 5).trim();
+    const venue = getCellText(columnMap.venue || 9).trim();
+    const referee = getCellText(columnMap.referee || 10).trim();
+
+    // Validate required fields
+    if (!date || !homeTeam || !awayTeam) {
+      return null;
+    }
+
+    // Skip obviously invalid data
+    if (homeTeam.length < 3 || awayTeam.length < 3) {
+      return null;
+    }
+
+    if (homeTeam.toLowerCase().includes('squad') || awayTeam.toLowerCase().includes('squad')) {
+      return null;
+    }
+
+    return {
+      date,
+      time: time || 'TBD',
+      homeTeam,
+      awayTeam,
+      matchStatus: this.determineMatchStatus(score),
+      score: score || null,
+      venue: venue || undefined,
+      referee: referee || undefined
+    };
+  }
+
   private determineMatchStatus(scoreText: string): string {
-    if (!scoreText || scoreText === '') {
+    if (!scoreText || scoreText === '' || scoreText === 'TBD') {
       return 'scheduled';
-    } else if (scoreText.includes('–') || scoreText.includes('-')) {
+    } else if (scoreText.includes('–') || scoreText.includes('-') || /\d+.*\d+/.test(scoreText)) {
       return 'completed';
     } else {
       return 'scheduled';
     }
   }
 
-  private debugTables($: cheerio.CheerioAPI) {
-    console.log('🔧 Debug: Available tables on the page:');
-    const tables = $('table');
-    console.log(`📊 Found ${tables.length} total tables`);
-    
-    tables.each((i, table) => {
-      const id = $(table).attr('id') || 'no-id';
-      const classes = $(table).attr('class') || 'no-classes';
-      const rowCount = $(table).find('tr').length;
-      console.log(`  Table ${i}: id="${id}", class="${classes}", rows=${rowCount}`);
-    });
-
-    console.log('🔧 Debug: Looking for tables with "sched" in ID:');
-    const schedTables = $('table[id*="sched"]');
-    schedTables.each((i, table) => {
-      const id = $(table).attr('id');
-      const rowCount = $(table).find('tbody tr').length;
-      console.log(`  Schedule table: ${id} (${rowCount} body rows)`);
-    });
-    
-    console.log('🔧 Debug: Looking for any table with fixtures/schedule data:');
-    $('table').each((i, table) => {
-      const $table = $(table);
-      const hasDate = $table.find('th, td').text().toLowerCase().includes('date');
-      const hasTeams = $table.find('th, td').text().toLowerCase().includes('home') || 
-                      $table.find('th, td').text().toLowerCase().includes('away');
+  private validateFixtureCount(fixtures: Fixture[]) {
+    if (fixtures.length !== 380) {
+      console.warn(`⚠️ Warning: Expected 380 fixtures, but found ${fixtures.length}`);
       
-      if (hasDate && hasTeams) {
-        const id = $table.attr('id') || `table-${i}`;
-        const rowCount = $table.find('tbody tr').length;
-        console.log(`  ⭐ Potential fixtures table: ${id} (${rowCount} rows)`);
+      // Analyze team distribution
+      const teamCounts = new Map<string, number>();
+      fixtures.forEach(fixture => {
+        teamCounts.set(fixture.homeTeam, (teamCounts.get(fixture.homeTeam) || 0) + 1);
+        teamCounts.set(fixture.awayTeam, (teamCounts.get(fixture.awayTeam) || 0) + 1);
+      });
+
+      console.log(`📊 Analysis:`);
+      console.log(`  - Unique teams: ${teamCounts.size}`);
+      console.log(`  - Expected teams: 20`);
+      
+      if (teamCounts.size > 0) {
+        const avgGamesPerTeam = Array.from(teamCounts.values()).reduce((a, b) => a + b, 0) / teamCounts.size;
+        console.log(`  - Average games per team: ${avgGamesPerTeam.toFixed(1)} (expected: 38)`);
       }
-    });
-
-    // Show page title for context
-    const pageTitle = $('title').text();
-    console.log(`📄 Page title: "${pageTitle}"`);
-  }
-
-  private analyzeFixtures(fixtures: any[]) {
-    const teamCounts = new Map<string, number>();
-    const dateRange = { earliest: '', latest: '' };
-    
-    fixtures.forEach((fixture, index) => {
-      // Count home games for each team
-      const home = fixture.homeTeam;
-      const away = fixture.awayTeam;
-      
-      teamCounts.set(home, (teamCounts.get(home) || 0) + 1);
-      teamCounts.set(away, (teamCounts.get(away) || 0) + 1);
-      
-      // Track date range
-      if (index === 0) {
-        dateRange.earliest = fixture.date;
-        dateRange.latest = fixture.date;
-      } else {
-        if (fixture.date < dateRange.earliest) dateRange.earliest = fixture.date;
-        if (fixture.date > dateRange.latest) dateRange.latest = fixture.date;
-      }
-    });
-
-    console.log(`  - Date range: ${dateRange.earliest} to ${dateRange.latest}`);
-    console.log(`  - Unique teams: ${teamCounts.size}`);
-    
-    // Check if any team has wrong number of fixtures (should be 38 for each team)
-    const incorrectCounts = Array.from(teamCounts.entries())
-      .filter(([team, count]) => count !== 38)
-      .slice(0, 5); // Show first 5 problematic teams
-      
-    if (incorrectCounts.length > 0) {
-      console.log(`  - Teams with incorrect fixture counts:`, incorrectCounts);
+    } else {
+      console.log('✅ Fixture count looks correct (380 fixtures)');
     }
   }
 
-  private saveFixtures(data: any[]) {
+  private debugTables(tables: TableData[]) {
+    console.log('\n🔧 Available tables:');
+    tables.forEach((table, index) => {
+      console.log(`  ${index + 1}. "${table.caption}" (${table.rows.length} rows, ${table.headers.length} cols)`);
+      console.log(`     Headers: ${table.headers.slice(0, 5).join(', ')}${table.headers.length > 5 ? '...' : ''}`);
+    });
+  }
+
+  private saveFixtures(fixtures: Fixture[]) {
     this.ensureDataDir();
     const filePath = path.join(DATA_DIR, FILE_NAME);
     
     try {
-      console.log(`💾 Attempting to save to: ${filePath}`);
-      console.log(`📁 Data directory exists: ${fs.existsSync(DATA_DIR)}`);
-      
-      const jsonData = JSON.stringify(data, null, 2);
+      const jsonData = JSON.stringify(fixtures, null, 2);
       fs.writeFileSync(filePath, jsonData, 'utf8');
       
-      // Verify file was created
-      if (fs.existsSync(filePath)) {
-        const stats = fs.statSync(filePath);
-        console.log(`✅ File saved successfully: ${stats.size} bytes`);
-        console.log(`📄 File location: ${filePath}`);
-        
-        // Show first few fixtures as preview
-        console.log(`🔍 Preview of saved data (first 3 fixtures):`);
-        data.slice(0, 3).forEach((fixture, i) => {
-          console.log(`  ${i + 1}. ${fixture.date} - ${fixture.homeTeam} vs ${fixture.awayTeam}`);
-        });
-      } else {
-        console.error(`❌ File was not created at ${filePath}`);
-      }
+      const stats = fs.statSync(filePath);
+      console.log(`💾 File saved: ${filePath} (${stats.size} bytes)`);
+      
+      // Preview first few fixtures
+      console.log(`\n🔍 Preview (first 3 fixtures):`);
+      fixtures.slice(0, 3).forEach((fixture, i) => {
+        console.log(`  ${i + 1}. ${fixture.date} ${fixture.time} - ${fixture.homeTeam} vs ${fixture.awayTeam}`);
+      });
+      
     } catch (error) {
       console.error(`❌ Error saving file: ${error}`);
-      console.error(`📁 Trying to save to directory: ${DATA_DIR}`);
-      console.error(`📄 File name: ${FILE_NAME}`);
       
-      // Try alternative save location (current directory)
+      // Try alternative location
+      const altPath = path.join(process.cwd(), FILE_NAME);
       try {
-        const altPath = path.join(process.cwd(), FILE_NAME);
-        console.log(`🔄 Trying alternative location: ${altPath}`);
-        fs.writeFileSync(altPath, JSON.stringify(data, null, 2), 'utf8');
+        fs.writeFileSync(altPath, JSON.stringify(fixtures, null, 2), 'utf8');
         console.log(`✅ File saved to alternative location: ${altPath}`);
       } catch (altError) {
-        console.error(`❌ Alternative save also failed: ${altError}`);
+        console.error(`❌ Alternative save failed: ${altError}`);
       }
     }
   }
@@ -382,7 +409,7 @@ class Scraper {
 
 /* ------------------ Main Execution ------------------ */
 async function main() {
-  const scraper = new Scraper();
+  const scraper = new FixturesScraper();
   await scraper.scrape();
 }
 
