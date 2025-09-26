@@ -21,7 +21,7 @@ import * as cheerio from 'cheerio';
 const FBREF_URL =
   'https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures';
 
-const JSON_PATH = path.join(process.cwd(), 'data', 'fixtures.json');
+const JSON_PATH = path.join(process.cwd(), 'data', 'Fixtures.json');
 
 // Supabase client setup
 const SUPABASE_URL = process.env.SUPABASE_URL!;
