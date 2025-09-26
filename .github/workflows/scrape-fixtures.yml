@@ -30,7 +30,7 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: node dist/scrapeFixtures.js
+        run: node dist/scripts/scrapeFixtures.js
 
       - name: Commit scraped data
         run: |
