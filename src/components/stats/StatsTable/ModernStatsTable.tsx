@@ -31,7 +31,7 @@ interface ModernStatsTableProps {
 
 type StatCategory = 'form' | 'goals' | 'corners' | 'cards' | 'shooting' | 'fouls';
 
-// --- Consistent spacing tokens ---
+// --- Spacing Tokens ---
 const SPACING = {
   containerPadding: "p-0", 
   sectionSpacing: "space-y-6 sm:space-y-8",
@@ -40,14 +40,14 @@ const SPACING = {
   contentPaddingClass: "p-4 sm:p-6" 
 };
 
-// --- Shared utility ---
+// --- Utilities ---
 const formatValue = (value: number, unit?: string, isMatchesPlayed?: boolean): string => {
   if (isMatchesPlayed) return value.toString();
   if (unit === '%') return `${value}%`;
   return value.toFixed(2);
 };
 
-// --- STAT CONFIGURATION MAP ---
+// --- STAT CONFIGS ---
 const STAT_CONFIGS: Record<Exclude<StatCategory, 'form'>, Record<string, { key: string; unit?: string }>> = {
   goals: {
     'Matches Played': { key: 'goalsMatchesPlayed' },
@@ -103,14 +103,13 @@ const STAT_CONFIGS: Record<Exclude<StatCategory, 'form'>, Record<string, { key: 
   }
 };
 
-// --- Enhanced FormResult Component ---
+// --- FormResult Component ---
 const FormResult: React.FC<{ result: 'W' | 'D' | 'L', isLatest?: boolean, position?: number, totalResults?: number }> = ({ 
   result, 
   isLatest, 
   position = 0, 
   totalResults = 5 
 }) => {
-  
   const getResultStyle = (result: 'W' | 'D' | 'L', isLatest: boolean) => {
     let baseClasses = '';
     switch (result) {
@@ -134,8 +133,7 @@ const FormResult: React.FC<{ result: 'W' | 'D' | 'L', isLatest?: boolean, positi
     <div 
       className={`
         w-6 h-6 sm:w-8 sm:h-8 rounded border flex items-center justify-center 
-        text-xs sm:text-sm font-semibold transition-all duration-200
-        hover:scale-110
+        text-xs sm:text-sm font-semibold transition-all duration-200 hover:scale-110
         ${getResultStyle(result, isLatest || false)}
       `}
       style={{ opacity: 0.6 + (position! / (totalResults! - 1)) * 0.4 }}
@@ -156,15 +154,7 @@ interface StatRowProps {
   statType?: StatCategory;
 }
 
-const StatRow: React.FC<StatRowProps> = ({ 
-  label, 
-  homeValue, 
-  awayValue, 
-  leagueAverage, 
-  unit, 
-  isMatchesPlayed,
-  statType = 'form'
-}) => {
+const StatRow: React.FC<StatRowProps> = ({ label, homeValue, awayValue, leagueAverage, unit, isMatchesPlayed, statType = 'form' }) => {
   const getPerformanceCategory = (value: number | string, statType: string, label: string) => {
     if (typeof value !== 'number' || isMatchesPlayed) return 'neutral';
     const isPositiveStat = 
@@ -257,7 +247,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     { key: 'fouls', label: 'Fouls' }
   ];
 
-  const getStatCategoryTitle = (category: StatCategory): string => {
+  const getStatCategoryTitle = (category: StatCategory) => {
     switch (category) {
       case 'form': return 'Team Form';
       case 'goals': return 'Team Goals';
@@ -289,22 +279,12 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
   const currentStats = getStatsForCategory(activeTab);
 
-  // --- Render Form Content (Updated) ---
+  // --- Render Form Content ---
   const renderFormContent = () => {
-    if (!effectiveStats)
-      return (
-        <div className="text-center py-8">
-          <p className="text-gray-600">Statistics are unavailable.</p>
-        </div>
-      );
+    if (!effectiveStats) return <div className="text-center py-8"><p className="text-gray-600">Statistics are unavailable.</p></div>;
 
     const recentForm = effectiveStats.recentForm as FormData | undefined;
-    if (!recentForm)
-      return (
-        <div className="text-center py-8">
-          <p className="text-gray-600">No form data available</p>
-        </div>
-      );
+    if (!recentForm) return <div className="text-center py-8"><p className="text-gray-600">No form data available</p></div>;
 
     const { homeResults, awayResults, homeStats, awayStats } = recentForm;
     const formStats = [
@@ -318,16 +298,15 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
       <div className={SPACING.sectionSpacing}>
         {/* Form Row */}
         <div className={`grid grid-cols-[1fr_auto_1fr] ${SPACING.gridGap} items-center`}>
-          {/* Home Team Form */}
           <div className="flex justify-end min-w-0">
-            <div className="flex space-x-1 sm:space-x-2 flex-nowrap">
+            <div className="flex space-x-1 sm:space-x-2 flex-nowrap"> 
               {Array.from({ length: 5 - homeResults.length }).map((_, index) => (
                 <div key={`empty-home-${index}`} className="w-6 h-6 sm:w-8 sm:h-8 rounded border border-gray-200 bg-gray-50 flex-shrink-0"></div>
               ))}
               {homeResults.map((result, index) => (
                 <div key={`home-${index}`} className="flex-shrink-0">
-                  <FormResult
-                    result={result}
+                  <FormResult 
+                    result={result} 
                     isLatest={index === homeResults.length - 1}
                     position={index}
                     totalResults={homeResults.length}
@@ -336,22 +315,17 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
               ))}
             </div>
           </div>
-
-          {/* Center Label */}
           <div className="text-center text-sm sm:text-base font-medium text-gray-700">Form</div>
-
-          {/* Away Team Form */}
           <div className="flex justify-start min-w-0">
             <div className="flex space-x-1 sm:space-x-2 flex-nowrap">
               {awayResults.slice().reverse().map((result, index) => (
-                <div key={`away-${index}`} className="flex-shrink-0">
-                  <FormResult
-                    result={result}
-                    isLatest={index === 0}
-                    position={awayResults.length - 1 - index}
-                    totalResults={awayResults.length}
-                  />
-                </div>
+                <FormResult 
+                  key={`away-${index}`} 
+                  result={result} 
+                  isLatest={index === 0}
+                  position={awayResults.length - 1 - index}
+                  totalResults={awayResults.length}
+                />
               ))}
             </div>
           </div>
@@ -376,38 +350,28 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
   // --- Loading/Error States ---
   if (showLoadingState && autoLoad && loading && !propStats) {
-    return (
-      <div className="text-center py-12 text-gray-500">Loading statistics...</div>
-    );
+    return <div className="text-center py-12 text-gray-500">Loading statistics...</div>;
   }
-
   if (showLoadingState && autoLoad && error && !propStats) {
-    return (
-      <div className="text-center py-12 text-red-500">Failed to load statistics.</div>
-    );
+    return <div className="text-center py-12 text-red-500">Failed to load statistics.</div>;
   }
-
   if (!effectiveStats) {
-    return (
-      <div className="text-center py-12 text-gray-500">No statistics available.</div>
-    );
+    return <div className="text-center py-12 text-gray-500">No statistics available.</div>;
   }
 
   // --- Main Render ---
-    return (
+  return (
     <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
-      {/* HEADER BLOCK */}
+      {/* HEADER + Tabs */}
       <div className="w-full">
-        {/* Tabs */}
         <div className="bg-gray-50 border-b border-gray-200 w-full flex">
-          {/* Mobile Tabs */}
-          <div className="flex w-full sm:hidden">
+          <div className="flex w-full sm:hidden"> 
             {tabs.map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 className={`
-                  flex-1 px-1 py-3 text-xs font-medium text-center border-b-2
+                  flex-1 px-1 py-3 text-xs font-medium text-center border-b-2 
                   transition-all duration-300 cubic-bezier(0.4, 0, 0.2, 1) min-w-0 relative
                   ${activeTab === tab.key
                     ? 'text-purple-800 border-purple-600 bg-white shadow-sm transform -translate-y-0.5 z-10'
@@ -422,8 +386,6 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
               </button>
             ))}
           </div>
-
-          {/* Desktop Tabs */}
           <div className="hidden sm:flex w-full">
             {tabs.map((tab) => (
               <button
@@ -446,12 +408,8 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
             ))}
           </div>
         </div>
-
-        {/* League Indicator */}
         <div className={`${SPACING.contentPaddingClass} bg-gray-50 border-b border-gray-100 flex justify-between items-center`}>
-          <p className="text-xs sm:text-sm text-gray-600">
-            Showing stats for {league} {season}
-          </p>
+          <p className="text-xs sm:text-sm text-gray-600">Showing stats for {league} {season}</p>
           {autoLoad && (fetchedStats ? (
             <span className="text-xs text-green-600 font-medium">Live Data</span>
           ) : propStats ? (
@@ -464,11 +422,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
       {/* Content */}
       <div className={SPACING.contentPaddingClass}>
-        <div className="mb-6 sm:mb-8">{renderTeamHeader()}</div>
-
-        {activeTab === 'form' ? (
-          renderFormContent()
-        ) : (
+        {activeTab === 'form' ? renderFormContent() : (
           <div className={SPACING.itemSpacing}>
             {Object.entries(currentStats).map(([statName, statData]) => {
               const isMatchesPlayed = statName === 'Matches Played';
@@ -492,53 +446,5 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     </div>
   );
 };
-
-// --- Team Header ---
-const renderTeamHeader = (homeTeam: Team, awayTeam: Team) => (
-  <div className={`grid grid-cols-3 ${SPACING.gridGap} items-center`}>
-    {/* Home Team */}
-    <div className="flex items-center justify-center">
-      <div className="flex flex-col items-center space-y-2 sm:space-y-3">
-        {homeTeam.logo ? (
-          <img src={homeTeam.logo} alt={homeTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
-        ) : (
-          <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
-            <span className="text-gray-600 font-semibold text-xs sm:text-sm">{homeTeam.shortName?.charAt(0) || homeTeam.name.charAt(0)}</span>
-          </div>
-        )}
-        <div className="text-center min-w-0">
-          <div className="text-xs sm:text-sm font-medium text-gray-900 truncate max-w-[80px] sm:max-w-[120px]">
-            {homeTeam.shortName || homeTeam.name}
-          </div>
-        </div>
-      </div>
-    </div>
-
-    {/* Center Title */}
-    <div className="text-center px-1">
-      <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 leading-tight">
-        Team Stats
-      </h2>
-    </div>
-
-    {/* Away Team */}
-    <div className="flex items-center justify-center">
-      <div className="flex flex-col items-center space-y-2 sm:space-y-3">
-        {awayTeam.logo ? (
-          <img src={awayTeam.logo} alt={awayTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
-        ) : (
-          <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
-            <span className="text-gray-600 font-semibold text-xs sm:text-sm">{awayTeam.shortName?.charAt(0) || awayTeam.name.charAt(0)}</span>
-          </div>
-        )}
-        <div className="text-center min-w-0">
-          <div className="text-xs sm:text-sm font-medium text-gray-900 truncate max-w-[80px] sm:max-w-[120px]">
-            {awayTeam.shortName || awayTeam.name}
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-);
 
 export default ModernStatsTable;
