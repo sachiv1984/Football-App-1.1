@@ -52,10 +52,68 @@ const SPACING = {
   indicatorPadding: "px-4 sm:px-6 py-3 sm:py-4"
 };
 
+// --- START: NEW STAT CONFIGURATION MAP ---
+// Defines all stats, their keys, and units in one readable structure.
+const STAT_CONFIGS: Record<Exclude<StatCategory, 'form'>, Record<string, { key: string; unit?: string }>> = {
+  goals: {
+    'Matches Played': { key: 'goalsMatchesPlayed' },
+    'Goals For': { key: 'goalsFor' },
+    'Goals Against': { key: 'goalsAgainst' },
+    'Total Goals': { key: 'totalGoals' },
+    'Over 1.5 Match Goals': { key: 'over15MatchGoals', unit: '%' },
+    'Over 2.5 Match Goals': { key: 'over25MatchGoals', unit: '%' },
+    'Over 3.5 Match Goals': { key: 'over35MatchGoals', unit: '%' },
+    'Both Teams to Score': { key: 'bothTeamsToScore', unit: '%' },
+  },
+  corners: {
+    'Matches Played': { key: 'cornersMatchesPlayed' },
+    'Corners Taken': { key: 'cornersTaken' },
+    'Corners Against': { key: 'cornersAgainst' },
+    'Total Corners': { key: 'totalCorners' },
+    'Over 7.5 Match Corners': { key: 'over75MatchCorners', unit: '%' },
+    'Over 8.5 Match Corners': { key: 'over85MatchCorners', unit: '%' },
+    'Over 9.5 Match Corners': { key: 'over95MatchCorners', unit: '%' },
+    'Over 10.5 Match Corners': { key: 'over105MatchCorners', unit: '%' },
+    'Over 11.5 Match Corners': { key: 'over115MatchCorners', unit: '%' },
+  },
+  cards: {
+    'Matches Played': { key: 'cardsMatchesPlayed' },
+    'Cards Shown': { key: 'cardsShown' },
+    'Cards Against': { key: 'cardsAgainst' },
+    'Total Cards': { key: 'totalCards' },
+    'Over 0.5 Team Cards': { key: 'over05TeamCards', unit: '%' },
+    'Over 1.5 Team Cards': { key: 'over15TeamCards', unit: '%' },
+    'Over 2.5 Team Cards': { key: 'over25TeamCards', unit: '%' },
+    'Over 3.5 Team Cards': { key: 'over35TeamCards', unit: '%' },
+  },
+  shooting: {
+    'Matches Played': { key: 'shootingMatchesPlayed' },
+    'Shots': { key: 'shots' },
+    'Shots Against': { key: 'shotsAgainst' },
+    'Shots on Target': { key: 'shotsOnTarget' },
+    'Shots on Target Against': { key: 'shotsOnTargetAgainst' },
+    'Over 2.5 Team Shots on Target': { key: 'over25TeamShotsOnTarget', unit: '%' },
+    'Over 3.5 Team Shots on Target': { key: 'over35TeamShotsOnTarget', unit: '%' },
+    'Over 4.5 Team Shots on Target': { key: 'over45TeamShotsOnTarget', unit: '%' },
+    'Over 5.5 Team Shots on Target': { key: 'over55TeamShotsOnTarget', unit: '%' },
+  },
+  fouls: {
+    'Matches Played': { key: 'foulsMatchesPlayed' },
+    'Fouls Committed': { key: 'foulsCommitted' },
+    'Fouls Won': { key: 'foulsWon' },
+    'Total Fouls': { key: 'totalFouls' },
+    'Over 8.5 Team Fouls Committed': { key: 'over85TeamFoulsCommitted', unit: '%' },
+    'Over 9.5 Team Fouls Committed': { key: 'over95TeamFoulsCommitted', unit: '%' },
+    'Over 10.5 Team Fouls Committed': { key: 'over105TeamFoulsCommitted', unit: '%' },
+    'Over 11.5 Team Fouls Committed': { key: 'over115TeamFoulsCommitted', unit: '%' },
+  }
+};
+// --- END: NEW STAT CONFIGURATION MAP ---
+
+
 const FormResult: React.FC<{ result: 'W' | 'D' | 'L', isLatest?: boolean }> = ({ result, isLatest }) => {
   
   const getResultStyle = (result: 'W' | 'D' | 'L', isLatest: boolean) => {
-    
     // Base style (light background, colored text, light border)
     let baseClasses = '';
     switch (result) {
@@ -74,7 +132,6 @@ const FormResult: React.FC<{ result: 'W' | 'D' | 'L', isLatest?: boolean }> = ({
     if (isLatest) {
       let latestBorderClasses = '';
       switch (result) {
-        // Use a DARKER, highly contrasting color for the thick border
         case 'W':
           latestBorderClasses = 'border-green-800 shadow-md'; 
           break;
@@ -107,6 +164,59 @@ const FormResult: React.FC<{ result: 'W' | 'D' | 'L', isLatest?: boolean }> = ({
   );
 };
 
+// --- START: NEW StatRow Component (REPLACES REPETITIVE JSX) ---
+interface StatRowProps {
+  label: string;
+  homeValue: number | string;
+  awayValue: number | string;
+  leagueAverage?: number;
+  unit?: string;
+  isMatchesPlayed?: boolean;
+  formatValue: (value: number, unit?: string, isMatchesPlayed?: boolean) => string;
+}
+
+const StatRow: React.FC<StatRowProps> = ({ 
+  label, 
+  homeValue, 
+  awayValue, 
+  leagueAverage, 
+  unit, 
+  isMatchesPlayed,
+  formatValue
+}) => {
+    // Helper to ensure value is formatted correctly for display
+    const formatDisplayValue = (value: number | string) => {
+        return typeof value === 'number' ? formatValue(value, unit, isMatchesPlayed) : value;
+    };
+    
+    return (
+        <div className={`grid grid-cols-[minmax(0,1fr)_minmax(120px,2fr)_minmax(0,1fr)] ${SPACING.gridGap} items-center py-2`}>
+            <div className="text-center min-w-0">
+                <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">
+                    {formatDisplayValue(homeValue)}
+                </span>
+            </div>
+            <div className="text-center px-1 min-w-0">
+                <span className="text-sm sm:text-base lg:text-lg font-medium text-gray-700 block leading-tight break-words">
+                    {label}
+                </span>
+                {leagueAverage !== undefined && (
+                    <div className="text-xs sm:text-sm text-gray-500 mt-0.5">
+                        Avg: {formatValue(leagueAverage, unit, isMatchesPlayed)}
+                    </div>
+                )}
+            </div>
+            <div className="text-center min-w-0">
+                <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">
+                    {formatDisplayValue(awayValue)}
+                </span>
+            </div>
+        </div>
+    );
+};
+// --- END: NEW StatRow Component ---
+
+
 const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   homeTeam,
   awayTeam,
@@ -131,7 +241,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
   const effectiveStats = propStats || fetchedStats;
 
-  // Loading state (UNCHANGED)
+  // --- LOADING/ERROR STATES (UNCHANGED) ---
   if (showLoadingState && autoLoad && loading && !propStats) {
     return (
       <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
@@ -145,7 +255,6 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     );
   }
 
-  // Error state (UNCHANGED)
   if (showLoadingState && autoLoad && error && !propStats) {
     return (
       <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
@@ -165,7 +274,6 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     );
   }
 
-  // No data state (UNCHANGED)
   if (!effectiveStats) {
     return (
       <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
@@ -178,8 +286,10 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
       </div>
     );
   }
+  // --- END: LOADING/ERROR STATES ---
 
-  // Tabs and Helpers (UNCHANGED)
+
+  // --- STATS HELPER FUNCTIONS (SIMPLIFIED) ---
   const tabs: { key: StatCategory; label: string }[] = [
     { key: 'form', label: 'Form' },
     { key: 'goals', label: 'Goals' },
@@ -191,92 +301,13 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
   const getStatCategoryTitle = (category: StatCategory): string => {
     switch (category) {
-      case 'form':
-        return 'Team Form';
-      case 'goals':
-        return 'Team Goals';
-      case 'corners':
-        return 'Team Corners';
-      case 'cards':
-        return 'Team Cards';
-      case 'shooting':
-        return 'Team Shooting';
-      case 'fouls':
-        return 'Team Fouls';
-      default:
-        return 'Team Stats';
-    }
-  };
-
-  const getStatsForCategory = (category: StatCategory): Record<string, StatValue> => {
-    const getStat = (key: string, unit?: string): StatValue => {
-      const stat = (effectiveStats as any)[key];
-      if (stat && typeof stat === 'object' && 'homeValue' in stat && 'awayValue' in stat) {
-        return { ...stat, unit } as StatValue;
-      }
-      return { homeValue: 0, awayValue: 0, unit };
-    };
-
-    switch (category) {
-      case 'goals':
-        return {
-          'Matches Played': getStat('goalsMatchesPlayed'),
-          'Goals For': getStat('goalsFor'),
-          'Goals Against': getStat('goalsAgainst'),
-          'Total Goals': getStat('totalGoals'),
-          'Over 1.5 Match Goals': getStat('over15MatchGoals', '%'),
-          'Over 2.5 Match Goals': getStat('over25MatchGoals', '%'),
-          'Over 3.5 Match Goals': getStat('over35MatchGoals', '%'),
-          'Both Teams to Score': getStat('bothTeamsToScore', '%'),
-        };
-      case 'corners':
-        return {
-          'Matches Played': getStat('cornersMatchesPlayed'),
-          'Corners Taken': getStat('cornersTaken'),
-          'Corners Against': getStat('cornersAgainst'),
-          'Total Corners': getStat('totalCorners'),
-          'Over 7.5 Match Corners': getStat('over75MatchCorners', '%'),
-          'Over 8.5 Match Corners': getStat('over85MatchCorners', '%'),
-          'Over 9.5 Match Corners': getStat('over95MatchCorners', '%'),
-          'Over 10.5 Match Corners': getStat('over105MatchCorners', '%'),
-          'Over 11.5 Match Corners': getStat('over115MatchCorners', '%'),
-        };
-      case 'cards':
-        return {
-          'Matches Played': getStat('cardsMatchesPlayed'),
-          'Cards Shown': getStat('cardsShown'),
-          'Cards Against': getStat('cardsAgainst'),
-          'Total Cards': getStat('totalCards'),
-          'Over 0.5 Team Cards': getStat('over05TeamCards', '%'),
-          'Over 1.5 Team Cards': getStat('over15TeamCards', '%'),
-          'Over 2.5 Team Cards': getStat('over25TeamCards', '%'),
-          'Over 3.5 Team Cards': getStat('over35TeamCards', '%'),
-        };
-      case 'shooting':
-        return {
-          'Matches Played': getStat('shootingMatchesPlayed'),
-          'Shots': getStat('shots'),
-          'Shots Against': getStat('shotsAgainst'),
-          'Shots on Target': getStat('shotsOnTarget'),
-          'Shots on Target Against': getStat('shotsOnTargetAgainst'),
-          'Over 2.5 Team Shots on Target': getStat('over25TeamShotsOnTarget', '%'),
-          'Over 3.5 Team Shots on Target': getStat('over35TeamShotsOnTarget', '%'),
-          'Over 4.5 Team Shots on Target': getStat('over45TeamShotsOnTarget', '%'),
-          'Over 5.5 Team Shots on Target': getStat('over55TeamShotsOnTarget', '%'),
-        };
-      case 'fouls':
-        return {
-          'Matches Played': getStat('foulsMatchesPlayed'),
-          'Fouls Committed': getStat('foulsCommitted'),
-          'Fouls Won': getStat('foulsWon'),
-          'Total Fouls': getStat('totalFouls'),
-          'Over 8.5 Team Fouls Committed': getStat('over85TeamFoulsCommitted', '%'),
-          'Over 9.5 Team Fouls Committed': getStat('over95TeamFoulsCommitted', '%'),
-          'Over 10.5 Team Fouls Committed': getStat('over105TeamFoulsCommitted', '%'),
-          'Over 11.5 Team Fouls Committed': getStat('over115TeamFoulsCommitted', '%'),
-        };
-      default:
-        return {};
+      case 'form': return 'Team Form';
+      case 'goals': return 'Team Goals';
+      case 'corners': return 'Team Corners';
+      case 'cards': return 'Team Cards';
+      case 'shooting': return 'Team Shooting';
+      case 'fouls': return 'Team Fouls';
+      default: return 'Team Stats';
     }
   };
 
@@ -290,6 +321,30 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     return value.toFixed(2);
   };
 
+  // REFACTORED: Now uses the STAT_CONFIGS map
+  const getStatsForCategory = (category: StatCategory): Record<string, StatValue> => {
+    const getStat = (key: string, unit?: string): StatValue => {
+      const stat = (effectiveStats as any)[key];
+      if (stat && typeof stat === 'object' && 'homeValue' in stat && 'awayValue' in stat) {
+        return { ...stat, unit } as StatValue;
+      }
+      return { homeValue: 0, awayValue: 0, unit };
+    };
+
+    if (category === 'form') return {}; // Form handled separately
+
+    const categoryMap = STAT_CONFIGS[category as Exclude<StatCategory, 'form'>];
+    if (!categoryMap) return {};
+
+    return Object.entries(categoryMap).reduce((acc, [label, { key, unit }]) => {
+      acc[label] = getStat(key, unit);
+      return acc;
+    }, {} as Record<string, StatValue>);
+  };
+  // --- END: STATS HELPER FUNCTIONS ---
+
+
+  // --- RENDER FORM CONTENT (CLEANED UP) ---
   const renderFormContent = () => {
     const recentForm = effectiveStats.recentForm as FormData | undefined;
     
@@ -302,10 +357,16 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     }
 
     const { homeResults, awayResults, homeStats, awayStats } = recentForm;
+    const formStats = [
+      { label: 'Matches Played', home: homeStats.matchesPlayed, away: awayStats.matchesPlayed, isMatchesPlayed: true },
+      { label: 'Won', home: homeStats.won, away: awayStats.won },
+      { label: 'Drawn', home: homeStats.drawn, away: awayStats.drawn },
+      { label: 'Lost', home: homeStats.lost, away: awayStats.lost },
+    ];
 
     return (
       <div className={SPACING.sectionSpacing}>
-        {/* Team logos and title - REMOVED SPACING.sectionMargin */}
+        {/* Team logos and title */}
         <div className={`grid grid-cols-3 ${SPACING.gridGap} items-center`}>
           <div className="flex items-center justify-center">
             <div className="flex flex-col items-center space-y-2 sm:space-y-3">
@@ -346,45 +407,41 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
           </div>
         </div>
 
-        {/* Form display - SYMMETRICAL ALIGNMENT & HIERARCHY ADDED */}
+        {/* Form display - SYMMETRICAL ALIGNMENT & HIERARCHY */}
         <div className={`grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] ${SPACING.gridGap} items-center`}>
-          {/* Home team form - ALIGNED RIGHT (justify-end) */}
+          {/* Home team form - ALIGNED RIGHT */}
           <div className="flex justify-end min-w-0">
             <div className="flex space-x-1 sm:space-x-2">
-              {/* Home Placeholders: Rendered first for right alignment */}
               {Array.from({ length: 5 - homeResults.length }).map((_, index) => (
                 <div key={`empty-home-${index}`} className="w-6 h-6 sm:w-8 sm:h-8 rounded border border-gray-200 bg-gray-50 flex-shrink-0"></div>
               ))}
-              {/* HOME Results: Latest is the final element */}
               {homeResults.map((result, index) => (
                 <div key={`home-${index}`} className="flex-shrink-0">
                   <FormResult 
                     result={result} 
-                    isLatest={index === homeResults.length - 1} // Game 5
+                    isLatest={index === homeResults.length - 1}
                   />
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Center form label - auto width */}
+          {/* Center form label */}
           <div className="text-center px-3 sm:px-4">
             <span className="text-sm sm:text-base lg:text-lg font-medium text-gray-700 whitespace-nowrap">Form</span>
           </div>
 
-          {/* Away team form - ALIGNED LEFT (justify-start) with REVERSED array */}
+          {/* Away team form - ALIGNED LEFT */}
           <div className="flex justify-start min-w-0">
             <div className="flex space-x-1 sm:space-x-2">
-              {/* AWAY Results: Latest is the first element after reversal */}
               {awayResults.slice().reverse().map((result, index) => (
                 <div key={`away-${index}`} className="flex-shrink-0">
                   <FormResult 
                     result={result} 
-                    isLatest={index === 0} // Game 5 after reversal
+                    isLatest={index === 0}
                   />
                 </div>
               ))}
-              {/* Away Placeholders: Rendered after results for left alignment */}
               {Array.from({ length: 5 - awayResults.length }).map((_, index) => (
                 <div key={`empty-away-${index}`} className="w-6 h-6 sm:w-8 sm:h-8 rounded border border-gray-200 bg-gray-50 flex-shrink-0"></div>
               ))}
@@ -392,59 +449,24 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
           </div>
         </div>
 
-        {/* Stats comparison - Vertical Alignment Fix and Spacing Consistency */}
+        {/* Stats comparison - USES NEW StatRow COMPONENT */}
         <div className={SPACING.itemSpacing}>
-          <div className={`grid grid-cols-[minmax(0,1fr)_minmax(120px,2fr)_minmax(0,1fr)] ${SPACING.gridGap} items-center py-2`}>
-            <div className="text-center min-w-0">
-              <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">{homeStats.matchesPlayed}</span>
-            </div>
-            <div className="text-center px-1 min-w-0">
-              <span className="text-sm sm:text-base lg:text-lg font-medium text-gray-700 block leading-tight">Matches Played</span>
-            </div>
-            <div className="text-center min-w-0">
-              <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">{awayStats.matchesPlayed}</span>
-            </div>
-          </div>
-
-          <div className={`grid grid-cols-[minmax(0,1fr)_minmax(120px,2fr)_minmax(0,1fr)] ${SPACING.gridGap} items-center py-2`}>
-            <div className="text-center min-w-0">
-              <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">{homeStats.won}</span>
-            </div>
-            <div className="text-center px-1 min-w-0">
-              <span className="text-sm sm:text-base lg:text-lg font-medium text-gray-700 block leading-tight">Won</span>
-            </div>
-            <div className="text-center min-w-0">
-              <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">{awayStats.won}</span>
-            </div>
-          </div>
-
-          <div className={`grid grid-cols-[minmax(0,1fr)_minmax(120px,2fr)_minmax(0,1fr)] ${SPACING.gridGap} items-center py-2`}>
-            <div className="text-center min-w-0">
-              <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">{homeStats.drawn}</span>
-            </div>
-            <div className="text-center px-1 min-w-0">
-              <span className="text-sm sm:text-base lg:text-lg font-medium text-gray-700 block leading-tight">Drawn</span>
-            </div>
-            <div className="text-center min-w-0">
-              <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">{awayStats.drawn}</span>
-            </div>
-          </div>
-
-          <div className={`grid grid-cols-[minmax(0,1fr)_minmax(120px,2fr)_minmax(0,1fr)] ${SPACING.gridGap} items-center py-2`}>
-            <div className="text-center min-w-0">
-              <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">{homeStats.lost}</span>
-            </div>
-            <div className="text-center px-1 min-w-0">
-              <span className="text-sm sm:text-base lg:text-lg font-medium text-gray-700 block leading-tight">Lost</span>
-            </div>
-            <div className="text-center min-w-0">
-              <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">{awayStats.lost}</span>
-            </div>
-          </div>
+          {formStats.map(stat => (
+            <StatRow
+              key={stat.label}
+              label={stat.label}
+              homeValue={stat.home}
+              awayValue={stat.away}
+              isMatchesPlayed={stat.isMatchesPlayed}
+              formatValue={formatValue}
+            />
+          ))}
         </div>
       </div>
     );
   };
+  // --- END: RENDER FORM CONTENT ---
+
 
   const currentStats = getStatsForCategory(activeTab);
 
@@ -452,7 +474,6 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
       {/* Header with navigation tabs (UNCHANGED) */}
       <div className="border-b border-gray-200 bg-gray-50 w-full">
-        {/* Small mobile: Horizontal scroll */}
         <div className="flex overflow-x-auto scrollbar-hide w-full sm:hidden">
           {tabs.map((tab) => (
             <button
@@ -468,8 +489,6 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
             </button>
           ))}
         </div>
-
-        {/* Large mobile and up */}
         <div className="hidden sm:flex w-full">
           {tabs.map((tab) => (
             <button
@@ -507,7 +526,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
           renderFormContent()
         ) : (
           <div className={SPACING.sectionSpacing}>
-            {/* Team logos and title - REMOVED SPACING.sectionMargin */}
+            {/* Team logos and title */}
             <div className={`grid grid-cols-3 ${SPACING.gridGap} items-center`}>
               <div className="flex items-center justify-center">
                 <div className="flex flex-col items-center space-y-2 sm:space-y-3">
@@ -548,33 +567,21 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
               </div>
             </div>
 
-            {/* Stats comparison - Vertical Alignment Fix */}
+            {/* Stats comparison - USES NEW StatRow COMPONENT */}
             <div className={SPACING.itemSpacing}>
               {Object.entries(currentStats).map(([statName, statData]) => {
                 const isMatchesPlayed = statName === 'Matches Played';
                 return (
-                  <div key={statName} className={`grid grid-cols-[minmax(0,1fr)_minmax(120px,2fr)_minmax(0,1fr)] ${SPACING.gridGap} items-center py-2`}>
-                    <div className="text-center min-w-0">
-                      <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">
-                        {formatValue(statData.homeValue, statData.unit, isMatchesPlayed)}
-                      </span>
-                    </div>
-                    <div className="text-center px-1 min-w-0">
-                      <span className="text-sm sm:text-base lg:text-lg font-medium text-gray-700 block leading-tight break-words">
-                        {statName}
-                      </span>
-                      {statData.leagueAverage && (
-                        <div className="text-xs sm:text-sm text-gray-500 mt-0.5"> {/* Tighter margin for alignment */}
-                          Avg: {formatValue(statData.leagueAverage, statData.unit, isMatchesPlayed)}
-                        </div>
-                      )}
-                    </div>
-                    <div className="text-center min-w-0">
-                      <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">
-                        {formatValue(statData.awayValue, statData.unit, isMatchesPlayed)}
-                      </span>
-                    </div>
-                  </div>
+                  <StatRow
+                    key={statName}
+                    label={statName}
+                    homeValue={statData.homeValue}
+                    awayValue={statData.awayValue}
+                    leagueAverage={statData.leagueAverage}
+                    unit={statData.unit}
+                    isMatchesPlayed={isMatchesPlayed}
+                    formatValue={formatValue}
+                  />
                 );
               })}
             </div>
