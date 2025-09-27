@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Team } from '../../../types';
 import { useTeamStats } from '../../../hooks/useTeamStats';
 
-// --- Type Definitions (Unchanged) ---
+// --- Type Definitions ---
 interface FormData {
   homeResults: ('W' | 'D' | 'L')[];
   awayResults: ('W' | 'D' | 'L')[];
@@ -21,18 +21,17 @@ interface StatValue {
 interface ModernStatsTableProps {
   homeTeam: Team;
   awayTeam: Team;
-  stats?: Record<string, any>; // Optional override stats
+  stats?: Record<string, any>;
   league?: string;
   season?: string;
   className?: string;
-  // New props for automatic data loading
   autoLoad?: boolean;
   showLoadingState?: boolean;
 }
 
 type StatCategory = 'form' | 'goals' | 'corners' | 'cards' | 'shooting' | 'fouls';
 
-// Consistent spacing tokens (Unchanged)
+// Consistent spacing tokens
 const SPACING = {
   containerPadding: "p-0", 
   sectionSpacing: "space-y-6 sm:space-y-8",
@@ -41,19 +40,14 @@ const SPACING = {
   contentPaddingClass: "p-4 sm:p-6" 
 };
 
-// --- SHARED UTILITY FUNCTION (Unchanged) ---
+// --- Shared utility ---
 const formatValue = (value: number, unit?: string, isMatchesPlayed?: boolean): string => {
-  if (isMatchesPlayed) {
-    return value.toString();
-  }
-  if (unit === '%') {
-    return `${value}%`;
-  }
+  if (isMatchesPlayed) return value.toString();
+  if (unit === '%') return `${value}%`;
   return value.toFixed(2);
 };
 
-
-// --- STAT CONFIGURATION MAP (Unchanged) ---
+// --- STAT CONFIGURATION MAP ---
 const STAT_CONFIGS: Record<Exclude<StatCategory, 'form'>, Record<string, { key: string; unit?: string }>> = {
   goals: {
     'Matches Played': { key: 'goalsMatchesPlayed' },
@@ -109,41 +103,25 @@ const STAT_CONFIGS: Record<Exclude<StatCategory, 'form'>, Record<string, { key: 
   }
 };
 
-
+// --- FormResult Component ---
 const FormResult: React.FC<{ result: 'W' | 'D' | 'L', isLatest?: boolean }> = ({ result, isLatest }) => {
-  
   const getResultStyle = (result: 'W' | 'D' | 'L', isLatest: boolean) => {
     let baseClasses = '';
     switch (result) {
-      case 'W':
-        baseClasses = 'bg-green-100 text-green-700 border-green-200';
-        break;
-      case 'D':
-        baseClasses = 'bg-gray-100 text-gray-700 border-gray-200';
-        break;
-      case 'L':
-        baseClasses = 'bg-red-100 text-red-700 border-red-200';
-        break;
+      case 'W': baseClasses = 'bg-green-100 text-green-700 border-green-200'; break;
+      case 'D': baseClasses = 'bg-gray-100 text-gray-700 border-gray-200'; break;
+      case 'L': baseClasses = 'bg-red-100 text-red-700 border-red-200'; break;
     }
-    
-    // Highlight latest result with thick border
     if (isLatest) {
       let latestBorderClasses = '';
       switch (result) {
-        case 'W':
-          latestBorderClasses = 'border-green-800 shadow-md'; 
-          break;
-        case 'D':
-          latestBorderClasses = 'border-gray-800 shadow-md';
-          break;
-        case 'L':
-          latestBorderClasses = 'border-red-800 shadow-md';
-          break;
+        case 'W': latestBorderClasses = 'border-green-800 shadow-md'; break;
+        case 'D': latestBorderClasses = 'border-gray-800 shadow-md'; break;
+        case 'L': latestBorderClasses = 'border-red-800 shadow-md'; break;
       }
       return `${baseClasses.replace(/border-(green|gray|red)-200/, '')} border-2 sm:border-4 ${latestBorderClasses}`;
-    } else {
-      return baseClasses;
     }
+    return baseClasses;
   };
 
   return (
@@ -159,7 +137,7 @@ const FormResult: React.FC<{ result: 'W' | 'D' | 'L', isLatest?: boolean }> = ({
   );
 };
 
-// --- StatRow Component (Unchanged) ---
+// --- Enhanced StatRow Component ---
 interface StatRowProps {
   label: string;
   homeValue: number | string;
@@ -167,6 +145,7 @@ interface StatRowProps {
   leagueAverage?: number;
   unit?: string;
   isMatchesPlayed?: boolean;
+  statType?: StatCategory;
 }
 
 const StatRow: React.FC<StatRowProps> = ({ 
@@ -175,42 +154,74 @@ const StatRow: React.FC<StatRowProps> = ({
   awayValue, 
   leagueAverage, 
   unit, 
-  isMatchesPlayed
+  isMatchesPlayed,
+  statType = 'form'
 }) => {
-    const formatDisplayValue = (value: number | string) => {
-        return typeof value === 'number' ? formatValue(value, unit, isMatchesPlayed) : value;
-    };
-    
-    return (
-        <div className={`grid grid-cols-[minmax(0,1fr)_minmax(120px,2fr)_minmax(0,1fr)] ${SPACING.gridGap} items-center py-2`}>
-            {/* 💡 CHANGE 1: Home Value now text-right for better alignment */}
-            <div className="text-right min-w-0"> 
-                <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">
-                    {formatDisplayValue(homeValue)}
-                </span>
-            </div>
-            {/* Center Label remains text-center */}
-            <div className="text-center px-1 min-w-0">
-                <span className="text-sm sm:text-base lg:text-lg font-medium text-gray-700 block leading-tight break-words">
-                    {label}
-                </span>
-                {leagueAverage !== undefined && (
-                    <div className="text-xs sm:text-sm text-gray-500 mt-0.5">
-                        Avg: {formatValue(leagueAverage, unit, isMatchesPlayed)}
-                    </div>
-                )}
-            </div>
-            {/* 💡 CHANGE 1: Away Value now text-left for better alignment */}
-            <div className="text-left min-w-0"> 
-                <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">
-                    {formatDisplayValue(awayValue)}
-                </span>
-            </div>
-        </div>
-    );
+
+  const getPerformanceCategory = (value: number | string, statType: string, label: string) => {
+    if (typeof value !== 'number' || isMatchesPlayed) return 'neutral';
+    const isPositiveStat = 
+      (statType === 'goals' && (label.includes('Goals For') || label.includes('Total Goals'))) ||
+      (statType === 'corners' && label.includes('Corners Taken')) ||
+      (statType === 'shooting' && label.includes('Shots on Target')) ||
+      (statType === 'form' && label === 'Won') ||
+      (label.includes('Over') && unit === '%');
+
+    const isNegativeStat = 
+      (statType === 'goals' && label.includes('Goals Against')) ||
+      (statType === 'cards' && (label.includes('Cards Shown') || label.includes('Cards Against'))) ||
+      (statType === 'fouls' && label.includes('Fouls Committed')) ||
+      (statType === 'form' && label === 'Lost');
+
+    if (leagueAverage !== undefined) {
+      const difference = ((value - leagueAverage) / leagueAverage) * 100;
+      const threshold = 15;
+      if (isPositiveStat && difference > threshold) return 'excellent';
+      if (isPositiveStat && difference < -threshold) return 'poor';
+      if (isNegativeStat && difference > threshold) return 'poor';
+      if (isNegativeStat && difference < -threshold) return 'excellent';
+    }
+    return 'neutral';
+  };
+
+  const getValueStyling = (value: number | string, statType: string, label: string) => {
+    const category = getPerformanceCategory(value, statType, label);
+    const baseClasses = "text-lg sm:text-xl lg:text-2xl font-medium transition-colors duration-200";
+    switch (category) {
+      case 'excellent': return `${baseClasses} text-green-600`;
+      case 'poor': return `${baseClasses} text-red-600`;
+      default: return `${baseClasses} text-gray-900`;
+    }
+  };
+
+  const formatDisplayValue = (value: number | string) =>
+    typeof value === 'number' ? formatValue(value, unit, isMatchesPlayed) : value;
+
+  return (
+    <div className={`grid grid-cols-[minmax(0,1fr)_minmax(120px,2fr)_minmax(0,1fr)] ${SPACING.gridGap} items-center py-2`}>
+      <div className="text-right min-w-0">
+        <span className={getValueStyling(homeValue, statType, label)}>
+          {formatDisplayValue(homeValue)}
+        </span>
+      </div>
+      <div className="text-center px-1 min-w-0">
+        <span className="text-sm sm:text-base lg:text-lg font-medium text-gray-700 block leading-tight break-words">{label}</span>
+        {leagueAverage !== undefined && (
+          <div className="text-xs sm:text-sm text-gray-500 mt-0.5">
+            Avg: {formatValue(leagueAverage, unit, isMatchesPlayed)}
+          </div>
+        )}
+      </div>
+      <div className="text-left min-w-0">
+        <span className={getValueStyling(awayValue, statType, label)}>
+          {formatDisplayValue(awayValue)}
+        </span>
+      </div>
+    </div>
+  );
 };
 
-
+// --- ModernStatsTable Component ---
 const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   homeTeam,
   awayTeam,
@@ -223,19 +234,14 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<StatCategory>('form');
 
-  const { 
-    stats: fetchedStats, 
-    loading, 
-    error, 
-    refetch 
-  } = useTeamStats(
+  const { stats: fetchedStats, loading, error, refetch } = useTeamStats(
     autoLoad ? homeTeam.name : undefined, 
     autoLoad ? awayTeam.name : undefined
   );
 
   const effectiveStats = propStats || fetchedStats;
-  
-  // Tabs definition
+
+  // --- Tabs ---
   const tabs: { key: StatCategory; label: string }[] = [
     { key: 'form', label: 'Form' },
     { key: 'goals', label: 'Goals' },
@@ -258,10 +264,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   };
 
   const getStatsForCategory = (category: StatCategory): Record<string, StatValue> => {
-    if (!effectiveStats) {
-        return {}; 
-    }
-    
+    if (!effectiveStats) return {};
     const getStat = (key: string, unit?: string): StatValue => {
       const stat = (effectiveStats as any)[key];
       if (stat && typeof stat === 'object' && 'homeValue' in stat && 'awayValue' in stat) {
@@ -269,90 +272,71 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
       }
       return { homeValue: 0, awayValue: 0, unit };
     };
-
     if (category === 'form') return {};
-
     const categoryMap = STAT_CONFIGS[category as Exclude<StatCategory, 'form'>];
     if (!categoryMap) return {};
-
     return Object.entries(categoryMap).reduce((acc, [label, { key, unit }]) => {
       acc[label] = getStat(key, unit);
       return acc;
     }, {} as Record<string, StatValue>);
   };
-  
+
   const currentStats = getStatsForCategory(activeTab);
 
-  // --- RENDERING SUB-COMPONENTS ---
-  
-  // Component for Team Logos, Names, and Stat Title
-  // 🟢 CHANGE 1: Switched from items-end to items-center for better vertical alignment
+  // --- Team Header ---
   const renderTeamHeader = () => (
-      <div className={`grid grid-cols-3 ${SPACING.gridGap} items-center`}>
-          {/* Home Team */}
-          <div className="flex items-center justify-center">
-            <div className="flex flex-col items-center space-y-2 sm:space-y-3">
-              {homeTeam.logo ? (
-                <img src={homeTeam.logo} alt={`Logo for ${homeTeam.name}`} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
-              ) : (
-                <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                  <span className="text-gray-600 font-semibold text-xs sm:text-sm">{homeTeam.shortName?.charAt(0) || homeTeam.name.charAt(0)}</span>
-                </div>
-              )}
-              <div className="text-center min-w-0">
-                <div className="text-xs sm:text-sm font-medium text-gray-900 truncate max-w-[80px] sm:max-w-[120px]">
-                  {homeTeam.shortName || homeTeam.name}
-                </div>
-              </div>
+    <div className={`grid grid-cols-3 ${SPACING.gridGap} items-center`}>
+      {/* Home Team */}
+      <div className="flex items-center justify-center">
+        <div className="flex flex-col items-center space-y-2 sm:space-y-3">
+          {homeTeam.logo ? (
+            <img src={homeTeam.logo} alt={homeTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
+          ) : (
+            <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
+              <span className="text-gray-600 font-semibold text-xs sm:text-sm">{homeTeam.shortName?.charAt(0) || homeTeam.name.charAt(0)}</span>
+            </div>
+          )}
+          <div className="text-center min-w-0">
+            <div className="text-xs sm:text-sm font-medium text-gray-900 truncate max-w-[80px] sm:max-w-[120px]">
+              {homeTeam.shortName || homeTeam.name}
             </div>
           </div>
-          
-          {/* Center Title */}
-          <div className="text-center px-1">
-            <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 leading-tight">
-              {getStatCategoryTitle(activeTab)}
-            </h2>
-          </div>
-          
-          {/* Away Team */}
-          <div className="flex items-center justify-center">
-            <div className="flex flex-col items-center space-y-2 sm:space-y-3">
-              {awayTeam.logo ? (
-                <img src={awayTeam.logo} alt={`Logo for ${awayTeam.name}`} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
-              ) : (
-                <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                  <span className="text-gray-600 font-semibold text-xs sm:text-sm">{awayTeam.shortName?.charAt(0) || awayTeam.name.charAt(0)}</span>
-                </div>
-              )}
-              <div className="text-center min-w-0">
-                <div className="text-xs sm:text-sm font-medium text-gray-900 truncate max-w-[80px] sm:max-w-[120px]">
-                  {awayTeam.shortName || awayTeam.name}
-                </div>
-              </div>
-            </div>
-          </div>
+        </div>
       </div>
+
+      {/* Center Title */}
+      <div className="text-center px-1">
+        <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 leading-tight">
+          {getStatCategoryTitle(activeTab)}
+        </h2>
+      </div>
+
+      {/* Away Team */}
+      <div className="flex items-center justify-center">
+        <div className="flex flex-col items-center space-y-2 sm:space-y-3">
+          {awayTeam.logo ? (
+            <img src={awayTeam.logo} alt={awayTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
+          ) : (
+            <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
+              <span className="text-gray-600 font-semibold text-xs sm:text-sm">{awayTeam.shortName?.charAt(0) || awayTeam.name.charAt(0)}</span>
+            </div>
+          )}
+          <div className="text-center min-w-0">
+            <div className="text-xs sm:text-sm font-medium text-gray-900 truncate max-w-[80px] sm:max-w-[120px]">
+              {awayTeam.shortName || awayTeam.name}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 
-  // --- RENDER FORM CONTENT ---
+  // --- Render Form Content ---
   const renderFormContent = () => {
-    if (!effectiveStats) {
-      return (
-        <div className="text-center py-8">
-            <p className="text-gray-600">Statistics are unavailable.</p>
-        </div>
-      );
-    }
+    if (!effectiveStats) return <div className="text-center py-8"><p className="text-gray-600">Statistics are unavailable.</p></div>;
 
     const recentForm = effectiveStats.recentForm as FormData | undefined;
-    
-    if (!recentForm) {
-      return (
-        <div className="text-center py-8">
-          <p className="text-gray-600">No form data available</p>
-        </div>
-      );
-    }
+    if (!recentForm) return <div className="text-center py-8"><p className="text-gray-600">No form data available</p></div>;
 
     const { homeResults, awayResults, homeStats, awayStats } = recentForm;
     const formStats = [
@@ -364,48 +348,30 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
     return (
       <div className={SPACING.sectionSpacing}>
-        
-{/* 🟢 FIXED: Using a more flexible grid (1fr auto 1fr) for the form row
-            to ensure the form boxes in the 1fr columns have enough width. 
-            The center column ('Form') shrinks to the necessary width (auto).
-            This maintains the vertical alignment of 'Form' with the other labels
-            while giving the form boxes sufficient space. */}
+        {/* Form Row */}
         <div className={`grid grid-cols-[1fr_auto_1fr] ${SPACING.gridGap} items-center`}>
-          
-          {/* Home team form (Aligned Right) */}
           <div className="flex justify-end min-w-0">
-            {/* Using flex-nowrap prevents the boxes from wrapping to the next line 
-                if the container is tight, and ensures they don't clip. */}
             <div className="flex space-x-1 sm:space-x-2 flex-nowrap"> 
-              {/* ... Home Results and empty placeholders ... */}
               {Array.from({ length: 5 - homeResults.length }).map((_, index) => (
                 <div key={`empty-home-${index}`} className="w-6 h-6 sm:w-8 sm:h-8 rounded border border-gray-200 bg-gray-50 flex-shrink-0"></div>
               ))}
               {homeResults.map((result, index) => (
                 <div key={`home-${index}`} className="flex-shrink-0">
-                  <FormResult 
-                    result={result} 
-                    isLatest={index === homeResults.length - 1}
-                  />
+                  <FormResult result={result} isLatest={index === homeResults.length - 1} />
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Center form label (Now using 'auto' width) */}
           <div className="text-center px-1 min-w-0">
             <span className="text-sm sm:text-base lg:text-lg font-medium text-gray-700 whitespace-nowrap">Form</span>
           </div>
 
-          {/* Away team form (Aligned Left) */}
           <div className="flex justify-start min-w-0">
             <div className="flex space-x-1 sm:space-x-2 flex-nowrap"> 
               {awayResults.slice().reverse().map((result, index) => (
                 <div key={`away-${index}`} className="flex-shrink-0">
-                  <FormResult 
-                    result={result} 
-                    isLatest={index === 0}
-                  />
+                  <FormResult result={result} isLatest={index === 0} />
                 </div>
               ))}
               {Array.from({ length: 5 - awayResults.length }).map((_, index) => (
@@ -415,7 +381,6 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
           </div>
         </div>
 
-        {/* Stats comparison - USES StatRow COMPONENT */}
         <div className={SPACING.itemSpacing}>
           {formStats.map(stat => (
             <StatRow
@@ -424,16 +389,15 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
               homeValue={stat.home}
               awayValue={stat.away}
               isMatchesPlayed={stat.isMatchesPlayed}
+              statType="form"
             />
           ))}
         </div>
       </div>
     );
   };
-  // --- END: RENDER FORM CONTENT ---
 
-
-  // --- LOADING/ERROR STATES (Unchanged) ---
+  // --- Loading/Error States ---
   if (showLoadingState && autoLoad && loading && !propStats) {
     return (
       <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
@@ -478,22 +442,16 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
       </div>
     );
   }
-  // --- END: LOADING/ERROR STATES ---
 
-
-  // --- MAIN RENDER ---
+  // --- Main Render ---
   return (
     <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
-      
       {/* HEADER BLOCK */}
       <div className="w-full">
-  
-        {/* Navigation tabs (Unchanged) */}
+        {/* Navigation tabs */}
         <div className="bg-gray-50 border-b border-gray-200 w-full flex">
-          
-          {/* Mobile Tabs */}
           <div className="flex w-full sm:hidden"> 
-            {tabs.map((tab) => (
+            {tabs.map(tab => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
@@ -507,10 +465,9 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
               </button>
             ))}
           </div>
-          
-          {/* Desktop Tabs */}
+
           <div className="hidden sm:flex w-full">
-            {tabs.map((tab) => (
+            {tabs.map(tab => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
@@ -525,8 +482,8 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
             ))}
           </div>
         </div>
-      
-        {/* League indicator (Unchanged) */}
+
+        {/* League indicator */}
         <div className={`${SPACING.contentPaddingClass} bg-gray-50 border-b border-gray-100 flex justify-between items-center`}>
           <p className="text-xs sm:text-sm text-gray-600">
             Showing stats for {league} {season}
@@ -541,13 +498,9 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
         </div>
       </div>
 
-      {/* Content Area: Uses SPACING.contentPaddingClass for consistent padding */}
+      {/* Content */}
       <div className={SPACING.contentPaddingClass}>
-        
-        {/* Standardized margin below header */}
-        <div className="mb-6 sm:mb-8">
-            {renderTeamHeader()}
-        </div>
+        <div className="mb-6 sm:mb-8">{renderTeamHeader()}</div>
 
         {activeTab === 'form' ? (
           renderFormContent()
@@ -555,7 +508,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
           <div className={SPACING.itemSpacing}>
             {Object.entries(currentStats).map(([statName, statData]) => {
               const isMatchesPlayed = statName === 'Matches Played';
-              const typedStatData = statData as StatValue; 
+              const typedStatData = statData as StatValue;
               return (
                 <StatRow
                   key={statName}
@@ -565,6 +518,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
                   leagueAverage={typedStatData.leagueAverage}
                   unit={typedStatData.unit}
                   isMatchesPlayed={isMatchesPlayed}
+                  statType={activeTab}
                 />
               );
             })}
