@@ -413,21 +413,41 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
   return (
     <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
-      {/* Header with navigation tabs */}
-      <div className="flex border-b border-gray-200 bg-gray-50 overflow-x-auto scrollbar-hide w-full">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`flex-1 ${SPACING.tabPadding} text-xs sm:text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
-              activeTab === tab.key
-                ? 'text-purple-600 border-purple-600 bg-white'
-                : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      {/* Header with navigation tabs - Responsive Layout */}
+      <div className="border-b border-gray-200 bg-gray-50">
+        {/* Mobile: Horizontal scroll */}
+        <div className="flex overflow-x-auto scrollbar-hide w-full lg:hidden">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex-shrink-0 px-4 py-3 text-xs sm:text-sm font-medium whitespace-nowrap border-b-2 transition-colors min-w-[80px] ${
+                activeTab === tab.key
+                  ? 'text-purple-600 border-purple-600 bg-white'
+                  : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Desktop: Equal width grid - no scrolling */}
+        <div className="hidden lg:grid lg:grid-cols-6">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === tab.key
+                  ? 'text-purple-600 border-purple-600 bg-white'
+                  : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* League indicator */}
