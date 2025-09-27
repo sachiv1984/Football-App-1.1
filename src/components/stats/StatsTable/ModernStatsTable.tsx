@@ -479,6 +479,10 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
       {/* 💡 HEADER BLOCK: No padding/margin on this outer wrapper, allowing tabs to span edge-to-edge */}
       <div className="w-full">
         
+        // src/components/stats/StatsTable/ModernStatsTable.tsx (Around line 465)
+
+// ...
+
         {/* Navigation tabs: Full Width guaranteed, NO PADDING HERE */}
         <div className="bg-gray-50 border-b border-gray-200 w-full flex">
           
@@ -488,7 +492,8 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`flex-shrink-0 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors min-w-[60px] ${
+                // 💡 FIX HERE: Changed px-2 to px-4 for better spacing and removed min-w
+                className={`flex-shrink-0 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
                   activeTab === tab.key
                     ? 'text-purple-600 border-purple-600 bg-white'
                     : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
