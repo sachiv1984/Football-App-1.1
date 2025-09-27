@@ -1,6 +1,18 @@
 // src/hooks/useAIBettingInsights.ts
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { AIInsight } from '../components/insights/AIInsightCard/AIInsightCard.types';
+
+// Local type definitions to avoid import conflicts
+interface AIInsight {
+  id: string;
+  title: string;
+  description: string;
+  market?: string;
+  confidence: 'high' | 'medium' | 'low';
+  odds?: string;
+  supportingData?: string;
+  source?: string;
+  aiEnhanced?: boolean;
+}
 
 // Service interfaces for future extensibility
 interface AIService {
@@ -208,10 +220,10 @@ export const useAIBettingInsights = (
     // Sort insights by confidence and limit results
     const sortedInsights = allInsights
       .sort((a, b) => {
-        const confidenceOrder = { 'high': 3, 'medium': 2, 'low': 1 };
-        return confidenceOrder[b.confidence] - confidenceOrder[a.confidence];
+        const confidenceOrder: Record<string, number> = { 'high': 3, 'medium': 2, 'low': 1 };
+        return (confidenceOrder[b.confidence] || 1) - (confidenceOrder[a.confidence] || 1);
       })
-      .slice(0, 12); // Limit to 12 total insights
+      .slice(0, 12); // Maximum 12 total insights
 
     return sortedInsights;
   }, [services, maxRetries, retryDelay]);
@@ -307,7 +319,7 @@ export const useAIBettingInsights = (
    * Get insights for specific service
    */
   const getInsightsByService = useCallback((serviceName: string): AIInsight[] => {
-    return state.insights.filter(insight => (insight as any).source === serviceName);
+    return state.insights.filter(insight => insight.source === serviceName);
   }, [state.insights]);
 
   /**
@@ -411,3 +423,4 @@ export const useAIBettingInsights = (
 
 // Type exports for use in components
 export type AIBettingHookReturn = ReturnType<typeof useAIBettingInsights>;
+export type { AIInsight };
