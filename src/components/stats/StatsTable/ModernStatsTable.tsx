@@ -33,16 +33,14 @@ type StatCategory = 'form' | 'goals' | 'corners' | 'cards' | 'shooting' | 'fouls
 
 // Consistent spacing tokens
 const SPACING = {
-  // Use p-0 here, padding is now handled by the .contentPaddingClass div below
   containerPadding: "p-0", 
   sectionSpacing: "space-y-6 sm:space-y-8",
   itemSpacing: "space-y-4 sm:space-y-5",
   gridGap: "gap-3 sm:gap-4",
-  // This class defines the necessary padding for internal content (p-4 sm:p-6)
   contentPaddingClass: "p-4 sm:p-6" 
 };
 
-// --- SHARED UTILITY FUNCTION ---
+// --- SHARED UTILITY FUNCTION (UNCHANGED) ---
 const formatValue = (value: number, unit?: string, isMatchesPlayed?: boolean): string => {
   if (isMatchesPlayed) {
     return value.toString();
@@ -54,7 +52,7 @@ const formatValue = (value: number, unit?: string, isMatchesPlayed?: boolean): s
 };
 
 
-// --- STAT CONFIGURATION MAP ---
+// --- STAT CONFIGURATION MAP (UNCHANGED) ---
 const STAT_CONFIGS: Record<Exclude<StatCategory, 'form'>, Record<string, { key: string; unit?: string }>> = {
   goals: {
     'Matches Played': { key: 'goalsMatchesPlayed' },
@@ -160,7 +158,7 @@ const FormResult: React.FC<{ result: 'W' | 'D' | 'L', isLatest?: boolean }> = ({
   );
 };
 
-// --- StatRow Component ---
+// --- StatRow Component (Includes Change 1: Text Alignment) ---
 interface StatRowProps {
   label: string;
   homeValue: number | string;
@@ -184,7 +182,7 @@ const StatRow: React.FC<StatRowProps> = ({
     
     return (
         <div className={`grid grid-cols-[minmax(0,1fr)_minmax(120px,2fr)_minmax(0,1fr)] ${SPACING.gridGap} items-center py-2`}>
-            {/* 💡 CHANGE 1: Home Value now text-right for better alignment */}
+            {/* CHANGE 1: Home Value now text-right */}
             <div className="text-right min-w-0"> 
                 <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">
                     {formatDisplayValue(homeValue)}
@@ -201,7 +199,7 @@ const StatRow: React.FC<StatRowProps> = ({
                     </div>
                 )}
             </div>
-            {/* 💡 CHANGE 1: Away Value now text-left for better alignment */}
+            {/* CHANGE 1: Away Value now text-left */}
             <div className="text-left min-w-0"> 
                 <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">
                     {formatDisplayValue(awayValue)}
@@ -236,7 +234,6 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
   const effectiveStats = propStats || fetchedStats;
   
-  // Tabs definition
   const tabs: { key: StatCategory; label: string }[] = [
     { key: 'form', label: 'Form' },
     { key: 'goals', label: 'Goals' },
@@ -259,7 +256,6 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   };
 
   const getStatsForCategory = (category: StatCategory): Record<string, StatValue> => {
-    // FIX TS18047: Explicit null check
     if (!effectiveStats) {
         return {}; 
     }
@@ -287,9 +283,9 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
   // --- RENDERING SUB-COMPONENTS ---
   
-  // Component for Team Logos, Names, and Stat Title
+  // Component for Team Logos, Names, and Stat Title (Includes Change 3: items-end)
   const renderTeamHeader = () => (
-      // 💡 CHANGE 3: Changed items-center to items-end for a unified bottom baseline alignment
+      // CHANGE 3: Use 'items-end' to align elements to the bottom baseline
       <div className={`grid grid-cols-3 ${SPACING.gridGap} items-end`}>
           {/* Home Team */}
           <div className="flex items-center justify-center">
@@ -336,9 +332,8 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
       </div>
   );
 
-  // --- RENDER FORM CONTENT ---
+  // --- RENDER FORM CONTENT (Includes Change 4: Conditional Margins) ---
   const renderFormContent = () => {
-    // FIX TS18047: Explicit null check for TypeScript safety
     if (!effectiveStats) {
       return (
         <div className="text-center py-8">
@@ -376,14 +371,20 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
               {Array.from({ length: 5 - homeResults.length }).map((_, index) => (
                 <div key={`empty-home-${index}`} className="w-6 h-6 sm:w-8 sm:h-8 rounded border border-gray-200 bg-gray-50 flex-shrink-0"></div>
               ))}
-              {homeResults.map((result, index) => (
-                <div key={`home-${index}`} className="flex-shrink-0">
-                  <FormResult 
-                    result={result} 
-                    isLatest={index === homeResults.length - 1}
-                  />
-                </div>
-              ))}
+              {homeResults.map((result, index) => {
+                const isLatest = index === homeResults.length - 1;
+                // CHANGE 4: Apply margin to separate the latest result visually
+                const marginClass = isLatest ? 'ml-2 sm:ml-3' : ''; 
+
+                return (
+                  <div key={`home-${index}`} className={`flex-shrink-0 ${marginClass}`}>
+                    <FormResult 
+                      result={result} 
+                      isLatest={isLatest} 
+                    />
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -395,14 +396,21 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
           {/* Away team form - ALIGNED LEFT */}
           <div className="flex justify-start min-w-0">
             <div className="flex space-x-1 sm:space-x-2">
-              {awayResults.slice().reverse().map((result, index) => (
-                <div key={`away-${index}`} className="flex-shrink-0">
-                  <FormResult 
-                    result={result} 
-                    isLatest={index === 0}
-                  />
-                </div>
-              ))}
+              {awayResults.slice().reverse().map((result, index) => {
+                // The first item in the reversed array is the latest result
+                const isLatest = index === 0;
+                // CHANGE 4: Apply margin to separate the latest result visually (mr for the left-aligned stack)
+                const marginClass = isLatest ? 'mr-2 sm:mr-3' : ''; 
+
+                return (
+                  <div key={`away-${index}`} className={`flex-shrink-0 ${marginClass}`}>
+                    <FormResult 
+                      result={result} 
+                      isLatest={isLatest}
+                    />
+                  </div>
+                );
+              })}
               {Array.from({ length: 5 - awayResults.length }).map((_, index) => (
                 <div key={`empty-away-${index}`} className="w-6 h-6 sm:w-8 sm:h-8 rounded border border-gray-200 bg-gray-50 flex-shrink-0"></div>
               ))}
@@ -480,10 +488,10 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   return (
     <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
       
-      {/* HEADER BLOCK */}
+      {/* HEADER BLOCK (UNCHANGED) */}
       <div className="w-full">
   
-        {/* Navigation tabs: Full Width guaranteed, NO PADDING HERE */}
+        {/* Navigation tabs (UNCHANGED) */}
         <div className="bg-gray-50 border-b border-gray-200 w-full flex">
           
           {/* Mobile Tabs */}
@@ -521,7 +529,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
           </div>
         </div>
       
-        {/* League indicator: ALIGNED with content using SPACING.contentPaddingClass */}
+        {/* League indicator (UNCHANGED) */}
         <div className={`${SPACING.contentPaddingClass} bg-gray-50 border-b border-gray-100 flex justify-between items-center`}>
           <p className="text-xs sm:text-sm text-gray-600">
             Showing stats for {league} {season}
@@ -539,7 +547,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
       {/* Content Area: Uses SPACING.contentPaddingClass for consistent padding */}
       <div className={SPACING.contentPaddingClass}>
         
-        {/* 💡 CHANGE 2: Standardized margin below header */}
+        {/* CHANGE 2: Standardized margin below header */}
         <div className="mb-6 sm:mb-8">
             {renderTeamHeader()}
         </div>
@@ -547,7 +555,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
         {activeTab === 'form' ? (
           renderFormContent()
         ) : (
-          /* 💡 CHANGE 2: Removed the outer SPACING.sectionSpacing wrapper */
+          /* CHANGE 2: Removed the outer SPACING.sectionSpacing wrapper */
           <div className={SPACING.itemSpacing}>
             {Object.entries(currentStats).map(([statName, statData]) => {
               const isMatchesPlayed = statName === 'Matches Played';
