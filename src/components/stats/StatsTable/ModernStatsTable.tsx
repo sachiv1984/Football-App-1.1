@@ -511,6 +511,37 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   );
 };
 
+const StatsTeamLogo: React.FC<{ team: Team, size?: 'sm' | 'md' }> = ({ team, size = 'sm' }) => {
+  const sizeClasses = {
+    sm: "w-8 h-8 sm:w-12 sm:h-12",
+    md: "w-12 h-12 sm:w-16 sm:h-16"
+  };
+
+  if (team.logo) {
+    return (
+      <img 
+        src={team.logo} 
+        alt={team.name} 
+        className={`${sizeClasses[size]} object-contain`} 
+      />
+    );
+  }
+
+  return (
+    <div className={`
+      ${sizeClasses[size]} rounded-full 
+      bg-gradient-to-br from-blue-500 to-blue-700 
+      text-white font-semibold shadow-sm
+      border-2 border-white border-opacity-60
+      flex items-center justify-center
+    `}>
+      <span className="text-xs sm:text-sm">
+        {team.shortName?.substring(0, 2) || team.name.substring(0, 2)}
+      </span>
+    </div>
+  );
+};
+
 // --- Team Header ---
 const renderTeamHeader = (homeTeam: Team, awayTeam: Team, activeTab: StatCategory) => (
   <div className={`grid grid-cols-3 ${SPACING.gridGap} items-center`}>
