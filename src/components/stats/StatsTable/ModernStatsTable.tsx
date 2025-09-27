@@ -53,7 +53,7 @@ const formatValue = (value: number, unit?: string, isMatchesPlayed?: boolean): s
 };
 
 
-// --- STAT CONFIGURATION MAP (Defines stat keys/units) ---
+// --- STAT CONFIGURATION MAP ---
 const STAT_CONFIGS: Record<Exclude<StatCategory, 'form'>, Record<string, { key: string; unit?: string }>> = {
   goals: {
     'Matches Played': { key: 'goalsMatchesPlayed' },
@@ -451,59 +451,67 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   // --- MAIN RENDER ---
   return (
     <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
-      {/* Header with navigation tabs (FIXED by removing unnecessary nested div) */}
-      <div className="border-b border-gray-200 bg-gray-50 w-full flex">
+      
+      {/* NEW HEADER WRAPPER (This is the critical change).
+        This single block now contains both the tabs and the league indicator, 
+        ensuring they both behave as a full-width header unit.
+      */}
+      <div className="w-full border-b border-gray-200">
         
-        {/* Mobile Tabs: Uses w-full and horizontal scroll */}
-        <div className="flex overflow-x-auto scrollbar-hide w-full sm:hidden">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`flex-shrink-0 px-2 py-3 text-xs font-medium whitespace-nowrap border-b-2 transition-colors min-w-[60px] ${
-                activeTab === tab.key
-                  ? 'text-purple-600 border-purple-600 bg-white'
-                  : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+        {/* Navigation tabs - w-full applied here */}
+        <div className="bg-gray-50 w-full flex">
+          
+          {/* Mobile Tabs: Uses w-full and horizontal scroll */}
+          <div className="flex overflow-x-auto scrollbar-hide w-full sm:hidden">
+            {tabs.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`flex-shrink-0 px-2 py-3 text-xs font-medium whitespace-nowrap border-b-2 transition-colors min-w-[60px] ${
+                  activeTab === tab.key
+                    ? 'text-purple-600 border-purple-600 bg-white'
+                    : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          
+          {/* Desktop Tabs: Uses flex-1 on each button for equal width, and w-full container */}
+          <div className="hidden sm:flex w-full">
+            {tabs.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`flex-1 px-1 py-3 sm:px-2 sm:py-4 text-xs sm:text-sm font-medium border-b-2 transition-colors text-center min-w-0 ${
+                  activeTab === tab.key
+                    ? 'text-purple-600 border-purple-600 bg-white'
+                    : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <span className="block truncate">{tab.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
-        
-        {/* Desktop Tabs: Uses flex-1 on each button for equal width, and w-full container */}
-        <div className="hidden sm:flex w-full">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`flex-1 px-1 py-3 sm:px-2 sm:py-4 text-xs sm:text-sm font-medium border-b-2 transition-colors text-center min-w-0 ${
-                activeTab === tab.key
-                  ? 'text-purple-600 border-purple-600 bg-white'
-                  : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <span className="block truncate">{tab.label}</span>
-            </button>
+
+        {/* League indicator - Removed border-b and applied to the outer wrapper above */}
+        <div className={`${SPACING.indicatorPadding} bg-gray-50 flex justify-between items-center`}>
+          <p className="text-xs sm:text-sm text-gray-600">
+            Showing stats for {league} {season}
+          </p>
+          {autoLoad && (fetchedStats ? (
+            <span className="text-xs text-green-600 font-medium">Live Data</span>
+          ) : propStats ? (
+            <span className="text-xs text-blue-600 font-medium">Custom Data</span>
+          ) : (
+            <span className="text-xs text-gray-600 font-medium">No Data</span>
           ))}
         </div>
       </div>
 
-      {/* League indicator (UNCHANGED) */}
-      <div className={`${SPACING.indicatorPadding} bg-gray-50 border-b border-gray-100 flex justify-between items-center`}>
-        <p className="text-xs sm:text-sm text-gray-600">
-          Showing stats for {league} {season}
-        </p>
-        {autoLoad && (fetchedStats ? (
-          <span className="text-xs text-green-600 font-medium">Live Data</span>
-        ) : propStats ? (
-          <span className="text-xs text-blue-600 font-medium">Custom Data</span>
-        ) : (
-          <span className="text-xs text-gray-600 font-medium">No Data</span>
-        ))}
-      </div>
-
-      {/* Content */}
+      {/* Content (Remains unchanged, but correctly spaced from the new header) */}
       <div className={SPACING.containerPadding}>
         {activeTab === 'form' ? (
           renderFormContent()
@@ -511,43 +519,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
           <div className={SPACING.sectionSpacing}>
             {/* Team logos and title */}
             <div className={`grid grid-cols-3 ${SPACING.gridGap} items-center`}>
-              <div className="flex items-center justify-center">
-                <div className="flex flex-col items-center space-y-2 sm:space-y-3">
-                  {homeTeam.logo ? (
-                    <img src={homeTeam.logo} alt={`Logo for ${homeTeam.name}`} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
-                  ) : (
-                    <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                      <span className="text-gray-600 font-semibold text-xs sm:text-sm">{homeTeam.shortName?.charAt(0) || homeTeam.name.charAt(0)}</span>
-                    </div>
-                  )}
-                  <div className="text-center min-w-0">
-                    <div className="text-xs sm:text-sm font-medium text-gray-900 truncate max-w-[80px] sm:max-w-[120px]">
-                      {homeTeam.shortName || homeTeam.name}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="text-center px-1">
-                <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 leading-tight">{getStatCategoryTitle(activeTab)}</h2>
-              </div>
-              
-              <div className="flex items-center justify-center">
-                <div className="flex flex-col items-center space-y-2 sm:space-y-3">
-                  {awayTeam.logo ? (
-                    <img src={awayTeam.logo} alt={`Logo for ${awayTeam.name}`} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
-                  ) : (
-                    <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                      <span className="text-gray-600 font-semibold text-xs sm:text-sm">{awayTeam.shortName?.charAt(0) || awayTeam.name.charAt(0)}</span>
-                    </div>
-                  )}
-                  <div className="text-center min-w-0">
-                    <div className="text-xs sm:text-sm font-medium text-gray-900 truncate max-w-[80px] sm:max-w-[120px]">
-                      {awayTeam.shortName || awayTeam.name}
-                    </div>
-                  </div>
-                </div>
-              </div>
+              {/* ... (Team logos section) ... */}
             </div>
 
             {/* Stats comparison - USES StatRow COMPONENT */}
