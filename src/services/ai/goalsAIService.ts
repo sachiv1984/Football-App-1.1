@@ -240,10 +240,11 @@ private analyzeTeamSpecificGoals(
     }
 
     // Sort by confidence and percentage
-    return insights.sort((a, b) => {
-      const confidenceOrder = { 'high': 3, 'medium': 2, 'low': 1 };
-      return confidenceOrder[b.confidence] - confidenceOrder[a.confidence];
-    });
+return insights.sort((a, b) => {
+  type ConfidenceLevel = 'high' | 'medium' | 'low';
+  const confidenceOrder: Record<ConfidenceLevel, number> = { high: 3, medium: 2, low: 1 };
+  return confidenceOrder[b.confidence] - confidenceOrder[a.confidence];
+});
   }
 
   /**
