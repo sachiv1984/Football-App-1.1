@@ -7,16 +7,6 @@ interface MatchHeaderProps {
   className?: string;
 }
 
-// Live badge component
-const LiveStatusBadge: React.FC = () => (
-  <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-full shadow-lg">
-    <div className="w-2 h-2 bg-white rounded-full live-pulse" />
-    <span className="text-xs font-bold uppercase tracking-wider">
-      Live
-    </span>
-  </div>
-);
-
 // Enhanced score display component
 const EnhancedScoreDisplay: React.FC<{
   homeScore: number | undefined;
@@ -62,6 +52,65 @@ const EnhancedScoreDisplay: React.FC<{
     </div>
   );
 };
+
+// Enhanced Date/Time + Venue component
+const EnhancedMatchDateTime: React.FC<{
+  date: string;
+  time: string;
+  venue?: string;
+  isLive: boolean;
+}> = ({ date, time, venue, isLive }) => (
+  <div className="text-center space-y-2">
+    {/* Date */}
+    <div className="text-xl lg:text-2xl font-bold text-gray-900 leading-tight">
+      {date}
+    </div>
+    
+    {/* Time with icon */}
+    <div className="flex items-center justify-center gap-2 text-base lg:text-lg font-medium text-gray-600">
+      <svg 
+        className="w-4 h-4 lg:w-5 lg:h-5 text-gray-500" 
+        fill="currentColor" 
+        viewBox="0 0 20 20"
+        aria-hidden="true"
+      >
+        <path 
+          fillRule="evenodd" 
+          d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.414-1.414L11 9.586V6z" 
+          clipRule="evenodd" 
+        />
+      </svg>
+      <span>{time}</span>
+      {isLive && (
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-full shadow-lg ml-2">
+          <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+          <span className="text-xs font-bold uppercase tracking-wider">Live</span>
+        </div>
+      )}
+    </div>
+    
+    {/* Venue */}
+    {venue && (
+      <div className="flex items-center justify-center gap-2 text-sm lg:text-base text-gray-500">
+        <svg 
+          className="w-4 h-4 text-gray-400" 
+          fill="currentColor" 
+          viewBox="0 0 20 20"
+          aria-hidden="true"
+        >
+          <path 
+            fillRule="evenodd" 
+            d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" 
+            clipRule="evenodd" 
+          />
+        </svg>
+        <span className="italic max-w-[200px] lg:max-w-[240px] truncate leading-tight">
+          {venue}
+        </span>
+      </div>
+    )}
+  </div>
+);
 
 const MatchHeader: React.FC<MatchHeaderProps> = ({ fixture, className = '' }) => {
   const {
@@ -142,32 +191,20 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({ fixture, className = '' }) =>
               )}
             </div>
 
-            {/* Center - Date/Time/Score/Venue */}
+            {/* Center - Enhanced Date/Time + Score + Venue */}
             <div className="flex-shrink-0 px-6 lg:px-8 text-center min-w-[200px] lg:min-w-[250px]">
-              {/* Date and Time */}
-              <div className="mb-3">
-                <div className="text-lg lg:text-xl font-semibold text-neutral-900">
-                  {date}
-                </div>
-                <div className="text-base lg:text-lg text-neutral-600 flex items-center justify-center gap-2">
-                  {time}
-                  {isLive && <LiveStatusBadge />}
-                </div>
-              </div>
+              <EnhancedMatchDateTime 
+                date={date} 
+                time={time} 
+                venue={venue} 
+                isLive={isLive} 
+              />
 
-              {/* Score / VS */}
               <EnhancedScoreDisplay 
                 homeScore={homeScore} 
                 awayScore={awayScore} 
                 isFinished={isFinished} 
               />
-
-              {/* Venue */}
-              {venue && (
-                <div className="text-sm lg:text-base text-neutral-600 max-w-[180px] lg:max-w-[220px] mx-auto leading-tight">
-                  {venue}
-                </div>
-              )}
             </div>
 
             {/* Away Team */}
