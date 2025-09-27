@@ -42,9 +42,6 @@ const SPACING = {
 };
 
 // --- SHARED UTILITY FUNCTION ---
-/**
- * Formats a number value based on its unit (e.g., adds '%') and whether it's an integer count.
- */
 const formatValue = (value: number, unit?: string, isMatchesPlayed?: boolean): string => {
   if (isMatchesPlayed) {
     return value.toString();
@@ -162,7 +159,7 @@ const FormResult: React.FC<{ result: 'W' | 'D' | 'L', isLatest?: boolean }> = ({
   );
 };
 
-// --- StatRow Component (Cleaned: No longer requires formatValue prop) ---
+// --- StatRow Component ---
 interface StatRowProps {
   label: string;
   homeValue: number | string;
@@ -180,7 +177,6 @@ const StatRow: React.FC<StatRowProps> = ({
   unit, 
   isMatchesPlayed
 }) => {
-    // Uses the globally defined formatValue function
     const formatDisplayValue = (value: number | string) => {
         return typeof value === 'number' ? formatValue(value, unit, isMatchesPlayed) : value;
     };
@@ -236,7 +232,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
   const effectiveStats = propStats || fetchedStats;
   
-  // Tabs definition (REQUIRED to fix errors)
+  // Tabs definition
   const tabs: { key: StatCategory; label: string }[] = [
     { key: 'form', label: 'Form' },
     { key: 'goals', label: 'Goals' },
@@ -278,7 +274,6 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     }, {} as Record<string, StatValue>);
   };
   
-  // currentStats calculation (REQUIRED to fix errors)
   const currentStats = getStatsForCategory(activeTab);
 
 
@@ -330,7 +325,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   // --- END: LOADING/ERROR STATES ---
 
 
-  // --- RENDER FORM CONTENT (CLEANED UP) ---
+  // --- RENDER FORM CONTENT ---
   const renderFormContent = () => {
     const recentForm = effectiveStats.recentForm as FormData | undefined;
     
@@ -456,9 +451,10 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   // --- MAIN RENDER ---
   return (
     <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
-      {/* Header with navigation tabs - FIXED WIDTH for full container fill */}
-      <div className="border-b border-gray-200 bg-gray-50 w-full">
-        {/* Mobile Tabs - ADDED w-full */}
+      {/* Header with navigation tabs (FIXED by removing unnecessary nested div) */}
+      <div className="border-b border-gray-200 bg-gray-50 w-full flex">
+        
+        {/* Mobile Tabs: Uses w-full and horizontal scroll */}
         <div className="flex overflow-x-auto scrollbar-hide w-full sm:hidden">
           {tabs.map((tab) => (
             <button
@@ -474,7 +470,8 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
             </button>
           ))}
         </div>
-        {/* Desktop Tabs - ADDED w-full */}
+        
+        {/* Desktop Tabs: Uses flex-1 on each button for equal width, and w-full container */}
         <div className="hidden sm:flex w-full">
           {tabs.map((tab) => (
             <button
