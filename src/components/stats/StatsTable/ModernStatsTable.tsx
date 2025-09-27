@@ -104,6 +104,7 @@ const STAT_CONFIGS: Record<Exclude<StatCategory, 'form'>, Record<string, { key: 
 };
 
 // --- Enhanced FormResult Component ---
+// Replace the existing FormResult component with this enhanced version
 const FormResult: React.FC<{ result: 'W' | 'D' | 'L', isLatest?: boolean, position?: number, totalResults?: number }> = ({ 
   result, 
   isLatest, 
@@ -111,22 +112,40 @@ const FormResult: React.FC<{ result: 'W' | 'D' | 'L', isLatest?: boolean, positi
   totalResults = 5 
 }) => {
   
-  const getResultStyle = (result: 'W' | 'D' | 'L', isLatest: boolean) => {
+  const getResultStyle = (result: 'W' | 'D' | 'L', isLatest: boolean, position: number, totalResults: number) => {
+    // Calculate opacity for temporal progression (0.6 to 1.0)
+    const opacity = 0.6 + (position / (totalResults - 1)) * 0.4;
+    
     let baseClasses = '';
     switch (result) {
-      case 'W': baseClasses = 'bg-gradient-to-br from-green-100 to-green-200 text-green-800 border-green-400'; break;
-      case 'D': baseClasses = 'bg-gradient-to-br from-gray-100 to-gray-200 text-gray-800 border-gray-400'; break;
-      case 'L': baseClasses = 'bg-gradient-to-br from-red-100 to-red-200 text-red-800 border-red-400'; break;
+      case 'W':
+        baseClasses = 'bg-gradient-to-br from-green-100 to-green-200 text-green-800 border-green-400';
+        break;
+      case 'D':
+        baseClasses = 'bg-gradient-to-br from-gray-100 to-gray-200 text-gray-800 border-gray-400';
+        break;
+      case 'L':
+        baseClasses = 'bg-gradient-to-br from-red-100 to-red-200 text-red-800 border-red-400';
+        break;
     }
+    
+    // Latest result gets enhanced styling
     if (isLatest) {
       let latestEnhancement = '';
       switch (result) {
-        case 'W': latestEnhancement = 'border-green-600 shadow-md transform scale-105'; break;
-        case 'D': latestEnhancement = 'border-gray-600 shadow-md transform scale-105'; break;
-        case 'L': latestEnhancement = 'border-red-600 shadow-md transform scale-105'; break;
+        case 'W':
+          latestEnhancement = 'border-green-600 shadow-md transform scale-105'; 
+          break;
+        case 'D':
+          latestEnhancement = 'border-gray-600 shadow-md transform scale-105';
+          break;
+        case 'L':
+          latestEnhancement = 'border-red-600 shadow-md transform scale-105';
+          break;
       }
       return `${baseClasses} border-4 ${latestEnhancement}`;
     }
+    
     return `${baseClasses} border-2`;
   };
 
@@ -136,9 +155,9 @@ const FormResult: React.FC<{ result: 'W' | 'D' | 'L', isLatest?: boolean, positi
         w-6 h-6 sm:w-8 sm:h-8 rounded border flex items-center justify-center 
         text-xs sm:text-sm font-semibold transition-all duration-200
         hover:scale-110
-        ${getResultStyle(result, isLatest || false)}
+        ${getResultStyle(result, isLatest || false, position, totalResults)}
       `}
-      style={{ opacity: 0.6 + (position! / (totalResults! - 1)) * 0.4 }}
+      style={{ opacity: 0.6 + (position / (totalResults - 1)) * 0.4 }}
     >
       {result}
     </div>
@@ -325,15 +344,14 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
                 <div key={`empty-home-${index}`} className="w-6 h-6 sm:w-8 sm:h-8 rounded border border-gray-200 bg-gray-50 flex-shrink-0"></div>
               ))}
               {homeResults.map((result, index) => (
-                <div key={`home-${index}`} className="flex-shrink-0">
-                  <FormResult
-                    result={result}
-                    isLatest={index === homeResults.length - 1}
-                    position={index}
-                    totalResults={homeResults.length}
-                  />
-                </div>
-              ))}
+  <div key={`home-${index}`} className="flex-shrink-0">
+    <FormResult 
+      result={result} 
+      isLatest={index === homeResults.length - 1}
+      position={index}
+      totalResults={homeResults.length}
+    />
+  </div>
             </div>
           </div>
 
@@ -344,15 +362,15 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
           <div className="flex justify-start min-w-0">
             <div className="flex space-x-1 sm:space-x-2 flex-nowrap">
               {awayResults.slice().reverse().map((result, index) => (
-                <div key={`away-${index}`} className="flex-shrink-0">
-                  <FormResult
-                    result={result}
-                    isLatest={index === 0}
-                    position={awayResults.length - 1 - index}
-                    totalResults={awayResults.length}
-                  />
-                </div>
-              ))}
+  <div key={`away-${index}`} className="flex-shrink-0">
+    <FormResult 
+      result={result} 
+      isLatest={index === 0}
+      position={awayResults.length - 1 - index}
+      totalResults={awayResults.length}
+    />
+  </div>
+))}
             </div>
           </div>
         </div>
