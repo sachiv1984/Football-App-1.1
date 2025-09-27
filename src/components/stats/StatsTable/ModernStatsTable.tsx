@@ -59,53 +59,46 @@ const SPACING = {
 
 const FormResult: React.FC<{ result: 'W' | 'D' | 'L', isLatest?: boolean }> = ({ result, isLatest }) => {
   
-  const getResultStyle = (result: 'W' | 'D' | 'L') => {
-    // Existing color logic
-    switch (result) {
-      case 'W':
-        return 'bg-green-100 text-green-700 border-green-200';
-      case 'D':
-        return 'bg-gray-100 text-gray-700 border-gray-200';
-      case 'L':
-        return 'bg-red-100 text-red-700 border-red-200';
+  const getResultStyle = (result: 'W' | 'D' | 'L', isLatest: boolean) => {
+    if (isLatest) {
+      // High-impact style for the latest game
+      switch (result) {
+        case 'W':
+          // Darker background, white text, strong border
+          return 'bg-green-600 text-white border-green-800 border-2 sm:border-4 shadow-lg';
+        case 'D':
+          // Darker gray background, white text
+          return 'bg-gray-600 text-white border-gray-800 border-2 sm:border-4 shadow-lg';
+        case 'L':
+          // Darker red background, white text
+          return 'bg-red-600 text-white border-red-800 border-2 sm:border-4 shadow-lg';
+      }
+    } else {
+      // Original, lighter style for older results
+      switch (result) {
+        case 'W':
+          return 'bg-green-100 text-green-700 border-green-200';
+        case 'D':
+          return 'bg-gray-100 text-gray-700 border-gray-200';
+        case 'L':
+          return 'bg-red-100 text-red-700 border-red-200';
+      }
     }
   };
-
-  // NEW: Logic for the heavier border color
-  const getLatestBorderStyle = (result: 'W' | 'D' | 'L') => {
-    switch (result) {
-      // Use a darker shade for a prominent border color
-      case 'W':
-        return 'border-green-600 sm:border-green-700'; 
-      case 'D':
-        return 'border-gray-600 sm:border-gray-700';
-      case 'L':
-        return 'border-red-600 sm:border-red-700';
-      default:
-        return '';
-    }
-  };
-
-  // Apply the base style, then override the border width and color if it's the latest game
-  const baseClasses = getResultStyle(result);
-  
-  const latestClasses = isLatest 
-    ? `border-2 sm:border-4 ${getLatestBorderStyle(result)} shadow-md` // Thicker border and a shadow for lift
-    : '';
 
   return (
     <div 
       className={`
         w-6 h-6 sm:w-8 sm:h-8 rounded border flex items-center justify-center 
         text-xs sm:text-sm font-semibold 
-        ${baseClasses}
-        ${latestClasses}
+        ${getResultStyle(result, isLatest || false)}
       `}
     >
       {result}
     </div>
   );
 };
+
 
 
 const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
@@ -360,12 +353,15 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
       {Array.from({ length: 5 - homeResults.length }).map((_, index) => (
         <div key={`empty-home-${index}`} className="w-6 h-6 sm:w-8 sm:h-8 rounded border border-gray-200 bg-gray-50 flex-shrink-0"></div>
       ))}
-      {/* Home: Renders in original order (1, 2, 3, 4, 5) */}
-      {homeResults.map((result, index) => (
-        <div key={`home-${index}`} className="flex-shrink-0">
-          <FormResult result={result} />
-        </div>
-      ))}
+{/* HOME TEAM: Latest is the final element */}
+{homeResults.map((result, index) => (
+  <div key={`home-${index}`} className="flex-shrink-0">
+    <FormResult 
+      result={result} 
+      isLatest={index === homeResults.length - 1} // Game 5
+    />
+  </div>
+))}
     </div>
   </div>
 
@@ -377,15 +373,15 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   {/* 2. Away team form: Aligned to the left (justify-start) for latest result (5) to be closest to center. */}
   <div className="flex justify-start min-w-0">
     <div className="flex space-x-1 sm:space-x-2">
-      {/* Away: Renders in REVERSED order (5, 4, 3, 2, 1) */}
-      {awayResults.slice().reverse().map((result, index) => (
-        <div key={`away-${index}`} className="flex-shrink-0">
-          <FormResult result={result} />
-        </div>
-      ))}
-      {Array.from({ length: 5 - awayResults.length }).map((_, index) => (
-        <div key={`empty-away-${index}`} className="w-6 h-6 sm:w-8 sm:h-8 rounded border border-gray-200 bg-gray-50 flex-shrink-0"></div>
-      ))}
+{/* AWAY TEAM: Latest is the first element after reversal */}
+{awayResults.slice().reverse().map((result, index) => (
+  <div key={`away-${index}`} className="flex-shrink-0">
+    <FormResult 
+      result={result} 
+      isLatest={index === 0} // Game 5 after reversal
+    />
+  </div>
+))}
     </div>
   </div>
 </div>
