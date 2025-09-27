@@ -7,16 +7,61 @@ interface MatchHeaderProps {
   className?: string;
 }
 
-// Add this new component before the main MatchHeader component:
+// Live badge component
 const LiveStatusBadge: React.FC = () => (
   <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-full shadow-lg">
     <div className="w-2 h-2 bg-white rounded-full live-pulse" />
-    {/* Changed from animate-pulse to live-pulse */}
     <span className="text-xs font-bold uppercase tracking-wider">
       Live
     </span>
   </div>
 );
+
+// Enhanced score display component
+const EnhancedScoreDisplay: React.FC<{
+  homeScore: number | undefined;
+  awayScore: number | undefined;
+  isFinished: boolean;
+}> = ({ homeScore, awayScore, isFinished }) => {
+  if (!isFinished || homeScore === undefined || awayScore === undefined) {
+    return (
+      <div className="text-xl lg:text-2xl font-semibold text-neutral-500 mb-3">
+        VS
+      </div>
+    );
+  }
+
+  const isHomeWin = homeScore > awayScore;
+  const isAwayWin = awayScore > homeScore;
+  const isDraw = homeScore === awayScore;
+
+  const getScoreStyle = (isWinner: boolean, isLoser: boolean) => {
+    if (isWinner) return "text-green-600"; // Winner contrast
+    if (isLoser) return "text-gray-500";   // Loser contrast
+    return "text-neutral-800";             // Draw
+  };
+
+  return (
+    <div className="mb-3 bg-gradient-to-r from-gray-50 via-white to-gray-50 rounded-xl p-4 shadow-inner border border-gray-200">
+      <div className="flex items-center justify-center gap-4">
+        <div className={`text-4xl lg:text-5xl font-black transition-colors duration-200 ${getScoreStyle(isHomeWin, isAwayWin)}`}>
+          {homeScore}
+        </div>
+        <div className="text-2xl lg:text-3xl text-gray-400 font-light">
+          −
+        </div>
+        <div className={`text-4xl lg:text-5xl font-black transition-colors duration-200 ${getScoreStyle(isAwayWin, isHomeWin)}`}>
+          {awayScore}
+        </div>
+      </div>
+      {!isDraw && (
+        <div className="text-center mt-2 text-xs lg:text-sm text-gray-600 font-medium">
+          {isHomeWin ? "Home Win" : "Away Win"}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const MatchHeader: React.FC<MatchHeaderProps> = ({ fixture, className = '' }) => {
   const {
@@ -29,14 +74,13 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({ fixture, className = '' }) =>
     status
   } = fixture;
 
-  // Date logic for today/tomorrow
+  // Date logic
   const getDateDisplay = (matchDateTime: string) => {
     const matchDate = new Date(matchDateTime);
     const today = new Date();
     const tomorrow = new Date();
     tomorrow.setDate(today.getDate() + 1);
 
-    // Reset time to compare dates only
     const matchDateOnly = new Date(matchDate.getFullYear(), matchDate.getMonth(), matchDate.getDate());
     const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const tomorrowOnly = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate());
@@ -111,16 +155,12 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({ fixture, className = '' }) =>
                 </div>
               </div>
 
-              {/* Score (if finished) or VS */}
-              {isFinished ? (
-                <div className="text-2xl lg:text-3xl font-bold text-neutral-800 mb-3">
-                  {homeScore} - {awayScore}
-                </div>
-              ) : (
-                <div className="text-xl lg:text-2xl font-semibold text-neutral-500 mb-3">
-                  VS
-                </div>
-              )}
+              {/* Score / VS */}
+              <EnhancedScoreDisplay 
+                homeScore={homeScore} 
+                awayScore={awayScore} 
+                isFinished={isFinished} 
+              />
 
               {/* Venue */}
               {venue && (
