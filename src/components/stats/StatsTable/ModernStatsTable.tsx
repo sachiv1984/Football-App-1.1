@@ -289,7 +289,8 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   
   // Component for Team Logos, Names, and Stat Title
   const renderTeamHeader = () => (
-      <div className={`grid grid-cols-3 ${SPACING.gridGap} items-center`}>
+      // 💡 CHANGE 3: Changed items-center to items-end for a unified bottom baseline alignment
+      <div className={`grid grid-cols-3 ${SPACING.gridGap} items-end`}>
           {/* Home Team */}
           <div className="flex items-center justify-center">
             <div className="flex flex-col items-center space-y-2 sm:space-y-3">
@@ -365,8 +366,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     ];
 
     return (
-      // Retain SPACING.sectionSpacing here as it separates the Form Display and Stats Comparison blocks
-      <div className={SPACING.sectionSpacing}> 
+      <div className={SPACING.sectionSpacing}>
         
         {/* Form display - SYMMETRICAL ALIGNMENT & HIERARCHY */}
         <div className={`grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] ${SPACING.gridGap} items-center`}>
@@ -539,7 +539,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
       {/* Content Area: Uses SPACING.contentPaddingClass for consistent padding */}
       <div className={SPACING.contentPaddingClass}>
         
-        {/* 💡 CHANGE 2: Standardized margin below header to the larger value for consistency */}
+        {/* 💡 CHANGE 2: Standardized margin below header */}
         <div className="mb-6 sm:mb-8">
             {renderTeamHeader()}
         </div>
