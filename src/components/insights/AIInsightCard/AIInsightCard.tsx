@@ -4,6 +4,40 @@ import { Target, DollarSign, TrendingUp, Brain, Zap } from 'lucide-react';
 import ConfidenceIndicator from './ConfidenceIndicator';
 import { AIInsightCardProps } from './AIInsightCard.types';
 
+export interface AIInsight {
+  id: string;
+  title: string;
+  description: string;
+  market?: string;
+  confidence: 'high' | 'medium' | 'low';
+  odds?: string;
+  supportingData?: string;
+  source?: string; // Added for service identification
+  aiEnhanced?: boolean; // Added for AI enhancement badge
+}
+
+export interface AIInsightCardProps {
+  insight: AIInsight;
+  className?: string;
+  showConfidence?: boolean;
+  compact?: boolean;
+  showServiceBadge?: boolean; // New prop
+  animated?: boolean; // New prop
+}
+
+export interface ConfidenceIndicatorProps {
+  confidence: 'high' | 'medium' | 'low';
+  showLabel?: boolean;
+  size?: 'sm' | 'md' | 'lg';
+}
+
+export interface InsightsContainerProps {
+  insights: AIInsight[];
+  title?: string;
+  className?: string;
+  maxItems?: number;
+}
+
 const AIInsightCard: React.FC<AIInsightCardProps> = ({
   insight,
   className = '',
