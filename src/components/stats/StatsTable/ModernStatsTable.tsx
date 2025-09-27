@@ -37,8 +37,7 @@ const SPACING = {
   sectionSpacing: "space-y-6 sm:space-y-8",
   itemSpacing: "space-y-4 sm:space-y-5",
   gridGap: "gap-3 sm:gap-4",
-  // Note: Tabs and Indicator now use custom padding to control width explicitly
-  contentPaddingClass: "p-4 sm:p-6"
+  contentPaddingClass: "p-4 sm:p-6" // Defines the padding for content sections
 };
 
 // --- SHARED UTILITY FUNCTION ---
@@ -255,6 +254,12 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   };
 
   const getStatsForCategory = (category: StatCategory): Record<string, StatValue> => {
+    // We already handle null/error states at the component root, but for TypeScript
+    // safety in functions that might be called later:
+    if (!effectiveStats) {
+        return {}; 
+    }
+    
     const getStat = (key: string, unit?: string): StatValue => {
       const stat = (effectiveStats as any)[key];
       if (stat && typeof stat === 'object' && 'homeValue' in stat && 'awayValue' in stat) {
@@ -278,7 +283,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
   // --- RENDERING SUB-COMPONENTS ---
   
-  // Component for Team Logos, Names, and Stat Title (NOW RENDERED ON ALL TABS)
+  // Component for Team Logos, Names, and Stat Title
   const renderTeamHeader = () => (
       <div className={`grid grid-cols-3 ${SPACING.gridGap} items-center`}>
           {/* Home Team */}
@@ -326,17 +331,19 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
       </div>
   );
 
-    // --- RENDER FORM CONTENT ---
-const renderFormContent = () => {
+  // --- RENDER FORM CONTENT ---
+  const renderFormContent = () => {
+    // 💡 FIX TS18047: Explicit null check for TypeScript safety
     if (!effectiveStats) {
-        return (
-            <div className="text-center py-8">
-                <p className="text-gray-600">Statistics are unavailable.</p>
-            </div>
-        );
+      return (
+        <div className="text-center py-8">
+            <p className="text-gray-600">Statistics are unavailable.</p>
+        </div>
+      );
     }
-    const recentForm = effectiveStats.recentForm as FormData | undefined;
 
+    const recentForm = effectiveStats.recentForm as FormData | undefined;
+    
     if (!recentForm) {
       return (
         <div className="text-center py-8">
@@ -468,10 +475,10 @@ const renderFormContent = () => {
   return (
     <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
       
-      {/* HEADER BLOCK: Tabs and Indicator (Full Width Guarantee) */}
-      <div className="w-full">
+      {/* 💡 THE FINAL WIDTH FIX: Negative margins to break out of component padding */}
+      <div className="w-full -mx-4 sm:-mx-6">
         
-        {/* Navigation tabs: FULL WIDTH */}
+        {/* Navigation tabs: Full Width guaranteed */}
         <div className="bg-gray-50 border-b border-gray-200 w-full flex">
           
           {/* Mobile Tabs: Uses w-full and horizontal scroll */}
@@ -509,7 +516,7 @@ const renderFormContent = () => {
           </div>
         </div>
 
-        {/* League indicator: ALIGNMENT FIXED by using contentPaddingClass */}
+        {/* League indicator: Padding maintained by SPACING.contentPaddingClass (p-4 sm:p-6) */}
         <div className={`${SPACING.contentPaddingClass} bg-gray-50 border-b border-gray-100 flex justify-between items-center`}>
           <p className="text-xs sm:text-sm text-gray-600">
             Showing stats for {league} {season}
@@ -524,10 +531,10 @@ const renderFormContent = () => {
         </div>
       </div>
 
-      {/* Content */}
+      {/* Content Area */}
       <div className={SPACING.contentPaddingClass}>
         
-        {/* NEW: Team logos and title are now OUTSIDE the conditional block */}
+        {/* Team logos and title are now OUTSIDE the conditional block (Fixing the disappearance issue) */}
         <div className={activeTab === 'form' ? 'mb-4 sm:mb-6' : 'mb-6 sm:mb-8'}>
             {renderTeamHeader()}
         </div>
