@@ -47,6 +47,19 @@ const formatValue = (value: number, unit?: string, isMatchesPlayed?: boolean): s
   return value.toFixed(2);
 };
 
+// --- MOVED OUTSIDE COMPONENT - Now accessible to renderTeamHeader ---
+const getStatCategoryTitle = (category: StatCategory): string => {
+  switch (category) {
+    case 'form': return 'Team Form';
+    case 'goals': return 'Team Goals';
+    case 'corners': return 'Team Corners';
+    case 'cards': return 'Team Cards';
+    case 'shooting': return 'Team Shooting';
+    case 'fouls': return 'Team Fouls';
+    default: return 'Team Stats';
+  }
+};
+
 // --- STAT CONFIGURATION MAP ---
 const STAT_CONFIGS: Record<Exclude<StatCategory, 'form'>, Record<string, { key: string; unit?: string }>> = {
   goals: {
@@ -104,7 +117,6 @@ const STAT_CONFIGS: Record<Exclude<StatCategory, 'form'>, Record<string, { key: 
 };
 
 // --- Enhanced FormResult Component ---
-// Replace the existing FormResult component with this enhanced version
 const FormResult: React.FC<{ result: 'W' | 'D' | 'L', isLatest?: boolean, position?: number, totalResults?: number }> = ({ 
   result, 
   isLatest, 
@@ -113,9 +125,6 @@ const FormResult: React.FC<{ result: 'W' | 'D' | 'L', isLatest?: boolean, positi
 }) => {
   
   const getResultStyle = (result: 'W' | 'D' | 'L', isLatest: boolean, position: number, totalResults: number) => {
-    // Calculate opacity for temporal progression (0.6 to 1.0)
-    const opacity = 0.6 + (position / (totalResults - 1)) * 0.4;
-    
     let baseClasses = '';
     switch (result) {
       case 'W':
@@ -247,6 +256,74 @@ const StatRow: React.FC<StatRowProps> = ({
   );
 };
 
+// --- Enhanced Team Logo Component ---
+const StatsTeamLogo: React.FC<{ team: Team, size?: 'sm' | 'md' }> = ({ team, size = 'sm' }) => {
+  const sizeClasses = {
+    sm: "w-8 h-8 sm:w-12 sm:h-12",
+    md: "w-12 h-12 sm:w-16 sm:h-16"
+  };
+
+  if (team.logo) {
+    return (
+      <img 
+        src={team.logo} 
+        alt={team.name} 
+        className={`${sizeClasses[size]} object-contain`} 
+      />
+    );
+  }
+
+  return (
+    <div className={`
+      ${sizeClasses[size]} rounded-full 
+      bg-gradient-to-br from-blue-500 to-blue-700 
+      text-white font-semibold shadow-sm
+      border-2 border-white border-opacity-60
+      flex items-center justify-center
+    `}>
+      <span className="text-xs sm:text-sm">
+        {team.shortName?.substring(0, 2) || team.name.substring(0, 2)}
+      </span>
+    </div>
+  );
+};
+
+// --- Team Header - Now can access getStatCategoryTitle ---
+const renderTeamHeader = (homeTeam: Team, awayTeam: Team, activeTab: StatCategory) => (
+  <div className={`grid grid-cols-3 ${SPACING.gridGap} items-center`}>
+    {/* Home Team */}
+    <div className="flex items-center justify-center">
+      <div className="flex flex-col items-center space-y-2 sm:space-y-3">
+        <StatsTeamLogo team={homeTeam} size="sm" />
+        <div className="text-center min-w-0">
+          <div className="text-xs sm:text-sm font-medium text-gray-900 truncate max-w-[80px] sm:max-w-[120px]">
+            {homeTeam.shortName || homeTeam.name}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* Center Title - Now uses dynamic title */}
+    <div className="text-center px-1">
+      <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 leading-tight">
+        {getStatCategoryTitle(activeTab)}
+      </h2>
+    </div>
+
+    {/* Away Team */}
+    <div className="flex items-center justify-center">
+      <div className="flex flex-col items-center space-y-2 sm:space-y-3">
+        <StatsTeamLogo team={awayTeam} size="sm" />
+        <div className="text-center min-w-0">
+          <div className="text-xs sm:text-sm font-medium text-gray-900 truncate max-w-[80px] sm:max-w-[120px]">
+            {awayTeam.shortName || awayTeam.name}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 // --- ModernStatsTable Component ---
 const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   homeTeam,
@@ -276,18 +353,6 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     { key: 'fouls', label: 'Fouls' }
   ];
 
-  const getStatCategoryTitle = (category: StatCategory): string => {
-    switch (category) {
-      case 'form': return 'Team Form';
-      case 'goals': return 'Team Goals';
-      case 'corners': return 'Team Corners';
-      case 'cards': return 'Team Cards';
-      case 'shooting': return 'Team Shooting';
-      case 'fouls': return 'Team Fouls';
-      default: return 'Team Stats';
-    }
-  };
-
   const getStatsForCategory = (category: StatCategory): Record<string, StatValue> => {
     if (!effectiveStats) return {};
     const getStat = (key: string, unit?: string): StatValue => {
@@ -308,7 +373,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
   const currentStats = getStatsForCategory(activeTab);
 
-  // --- Render Form Content (Updated) ---
+  // --- Render Form Content ---
   const renderFormContent = () => {
     if (!effectiveStats)
       return (
@@ -344,15 +409,15 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
                 <div key={`empty-home-${index}`} className="w-6 h-6 sm:w-8 sm:h-8 rounded border border-gray-200 bg-gray-50 flex-shrink-0"></div>
               ))}
               {homeResults.map((result, index) => (
-  <div key={`home-${index}`} className="flex-shrink-0">
-    <FormResult 
-      result={result} 
-      isLatest={index === homeResults.length - 1}
-      position={index}
-      totalResults={homeResults.length}
-    />
-  </div>
-))}
+                <div key={`home-${index}`} className="flex-shrink-0">
+                  <FormResult 
+                    result={result} 
+                    isLatest={index === homeResults.length - 1}
+                    position={index}
+                    totalResults={homeResults.length}
+                  />
+                </div>
+              ))}
             </div>
           </div>
 
@@ -363,15 +428,15 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
           <div className="flex justify-start min-w-0">
             <div className="flex space-x-1 sm:space-x-2 flex-nowrap">
               {awayResults.slice().reverse().map((result, index) => (
-  <div key={`away-${index}`} className="flex-shrink-0">
-    <FormResult 
-      result={result} 
-      isLatest={index === 0}
-      position={awayResults.length - 1 - index}
-      totalResults={awayResults.length}
-    />
-  </div>
-))}
+                <div key={`away-${index}`} className="flex-shrink-0">
+                  <FormResult 
+                    result={result} 
+                    isLatest={index === 0}
+                    position={awayResults.length - 1 - index}
+                    totalResults={awayResults.length}
+                  />
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -413,7 +478,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   }
 
   // --- Main Render ---
-    return (
+  return (
     <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
       {/* HEADER BLOCK */}
       <div className="w-full">
@@ -510,84 +575,5 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     </div>
   );
 };
-
-const StatsTeamLogo: React.FC<{ team: Team, size?: 'sm' | 'md' }> = ({ team, size = 'sm' }) => {
-  const sizeClasses = {
-    sm: "w-8 h-8 sm:w-12 sm:h-12",
-    md: "w-12 h-12 sm:w-16 sm:h-16"
-  };
-
-  if (team.logo) {
-    return (
-      <img 
-        src={team.logo} 
-        alt={team.name} 
-        className={`${sizeClasses[size]} object-contain`} 
-      />
-    );
-  }
-
-  return (
-    <div className={`
-      ${sizeClasses[size]} rounded-full 
-      bg-gradient-to-br from-blue-500 to-blue-700 
-      text-white font-semibold shadow-sm
-      border-2 border-white border-opacity-60
-      flex items-center justify-center
-    `}>
-      <span className="text-xs sm:text-sm">
-        {team.shortName?.substring(0, 2) || team.name.substring(0, 2)}
-      </span>
-    </div>
-  );
-};
-
-// --- Team Header ---
-const renderTeamHeader = (homeTeam: Team, awayTeam: Team, activeTab: StatCategory) => (
-  <div className={`grid grid-cols-3 ${SPACING.gridGap} items-center`}>
-    {/* Home Team */}
-    <div className="flex items-center justify-center">
-      <div className="flex flex-col items-center space-y-2 sm:space-y-3">
-        {homeTeam.logo ? (
-          <img src={homeTeam.logo} alt={homeTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
-        ) : (
-          <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
-            <span className="text-gray-600 font-semibold text-xs sm:text-sm">{homeTeam.shortName?.charAt(0) || homeTeam.name.charAt(0)}</span>
-          </div>
-        )}
-        <div className="text-center min-w-0">
-          <div className="text-xs sm:text-sm font-medium text-gray-900 truncate max-w-[80px] sm:max-w-[120px]">
-            {homeTeam.shortName || homeTeam.name}
-          </div>
-        </div>
-      </div>
-    </div>
-
-    {/* Center Title */}
-    <div className="text-center px-1">
-     <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 leading-tight">
-  {getStatCategoryTitle(activeTab)}
-</h2>
-    </div>
-
-    {/* Away Team */}
-    <div className="flex items-center justify-center">
-      <div className="flex flex-col items-center space-y-2 sm:space-y-3">
-        {awayTeam.logo ? (
-          <img src={awayTeam.logo} alt={awayTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
-        ) : (
-          <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
-            <span className="text-gray-600 font-semibold text-xs sm:text-sm">{awayTeam.shortName?.charAt(0) || awayTeam.name.charAt(0)}</span>
-          </div>
-        )}
-        <div className="text-center min-w-0">
-          <div className="text-xs sm:text-sm font-medium text-gray-900 truncate max-w-[80px] sm:max-w-[120px]">
-            {awayTeam.shortName || awayTeam.name}
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-);
 
 export default ModernStatsTable;
