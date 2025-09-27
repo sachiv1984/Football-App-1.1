@@ -10,7 +10,8 @@ interface MatchHeaderProps {
 // Add this new component before the main MatchHeader component:
 const LiveStatusBadge: React.FC = () => (
   <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-full shadow-lg">
-    <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+    <div className="w-2 h-2 bg-white rounded-full live-pulse" />
+    {/* Changed from animate-pulse to live-pulse */}
     <span className="text-xs font-bold uppercase tracking-wider">
       Live
     </span>
