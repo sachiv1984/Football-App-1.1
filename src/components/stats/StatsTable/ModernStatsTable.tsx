@@ -162,7 +162,7 @@ const FormResult: React.FC<{ result: 'W' | 'D' | 'L', isLatest?: boolean }> = ({
   );
 };
 
-// --- StatRow Component ---
+// --- StatRow Component (Cleaned: No longer requires formatValue prop) ---
 interface StatRowProps {
   label: string;
   homeValue: number | string;
@@ -236,7 +236,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
   const effectiveStats = propStats || fetchedStats;
   
-  // FIX: Restore the definition of the tabs array
+  // Tabs definition (REQUIRED to fix errors)
   const tabs: { key: StatCategory; label: string }[] = [
     { key: 'form', label: 'Form' },
     { key: 'goals', label: 'Goals' },
@@ -278,7 +278,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     }, {} as Record<string, StatValue>);
   };
   
-  // FIX: Restore the calculation of currentStats
+  // currentStats calculation (REQUIRED to fix errors)
   const currentStats = getStatsForCategory(activeTab);
 
 
@@ -456,9 +456,9 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   // --- MAIN RENDER ---
   return (
     <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
-      {/* Header with navigation tabs */}
+      {/* Header with navigation tabs - FIXED WIDTH for full container fill */}
       <div className="border-b border-gray-200 bg-gray-50 w-full">
-        {/* Mobile Tabs */}
+        {/* Mobile Tabs - ADDED w-full */}
         <div className="flex overflow-x-auto scrollbar-hide w-full sm:hidden">
           {tabs.map((tab) => (
             <button
@@ -474,7 +474,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
             </button>
           ))}
         </div>
-        {/* Desktop Tabs */}
+        {/* Desktop Tabs - ADDED w-full */}
         <div className="hidden sm:flex w-full">
           {tabs.map((tab) => (
             <button
@@ -557,7 +557,6 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
             <div className={SPACING.itemSpacing}>
               {Object.entries(currentStats).map(([statName, statData]) => {
                 const isMatchesPlayed = statName === 'Matches Played';
-                // Type casting is necessary here because statData comes from Object.entries
                 const typedStatData = statData as StatValue; 
                 return (
                   <StatRow
