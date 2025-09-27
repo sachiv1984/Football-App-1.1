@@ -2,9 +2,9 @@
 import React from 'react';
 import { Target, DollarSign, TrendingUp, Brain, Zap } from 'lucide-react';
 import ConfidenceIndicator from './ConfidenceIndicator';
-import { AIInsightCardProps } from './AIInsightCard.types';
 
-export interface AIInsight {
+// Local type definitions to avoid import conflicts
+interface AIInsight {
   id: string;
   title: string;
   description: string;
@@ -12,30 +12,17 @@ export interface AIInsight {
   confidence: 'high' | 'medium' | 'low';
   odds?: string;
   supportingData?: string;
-  source?: string; // Added for service identification
-  aiEnhanced?: boolean; // Added for AI enhancement badge
+  source?: string;
+  aiEnhanced?: boolean;
 }
 
-export interface AIInsightCardProps {
+interface AIInsightCardProps {
   insight: AIInsight;
   className?: string;
   showConfidence?: boolean;
   compact?: boolean;
-  showServiceBadge?: boolean; // New prop
-  animated?: boolean; // New prop
-}
-
-export interface ConfidenceIndicatorProps {
-  confidence: 'high' | 'medium' | 'low';
-  showLabel?: boolean;
-  size?: 'sm' | 'md' | 'lg';
-}
-
-export interface InsightsContainerProps {
-  insights: AIInsight[];
-  title?: string;
-  className?: string;
-  maxItems?: number;
+  showServiceBadge?: boolean;
+  animated?: boolean;
 }
 
 const AIInsightCard: React.FC<AIInsightCardProps> = ({
@@ -79,7 +66,7 @@ const AIInsightCard: React.FC<AIInsightCardProps> = ({
   /**
    * Get service badge info
    */
-  const getServiceInfo = (insight: any) => {
+  const getServiceInfo = (insight: AIInsight) => {
     const source = insight.source || 'ai';
     
     const serviceMap: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -267,7 +254,7 @@ const AIInsightCard: React.FC<AIInsightCardProps> = ({
       )}
 
       {/* AI Enhancement Badge (if this insight has special AI features) */}
-      {(insight as any).aiEnhanced && (
+      {insight.aiEnhanced && (
         <div className="mt-3 flex items-center gap-2">
           <Brain className="w-4 h-4 text-purple-500" />
           <span className="text-xs text-purple-600 font-medium">
