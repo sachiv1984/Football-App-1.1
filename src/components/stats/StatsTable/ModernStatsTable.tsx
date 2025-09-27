@@ -478,11 +478,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
       
       {/* 💡 HEADER BLOCK: No padding/margin on this outer wrapper, allowing tabs to span edge-to-edge */}
       <div className="w-full">
-        
-        // src/components/stats/StatsTable/ModernStatsTable.tsx (Around line 465)
-
-// ...
-
+  
         {/* Navigation tabs: Full Width guaranteed, NO PADDING HERE */}
         <div className="bg-gray-50 border-b border-gray-200 w-full flex">
           
