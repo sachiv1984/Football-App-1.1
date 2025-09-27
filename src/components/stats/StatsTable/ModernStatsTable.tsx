@@ -286,8 +286,8 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   // --- RENDERING SUB-COMPONENTS ---
   
   // Component for Team Logos, Names, and Stat Title
+  // 🟢 CHANGE 1: Switched from items-end to items-center for better vertical alignment
   const renderTeamHeader = () => (
-      {/* 🟢 CHANGE 1: Switched from items-end to items-center for better vertical alignment */}
       <div className={`grid grid-cols-3 ${SPACING.gridGap} items-center`}>
           {/* Home Team */}
           <div className="flex items-center justify-center">
