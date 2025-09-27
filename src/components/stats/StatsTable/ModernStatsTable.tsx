@@ -415,13 +415,13 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
       {/* Header with navigation tabs - Responsive Layout */}
       <div className="border-b border-gray-200 bg-gray-50">
-        {/* Mobile: Horizontal scroll */}
-        <div className="flex overflow-x-auto scrollbar-hide w-full lg:hidden">
+        {/* Small mobile: Horizontal scroll (iPhone 14 and smaller) */}
+        <div className="flex overflow-x-auto scrollbar-hide w-full sm:hidden">
           {tabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex-shrink-0 px-4 py-3 text-xs sm:text-sm font-medium whitespace-nowrap border-b-2 transition-colors min-w-[80px] ${
+              className={`flex-shrink-0 px-3 py-3 text-xs font-medium whitespace-nowrap border-b-2 transition-colors min-w-[70px] ${
                 activeTab === tab.key
                   ? 'text-purple-600 border-purple-600 bg-white'
                   : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
@@ -432,13 +432,13 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
           ))}
         </div>
 
-        {/* Desktop: Equal width grid - no scrolling */}
-        <div className="hidden lg:grid lg:grid-cols-6">
+        {/* Large mobile and up: Equal width grid - no scrolling (iPhone 15 Pro Max and larger) */}
+        <div className="hidden sm:grid sm:grid-cols-6">
           {tabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+              className={`px-4 py-3 sm:px-6 sm:py-4 text-xs sm:text-sm font-medium border-b-2 transition-colors ${
                 activeTab === tab.key
                   ? 'text-purple-600 border-purple-600 bg-white'
                   : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
