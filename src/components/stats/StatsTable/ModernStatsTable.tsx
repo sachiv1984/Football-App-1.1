@@ -1,4 +1,31 @@
-// src/components/stats/StatsTable/ModernStatsTable.tsx
+<div className={SPACING.sectionSpacing}>
+            {/* Team logos and title - Enhanced Grid Layout */}
+            <div className={`grid grid-cols-3 ${SPACING.gridGap} items-center ${SPACING.sectionMargin}`}>
+              <div className="flex items-center justify-center">
+                <div className="flex flex-col items-center space-y-2 sm:space-y-3">
+                  {homeTeam.logo ? (
+                    <img src={homeTeam.logo} alt={homeTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
+                  ) : (
+                    <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                      <span className="text-gray-600 font-semibold text-xs sm:text-sm">{homeTeam.shortName?.charAt(0) || homeTeam.name.charAt(0)}</span>
+                    </div>
+                  )}
+                  <div className="text-center min-w-0">
+                    <div className="text-xs sm:text-sm font-medium text-gray-900 truncate max-w-[80px] sm:max-w-[120px]">
+                      {homeTeam.shortName || homeTeam.name}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="text-center px-1">
+                <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 leading-tight">{getStatCategoryTitle(activeTab)}</h2>
+              </div>
+              
+              <div className="flex items-center justify-center">
+                <div className="flex flex-col items-center space-y-2 sm:space-y-3">
+                  {awayTeam.logo ? (
+                    <img src={away// src/components/stats/StatsTable/ModernStatsTable.tsx
 import React, { useState } from 'react';
 import { Team } from '../../../types';
 import { useTeamStats } from '../../../hooks/useTeamStats';
@@ -51,6 +78,31 @@ const FormResult: React.FC<{ result: 'W' | 'D' | 'L' }> = ({ result }) => {
   );
 };
 
+// Consistent spacing tokens
+const SPACING = {
+  // Container padding
+  containerPadding: "p-4 sm:p-6",
+  
+  // Section spacing (between major sections)
+  sectionSpacing: "space-y-6 sm:space-y-8",
+  
+  // Item spacing (between individual items/stats)
+  itemSpacing: "space-y-4 sm:space-y-5",
+  
+  // Grid gaps
+  gridGap: "gap-3 sm:gap-4",
+  
+  // Margins
+  sectionMargin: "mb-6 sm:mb-8",
+  itemMargin: "mb-4 sm:mb-5",
+  
+  // Tab padding
+  tabPadding: "px-4 sm:px-6 py-3 sm:py-4",
+  
+  // Indicator padding
+  indicatorPadding: "px-4 sm:px-6 py-3 sm:py-4"
+};
+
 const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   homeTeam,
   awayTeam,
@@ -81,7 +133,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   if (showLoadingState && autoLoad && loading && !propStats) {
     return (
       <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
-        <div className="p-6 text-center">
+        <div className={SPACING.containerPadding}>
           <div className="inline-flex items-center space-x-2">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
             <span className="text-gray-600">Loading team statistics...</span>
@@ -95,7 +147,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   if (showLoadingState && autoLoad && error && !propStats) {
     return (
       <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
-        <div className="p-6 text-center">
+        <div className={`${SPACING.containerPadding} text-center`}>
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
             <div className="text-red-600 font-medium mb-2">⚠️ Error Loading Statistics</div>
             <p className="text-red-700 text-sm mb-4">{error}</p>
@@ -115,7 +167,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   if (!effectiveStats) {
     return (
       <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
-        <div className="p-6 text-center">
+        <div className={`${SPACING.containerPadding} text-center`}>
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
             <div className="text-gray-600 font-medium mb-2">📊 No Statistics Available</div>
             <p className="text-gray-700 text-sm">No statistics data is currently available for these teams.</p>
@@ -252,11 +304,11 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     const { homeResults, awayResults, homeStats, awayStats } = recentForm;
 
     return (
-      <div className="space-y-6 sm:space-y-8">
+      <div className={SPACING.sectionSpacing}>
         {/* Team logos and title - Enhanced Grid Layout */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-4 items-center mb-6 sm:mb-8">
+        <div className={`grid grid-cols-3 ${SPACING.gridGap} items-center ${SPACING.sectionMargin}`}>
           <div className="flex items-center justify-center">
-            <div className="flex flex-col items-center space-y-1 sm:space-y-2">
+            <div className="flex flex-col items-center space-y-2 sm:space-y-3">
               {homeTeam.logo ? (
                 <img src={homeTeam.logo} alt={homeTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
               ) : (
@@ -277,7 +329,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
           </div>
           
           <div className="flex items-center justify-center">
-            <div className="flex flex-col items-center space-y-1 sm:space-y-2">
+            <div className="flex flex-col items-center space-y-2 sm:space-y-3">
               {awayTeam.logo ? (
                 <img src={awayTeam.logo} alt={awayTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
               ) : (
@@ -295,7 +347,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
         </div>
 
         {/* Form display - Flexible Grid Layout for Form Badges */}
-        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-2 sm:gap-4 items-center mb-6 sm:mb-8">
+        <div className={`grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] ${SPACING.gridGap} items-center ${SPACING.sectionMargin}`}>
           {/* Home team form - centered with flexible width */}
           <div className="flex justify-center min-w-0">
             <div className="flex space-x-1 sm:space-x-2">
@@ -311,7 +363,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
           </div>
 
           {/* Center form label - auto width */}
-          <div className="text-center px-2 sm:px-4">
+          <div className="text-center px-3 sm:px-4">
             <span className="text-sm sm:text-base lg:text-lg font-medium text-gray-700 whitespace-nowrap">Form</span>
           </div>
 
@@ -331,8 +383,8 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
         </div>
 
         {/* Stats comparison - Flexible Grid Layout */}
-        <div className="space-y-3 sm:space-y-4">
-          <div className="grid grid-cols-[minmax(0,1fr)_minmax(120px,2fr)_minmax(0,1fr)] gap-2 sm:gap-4 items-center py-2">
+        <div className={SPACING.itemSpacing}>
+          <div className={`grid grid-cols-[minmax(0,1fr)_minmax(120px,2fr)_minmax(0,1fr)] ${SPACING.gridGap} items-center py-2`}>
             <div className="text-center min-w-0">
               <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">{homeStats.matchesPlayed}</span>
             </div>
@@ -344,7 +396,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-[minmax(0,1fr)_minmax(120px,2fr)_minmax(0,1fr)] gap-2 sm:gap-4 items-center py-2">
+          <div className={`grid grid-cols-[minmax(0,1fr)_minmax(120px,2fr)_minmax(0,1fr)] ${SPACING.gridGap} items-center py-2`}>
             <div className="text-center min-w-0">
               <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">{homeStats.won}</span>
             </div>
@@ -356,7 +408,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-[minmax(0,1fr)_minmax(120px,2fr)_minmax(0,1fr)] gap-2 sm:gap-4 items-center py-2">
+          <div className={`grid grid-cols-[minmax(0,1fr)_minmax(120px,2fr)_minmax(0,1fr)] ${SPACING.gridGap} items-center py-2`}>
             <div className="text-center min-w-0">
               <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">{homeStats.drawn}</span>
             </div>
@@ -368,7 +420,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-[minmax(0,1fr)_minmax(120px,2fr)_minmax(0,1fr)] gap-2 sm:gap-4 items-center py-2">
+          <div className={`grid grid-cols-[minmax(0,1fr)_minmax(120px,2fr)_minmax(0,1fr)] ${SPACING.gridGap} items-center py-2`}>
             <div className="text-center min-w-0">
               <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">{homeStats.lost}</span>
             </div>
@@ -394,7 +446,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex-1 px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+            className={`flex-1 ${SPACING.tabPadding} text-xs sm:text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
               activeTab === tab.key
                 ? 'text-purple-600 border-purple-600 bg-white'
                 : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
@@ -406,7 +458,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
       </div>
 
       {/* League indicator */}
-      <div className="px-3 sm:px-6 py-2 sm:py-3 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
+      <div className={`${SPACING.indicatorPadding} bg-gray-50 border-b border-gray-100 flex justify-between items-center`}>
         <p className="text-xs sm:text-sm text-gray-600">
           Showing stats for {league} {season}
         </p>
@@ -420,15 +472,15 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
       </div>
 
       {/* Content */}
-      <div className="p-3 sm:p-6">
+      <div className={SPACING.containerPadding}>
         {activeTab === 'form' ? (
           renderFormContent()
         ) : (
-          <div className="space-y-6 sm:space-y-8">
+          <div className={SPACING.sectionSpacing}>
             {/* Team logos and title - Enhanced Grid Layout */}
-            <div className="grid grid-cols-3 gap-2 sm:gap-4 items-center mb-6 sm:mb-8">
+            <div className={`grid grid-cols-3 ${SPACING.gridGap} items-center ${SPACING.sectionMargin}`}>
               <div className="flex items-center justify-center">
-                <div className="flex flex-col items-center space-y-1 sm:space-y-2">
+                <div className="flex flex-col items-center space-y-2 sm:space-y-3">
                   {homeTeam.logo ? (
                     <img src={homeTeam.logo} alt={homeTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
                   ) : (
@@ -449,7 +501,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
               </div>
               
               <div className="flex items-center justify-center">
-                <div className="flex flex-col items-center space-y-1 sm:space-y-2">
+                <div className="flex flex-col items-center space-y-2 sm:space-y-3">
                   {awayTeam.logo ? (
                     <img src={awayTeam.logo} alt={awayTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
                   ) : (
@@ -467,11 +519,11 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
             </div>
 
             {/* Stats comparison - Flexible Grid Layout */}
-            <div className="space-y-3 sm:space-y-4">
+            <div className={SPACING.itemSpacing}>
               {Object.entries(currentStats).map(([statName, statData]) => {
                 const isMatchesPlayed = statName === 'Matches Played';
                 return (
-                  <div key={statName} className="grid grid-cols-[minmax(0,1fr)_minmax(120px,2fr)_minmax(0,1fr)] gap-2 sm:gap-4 items-center py-2">
+                  <div key={statName} className={`grid grid-cols-[minmax(0,1fr)_minmax(120px,2fr)_minmax(0,1fr)] ${SPACING.gridGap} items-center py-2`}>
                     <div className="text-center min-w-0">
                       <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">
                         {formatValue(statData.homeValue, statData.unit, isMatchesPlayed)}
