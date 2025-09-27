@@ -224,7 +224,7 @@ const StatRow: React.FC<StatRowProps> = ({
     typeof value === 'number' ? formatValue(value, unit, isMatchesPlayed) : value;
 
   return (
-    <div className={`grid grid-cols-[minmax(0,1fr)_minmax(120px,2fr)_minmax(0,1fr)] ${SPACING.gridGap} items-center py-2`}>
+    <div className={`grid grid-cols-[minmax(0,1fr)_minmax(120px,2fr)_minmax(0,1fr)] ${SPACING.gridGap} items-center py-2 group hover:bg-gray-50 rounded-lg transition-all duration-150 px-2 hover:translate-x-1`}>
       <div className="text-right min-w-0">
         <span className={getValueStyling(homeValue, statType, label)}>
           {formatDisplayValue(homeValue)}
@@ -483,7 +483,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
       {/* Content */}
       <div className={SPACING.contentPaddingClass}>
-        <div className="mb-6 sm:mb-8">{renderTeamHeader(homeTeam, awayTeam)}</div>
+        <div className="mb-6 sm:mb-8">{renderTeamHeader(homeTeam, awayTeam, activeTab)}</div>
         {activeTab === 'form' ? (
           renderFormContent()
         ) : (
@@ -512,7 +512,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 };
 
 // --- Team Header ---
-const renderTeamHeader = (homeTeam: Team, awayTeam: Team) => (
+const renderTeamHeader = (homeTeam: Team, awayTeam: Team, activeTab: StatCategory) => (
   <div className={`grid grid-cols-3 ${SPACING.gridGap} items-center`}>
     {/* Home Team */}
     <div className="flex items-center justify-center">
@@ -534,9 +534,9 @@ const renderTeamHeader = (homeTeam: Team, awayTeam: Team) => (
 
     {/* Center Title */}
     <div className="text-center px-1">
-      <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 leading-tight">
-        Team Stats
-      </h2>
+     <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 leading-tight">
+  {getStatCategoryTitle(activeTab)}
+</h2>
     </div>
 
     {/* Away Team */}
