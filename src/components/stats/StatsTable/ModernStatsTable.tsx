@@ -33,11 +33,13 @@ type StatCategory = 'form' | 'goals' | 'corners' | 'cards' | 'shooting' | 'fouls
 
 // Consistent spacing tokens
 const SPACING = {
-  containerPadding: "p-4 sm:p-6",
+  // Use p-0 here, padding is now handled by the .contentPaddingClass div below
+  containerPadding: "p-0", 
   sectionSpacing: "space-y-6 sm:space-y-8",
   itemSpacing: "space-y-4 sm:space-y-5",
   gridGap: "gap-3 sm:gap-4",
-  contentPaddingClass: "p-4 sm:p-6" // Defines the padding for content sections
+  // This class defines the necessary padding for internal content (p-4 sm:p-6)
+  contentPaddingClass: "p-4 sm:p-6" 
 };
 
 // --- SHARED UTILITY FUNCTION ---
@@ -254,8 +256,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   };
 
   const getStatsForCategory = (category: StatCategory): Record<string, StatValue> => {
-    // We already handle null/error states at the component root, but for TypeScript
-    // safety in functions that might be called later:
+    // FIX TS18047: Explicit null check
     if (!effectiveStats) {
         return {}; 
     }
@@ -333,7 +334,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
   // --- RENDER FORM CONTENT ---
   const renderFormContent = () => {
-    // 💡 FIX TS18047: Explicit null check for TypeScript safety
+    // FIX TS18047: Explicit null check for TypeScript safety
     if (!effectiveStats) {
       return (
         <div className="text-center py-8">
@@ -475,10 +476,10 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   return (
     <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
       
-      {/* 💡 THE FINAL WIDTH FIX: Negative margins to break out of component padding */}
-      <div className="w-full -mx-4 sm:-mx-6">
+      {/* 💡 HEADER BLOCK: No padding/margin on this outer wrapper, allowing tabs to span edge-to-edge */}
+      <div className="w-full">
         
-        {/* Navigation tabs: Full Width guaranteed */}
+        {/* Navigation tabs: Full Width guaranteed, NO PADDING HERE */}
         <div className="bg-gray-50 border-b border-gray-200 w-full flex">
           
           {/* Mobile Tabs: Uses w-full and horizontal scroll */}
@@ -487,7 +488,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`flex-shrink-0 px-2 py-3 text-xs font-medium whitespace-nowrap border-b-2 transition-colors min-w-[60px] ${
+                className={`flex-shrink-0 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors min-w-[60px] ${
                   activeTab === tab.key
                     ? 'text-purple-600 border-purple-600 bg-white'
                     : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
@@ -516,7 +517,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
           </div>
         </div>
 
-        {/* League indicator: Padding maintained by SPACING.contentPaddingClass (p-4 sm:p-6) */}
+        {/* League indicator: ALIGNED with content using SPACING.contentPaddingClass */}
         <div className={`${SPACING.contentPaddingClass} bg-gray-50 border-b border-gray-100 flex justify-between items-center`}>
           <p className="text-xs sm:text-sm text-gray-600">
             Showing stats for {league} {season}
@@ -531,10 +532,10 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
         </div>
       </div>
 
-      {/* Content Area */}
+      {/* Content Area: Uses SPACING.contentPaddingClass for consistent padding */}
       <div className={SPACING.contentPaddingClass}>
         
-        {/* Team logos and title are now OUTSIDE the conditional block (Fixing the disappearance issue) */}
+        {/* Team logos and title are now OUTSIDE the conditional block */}
         <div className={activeTab === 'form' ? 'mb-4 sm:mb-6' : 'mb-6 sm:mb-8'}>
             {renderTeamHeader()}
         </div>
