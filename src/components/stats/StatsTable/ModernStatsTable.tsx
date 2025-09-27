@@ -116,48 +116,13 @@ const STAT_CONFIGS: Record<Exclude<StatCategory, 'form'>, Record<string, { key: 
   }
 };
 
-// --- Form Calculation Helpers (NEW) ---
-
-// Team momentum calculation
-const calculateMomentum = (results: ('W' | 'D' | 'L')[]): 'hot' | 'cold' | 'neutral' => {
-  const recent3 = results.slice(-3);
-  const wins = recent3.filter(r => r === 'W').length;
-  const losses = recent3.filter(r => r === 'L').length;
-  
-  if (wins >= 2 && losses === 0) return 'hot';
-  if (losses >= 2 && wins === 0) return 'cold';
-  return 'neutral';
-};
-
-// Streak calculation helper (NEW)
-const calculateStreak = (results: ('W' | 'D' | 'L')[]): { type: 'W' | 'D' | 'L'; count: number } | undefined => {
-  if (results.length === 0) return undefined;
-
-  let count = 0;
-  const latestType = results[results.length - 1];
-  
-  // Iterate backward
-  for (let i = results.length - 1; i >= 0; i--) {
-    if (results[i] === latestType) {
-      count++;
-    } else {
-      break;
-    }
-  }
-
-  return { type: latestType, count };
-};
-
-
-// --- Enhanced FormResult Component (REPLACED) ---
-const FormResult: React.FC<{ 
-  result: 'W' | 'D' | 'L', 
-  isLatest?: boolean, 
-  position?: number, 
-  totalResults?: number,
-  streak?: { type: 'W' | 'L' | 'D', count: number },
-  momentum?: 'hot' | 'cold' | 'neutral'
-}> = ({ result, isLatest, position = 0, totalResults = 5, streak, momentum }) => {
+// --- Enhanced FormResult Component ---
+const FormResult: React.FC<{ result: 'W' | 'D' | 'L', isLatest?: boolean, position?: number, totalResults?: number }> = ({ 
+  result, 
+  isLatest, 
+  position = 0, 
+  totalResults = 5 
+}) => {
   
   const getResultStyle = (result: 'W' | 'D' | 'L', isLatest: boolean, position: number, totalResults: number) => {
     let baseClasses = '';
@@ -178,13 +143,13 @@ const FormResult: React.FC<{
       let latestEnhancement = '';
       switch (result) {
         case 'W':
-          latestEnhancement = 'border-green-600 shadow-lg transform scale-105'; 
+          latestEnhancement = 'border-green-600 shadow-md transform scale-105'; 
           break;
         case 'D':
-          latestEnhancement = 'border-gray-600 shadow-lg transform scale-105';
+          latestEnhancement = 'border-gray-600 shadow-md transform scale-105';
           break;
         case 'L':
-          latestEnhancement = 'border-red-600 shadow-lg transform scale-105';
+          latestEnhancement = 'border-red-600 shadow-md transform scale-105';
           break;
       }
       return `${baseClasses} border-4 ${latestEnhancement}`;
@@ -193,45 +158,17 @@ const FormResult: React.FC<{
     return `${baseClasses} border-2`;
   };
 
-  const getMomentumEffects = () => {
-    if (!momentum || momentum === 'neutral') return '';
-    
-    return momentum === 'hot' 
-      ? 'shadow-lg shadow-green-500/30 ring-2 ring-green-400 ring-opacity-60'
-      : 'opacity-70 grayscale-[0.3] shadow-sm';
-  };
-
-  const getStreakIndicator = () => {
-    if (!streak || streak.count < 2) return null;
-    
-    const streakColors = {
-      W: 'bg-green-600 text-white',
-      L: 'bg-red-600 text-white', 
-      D: 'bg-gray-600 text-white'
-    };
-
-    return (
-      <div className={`absolute -top-2 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${streakColors[streak.type]} border-2 border-white shadow-lg z-20`}>
-        {streak.count}
-      </div>
-    );
-  };
-
   return (
-    <div className="relative">
-      <div 
-        className={`
-          w-6 h-6 sm:w-8 sm:h-8 rounded border flex items-center justify-center 
-          text-xs sm:text-sm font-semibold transition-all duration-300 cursor-default
-          hover:scale-110
-          ${getResultStyle(result, isLatest || false, position, totalResults)}
-          ${getMomentumEffects()}
-        `}
-        style={{ opacity: 0.6 + (position / (totalResults - 1)) * 0.4 }}
-      >
-        {result}
-      </div>
-      {getStreakIndicator()}
+    <div 
+      className={`
+        w-6 h-6 sm:w-8 sm:h-8 rounded border flex items-center justify-center 
+        text-xs sm:text-sm font-semibold transition-all duration-200
+        hover:scale-110
+        ${getResultStyle(result, isLatest || false, position, totalResults)}
+      `}
+      style={{ opacity: 0.6 + (position / (totalResults - 1)) * 0.4 }}
+    >
+      {result}
     </div>
   );
 };
@@ -436,7 +373,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
   const currentStats = getStatsForCategory(activeTab);
 
-  // --- Render Form Content (UPDATED) ---
+  // --- Render Form Content ---
   const renderFormContent = () => {
     if (!effectiveStats)
       return (
@@ -454,13 +391,6 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
       );
 
     const { homeResults, awayResults, homeStats, awayStats } = recentForm;
-    
-    // Calculate Momentum and Streak
-    const homeMomentum = calculateMomentum(homeResults);
-    const awayMomentum = calculateMomentum(awayResults);
-    const homeStreak = calculateStreak(homeResults);
-    const awayStreak = calculateStreak(awayResults);
-
     const formStats = [
       { label: 'Matches Played', home: homeStats.matchesPlayed, away: awayStats.matchesPlayed, isMatchesPlayed: true },
       { label: 'Won', home: homeStats.won, away: awayStats.won },
@@ -478,20 +408,16 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
               {Array.from({ length: 5 - homeResults.length }).map((_, index) => (
                 <div key={`empty-home-${index}`} className="w-6 h-6 sm:w-8 sm:h-8 rounded border border-gray-200 bg-gray-50 flex-shrink-0"></div>
               ))}
-              {homeResults.map((result, index) => {
-                const isLatestResult = index === homeResults.length - 1;
-                return (
-                  <div key={`home-${index}`} className="flex-shrink-0">
-                    <FormResult 
-                      result={result} 
-                      isLatest={isLatestResult}
-                      position={index}
-                      totalResults={homeResults.length}
-                      momentum={isLatestResult ? homeMomentum : 'neutral'}
-                      streak={isLatestResult ? homeStreak : undefined}
-                    />
-                  </div>
-                )})}
+              {homeResults.map((result, index) => (
+                <div key={`home-${index}`} className="flex-shrink-0">
+                  <FormResult 
+                    result={result} 
+                    isLatest={index === homeResults.length - 1}
+                    position={index}
+                    totalResults={homeResults.length}
+                  />
+                </div>
+              ))}
             </div>
           </div>
 
@@ -501,20 +427,16 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
           {/* Away Team Form */}
           <div className="flex justify-start min-w-0">
             <div className="flex space-x-1 sm:space-x-2 flex-nowrap">
-              {awayResults.slice().reverse().map((result, index) => {
-                const isLatestResult = index === 0;
-                return (
-                  <div key={`away-${index}`} className="flex-shrink-0">
-                    <FormResult 
-                      result={result} 
-                      isLatest={isLatestResult}
-                      position={awayResults.length - 1 - index}
-                      totalResults={awayResults.length}
-                      momentum={isLatestResult ? awayMomentum : 'neutral'}
-                      streak={isLatestResult ? awayStreak : undefined}
-                    />
-                  </div>
-                )})}
+              {awayResults.slice().reverse().map((result, index) => (
+                <div key={`away-${index}`} className="flex-shrink-0">
+                  <FormResult 
+                    result={result} 
+                    isLatest={index === 0}
+                    position={awayResults.length - 1 - index}
+                    totalResults={awayResults.length}
+                  />
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -655,4 +577,3 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 };
 
 export default ModernStatsTable;
-
