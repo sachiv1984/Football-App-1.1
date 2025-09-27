@@ -326,10 +326,17 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
       </div>
   );
 
-  // --- RENDER FORM CONTENT ---
-  const renderFormContent = () => {
+    // --- RENDER FORM CONTENT ---
+const renderFormContent = () => {
+    if (!effectiveStats) {
+        return (
+            <div className="text-center py-8">
+                <p className="text-gray-600">Statistics are unavailable.</p>
+            </div>
+        );
+    }
     const recentForm = effectiveStats.recentForm as FormData | undefined;
-    
+
     if (!recentForm) {
       return (
         <div className="text-center py-8">
