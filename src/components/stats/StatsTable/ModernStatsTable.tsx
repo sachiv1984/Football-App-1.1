@@ -137,7 +137,7 @@ const FormResult: React.FC<{ result: 'W' | 'D' | 'L', isLatest?: boolean }> = ({
   );
 };
 
-// --- Enhanced StatRow Component ---
+// --- StatRow Component ---
 interface StatRowProps {
   label: string;
   homeValue: number | string;
@@ -241,7 +241,6 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
   const effectiveStats = propStats || fetchedStats;
 
-  // --- Tabs ---
   const tabs: { key: StatCategory; label: string }[] = [
     { key: 'form', label: 'Form' },
     { key: 'goals', label: 'Goals' },
@@ -362,33 +361,25 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
               ))}
             </div>
           </div>
-
-          <div className="text-center px-1 min-w-0">
-            <span className="text-sm sm:text-base lg:text-lg font-medium text-gray-700 whitespace-nowrap">Form</span>
-          </div>
-
+          <div className="text-center text-sm sm:text-base font-medium text-gray-700">Form</div>
           <div className="flex justify-start min-w-0">
-            <div className="flex space-x-1 sm:space-x-2 flex-nowrap"> 
-              {awayResults.slice().reverse().map((result, index) => (
-                <div key={`away-${index}`} className="flex-shrink-0">
-                  <FormResult result={result} isLatest={index === 0} />
-                </div>
-              ))}
-              {Array.from({ length: 5 - awayResults.length }).map((_, index) => (
-                <div key={`empty-away-${index}`} className="w-6 h-6 sm:w-8 sm:h-8 rounded border border-gray-200 bg-gray-50 flex-shrink-0"></div>
+            <div className="flex space-x-1 sm:space-x-2 flex-nowrap">
+              {awayResults.map((result, index) => (
+                <FormResult key={`away-${index}`} result={result} isLatest={index === awayResults.length - 1} />
               ))}
             </div>
           </div>
         </div>
 
+        {/* Stats Rows */}
         <div className={SPACING.itemSpacing}>
-          {formStats.map(stat => (
+          {formStats.map((row) => (
             <StatRow
-              key={stat.label}
-              label={stat.label}
-              homeValue={stat.home}
-              awayValue={stat.away}
-              isMatchesPlayed={stat.isMatchesPlayed}
+              key={row.label}
+              label={row.label}
+              homeValue={row.home}
+              awayValue={row.away}
+              isMatchesPlayed={row.isMatchesPlayed}
               statType="form"
             />
           ))}
@@ -400,46 +391,19 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   // --- Loading/Error States ---
   if (showLoadingState && autoLoad && loading && !propStats) {
     return (
-      <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
-        <div className={`${SPACING.contentPaddingClass} text-center`}>
-          <div className="inline-flex items-center space-x-2">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-            <span className="text-gray-600">Loading team statistics...</span>
-          </div>
-        </div>
-      </div>
+      <div className="text-center py-12 text-gray-500">Loading statistics...</div>
     );
   }
 
   if (showLoadingState && autoLoad && error && !propStats) {
     return (
-      <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
-        <div className={`${SPACING.contentPaddingClass} text-center`}>
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <div className="text-red-600 font-medium mb-2">⚠️ Error Loading Statistics</div>
-            <p className="text-red-700 text-sm mb-4">{error}</p>
-            <button
-              onClick={refetch}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
-            >
-              Try Again
-            </button>
-          </div>
-        </div>
-      </div>
+      <div className="text-center py-12 text-red-500">Failed to load statistics.</div>
     );
   }
 
   if (!effectiveStats) {
     return (
-      <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
-        <div className={`${SPACING.contentPaddingClass} text-center`}>
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <div className="text-gray-600 font-medium mb-2">📊 No Statistics Available</div>
-            <p className="text-gray-700 text-sm">No statistics data is currently available for these teams.</p>
-          </div>
-        </div>
-      </div>
+      <div className="text-center py-12 text-gray-500">No statistics available.</div>
     );
   }
 
@@ -448,42 +412,56 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
       {/* HEADER BLOCK */}
       <div className="w-full">
-        {/* Navigation tabs */}
+        {/* Enhanced Tabs */}
         <div className="bg-gray-50 border-b border-gray-200 w-full flex">
+          {/* Mobile Tabs */}
           <div className="flex w-full sm:hidden"> 
-            {tabs.map(tab => (
+            {tabs.map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`flex-1 px-1 py-3 text-xs font-medium text-center border-b-2 transition-colors min-w-0 ${
-                  activeTab === tab.key
-                    ? 'text-purple-600 border-purple-600 bg-white'
-                    : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
-                }`}
+                className={`
+                  flex-1 px-1 py-3 text-xs font-medium text-center border-b-2 
+                  transition-all duration-300 cubic-bezier(0.4, 0, 0.2, 1) min-w-0 relative
+                  ${activeTab === tab.key
+                    ? 'text-purple-800 border-purple-600 bg-white shadow-sm transform -translate-y-0.5 z-10'
+                    : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                  }
+                `}
               >
-                <span className="block truncate">{tab.label}</span>
+                {activeTab === tab.key && (
+                  <div className="absolute inset-0 bg-gradient-to-t from-purple-50 to-transparent opacity-60 rounded-t-md pointer-events-none" />
+                )}
+                <span className="block truncate relative z-10">{tab.label}</span>
               </button>
             ))}
           </div>
 
+          {/* Desktop Tabs */}
           <div className="hidden sm:flex w-full">
-            {tabs.map(tab => (
+            {tabs.map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`flex-1 px-1 py-3 sm:px-2 sm:py-4 text-xs sm:text-sm font-medium border-b-2 transition-colors text-center min-w-0 ${
-                  activeTab === tab.key
-                    ? 'text-purple-600 border-purple-600 bg-white'
-                    : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
-                }`}
+                className={`
+                  flex-1 px-2 py-4 text-sm font-medium border-b-2 
+                  transition-all duration-300 cubic-bezier(0.4, 0, 0.2, 1) text-center min-w-0 relative
+                  ${activeTab === tab.key
+                    ? 'text-purple-800 border-purple-600 bg-white shadow-sm transform -translate-y-0.5 z-10'
+                    : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                  }
+                `}
               >
-                <span className="block truncate">{tab.label}</span>
+                {activeTab === tab.key && (
+                  <div className="absolute inset-0 bg-gradient-to-t from-purple-50 to-transparent opacity-60 rounded-t-md pointer-events-none" />
+                )}
+                <span className="block truncate relative z-10">{tab.label}</span>
               </button>
             ))}
           </div>
         </div>
 
-        {/* League indicator */}
+        {/* League Indicator */}
         <div className={`${SPACING.contentPaddingClass} bg-gray-50 border-b border-gray-100 flex justify-between items-center`}>
           <p className="text-xs sm:text-sm text-gray-600">
             Showing stats for {league} {season}
