@@ -37,8 +37,8 @@ const SPACING = {
   sectionSpacing: "space-y-6 sm:space-y-8",
   itemSpacing: "space-y-4 sm:space-y-5",
   gridGap: "gap-3 sm:gap-4",
-  tabPadding: "px-4 sm:px-6 py-3 sm:py-4",
-  indicatorPadding: "px-4 sm:px-6 py-3 sm:py-4"
+  // Note: Tabs and Indicator now use custom padding to control width explicitly
+  contentPaddingClass: "p-4 sm:p-6"
 };
 
 // --- SHARED UTILITY FUNCTION ---
@@ -276,54 +276,55 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   
   const currentStats = getStatsForCategory(activeTab);
 
-
-  // --- LOADING/ERROR STATES (UNCHANGED) ---
-  if (showLoadingState && autoLoad && loading && !propStats) {
-    return (
-      <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
-        <div className={`${SPACING.containerPadding} text-center`}>
-          <div className="inline-flex items-center space-x-2">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-            <span className="text-gray-600">Loading team statistics...</span>
+  // --- RENDERING SUB-COMPONENTS ---
+  
+  // Component for Team Logos, Names, and Stat Title (NOW RENDERED ON ALL TABS)
+  const renderTeamHeader = () => (
+      <div className={`grid grid-cols-3 ${SPACING.gridGap} items-center`}>
+          {/* Home Team */}
+          <div className="flex items-center justify-center">
+            <div className="flex flex-col items-center space-y-2 sm:space-y-3">
+              {homeTeam.logo ? (
+                <img src={homeTeam.logo} alt={`Logo for ${homeTeam.name}`} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
+              ) : (
+                <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                  <span className="text-gray-600 font-semibold text-xs sm:text-sm">{homeTeam.shortName?.charAt(0) || homeTeam.name.charAt(0)}</span>
+                </div>
+              )}
+              <div className="text-center min-w-0">
+                <div className="text-xs sm:text-sm font-medium text-gray-900 truncate max-w-[80px] sm:max-w-[120px]">
+                  {homeTeam.shortName || homeTeam.name}
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (showLoadingState && autoLoad && error && !propStats) {
-    return (
-      <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
-        <div className={`${SPACING.containerPadding} text-center`}>
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <div className="text-red-600 font-medium mb-2">⚠️ Error Loading Statistics</div>
-            <p className="text-red-700 text-sm mb-4">{error}</p>
-            <button
-              onClick={refetch}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
-            >
-              Try Again
-            </button>
+          
+          {/* Center Title */}
+          <div className="text-center px-1">
+            <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 leading-tight">
+              {getStatCategoryTitle(activeTab)}
+            </h2>
           </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!effectiveStats) {
-    return (
-      <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
-        <div className={`${SPACING.containerPadding} text-center`}>
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <div className="text-gray-600 font-medium mb-2">📊 No Statistics Available</div>
-            <p className="text-gray-700 text-sm">No statistics data is currently available for these teams.</p>
+          
+          {/* Away Team */}
+          <div className="flex items-center justify-center">
+            <div className="flex flex-col items-center space-y-2 sm:space-y-3">
+              {awayTeam.logo ? (
+                <img src={awayTeam.logo} alt={`Logo for ${awayTeam.name}`} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
+              ) : (
+                <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                  <span className="text-gray-600 font-semibold text-xs sm:text-sm">{awayTeam.shortName?.charAt(0) || awayTeam.name.charAt(0)}</span>
+                </div>
+              )}
+              <div className="text-center min-w-0">
+                <div className="text-xs sm:text-sm font-medium text-gray-900 truncate max-w-[80px] sm:max-w-[120px]">
+                  {awayTeam.shortName || awayTeam.name}
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
       </div>
-    );
-  }
-  // --- END: LOADING/ERROR STATES ---
-
+  );
 
   // --- RENDER FORM CONTENT ---
   const renderFormContent = () => {
@@ -347,47 +348,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
     return (
       <div className={SPACING.sectionSpacing}>
-        {/* Team logos and title */}
-        <div className={`grid grid-cols-3 ${SPACING.gridGap} items-center`}>
-          <div className="flex items-center justify-center">
-            <div className="flex flex-col items-center space-y-2 sm:space-y-3">
-              {homeTeam.logo ? (
-                <img src={homeTeam.logo} alt={`Logo for ${homeTeam.name}`} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
-              ) : (
-                <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                  <span className="text-gray-600 font-semibold text-xs sm:text-sm">{homeTeam.shortName?.charAt(0) || homeTeam.name.charAt(0)}</span>
-                </div>
-              )}
-              <div className="text-center min-w-0">
-                <div className="text-xs sm:text-sm font-medium text-gray-900 truncate max-w-[80px] sm:max-w-[120px]">
-                  {homeTeam.shortName || homeTeam.name}
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="text-center px-1">
-            <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 leading-tight">Team Form</h2>
-          </div>
-          
-          <div className="flex items-center justify-center">
-            <div className="flex flex-col items-center space-y-2 sm:space-y-3">
-              {awayTeam.logo ? (
-                <img src={awayTeam.logo} alt={`Logo for ${awayTeam.name}`} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
-              ) : (
-                <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                  <span className="text-gray-600 font-semibold text-xs sm:text-sm">{awayTeam.shortName?.charAt(0) || awayTeam.name.charAt(0)}</span>
-                </div>
-              )}
-              <div className="text-center min-w-0">
-                <div className="text-xs sm:text-sm font-medium text-gray-900 truncate max-w-[80px] sm:max-w-[120px]">
-                  {awayTeam.shortName || awayTeam.name}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
+        
         {/* Form display - SYMMETRICAL ALIGNMENT & HIERARCHY */}
         <div className={`grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] ${SPACING.gridGap} items-center`}>
           {/* Home team form - ALIGNED RIGHT */}
@@ -448,18 +409,63 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   // --- END: RENDER FORM CONTENT ---
 
 
+  // --- LOADING/ERROR STATES (UNCHANGED) ---
+  if (showLoadingState && autoLoad && loading && !propStats) {
+    return (
+      <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
+        <div className={`${SPACING.contentPaddingClass} text-center`}>
+          <div className="inline-flex items-center space-x-2">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+            <span className="text-gray-600">Loading team statistics...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (showLoadingState && autoLoad && error && !propStats) {
+    return (
+      <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
+        <div className={`${SPACING.contentPaddingClass} text-center`}>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="text-red-600 font-medium mb-2">⚠️ Error Loading Statistics</div>
+            <p className="text-red-700 text-sm mb-4">{error}</p>
+            <button
+              onClick={refetch}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!effectiveStats) {
+    return (
+      <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
+        <div className={`${SPACING.contentPaddingClass} text-center`}>
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <div className="text-gray-600 font-medium mb-2">📊 No Statistics Available</div>
+            <p className="text-gray-700 text-sm">No statistics data is currently available for these teams.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  // --- END: LOADING/ERROR STATES ---
+
+
   // --- MAIN RENDER ---
   return (
     <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
       
-      {/* NEW HEADER WRAPPER (This is the critical change).
-        This single block now contains both the tabs and the league indicator, 
-        ensuring they both behave as a full-width header unit.
-      */}
-      <div className="w-full border-b border-gray-200">
+      {/* HEADER BLOCK: Tabs and Indicator (Full Width Guarantee) */}
+      <div className="w-full">
         
-        {/* Navigation tabs - w-full applied here */}
-        <div className="bg-gray-50 w-full flex">
+        {/* Navigation tabs: FULL WIDTH */}
+        <div className="bg-gray-50 border-b border-gray-200 w-full flex">
           
           {/* Mobile Tabs: Uses w-full and horizontal scroll */}
           <div className="flex overflow-x-auto scrollbar-hide w-full sm:hidden">
@@ -496,8 +502,8 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
           </div>
         </div>
 
-        {/* League indicator - Removed border-b and applied to the outer wrapper above */}
-        <div className={`${SPACING.indicatorPadding} bg-gray-50 flex justify-between items-center`}>
+        {/* League indicator: ALIGNMENT FIXED by using contentPaddingClass */}
+        <div className={`${SPACING.contentPaddingClass} bg-gray-50 border-b border-gray-100 flex justify-between items-center`}>
           <p className="text-xs sm:text-sm text-gray-600">
             Showing stats for {league} {season}
           </p>
@@ -511,17 +517,19 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
         </div>
       </div>
 
-      {/* Content (Remains unchanged, but correctly spaced from the new header) */}
-      <div className={SPACING.containerPadding}>
+      {/* Content */}
+      <div className={SPACING.contentPaddingClass}>
+        
+        {/* NEW: Team logos and title are now OUTSIDE the conditional block */}
+        <div className={activeTab === 'form' ? 'mb-4 sm:mb-6' : 'mb-6 sm:mb-8'}>
+            {renderTeamHeader()}
+        </div>
+
         {activeTab === 'form' ? (
           renderFormContent()
         ) : (
           <div className={SPACING.sectionSpacing}>
-            {/* Team logos and title */}
-            <div className={`grid grid-cols-3 ${SPACING.gridGap} items-center`}>
-              {/* ... (Team logos section) ... */}
-            </div>
-
+            
             {/* Stats comparison - USES StatRow COMPONENT */}
             <div className={SPACING.itemSpacing}>
               {Object.entries(currentStats).map(([statName, statData]) => {
