@@ -60,29 +60,42 @@ const SPACING = {
 const FormResult: React.FC<{ result: 'W' | 'D' | 'L', isLatest?: boolean }> = ({ result, isLatest }) => {
   
   const getResultStyle = (result: 'W' | 'D' | 'L', isLatest: boolean) => {
+    
+    // Base style (light background, colored text, light border)
+    let baseClasses = '';
+    switch (result) {
+      case 'W':
+        baseClasses = 'bg-green-100 text-green-700 border-green-200';
+        break;
+      case 'D':
+        baseClasses = 'bg-gray-100 text-gray-700 border-gray-200';
+        break;
+      case 'L':
+        baseClasses = 'bg-red-100 text-red-700 border-red-200';
+        break;
+    }
+    
+    // Overlay styles for the LATEST result
     if (isLatest) {
-      // High-impact style for the latest game
+      let latestBorderClasses = '';
       switch (result) {
+        // Use a DARKER, highly contrasting color for the thick border
         case 'W':
-          // Darker background, white text, strong border
-          return 'bg-green-600 text-white border-green-800 border-2 sm:border-4 shadow-lg';
+          latestBorderClasses = 'border-green-800 shadow-md'; 
+          break;
         case 'D':
-          // Darker gray background, white text
-          return 'bg-gray-600 text-white border-gray-800 border-2 sm:border-4 shadow-lg';
+          latestBorderClasses = 'border-gray-800 shadow-md';
+          break;
         case 'L':
-          // Darker red background, white text
-          return 'bg-red-600 text-white border-red-800 border-2 sm:border-4 shadow-lg';
+          latestBorderClasses = 'border-red-800 shadow-md';
+          break;
       }
+      
+      // Override the original border-200 with the thicker, darker border
+      return `${baseClasses.replace('border-', '')} border-2 sm:border-4 ${latestBorderClasses}`;
+      
     } else {
-      // Original, lighter style for older results
-      switch (result) {
-        case 'W':
-          return 'bg-green-100 text-green-700 border-green-200';
-        case 'D':
-          return 'bg-gray-100 text-gray-700 border-gray-200';
-        case 'L':
-          return 'bg-red-100 text-red-700 border-red-200';
-      }
+      return baseClasses;
     }
   };
 
@@ -98,8 +111,6 @@ const FormResult: React.FC<{ result: 'W' | 'D' | 'L', isLatest?: boolean }> = ({
     </div>
   );
 };
-
-
 
 const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   homeTeam,
