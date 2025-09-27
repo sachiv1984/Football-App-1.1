@@ -413,8 +413,8 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
   return (
     <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
-      {/* Header with navigation tabs - Responsive Layout */}
-      <div className="border-b border-gray-200 bg-gray-50">
+      {/* Header with navigation tabs - Fixed Full Width Layout */}
+      <div className="border-b border-gray-200 bg-gray-50 w-full">
         {/* Small mobile: Horizontal scroll (very small screens) */}
         <div className="flex overflow-x-auto scrollbar-hide w-full sm:hidden">
           {tabs.map((tab) => (
@@ -432,24 +432,21 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
           ))}
         </div>
 
-        {/* Large mobile and up: Full width tabs */}
-        <div className="hidden sm:block">
-          <div className="flex">
-            {tabs.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`flex-1 px-2 py-3 sm:px-3 sm:py-4 text-xs sm:text-sm font-medium border-b-2 transition-colors text-center ${
-                  activeTab === tab.key
-                    ? 'text-purple-600 border-purple-600 bg-white'
-                    : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
-                }`}
-                style={{ minWidth: 0 }}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+        {/* Large mobile and up: Proper full width distribution */}
+        <div className="hidden sm:flex w-full">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex-1 px-1 py-3 sm:px-2 sm:py-4 text-xs sm:text-sm font-medium border-b-2 transition-colors text-center min-w-0 ${
+                activeTab === tab.key
+                  ? 'text-purple-600 border-purple-600 bg-white'
+                  : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <span className="block truncate">{tab.label}</span>
+            </button>
+          ))}
         </div>
       </div>
 
