@@ -57,8 +57,10 @@ const SPACING = {
   indicatorPadding: "px-4 sm:px-6 py-3 sm:py-4"
 };
 
-const FormResult: React.FC<{ result: 'W' | 'D' | 'L' }> = ({ result }) => {
+const FormResult: React.FC<{ result: 'W' | 'D' | 'L', isLatest?: boolean }> = ({ result, isLatest }) => {
+  
   const getResultStyle = (result: 'W' | 'D' | 'L') => {
+    // Existing color logic
     switch (result) {
       case 'W':
         return 'bg-green-100 text-green-700 border-green-200';
@@ -69,12 +71,42 @@ const FormResult: React.FC<{ result: 'W' | 'D' | 'L' }> = ({ result }) => {
     }
   };
 
+  // NEW: Logic for the heavier border color
+  const getLatestBorderStyle = (result: 'W' | 'D' | 'L') => {
+    switch (result) {
+      // Use a darker shade for a prominent border color
+      case 'W':
+        return 'border-green-600 sm:border-green-700'; 
+      case 'D':
+        return 'border-gray-600 sm:border-gray-700';
+      case 'L':
+        return 'border-red-600 sm:border-red-700';
+      default:
+        return '';
+    }
+  };
+
+  // Apply the base style, then override the border width and color if it's the latest game
+  const baseClasses = getResultStyle(result);
+  
+  const latestClasses = isLatest 
+    ? `border-2 sm:border-4 ${getLatestBorderStyle(result)} shadow-md` // Thicker border and a shadow for lift
+    : '';
+
   return (
-    <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded border flex items-center justify-center text-xs sm:text-sm font-semibold ${getResultStyle(result)}`}>
+    <div 
+      className={`
+        w-6 h-6 sm:w-8 sm:h-8 rounded border flex items-center justify-center 
+        text-xs sm:text-sm font-semibold 
+        ${baseClasses}
+        ${latestClasses}
+      `}
+    >
       {result}
     </div>
   );
 };
+
 
 const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   homeTeam,
