@@ -184,11 +184,13 @@ const StatRow: React.FC<StatRowProps> = ({
     
     return (
         <div className={`grid grid-cols-[minmax(0,1fr)_minmax(120px,2fr)_minmax(0,1fr)] ${SPACING.gridGap} items-center py-2`}>
-            <div className="text-center min-w-0">
+            {/* 💡 CHANGE 1: Home Value now text-right for better alignment */}
+            <div className="text-right min-w-0"> 
                 <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">
                     {formatDisplayValue(homeValue)}
                 </span>
             </div>
+            {/* Center Label remains text-center */}
             <div className="text-center px-1 min-w-0">
                 <span className="text-sm sm:text-base lg:text-lg font-medium text-gray-700 block leading-tight break-words">
                     {label}
@@ -199,7 +201,8 @@ const StatRow: React.FC<StatRowProps> = ({
                     </div>
                 )}
             </div>
-            <div className="text-center min-w-0">
+            {/* 💡 CHANGE 1: Away Value now text-left for better alignment */}
+            <div className="text-left min-w-0"> 
                 <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">
                     {formatDisplayValue(awayValue)}
                 </span>
@@ -362,7 +365,8 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     ];
 
     return (
-      <div className={SPACING.sectionSpacing}>
+      // Retain SPACING.sectionSpacing here as it separates the Form Display and Stats Comparison blocks
+      <div className={SPACING.sectionSpacing}> 
         
         {/* Form display - SYMMETRICAL ALIGNMENT & HIERARCHY */}
         <div className={`grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] ${SPACING.gridGap} items-center`}>
@@ -476,20 +480,18 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   return (
     <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
       
-      {/* 💡 HEADER BLOCK: No padding/margin on this outer wrapper, allowing tabs to span edge-to-edge */}
+      {/* HEADER BLOCK */}
       <div className="w-full">
   
         {/* Navigation tabs: Full Width guaranteed, NO PADDING HERE */}
         <div className="bg-gray-50 border-b border-gray-200 w-full flex">
           
-          {/* Mobile Tabs: Uses w-full and horizontal scroll */}
-          {/* 💡 FIX: Removed overflow-x-auto, Added w-full and justify-between/items-center */}
+          {/* Mobile Tabs */}
           <div className="flex w-full sm:hidden"> 
             {tabs.map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                // 💡 CRITICAL FIX: Added flex-1 and adjusted padding to allow shrinking
                 className={`flex-1 px-1 py-3 text-xs font-medium text-center border-b-2 transition-colors min-w-0 ${
                   activeTab === tab.key
                     ? 'text-purple-600 border-purple-600 bg-white'
@@ -501,7 +503,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
             ))}
           </div>
           
-          {/* Desktop Tabs: Uses flex-1 on each button for equal width, and w-full container (This section was already correct) */}
+          {/* Desktop Tabs */}
           <div className="hidden sm:flex w-full">
             {tabs.map((tab) => (
               <button
@@ -537,34 +539,31 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
       {/* Content Area: Uses SPACING.contentPaddingClass for consistent padding */}
       <div className={SPACING.contentPaddingClass}>
         
-        {/* Team logos and title are now OUTSIDE the conditional block */}
-        <div className={activeTab === 'form' ? 'mb-4 sm:mb-6' : 'mb-6 sm:mb-8'}>
+        {/* 💡 CHANGE 2: Standardized margin below header to the larger value for consistency */}
+        <div className="mb-6 sm:mb-8">
             {renderTeamHeader()}
         </div>
 
         {activeTab === 'form' ? (
           renderFormContent()
         ) : (
-          <div className={SPACING.sectionSpacing}>
-            
-            {/* Stats comparison - USES StatRow COMPONENT */}
-            <div className={SPACING.itemSpacing}>
-              {Object.entries(currentStats).map(([statName, statData]) => {
-                const isMatchesPlayed = statName === 'Matches Played';
-                const typedStatData = statData as StatValue; 
-                return (
-                  <StatRow
-                    key={statName}
-                    label={statName}
-                    homeValue={typedStatData.homeValue}
-                    awayValue={typedStatData.awayValue}
-                    leagueAverage={typedStatData.leagueAverage}
-                    unit={typedStatData.unit}
-                    isMatchesPlayed={isMatchesPlayed}
-                  />
-                );
-              })}
-            </div>
+          /* 💡 CHANGE 2: Removed the outer SPACING.sectionSpacing wrapper */
+          <div className={SPACING.itemSpacing}>
+            {Object.entries(currentStats).map(([statName, statData]) => {
+              const isMatchesPlayed = statName === 'Matches Played';
+              const typedStatData = statData as StatValue; 
+              return (
+                <StatRow
+                  key={statName}
+                  label={statName}
+                  homeValue={typedStatData.homeValue}
+                  awayValue={typedStatData.awayValue}
+                  leagueAverage={typedStatData.leagueAverage}
+                  unit={typedStatData.unit}
+                  isMatchesPlayed={isMatchesPlayed}
+                />
+              );
+            })}
           </div>
         )}
       </div>
