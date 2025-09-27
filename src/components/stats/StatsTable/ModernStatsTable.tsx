@@ -464,8 +464,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
       {/* Content */}
       <div className={SPACING.contentPaddingClass}>
-        <div className="mb-6 sm:mb-8">{renderTeamHeader()}</div>
-
+        <div className="mb-6 sm:mb-8">{renderTeamHeader(homeTeam, awayTeam)}</div>
         {activeTab === 'form' ? (
           renderFormContent()
         ) : (
