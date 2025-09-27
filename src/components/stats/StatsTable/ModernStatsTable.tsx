@@ -432,13 +432,13 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
           ))}
         </div>
 
-        {/* Large mobile and up: Compact grid - fits iPhone Pro Max */}
-        <div className="hidden sm:grid sm:grid-cols-6">
+        {/* Large mobile and up: Full-width optimized grid */}
+        <div className="hidden sm:grid sm:grid-cols-6 w-full">
           {tabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-2 py-3 text-xs font-medium border-b-2 transition-colors hover:bg-gray-50 ${
+              className={`px-1 py-3 sm:px-3 sm:py-4 text-xs sm:text-sm font-medium border-b-2 transition-colors hover:bg-gray-50 text-center ${
                 activeTab === tab.key
                   ? 'text-purple-600 border-purple-600 bg-white'
                   : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
