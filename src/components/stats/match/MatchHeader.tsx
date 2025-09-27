@@ -1,5 +1,5 @@
 // src/components/match/MatchHeader/MatchHeader.tsx
-import React from 'react';
+import React, { useState } from 'react'; // <-- ADDED useState
 import type { Fixture } from '../../../types';
 
 interface MatchHeaderProps {
@@ -7,7 +7,55 @@ interface MatchHeaderProps {
   className?: string;
 }
 
-// Enhanced score display component
+// Add this enhanced logo component:
+const EnhancedTeamLogo: React.FC<{
+  team: { name: string; logo?: string; shortName?: string };
+  size?: 'md' | 'lg';
+}> = ({ team, size = 'lg' }) => {
+  const sizeClasses = {
+    md: "w-12 h-12",
+    lg: "w-16 h-16 lg:w-20 lg:h-20"
+  };
+
+  const [imageError, setImageError] = useState(false);
+
+  const LogoFallback = () => (
+    <div className={`
+      ${sizeClasses[size]} rounded-full 
+      bg-gradient-to-br from-blue-500 to-blue-700 
+      text-white font-bold shadow-lg
+      border-4 border-white border-opacity-80
+      flex items-center justify-center
+      transition-transform duration-200 hover:scale-105
+    `}>
+      <span className="text-sm lg:text-base">
+        {team.shortName?.substring(0, 2) || team.name.substring(0, 2)}
+      </span>
+    </div>
+  );
+
+  if (!team.logo || imageError) {
+    return <LogoFallback />;
+  }
+
+  return (
+    <div className={`
+      ${sizeClasses[size]} relative rounded-full overflow-hidden 
+      bg-white shadow-lg border-4 border-white border-opacity-80
+      transition-transform duration-200 hover:scale-105 group
+    `}>
+      <img
+        src={team.logo}
+        alt={`${team.name} logo`}
+        className="w-full h-full object-contain transition-transform duration-200 group-hover:scale-110"
+        onError={() => setImageError(true)}
+        loading="lazy"
+      />
+    </div>
+  );
+};
+
+// Enhanced score display component (UNCHANGED)
 const EnhancedScoreDisplay: React.FC<{
   homeScore: number | undefined;
   awayScore: number | undefined;
@@ -53,7 +101,7 @@ const EnhancedScoreDisplay: React.FC<{
   );
 };
 
-// Enhanced Date/Time + Venue component
+// Enhanced Date/Time + Venue component (UNCHANGED)
 const EnhancedMatchDateTime: React.FC<{
   date: string;
   time: string;
@@ -166,21 +214,11 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({ fixture, className = '' }) =>
           <div className="flex items-center justify-between">
             {/* Home Team */}
             <div className="flex-1 flex flex-col items-center text-center">
+              {/* Replaced old logo logic with EnhancedTeamLogo */}
               <div className="mb-3">
-                {homeTeam.logo ? (
-                  <img 
-                    src={homeTeam.logo} 
-                    alt={homeTeam.name} 
-                    className="w-16 h-16 lg:w-20 lg:h-20 team-logo"
-                  />
-                ) : (
-                  <div className="w-16 h-16 lg:w-20 lg:h-20 bg-neutral-200 rounded-full flex items-center justify-center">
-                    <span className="text-2xl lg:text-3xl font-bold text-neutral-600">
-                      {homeTeam.name[0]}
-                    </span>
-                  </div>
-                )}
+                <EnhancedTeamLogo team={homeTeam} size="lg" />
               </div>
+              
               <h2 className="text-lg lg:text-xl font-semibold text-neutral-800 text-center max-w-[120px] lg:max-w-[150px] leading-tight">
                 {homeTeam.shortName || homeTeam.name}
               </h2>
@@ -209,21 +247,11 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({ fixture, className = '' }) =>
 
             {/* Away Team */}
             <div className="flex-1 flex flex-col items-center text-center">
+              {/* Replaced old logo logic with EnhancedTeamLogo */}
               <div className="mb-3">
-                {awayTeam.logo ? (
-                  <img 
-                    src={awayTeam.logo} 
-                    alt={awayTeam.name} 
-                    className="w-16 h-16 lg:w-20 lg:h-20 team-logo"
-                  />
-                ) : (
-                  <div className="w-16 h-16 lg:w-20 lg:h-20 bg-neutral-200 rounded-full flex items-center justify-center">
-                    <span className="text-2xl lg:text-3xl font-bold text-neutral-600">
-                      {awayTeam.name[0]}
-                    </span>
-                  </div>
-                )}
+                <EnhancedTeamLogo team={awayTeam} size="lg" />
               </div>
+
               <h2 className="text-lg lg:text-xl font-semibold text-neutral-800 text-center max-w-[120px] lg:max-w-[150px] leading-tight">
                 {awayTeam.shortName || awayTeam.name}
               </h2>
