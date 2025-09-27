@@ -55,7 +55,6 @@ const formatValue = (value: number, unit?: string, isMatchesPlayed?: boolean): s
 
 // --- STAT CONFIGURATION MAP (Unchanged) ---
 const STAT_CONFIGS: Record<Exclude<StatCategory, 'form'>, Record<string, { key: string; unit?: string }>> = {
-  // ... (Configuration remains the same)
   goals: {
     'Matches Played': { key: 'goalsMatchesPlayed' },
     'Goals For': { key: 'goalsFor' },
@@ -111,11 +110,9 @@ const STAT_CONFIGS: Record<Exclude<StatCategory, 'form'>, Record<string, { key: 
 };
 
 
-// --- FormResult Component (Unchanged) ---
 const FormResult: React.FC<{ result: 'W' | 'D' | 'L', isLatest?: boolean }> = ({ result, isLatest }) => {
   
   const getResultStyle = (result: 'W' | 'D' | 'L', isLatest: boolean) => {
-    // ... (Styling logic remains the same)
     let baseClasses = '';
     switch (result) {
       case 'W':
@@ -184,16 +181,15 @@ const StatRow: React.FC<StatRowProps> = ({
         return typeof value === 'number' ? formatValue(value, unit, isMatchesPlayed) : value;
     };
     
-    // NOTE: This grid definition is what we are mirroring for the Form display
     return (
         <div className={`grid grid-cols-[minmax(0,1fr)_minmax(120px,2fr)_minmax(0,1fr)] ${SPACING.gridGap} items-center py-2`}>
-            {/* Home Value (text-right) */}
+            {/* 💡 CHANGE 1: Home Value now text-right for better alignment */}
             <div className="text-right min-w-0"> 
                 <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">
                     {formatDisplayValue(homeValue)}
                 </span>
             </div>
-            {/* Center Label (text-center, uses minmax(120px,2fr) width) */}
+            {/* Center Label remains text-center */}
             <div className="text-center px-1 min-w-0">
                 <span className="text-sm sm:text-base lg:text-lg font-medium text-gray-700 block leading-tight break-words">
                     {label}
@@ -204,7 +200,7 @@ const StatRow: React.FC<StatRowProps> = ({
                     </div>
                 )}
             </div>
-            {/* Away Value (text-left) */}
+            {/* 💡 CHANGE 1: Away Value now text-left for better alignment */}
             <div className="text-left min-w-0"> 
                 <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">
                     {formatDisplayValue(awayValue)}
@@ -227,7 +223,6 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<StatCategory>('form');
 
-  // ... (useTeamStats hook and helpers remain the same)
   const { 
     stats: fetchedStats, 
     loading, 
@@ -263,7 +258,6 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   };
 
   const getStatsForCategory = (category: StatCategory): Record<string, StatValue> => {
-    // FIX TS18047: Explicit null check
     if (!effectiveStats) {
         return {}; 
     }
@@ -342,7 +336,6 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
   // --- RENDER FORM CONTENT ---
   const renderFormContent = () => {
-    // FIX TS18047: Explicit null check for TypeScript safety
     if (!effectiveStats) {
       return (
         <div className="text-center py-8">
@@ -516,7 +509,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
                 className={`flex-1 px-1 py-3 sm:px-2 sm:py-4 text-xs sm:text-sm font-medium border-b-2 transition-colors text-center min-w-0 ${
                   activeTab === tab.key
                     ? 'text-purple-600 border-purple-600 bg-white'
-                    : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-border-gray-300'
+                    : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
                 <span className="block truncate">{tab.label}</span>
