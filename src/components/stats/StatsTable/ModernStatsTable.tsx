@@ -393,75 +393,152 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     );
   }
 
-  // --- Team Header ---
-  const TeamHeader = () => (
-    <div className={`grid grid-cols-[1fr_auto_1fr] ${SPACING.gridGap} items-center mb-6 sm:mb-8`}>
-      <div className="flex justify-end items-center min-w-0">
-        <span className="text-base sm:text-lg font-semibold text-gray-900 truncate">{homeTeam.name}</span>
-        {homeTeam.logo && (
-          <img src={homeTeam.logo} alt={homeTeam.name} className="w-6 h-6 sm:w-8 sm:h-8 ml-2 flex-shrink-0" />
-        )}
-      </div>
-      <div className="text-center">
-        <span className="text-sm sm:text-base text-gray-500">{league} {season}</span>
-      </div>
-      <div className="flex justify-start items-center min-w-0">
-        {awayTeam.logo && (
-          <img src={awayTeam.logo} alt={awayTeam.name} className="w-6 h-6 sm:w-8 sm:h-8 mr-2 flex-shrink-0" />
-        )}
-        <span className="text-base sm:text-lg font-semibold text-gray-900 truncate">{awayTeam.name}</span>
-      </div>
-    </div>
-  );
-
   // --- Main Render ---
-  return (
-    <div className={`bg-white rounded-xl shadow-sm border border-gray-200 ${SPACING.contentPaddingClass} ${className}`}>
-      <TeamHeader />
-      <div className="flex justify-center mb-6 sm:mb-8 overflow-x-auto">
-        <div className="flex space-x-2 sm:space-x-3 min-w-max">
-          {tabs.map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`
-                px-3 sm:px-4 py-1.5 sm:py-2 text-sm sm:text-base rounded-lg font-medium
-                transition-all duration-200
-                ${activeTab === tab.key
-                  ? 'bg-blue-100 text-blue-700 shadow-sm'
-                  : 'text-gray-600 hover:bg-gray-50'}
-              `}
-            >
-              {tab.label}
-            </button>
+    return (
+    <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
+      {/* HEADER BLOCK */}
+      <div className="w-full">
+        {/* Tabs */}
+        <div className="bg-gray-50 border-b border-gray-200 w-full flex">
+          {/* Mobile Tabs */}
+          <div className="flex w-full sm:hidden">
+            {tabs.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`
+                  flex-1 px-1 py-3 text-xs font-medium text-center border-b-2
+                  transition-all duration-300 cubic-bezier(0.4, 0, 0.2, 1) min-w-0 relative
+                  ${activeTab === tab.key
+                    ? 'text-purple-800 border-purple-600 bg-white shadow-sm transform -translate-y-0.5 z-10'
+                    : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                  }
+                `}
+              >
+                {activeTab === tab.key && (
+                  <div className="absolute inset-0 bg-gradient-to-t from-purple-50 to-transparent opacity-60 rounded-t-md pointer-events-none" />
+                )}
+                <span className="block truncate relative z-10">{tab.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Desktop Tabs */}
+          <div className="hidden sm:flex w-full">
+            {tabs.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`
+                  flex-1 px-2 py-4 text-sm font-medium border-b-2 
+                  transition-all duration-300 cubic-bezier(0.4, 0, 0.2, 1) text-center min-w-0 relative
+                  ${activeTab === tab.key
+                    ? 'text-purple-800 border-purple-600 bg-white shadow-sm transform -translate-y-0.5 z-10'
+                    : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                  }
+                `}
+              >
+                {activeTab === tab.key && (
+                  <div className="absolute inset-0 bg-gradient-to-t from-purple-50 to-transparent opacity-60 rounded-t-md pointer-events-none" />
+                )}
+                <span className="block truncate relative z-10">{tab.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* League Indicator */}
+        <div className={`${SPACING.contentPaddingClass} bg-gray-50 border-b border-gray-100 flex justify-between items-center`}>
+          <p className="text-xs sm:text-sm text-gray-600">
+            Showing stats for {league} {season}
+          </p>
+          {autoLoad && (fetchedStats ? (
+            <span className="text-xs text-green-600 font-medium">Live Data</span>
+          ) : propStats ? (
+            <span className="text-xs text-blue-600 font-medium">Custom Data</span>
+          ) : (
+            <span className="text-xs text-gray-600 font-medium">No Data</span>
           ))}
         </div>
       </div>
-      <div className={SPACING.sectionSpacing}>
-        <h3 className="text-lg sm:text-xl font-semibold text-gray-900 text-center mb-4 sm:mb-6">
-          {getStatCategoryTitle(activeTab)}
-        </h3>
+
+      {/* Content */}
+      <div className={SPACING.contentPaddingClass}>
+        <div className="mb-6 sm:mb-8">{renderTeamHeader()}</div>
+
         {activeTab === 'form' ? (
           renderFormContent()
         ) : (
           <div className={SPACING.itemSpacing}>
-            {Object.entries(currentStats).map(([label, stat]) => (
-              <StatRow
-                key={label}
-                label={label}
-                homeValue={stat.homeValue}
-                awayValue={stat.awayValue}
-                leagueAverage={stat.leagueAverage}
-                unit={stat.unit}
-                statType={activeTab}
-                isMatchesPlayed={label === 'Matches Played'}
-              />
-            ))}
+            {Object.entries(currentStats).map(([statName, statData]) => {
+              const isMatchesPlayed = statName === 'Matches Played';
+              const typedStatData = statData as StatValue;
+              return (
+                <StatRow
+                  key={statName}
+                  label={statName}
+                  homeValue={typedStatData.homeValue}
+                  awayValue={typedStatData.awayValue}
+                  leagueAverage={typedStatData.leagueAverage}
+                  unit={typedStatData.unit}
+                  isMatchesPlayed={isMatchesPlayed}
+                  statType={activeTab}
+                />
+              );
+            })}
           </div>
         )}
       </div>
     </div>
   );
 };
+
+// --- Team Header ---
+const renderTeamHeader = (homeTeam: Team, awayTeam: Team) => (
+  <div className={`grid grid-cols-3 ${SPACING.gridGap} items-center`}>
+    {/* Home Team */}
+    <div className="flex items-center justify-center">
+      <div className="flex flex-col items-center space-y-2 sm:space-y-3">
+        {homeTeam.logo ? (
+          <img src={homeTeam.logo} alt={homeTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
+        ) : (
+          <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
+            <span className="text-gray-600 font-semibold text-xs sm:text-sm">{homeTeam.shortName?.charAt(0) || homeTeam.name.charAt(0)}</span>
+          </div>
+        )}
+        <div className="text-center min-w-0">
+          <div className="text-xs sm:text-sm font-medium text-gray-900 truncate max-w-[80px] sm:max-w-[120px]">
+            {homeTeam.shortName || homeTeam.name}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* Center Title */}
+    <div className="text-center px-1">
+      <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 leading-tight">
+        Team Stats
+      </h2>
+    </div>
+
+    {/* Away Team */}
+    <div className="flex items-center justify-center">
+      <div className="flex flex-col items-center space-y-2 sm:space-y-3">
+        {awayTeam.logo ? (
+          <img src={awayTeam.logo} alt={awayTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
+        ) : (
+          <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
+            <span className="text-gray-600 font-semibold text-xs sm:text-sm">{awayTeam.shortName?.charAt(0) || awayTeam.name.charAt(0)}</span>
+          </div>
+        )}
+        <div className="text-center min-w-0">
+          <div className="text-xs sm:text-sm font-medium text-gray-900 truncate max-w-[80px] sm:max-w-[120px]">
+            {awayTeam.shortName || awayTeam.name}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
 
 export default ModernStatsTable;
