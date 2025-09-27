@@ -7,6 +7,16 @@ interface MatchHeaderProps {
   className?: string;
 }
 
+// Add this new component before the main MatchHeader component:
+const LiveStatusBadge: React.FC = () => (
+  <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-full shadow-lg">
+    <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+    <span className="text-xs font-bold uppercase tracking-wider">
+      Live
+    </span>
+  </div>
+);
+
 const MatchHeader: React.FC<MatchHeaderProps> = ({ fixture, className = '' }) => {
   const {
     homeTeam,
@@ -96,11 +106,7 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({ fixture, className = '' }) =>
                 </div>
                 <div className="text-base lg:text-lg text-neutral-600 flex items-center justify-center gap-2">
                   {time}
-                  {isLive && (
-                    <span className="status-live font-medium">
-                      LIVE
-                    </span>
-                  )}
+                  {isLive && <LiveStatusBadge />}
                 </div>
               </div>
 
