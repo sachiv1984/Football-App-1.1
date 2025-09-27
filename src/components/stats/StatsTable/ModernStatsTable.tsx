@@ -483,24 +483,25 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
         <div className="bg-gray-50 border-b border-gray-200 w-full flex">
           
           {/* Mobile Tabs: Uses w-full and horizontal scroll */}
-          <div className="flex overflow-x-auto scrollbar-hide w-full sm:hidden">
+          {/* 💡 FIX: Removed overflow-x-auto, Added w-full and justify-between/items-center */}
+          <div className="flex w-full sm:hidden"> 
             {tabs.map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                // 💡 FIX HERE: Changed px-2 to px-4 for better spacing and removed min-w
-                className={`flex-shrink-0 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                // 💡 CRITICAL FIX: Added flex-1 and adjusted padding to allow shrinking
+                className={`flex-1 px-1 py-3 text-xs font-medium text-center border-b-2 transition-colors min-w-0 ${
                   activeTab === tab.key
                     ? 'text-purple-600 border-purple-600 bg-white'
                     : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                {tab.label}
+                <span className="block truncate">{tab.label}</span>
               </button>
             ))}
           </div>
           
-          {/* Desktop Tabs: Uses flex-1 on each button for equal width, and w-full container */}
+          {/* Desktop Tabs: Uses flex-1 on each button for equal width, and w-full container (This section was already correct) */}
           <div className="hidden sm:flex w-full">
             {tabs.map((tab) => (
               <button
@@ -517,7 +518,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
             ))}
           </div>
         </div>
-
+      
         {/* League indicator: ALIGNED with content using SPACING.contentPaddingClass */}
         <div className={`${SPACING.contentPaddingClass} bg-gray-50 border-b border-gray-100 flex justify-between items-center`}>
           <p className="text-xs sm:text-sm text-gray-600">
