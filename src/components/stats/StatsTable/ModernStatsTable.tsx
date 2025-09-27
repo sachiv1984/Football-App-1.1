@@ -432,21 +432,24 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
           ))}
         </div>
 
-        {/* Large mobile and up: Custom width distribution for better spacing */}
-        <div className="hidden sm:flex w-full justify-between">
-          {tabs.map((tab, index) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`px-4 py-3 sm:px-5 sm:py-4 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === tab.key
-                  ? 'text-purple-600 border-purple-600 bg-white'
-                  : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+        {/* Large mobile and up: Full width tabs */}
+        <div className="hidden sm:block">
+          <div className="flex">
+            {tabs.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`flex-1 px-2 py-3 sm:px-3 sm:py-4 text-xs sm:text-sm font-medium border-b-2 transition-colors text-center ${
+                  activeTab === tab.key
+                    ? 'text-purple-600 border-purple-600 bg-white'
+                    : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
+                }`}
+                style={{ minWidth: 0 }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
