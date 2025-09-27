@@ -29,10 +29,9 @@ interface ModernStatsTableProps {
   showLoadingState?: boolean;
 }
 
-// Updated to include goals
 type StatCategory = 'form' | 'goals' | 'corners' | 'cards' | 'shooting' | 'fouls';
 
-// Consistent spacing tokens (REMOVED REDUNDANT MARGINS)
+// Consistent spacing tokens (Optimized: Removed redundant margin tokens)
 const SPACING = {
   // Container padding
   containerPadding: "p-4 sm:p-6",
@@ -120,7 +119,6 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<StatCategory>('form');
 
-  // Use the hook to fetch real data
   const { 
     stats: fetchedStats, 
     loading, 
@@ -131,10 +129,9 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     autoLoad ? awayTeam.name : undefined
   );
 
-  // Determine which stats to use: propStats > fetchedStats
   const effectiveStats = propStats || fetchedStats;
 
-  // Loading state
+  // Loading state (UNCHANGED)
   if (showLoadingState && autoLoad && loading && !propStats) {
     return (
       <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
@@ -148,7 +145,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     );
   }
 
-  // Error state
+  // Error state (UNCHANGED)
   if (showLoadingState && autoLoad && error && !propStats) {
     return (
       <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
@@ -168,7 +165,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     );
   }
 
-  // No data state
+  // No data state (UNCHANGED)
   if (!effectiveStats) {
     return (
       <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
@@ -182,7 +179,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     );
   }
 
-  // Updated tabs to include goals
+  // Tabs and Helpers (UNCHANGED)
   const tabs: { key: StatCategory; label: string }[] = [
     { key: 'form', label: 'Form' },
     { key: 'goals', label: 'Goals' },
@@ -192,7 +189,6 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     { key: 'fouls', label: 'Fouls' }
   ];
 
-  // Updated to include goals
   const getStatCategoryTitle = (category: StatCategory): string => {
     switch (category) {
       case 'form':
@@ -212,7 +208,6 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     }
   };
 
-  // Updated to include goals stats
   const getStatsForCategory = (category: StatCategory): Record<string, StatValue> => {
     const getStat = (key: string, unit?: string): StatValue => {
       const stat = (effectiveStats as any)[key];
@@ -315,7 +310,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
           <div className="flex items-center justify-center">
             <div className="flex flex-col items-center space-y-2 sm:space-y-3">
               {homeTeam.logo ? (
-                <img src={homeTeam.logo} alt={homeTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
+                <img src={homeTeam.logo} alt={`Logo for ${homeTeam.name}`} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
               ) : (
                 <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
                   <span className="text-gray-600 font-semibold text-xs sm:text-sm">{homeTeam.shortName?.charAt(0) || homeTeam.name.charAt(0)}</span>
@@ -336,7 +331,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
           <div className="flex items-center justify-center">
             <div className="flex flex-col items-center space-y-2 sm:space-y-3">
               {awayTeam.logo ? (
-                <img src={awayTeam.logo} alt={awayTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
+                <img src={awayTeam.logo} alt={`Logo for ${awayTeam.name}`} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
               ) : (
                 <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
                   <span className="text-gray-600 font-semibold text-xs sm:text-sm">{awayTeam.shortName?.charAt(0) || awayTeam.name.charAt(0)}</span>
@@ -356,10 +351,11 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
           {/* Home team form - ALIGNED RIGHT (justify-end) */}
           <div className="flex justify-end min-w-0">
             <div className="flex space-x-1 sm:space-x-2">
+              {/* Home Placeholders: Rendered first for right alignment */}
               {Array.from({ length: 5 - homeResults.length }).map((_, index) => (
                 <div key={`empty-home-${index}`} className="w-6 h-6 sm:w-8 sm:h-8 rounded border border-gray-200 bg-gray-50 flex-shrink-0"></div>
               ))}
-              {/* HOME: Latest is the final element */}
+              {/* HOME Results: Latest is the final element */}
               {homeResults.map((result, index) => (
                 <div key={`home-${index}`} className="flex-shrink-0">
                   <FormResult 
@@ -379,7 +375,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
           {/* Away team form - ALIGNED LEFT (justify-start) with REVERSED array */}
           <div className="flex justify-start min-w-0">
             <div className="flex space-x-1 sm:space-x-2">
-              {/* AWAY: Latest is the first element after reversal */}
+              {/* AWAY Results: Latest is the first element after reversal */}
               {awayResults.slice().reverse().map((result, index) => (
                 <div key={`away-${index}`} className="flex-shrink-0">
                   <FormResult 
@@ -388,6 +384,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
                   />
                 </div>
               ))}
+              {/* Away Placeholders: Rendered after results for left alignment */}
               {Array.from({ length: 5 - awayResults.length }).map((_, index) => (
                 <div key={`empty-away-${index}`} className="w-6 h-6 sm:w-8 sm:h-8 rounded border border-gray-200 bg-gray-50 flex-shrink-0"></div>
               ))}
@@ -395,7 +392,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
           </div>
         </div>
 
-        {/* Stats comparison - Vertical Alignment Fix */}
+        {/* Stats comparison - Vertical Alignment Fix and Spacing Consistency */}
         <div className={SPACING.itemSpacing}>
           <div className={`grid grid-cols-[minmax(0,1fr)_minmax(120px,2fr)_minmax(0,1fr)] ${SPACING.gridGap} items-center py-2`}>
             <div className="text-center min-w-0">
@@ -453,9 +450,9 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
   return (
     <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
-      {/* Header with navigation tabs - Fixed Full Width Layout (UNCHANGED) */}
+      {/* Header with navigation tabs (UNCHANGED) */}
       <div className="border-b border-gray-200 bg-gray-50 w-full">
-        {/* Small mobile: Horizontal scroll (very small screens) */}
+        {/* Small mobile: Horizontal scroll */}
         <div className="flex overflow-x-auto scrollbar-hide w-full sm:hidden">
           {tabs.map((tab) => (
             <button
@@ -472,7 +469,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
           ))}
         </div>
 
-        {/* Large mobile and up: Proper full width distribution */}
+        {/* Large mobile and up */}
         <div className="hidden sm:flex w-full">
           {tabs.map((tab) => (
             <button
@@ -515,7 +512,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
               <div className="flex items-center justify-center">
                 <div className="flex flex-col items-center space-y-2 sm:space-y-3">
                   {homeTeam.logo ? (
-                    <img src={homeTeam.logo} alt={homeTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
+                    <img src={homeTeam.logo} alt={`Logo for ${homeTeam.name}`} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
                   ) : (
                     <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
                       <span className="text-gray-600 font-semibold text-xs sm:text-sm">{homeTeam.shortName?.charAt(0) || homeTeam.name.charAt(0)}</span>
@@ -536,7 +533,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
               <div className="flex items-center justify-center">
                 <div className="flex flex-col items-center space-y-2 sm:space-y-3">
                   {awayTeam.logo ? (
-                    <img src={awayTeam.logo} alt={awayTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
+                    <img src={awayTeam.logo} alt={`Logo for ${awayTeam.name}`} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
                   ) : (
                     <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
                       <span className="text-gray-600 font-semibold text-xs sm:text-sm">{awayTeam.shortName?.charAt(0) || awayTeam.name.charAt(0)}</span>
@@ -567,7 +564,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
                         {statName}
                       </span>
                       {statData.leagueAverage && (
-                        <div className="text-xs sm:text-sm text-gray-500 **mt-0.5**"> {/* Tighter margin for alignment */}
+                        <div className="text-xs sm:text-sm text-gray-500 mt-0.5"> {/* Tighter margin for alignment */}
                           Avg: {formatValue(statData.leagueAverage, statData.unit, isMatchesPlayed)}
                         </div>
                       )}
