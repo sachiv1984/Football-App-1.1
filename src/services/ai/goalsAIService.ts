@@ -159,23 +159,26 @@ export class GoalsAIService {
   /**
    * Analyze goal patterns for team-specific goals (home/away team goals)
    */
-  private analyzeTeamSpecificGoals(matches: Array<{ goalsFor: number }>): {
-    over05: GoalThresholdAnalysis;
-    over15: GoalThresholdAnalysis;
-    over25: GoalThresholdAnalysis;
-    over35: GoalThresholdAnalysis;
-    over45: GoalThresholdAnalysis;
-    over55: GoalThresholdAnalysis;
-  } {
-    return {
-      over05: this.analyzeGoalThreshold(matches, 0.5, 'for'),
-      over15: this.analyzeGoalThreshold(matches, 1.5, 'for'),
-      over25: this.analyzeGoalThreshold(matches, 2.5, 'for'),
-      over35: this.analyzeGoalThreshold(matches, 3.5, 'for'),
-      over45: this.analyzeGoalThreshold(matches, 4.5, 'for'),
-      over55: this.analyzeGoalThreshold(matches, 5.5, 'for')
-    };
-  }
+private analyzeTeamSpecificGoals(
+  matches: Array<{ goalsFor: number; goalsAgainst: number; totalGoals: number }>
+): {
+  over05: GoalThresholdAnalysis;
+  over15: GoalThresholdAnalysis;
+  over25: GoalThresholdAnalysis;
+  over35: GoalThresholdAnalysis;
+  over45: GoalThresholdAnalysis;
+  over55: GoalThresholdAnalysis;
+} {
+  return {
+    over05: this.analyzeGoalThreshold(matches, 0.5, 'for'),
+    over15: this.analyzeGoalThreshold(matches, 1.5, 'for'),
+    over25: this.analyzeGoalThreshold(matches, 2.5, 'for'),
+    over35: this.analyzeGoalThreshold(matches, 3.5, 'for'),
+    over45: this.analyzeGoalThreshold(matches, 4.5, 'for'),
+    over55: this.analyzeGoalThreshold(matches, 5.5, 'for')
+  };
+}
+
 
   /**
    * Generate insights for total match goals
