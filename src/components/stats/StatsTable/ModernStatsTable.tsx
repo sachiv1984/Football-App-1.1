@@ -183,7 +183,7 @@ const StatRow: React.FC<StatRowProps> = ({
     
     return (
         <div className={`grid grid-cols-[minmax(0,1fr)_minmax(120px,2fr)_minmax(0,1fr)] ${SPACING.gridGap} items-center py-2`}>
-            {/* Home Value now text-right for better alignment */}
+            {/* 💡 CHANGE 1: Home Value now text-right for better alignment */}
             <div className="text-right min-w-0"> 
                 <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">
                     {formatDisplayValue(homeValue)}
@@ -200,7 +200,7 @@ const StatRow: React.FC<StatRowProps> = ({
                     </div>
                 )}
             </div>
-            {/* Away Value now text-left for better alignment */}
+            {/* 💡 CHANGE 1: Away Value now text-left for better alignment */}
             <div className="text-left min-w-0"> 
                 <span className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-900">
                     {formatDisplayValue(awayValue)}
@@ -286,7 +286,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   // --- RENDERING SUB-COMPONENTS ---
   
   // Component for Team Logos, Names, and Stat Title
-  // The center title is now conditionally set to 'Team Form' or the dynamic category title.
+  // 🟢 CHANGE 1: Switched from items-end to items-center for better vertical alignment
   const renderTeamHeader = () => (
       <div className={`grid grid-cols-3 ${SPACING.gridGap} items-center`}>
           {/* Home Team */}
@@ -307,10 +307,10 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
             </div>
           </div>
           
-          {/* Center Title - Matches the requested header text for the 'form' tab */}
+          {/* Center Title */}
           <div className="text-center px-1">
             <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 leading-tight">
-              {activeTab === 'form' ? 'Team Form' : getStatCategoryTitle(activeTab)}
+              {getStatCategoryTitle(activeTab)}
             </h2>
           </div>
           
@@ -336,7 +336,17 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
   // --- RENDER FORM CONTENT ---
   const renderFormContent = () => {
-    if (!effectiveStats || !effectiveStats.recentForm) {
+    if (!effectiveStats) {
+      return (
+        <div className="text-center py-8">
+            <p className="text-gray-600">Statistics are unavailable.</p>
+        </div>
+      );
+    }
+
+    const recentForm = effectiveStats.recentForm as FormData | undefined;
+    
+    if (!recentForm) {
       return (
         <div className="text-center py-8">
           <p className="text-gray-600">No form data available</p>
@@ -344,10 +354,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
       );
     }
 
-    const recentForm = effectiveStats.recentForm as FormData;
     const { homeResults, awayResults, homeStats, awayStats } = recentForm;
-    
-    // Stats to be rendered by StatRow
     const formStats = [
       { label: 'Matches Played', home: homeStats.matchesPlayed, away: awayStats.matchesPlayed, isMatchesPlayed: true },
       { label: 'Won', home: homeStats.won, away: awayStats.won },
@@ -358,12 +365,19 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     return (
       <div className={SPACING.sectionSpacing}>
         
-        {/* 1. W/L/D Boxes Row: Uses 1fr auto 1fr to maximize space for form boxes */}
-        <div className={`grid grid-cols-[1fr_auto_1fr] ${SPACING.gridGap} items-center mb-4`}>
+{/* 🟢 FIXED: Using a more flexible grid (1fr auto 1fr) for the form row
+            to ensure the form boxes in the 1fr columns have enough width. 
+            The center column ('Form') shrinks to the necessary width (auto).
+            This maintains the vertical alignment of 'Form' with the other labels
+            while giving the form boxes sufficient space. */}
+        <div className={`grid grid-cols-[1fr_auto_1fr] ${SPACING.gridGap} items-center`}>
           
           {/* Home team form (Aligned Right) */}
           <div className="flex justify-end min-w-0">
+            {/* Using flex-nowrap prevents the boxes from wrapping to the next line 
+                if the container is tight, and ensures they don't clip. */}
             <div className="flex space-x-1 sm:space-x-2 flex-nowrap"> 
+              {/* ... Home Results and empty placeholders ... */}
               {Array.from({ length: 5 - homeResults.length }).map((_, index) => (
                 <div key={`empty-home-${index}`} className="w-6 h-6 sm:w-8 sm:h-8 rounded border border-gray-200 bg-gray-50 flex-shrink-0"></div>
               ))}
@@ -378,8 +392,9 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
             </div>
           </div>
 
-          {/* Center - INTENTIONALLY EMPTY to match the visual layout */}
+          {/* Center form label (Now using 'auto' width) */}
           <div className="text-center px-1 min-w-0">
+            <span className="text-sm sm:text-base lg:text-lg font-medium text-gray-700 whitespace-nowrap">Form</span>
           </div>
 
           {/* Away team form (Aligned Left) */}
@@ -399,17 +414,9 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
             </div>
           </div>
         </div>
-        
-        {/* 2. Numerical Stat Rows: Ensures 'Form' label is perfectly aligned */}
+
+        {/* Stats comparison - USES StatRow COMPONENT */}
         <div className={SPACING.itemSpacing}>
-          {/* Add a 'Form' row to carry the label that aligns with the numerical stats */}
-          <StatRow
-              label="Form"
-              // Display the results string in the number columns to match the visual style
-              homeValue={homeResults.length ? homeResults.join(' ') : '—'} 
-              awayValue={awayResults.length ? awayResults.join(' ') : '—'} 
-          />
-          
           {formStats.map(stat => (
             <StatRow
               key={stat.label}
