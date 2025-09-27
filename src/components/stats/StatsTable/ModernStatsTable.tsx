@@ -322,12 +322,13 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 {/* Form display - Flexible Grid Layout for Form Badges */}
 <div className={`grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] ${SPACING.gridGap} items-center ${SPACING.sectionMargin}`}>
   
-  {/* Home team form: CHANGE 'justify-center' to 'justify-end' */}
-  <div className="flex **justify-end** min-w-0">
+  {/* 1. Home team form: Aligned to the right (justify-end) for latest result (5) to be closest to center. */}
+  <div className="flex justify-end min-w-0">
     <div className="flex space-x-1 sm:space-x-2">
       {Array.from({ length: 5 - homeResults.length }).map((_, index) => (
         <div key={`empty-home-${index}`} className="w-6 h-6 sm:w-8 sm:h-8 rounded border border-gray-200 bg-gray-50 flex-shrink-0"></div>
       ))}
+      {/* Home: Renders in original order (1, 2, 3, 4, 5) */}
       {homeResults.map((result, index) => (
         <div key={`home-${index}`} className="flex-shrink-0">
           <FormResult result={result} />
@@ -336,15 +337,16 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     </div>
   </div>
 
-  {/* Center form label - no change */}
+  {/* Center form label */}
   <div className="text-center px-3 sm:px-4">
     <span className="text-sm sm:text-base lg:text-lg font-medium text-gray-700 whitespace-nowrap">Form</span>
   </div>
 
-  {/* Away team form: CHANGE 'justify-center' to 'justify-start' */}
-  <div className="flex **justify-start** min-w-0">
+  {/* 2. Away team form: Aligned to the left (justify-start) for latest result (5) to be closest to center. */}
+  <div className="flex justify-start min-w-0">
     <div className="flex space-x-1 sm:space-x-2">
-      {awayResults.map((result, index) => (
+      {/* Away: Renders in REVERSED order (5, 4, 3, 2, 1) */}
+      {awayResults.slice().reverse().map((result, index) => (
         <div key={`away-${index}`} className="flex-shrink-0">
           <FormResult result={result} />
         </div>
@@ -355,7 +357,6 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     </div>
   </div>
 </div>
-
 
         {/* Stats comparison - Flexible Grid Layout */}
         <div className={SPACING.itemSpacing}>
