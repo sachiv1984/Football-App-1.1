@@ -1,31 +1,4 @@
-<div className={SPACING.sectionSpacing}>
-            {/* Team logos and title - Enhanced Grid Layout */}
-            <div className={`grid grid-cols-3 ${SPACING.gridGap} items-center ${SPACING.sectionMargin}`}>
-              <div className="flex items-center justify-center">
-                <div className="flex flex-col items-center space-y-2 sm:space-y-3">
-                  {homeTeam.logo ? (
-                    <img src={homeTeam.logo} alt={homeTeam.name} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
-                  ) : (
-                    <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                      <span className="text-gray-600 font-semibold text-xs sm:text-sm">{homeTeam.shortName?.charAt(0) || homeTeam.name.charAt(0)}</span>
-                    </div>
-                  )}
-                  <div className="text-center min-w-0">
-                    <div className="text-xs sm:text-sm font-medium text-gray-900 truncate max-w-[80px] sm:max-w-[120px]">
-                      {homeTeam.shortName || homeTeam.name}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="text-center px-1">
-                <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 leading-tight">{getStatCategoryTitle(activeTab)}</h2>
-              </div>
-              
-              <div className="flex items-center justify-center">
-                <div className="flex flex-col items-center space-y-2 sm:space-y-3">
-                  {awayTeam.logo ? (
-                    <img src={away// src/components/stats/StatsTable/ModernStatsTable.tsx
+// src/components/stats/StatsTable/ModernStatsTable.tsx
 import React, { useState } from 'react';
 import { Team } from '../../../types';
 import { useTeamStats } from '../../../hooks/useTeamStats';
@@ -59,25 +32,6 @@ interface ModernStatsTableProps {
 // Updated to include goals
 type StatCategory = 'form' | 'goals' | 'corners' | 'cards' | 'shooting' | 'fouls';
 
-const FormResult: React.FC<{ result: 'W' | 'D' | 'L' }> = ({ result }) => {
-  const getResultStyle = (result: 'W' | 'D' | 'L') => {
-    switch (result) {
-      case 'W':
-        return 'bg-green-100 text-green-700 border-green-200';
-      case 'D':
-        return 'bg-gray-100 text-gray-700 border-gray-200';
-      case 'L':
-        return 'bg-red-100 text-red-700 border-red-200';
-    }
-  };
-
-  return (
-    <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded border flex items-center justify-center text-xs sm:text-sm font-semibold ${getResultStyle(result)}`}>
-      {result}
-    </div>
-  );
-};
-
 // Consistent spacing tokens
 const SPACING = {
   // Container padding
@@ -101,6 +55,25 @@ const SPACING = {
   
   // Indicator padding
   indicatorPadding: "px-4 sm:px-6 py-3 sm:py-4"
+};
+
+const FormResult: React.FC<{ result: 'W' | 'D' | 'L' }> = ({ result }) => {
+  const getResultStyle = (result: 'W' | 'D' | 'L') => {
+    switch (result) {
+      case 'W':
+        return 'bg-green-100 text-green-700 border-green-200';
+      case 'D':
+        return 'bg-gray-100 text-gray-700 border-gray-200';
+      case 'L':
+        return 'bg-red-100 text-red-700 border-red-200';
+    }
+  };
+
+  return (
+    <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded border flex items-center justify-center text-xs sm:text-sm font-semibold ${getResultStyle(result)}`}>
+      {result}
+    </div>
+  );
 };
 
 const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
@@ -133,7 +106,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   if (showLoadingState && autoLoad && loading && !propStats) {
     return (
       <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
-        <div className={SPACING.containerPadding}>
+        <div className={`${SPACING.containerPadding} text-center`}>
           <div className="inline-flex items-center space-x-2">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
             <span className="text-gray-600">Loading team statistics...</span>
