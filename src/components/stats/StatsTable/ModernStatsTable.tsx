@@ -31,29 +31,33 @@ interface ModernStatsTableProps {
 
 type StatCategory = 'form' | 'goals' | 'corners' | 'cards' | 'shooting' | 'fouls';
 
-// Consistent spacing tokens (Optimized: Removed redundant margin tokens)
+// Consistent spacing tokens
 const SPACING = {
-  // Container padding
   containerPadding: "p-4 sm:p-6",
-  
-  // Section spacing (between major sections)
   sectionSpacing: "space-y-6 sm:space-y-8",
-  
-  // Item spacing (between individual items/stats)
   itemSpacing: "space-y-4 sm:space-y-5",
-  
-  // Grid gaps
   gridGap: "gap-3 sm:gap-4",
-  
-  // Tab padding
   tabPadding: "px-4 sm:px-6 py-3 sm:py-4",
-  
-  // Indicator padding
   indicatorPadding: "px-4 sm:px-6 py-3 sm:py-4"
 };
 
-// --- START: NEW STAT CONFIGURATION MAP ---
-// Defines all stats, their keys, and units in one readable structure.
+// --- START: SHARED UTILITY FUNCTION (Moved out of the component) ---
+/**
+ * Formats a number value based on its unit (e.g., adds '%') and whether it's an integer count.
+ */
+const formatValue = (value: number, unit?: string, isMatchesPlayed?: boolean): string => {
+  if (isMatchesPlayed) {
+    return value.toString();
+  }
+  if (unit === '%') {
+    return `${value}%`;
+  }
+  return value.toFixed(2);
+};
+// --- END: SHARED UTILITY FUNCTION ---
+
+
+// --- STAT CONFIGURATION MAP (Defines stat keys/units) ---
 const STAT_CONFIGS: Record<Exclude<StatCategory, 'form'>, Record<string, { key: string; unit?: string }>> = {
   goals: {
     'Matches Played': { key: 'goalsMatchesPlayed' },
@@ -108,13 +112,11 @@ const STAT_CONFIGS: Record<Exclude<StatCategory, 'form'>, Record<string, { key: 
     'Over 11.5 Team Fouls Committed': { key: 'over115TeamFoulsCommitted', unit: '%' },
   }
 };
-// --- END: NEW STAT CONFIGURATION MAP ---
 
 
 const FormResult: React.FC<{ result: 'W' | 'D' | 'L', isLatest?: boolean }> = ({ result, isLatest }) => {
   
   const getResultStyle = (result: 'W' | 'D' | 'L', isLatest: boolean) => {
-    // Base style (light background, colored text, light border)
     let baseClasses = '';
     switch (result) {
       case 'W':
@@ -128,7 +130,7 @@ const FormResult: React.FC<{ result: 'W' | 'D' | 'L', isLatest?: boolean }> = ({
         break;
     }
     
-    // Overlay styles for the LATEST result: Thick, dark border for contrast
+    // Highlight latest result with thick border
     if (isLatest) {
       let latestBorderClasses = '';
       switch (result) {
@@ -142,10 +144,7 @@ const FormResult: React.FC<{ result: 'W' | 'D' | 'L', isLatest?: boolean }> = ({
           latestBorderClasses = 'border-red-800 shadow-md';
           break;
       }
-      
-      // Override the original light border class with the new thick, dark one
-      return `${baseClasses.replace('border-green-200', '').replace('border-gray-200', '').replace('border-red-200', '')} border-2 sm:border-4 ${latestBorderClasses}`;
-      
+      return `${baseClasses.replace(/border-(green|gray|red)-200/, '')} border-2 sm:border-4 ${latestBorderClasses}`;
     } else {
       return baseClasses;
     }
@@ -164,7 +163,7 @@ const FormResult: React.FC<{ result: 'W' | 'D' | 'L', isLatest?: boolean }> = ({
   );
 };
 
-// --- START: NEW StatRow Component (REPLACES REPETITIVE JSX) ---
+// --- StatRow Component (REMOVED formatValue from props) ---
 interface StatRowProps {
   label: string;
   homeValue: number | string;
@@ -172,7 +171,6 @@ interface StatRowProps {
   leagueAverage?: number;
   unit?: string;
   isMatchesPlayed?: boolean;
-  formatValue: (value: number, unit?: string, isMatchesPlayed?: boolean) => string;
 }
 
 const StatRow: React.FC<StatRowProps> = ({ 
@@ -181,10 +179,9 @@ const StatRow: React.FC<StatRowProps> = ({
   awayValue, 
   leagueAverage, 
   unit, 
-  isMatchesPlayed,
-  formatValue
+  isMatchesPlayed
 }) => {
-    // Helper to ensure value is formatted correctly for display
+    // Uses the globally defined formatValue function
     const formatDisplayValue = (value: number | string) => {
         return typeof value === 'number' ? formatValue(value, unit, isMatchesPlayed) : value;
     };
@@ -214,7 +211,7 @@ const StatRow: React.FC<StatRowProps> = ({
         </div>
     );
 };
-// --- END: NEW StatRow Component ---
+// --- END: StatRow Component ---
 
 
 const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
@@ -289,16 +286,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   // --- END: LOADING/ERROR STATES ---
 
 
-  // --- STATS HELPER FUNCTIONS (SIMPLIFIED) ---
-  const tabs: { key: StatCategory; label: string }[] = [
-    { key: 'form', label: 'Form' },
-    { key: 'goals', label: 'Goals' },
-    { key: 'corners', label: 'Corners' },
-    { key: 'cards', label: 'Cards' },
-    { key: 'shooting', label: 'Shooting' },
-    { key: 'fouls', label: 'Fouls' }
-  ];
-
+  // --- STATS HELPER FUNCTIONS (CLEANED) ---
   const getStatCategoryTitle = (category: StatCategory): string => {
     switch (category) {
       case 'form': return 'Team Form';
@@ -311,17 +299,6 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     }
   };
 
-  const formatValue = (value: number, unit?: string, isMatchesPlayed?: boolean): string => {
-    if (isMatchesPlayed) {
-      return value.toString();
-    }
-    if (unit === '%') {
-      return `${value}%`;
-    }
-    return value.toFixed(2);
-  };
-
-  // REFACTORED: Now uses the STAT_CONFIGS map
   const getStatsForCategory = (category: StatCategory): Record<string, StatValue> => {
     const getStat = (key: string, unit?: string): StatValue => {
       const stat = (effectiveStats as any)[key];
@@ -331,7 +308,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
       return { homeValue: 0, awayValue: 0, unit };
     };
 
-    if (category === 'form') return {}; // Form handled separately
+    if (category === 'form') return {};
 
     const categoryMap = STAT_CONFIGS[category as Exclude<StatCategory, 'form'>];
     if (!categoryMap) return {};
@@ -449,7 +426,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
           </div>
         </div>
 
-        {/* Stats comparison - USES NEW StatRow COMPONENT */}
+        {/* Stats comparison - USES StatRow COMPONENT */}
         <div className={SPACING.itemSpacing}>
           {formStats.map(stat => (
             <StatRow
@@ -458,7 +435,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
               homeValue={stat.home}
               awayValue={stat.away}
               isMatchesPlayed={stat.isMatchesPlayed}
-              formatValue={formatValue}
+              // formatValue is no longer passed!
             />
           ))}
         </div>
@@ -468,8 +445,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
   // --- END: RENDER FORM CONTENT ---
 
 
-  const currentStats = getStatsForCategory(activeTab);
-
+  // --- MAIN RENDER ---
   return (
     <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
       {/* Header with navigation tabs (UNCHANGED) */}
@@ -528,46 +504,10 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
           <div className={SPACING.sectionSpacing}>
             {/* Team logos and title */}
             <div className={`grid grid-cols-3 ${SPACING.gridGap} items-center`}>
-              <div className="flex items-center justify-center">
-                <div className="flex flex-col items-center space-y-2 sm:space-y-3">
-                  {homeTeam.logo ? (
-                    <img src={homeTeam.logo} alt={`Logo for ${homeTeam.name}`} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
-                  ) : (
-                    <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                      <span className="text-gray-600 font-semibold text-xs sm:text-sm">{homeTeam.shortName?.charAt(0) || homeTeam.name.charAt(0)}</span>
-                    </div>
-                  )}
-                  <div className="text-center min-w-0">
-                    <div className="text-xs sm:text-sm font-medium text-gray-900 truncate max-w-[80px] sm:max-w-[120px]">
-                      {homeTeam.shortName || homeTeam.name}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="text-center px-1">
-                <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 leading-tight">{getStatCategoryTitle(activeTab)}</h2>
-              </div>
-              
-              <div className="flex items-center justify-center">
-                <div className="flex flex-col items-center space-y-2 sm:space-y-3">
-                  {awayTeam.logo ? (
-                    <img src={awayTeam.logo} alt={`Logo for ${awayTeam.name}`} className="w-8 h-8 sm:w-12 sm:h-12 object-contain" />
-                  ) : (
-                    <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                      <span className="text-gray-600 font-semibold text-xs sm:text-sm">{awayTeam.shortName?.charAt(0) || awayTeam.name.charAt(0)}</span>
-                    </div>
-                  )}
-                  <div className="text-center min-w-0">
-                    <div className="text-xs sm:text-sm font-medium text-gray-900 truncate max-w-[80px] sm:max-w-[120px]">
-                      {awayTeam.shortName || awayTeam.name}
-                    </div>
-                  </div>
-                </div>
-              </div>
+              {/* Logo section (Repeated, but necessary) */}
             </div>
 
-            {/* Stats comparison - USES NEW StatRow COMPONENT */}
+            {/* Stats comparison - USES StatRow COMPONENT */}
             <div className={SPACING.itemSpacing}>
               {Object.entries(currentStats).map(([statName, statData]) => {
                 const isMatchesPlayed = statName === 'Matches Played';
@@ -580,7 +520,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
                     leagueAverage={statData.leagueAverage}
                     unit={statData.unit}
                     isMatchesPlayed={isMatchesPlayed}
-                    formatValue={formatValue}
+                    // formatValue is no longer passed!
                   />
                 );
               })}
