@@ -31,7 +31,7 @@ interface ModernStatsTableProps {
 
 type StatCategory = 'form' | 'goals' | 'corners' | 'cards' | 'shooting' | 'fouls';
 
-// --- Spacing Tokens ---
+// --- Consistent spacing tokens ---
 const SPACING = {
   containerPadding: "p-0", 
   sectionSpacing: "space-y-6 sm:space-y-8",
@@ -40,14 +40,14 @@ const SPACING = {
   contentPaddingClass: "p-4 sm:p-6" 
 };
 
-// --- Utilities ---
+// --- Shared utility ---
 const formatValue = (value: number, unit?: string, isMatchesPlayed?: boolean): string => {
   if (isMatchesPlayed) return value.toString();
   if (unit === '%') return `${value}%`;
   return value.toFixed(2);
 };
 
-// --- STAT CONFIGS ---
+// --- STAT CONFIGURATION MAP ---
 const STAT_CONFIGS: Record<Exclude<StatCategory, 'form'>, Record<string, { key: string; unit?: string }>> = {
   goals: {
     'Matches Played': { key: 'goalsMatchesPlayed' },
@@ -103,13 +103,14 @@ const STAT_CONFIGS: Record<Exclude<StatCategory, 'form'>, Record<string, { key: 
   }
 };
 
-// --- FormResult Component ---
+// --- Enhanced FormResult Component ---
 const FormResult: React.FC<{ result: 'W' | 'D' | 'L', isLatest?: boolean, position?: number, totalResults?: number }> = ({ 
   result, 
   isLatest, 
   position = 0, 
   totalResults = 5 
 }) => {
+  
   const getResultStyle = (result: 'W' | 'D' | 'L', isLatest: boolean) => {
     let baseClasses = '';
     switch (result) {
@@ -133,7 +134,8 @@ const FormResult: React.FC<{ result: 'W' | 'D' | 'L', isLatest?: boolean, positi
     <div 
       className={`
         w-6 h-6 sm:w-8 sm:h-8 rounded border flex items-center justify-center 
-        text-xs sm:text-sm font-semibold transition-all duration-200 hover:scale-110
+        text-xs sm:text-sm font-semibold transition-all duration-200
+        hover:scale-110
         ${getResultStyle(result, isLatest || false)}
       `}
       style={{ opacity: 0.6 + (position! / (totalResults! - 1)) * 0.4 }}
@@ -154,7 +156,15 @@ interface StatRowProps {
   statType?: StatCategory;
 }
 
-const StatRow: React.FC<StatRowProps> = ({ label, homeValue, awayValue, leagueAverage, unit, isMatchesPlayed, statType = 'form' }) => {
+const StatRow: React.FC<StatRowProps> = ({ 
+  label, 
+  homeValue, 
+  awayValue, 
+  leagueAverage, 
+  unit, 
+  isMatchesPlayed,
+  statType = 'form'
+}) => {
   const getPerformanceCategory = (value: number | string, statType: string, label: string) => {
     if (typeof value !== 'number' || isMatchesPlayed) return 'neutral';
     const isPositiveStat = 
@@ -247,7 +257,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
     { key: 'fouls', label: 'Fouls' }
   ];
 
-  const getStatCategoryTitle = (category: StatCategory) => {
+  const getStatCategoryTitle = (category: StatCategory): string => {
     switch (category) {
       case 'form': return 'Team Form';
       case 'goals': return 'Team Goals';
@@ -279,12 +289,22 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
   const currentStats = getStatsForCategory(activeTab);
 
-  // --- Render Form Content ---
+  // --- Render Form Content (Updated) ---
   const renderFormContent = () => {
-    if (!effectiveStats) return <div className="text-center py-8"><p className="text-gray-600">Statistics are unavailable.</p></div>;
+    if (!effectiveStats)
+      return (
+        <div className="text-center py-8">
+          <p className="text-gray-600">Statistics are unavailable.</p>
+        </div>
+      );
 
     const recentForm = effectiveStats.recentForm as FormData | undefined;
-    if (!recentForm) return <div className="text-center py-8"><p className="text-gray-600">No form data available</p></div>;
+    if (!recentForm)
+      return (
+        <div className="text-center py-8">
+          <p className="text-gray-600">No form data available</p>
+        </div>
+      );
 
     const { homeResults, awayResults, homeStats, awayStats } = recentForm;
     const formStats = [
@@ -298,15 +318,16 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
       <div className={SPACING.sectionSpacing}>
         {/* Form Row */}
         <div className={`grid grid-cols-[1fr_auto_1fr] ${SPACING.gridGap} items-center`}>
+          {/* Home Team Form */}
           <div className="flex justify-end min-w-0">
-            <div className="flex space-x-1 sm:space-x-2 flex-nowrap"> 
+            <div className="flex space-x-1 sm:space-x-2 flex-nowrap">
               {Array.from({ length: 5 - homeResults.length }).map((_, index) => (
                 <div key={`empty-home-${index}`} className="w-6 h-6 sm:w-8 sm:h-8 rounded border border-gray-200 bg-gray-50 flex-shrink-0"></div>
               ))}
               {homeResults.map((result, index) => (
                 <div key={`home-${index}`} className="flex-shrink-0">
-                  <FormResult 
-                    result={result} 
+                  <FormResult
+                    result={result}
                     isLatest={index === homeResults.length - 1}
                     position={index}
                     totalResults={homeResults.length}
@@ -315,17 +336,22 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
               ))}
             </div>
           </div>
+
+          {/* Center Label */}
           <div className="text-center text-sm sm:text-base font-medium text-gray-700">Form</div>
+
+          {/* Away Team Form */}
           <div className="flex justify-start min-w-0">
             <div className="flex space-x-1 sm:space-x-2 flex-nowrap">
               {awayResults.slice().reverse().map((result, index) => (
-                <FormResult 
-                  key={`away-${index}`} 
-                  result={result} 
-                  isLatest={index === 0}
-                  position={awayResults.length - 1 - index}
-                  totalResults={awayResults.length}
-                />
+                <div key={`away-${index}`} className="flex-shrink-0">
+                  <FormResult
+                    result={result}
+                    isLatest={index === 0}
+                    position={awayResults.length - 1 - index}
+                    totalResults={awayResults.length}
+                  />
+                </div>
               ))}
             </div>
           </div>
@@ -350,96 +376,87 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
   // --- Loading/Error States ---
   if (showLoadingState && autoLoad && loading && !propStats) {
-    return <div className="text-center py-12 text-gray-500">Loading statistics...</div>;
+    return (
+      <div className="text-center py-12 text-gray-500">Loading statistics...</div>
+    );
   }
+
   if (showLoadingState && autoLoad && error && !propStats) {
-    return <div className="text-center py-12 text-red-500">Failed to load statistics.</div>;
+    return (
+      <div className="text-center py-12 text-red-500">Failed to load statistics.</div>
+    );
   }
+
   if (!effectiveStats) {
-    return <div className="text-center py-12 text-gray-500">No statistics available.</div>;
+    return (
+      <div className="text-center py-12 text-gray-500">No statistics available.</div>
+    );
   }
+
+  // --- Team Header ---
+  const TeamHeader = () => (
+    <div className={`grid grid-cols-[1fr_auto_1fr] ${SPACING.gridGap} items-center mb-6 sm:mb-8`}>
+      <div className="flex justify-end items-center min-w-0">
+        <span className="text-base sm:text-lg font-semibold text-gray-900 truncate">{homeTeam.name}</span>
+        {homeTeam.logo && (
+          <img src={homeTeam.logo} alt={homeTeam.name} className="w-6 h-6 sm:w-8 sm:h-8 ml-2 flex-shrink-0" />
+        )}
+      </div>
+      <div className="text-center">
+        <span className="text-sm sm:text-base text-gray-500">{league} {season}</span>
+      </div>
+      <div className="flex justify-start items-center min-w-0">
+        {awayTeam.logo && (
+          <img src={awayTeam.logo} alt={awayTeam.name} className="w-6 h-6 sm:w-8 sm:h-8 mr-2 flex-shrink-0" />
+        )}
+        <span className="text-base sm:text-lg font-semibold text-gray-900 truncate">{awayTeam.name}</span>
+      </div>
+    </div>
+  );
 
   // --- Main Render ---
   return (
-    <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
-      {/* HEADER + Tabs */}
-      <div className="w-full">
-        <div className="bg-gray-50 border-b border-gray-200 w-full flex">
-          <div className="flex w-full sm:hidden"> 
-            {tabs.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`
-                  flex-1 px-1 py-3 text-xs font-medium text-center border-b-2 
-                  transition-all duration-300 cubic-bezier(0.4, 0, 0.2, 1) min-w-0 relative
-                  ${activeTab === tab.key
-                    ? 'text-purple-800 border-purple-600 bg-white shadow-sm transform -translate-y-0.5 z-10'
-                    : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'
-                  }
-                `}
-              >
-                {activeTab === tab.key && (
-                  <div className="absolute inset-0 bg-gradient-to-t from-purple-50 to-transparent opacity-60 rounded-t-md pointer-events-none" />
-                )}
-                <span className="block truncate relative z-10">{tab.label}</span>
-              </button>
-            ))}
-          </div>
-          <div className="hidden sm:flex w-full">
-            {tabs.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`
-                  flex-1 px-2 py-4 text-sm font-medium border-b-2 
-                  transition-all duration-300 cubic-bezier(0.4, 0, 0.2, 1) text-center min-w-0 relative
-                  ${activeTab === tab.key
-                    ? 'text-purple-800 border-purple-600 bg-white shadow-sm transform -translate-y-0.5 z-10'
-                    : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'
-                  }
-                `}
-              >
-                {activeTab === tab.key && (
-                  <div className="absolute inset-0 bg-gradient-to-t from-purple-50 to-transparent opacity-60 rounded-t-md pointer-events-none" />
-                )}
-                <span className="block truncate relative z-10">{tab.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className={`${SPACING.contentPaddingClass} bg-gray-50 border-b border-gray-100 flex justify-between items-center`}>
-          <p className="text-xs sm:text-sm text-gray-600">Showing stats for {league} {season}</p>
-          {autoLoad && (fetchedStats ? (
-            <span className="text-xs text-green-600 font-medium">Live Data</span>
-          ) : propStats ? (
-            <span className="text-xs text-blue-600 font-medium">Custom Data</span>
-          ) : (
-            <span className="text-xs text-gray-600 font-medium">No Data</span>
+    <div className={`bg-white rounded-xl shadow-sm border border-gray-200 ${SPACING.contentPaddingClass} ${className}`}>
+      <TeamHeader />
+      <div className="flex justify-center mb-6 sm:mb-8 overflow-x-auto">
+        <div className="flex space-x-2 sm:space-x-3 min-w-max">
+          {tabs.map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`
+                px-3 sm:px-4 py-1.5 sm:py-2 text-sm sm:text-base rounded-lg font-medium
+                transition-all duration-200
+                ${activeTab === tab.key
+                  ? 'bg-blue-100 text-blue-700 shadow-sm'
+                  : 'text-gray-600 hover:bg-gray-50'}
+              `}
+            >
+              {tab.label}
+            </button>
           ))}
         </div>
       </div>
-
-      {/* Content */}
-      <div className={SPACING.contentPaddingClass}>
-        {activeTab === 'form' ? renderFormContent() : (
+      <div className={SPACING.sectionSpacing}>
+        <h3 className="text-lg sm:text-xl font-semibold text-gray-900 text-center mb-4 sm:mb-6">
+          {getStatCategoryTitle(activeTab)}
+        </h3>
+        {activeTab === 'form' ? (
+          renderFormContent()
+        ) : (
           <div className={SPACING.itemSpacing}>
-            {Object.entries(currentStats).map(([statName, statData]) => {
-              const isMatchesPlayed = statName === 'Matches Played';
-              const typedStatData = statData as StatValue;
-              return (
-                <StatRow
-                  key={statName}
-                  label={statName}
-                  homeValue={typedStatData.homeValue}
-                  awayValue={typedStatData.awayValue}
-                  leagueAverage={typedStatData.leagueAverage}
-                  unit={typedStatData.unit}
-                  isMatchesPlayed={isMatchesPlayed}
-                  statType={activeTab}
-                />
-              );
-            })}
+            {Object.entries(currentStats).map(([label, stat]) => (
+              <StatRow
+                key={label}
+                label={label}
+                homeValue={stat.homeValue}
+                awayValue={stat.awayValue}
+                leagueAverage={stat.leagueAverage}
+                unit={stat.unit}
+                statType={activeTab}
+                isMatchesPlayed={label === 'Matches Played'}
+              />
+            ))}
           </div>
         )}
       </div>
