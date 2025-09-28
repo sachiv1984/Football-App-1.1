@@ -3,7 +3,7 @@ import { supabaseCornersService, DetailedCornerStats } from '../stats/supabaseCo
 import { conflictResolverService } from './conflictResolverService';
 import { oddsAPIService } from '../api/oddsAPIService';
 
-// 💡 FIX 1: Local interface definitions must be defined here for global use within the file
+// Local interface definitions
 interface MatchOdds {
   matchId: string;
   totalCornersOdds?: {
@@ -39,14 +39,12 @@ interface CornerThresholdAnalysis {
   odds?: number;
 }
 
-// 💡 FIX 1: Interface is now correctly defined outside the class
 interface OptimalThreshold {
   analysis: CornerThresholdAnalysis;
   reasoning: string;
   alternativeConsidered: CornerThresholdAnalysis[];
 }
 
-// 💡 FIX 1: Interface is now correctly defined outside the class
 interface TeamCornerPattern {
   team: string;
   venue: 'home' | 'away';
@@ -68,18 +66,17 @@ type CornerType = 'total' | 'for' | 'against';
 
 export class CornersAIService {
   private readonly CONFIDENCE_THRESHOLDS = {
-    HIGH: 0.75,    // 75%+ hit rate
-    MEDIUM: 0.60,  // 60-74% hit rate  
-    LOW: 0.45      // 45-59% hit rate
+    HIGH: 0.75,
+    MEDIUM: 0.60,
+    LOW: 0.45
   };
 
   private readonly CONSISTENCY_THRESHOLDS = {
-    EXCELLENT: 0.8,  // 4/5 or 5/5 recent matches
-    GOOD: 0.6,       // 3/5 recent matches
-    POOR: 0.4        // 2/5 or less recent matches
+    EXCELLENT: 0.8,
+    GOOD: 0.6,
+    POOR: 0.4
   };
 
-  // 💡 FIX 2: Properties were missing 'private readonly' modifier in the previous snippet
   private readonly MATCH_CORNER_THRESHOLDS = [4.5, 5.5, 6.5, 7.5, 8.5, 9.5, 10.5, 11.5, 12.5, 13.5, 14.5, 15.5];
   private readonly TEAM_CORNER_THRESHOLDS = [2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5, 9.5, 10.5, 11.5, 12.5];
 
@@ -109,18 +106,14 @@ export class CornersAIService {
     const getCount = (match: { totalCorners: number; cornersFor: number; cornersAgainst: number }) => 
       this.getCornerCount(match, type);
 
-    // Calculate over percentage
     const matchesOver = matches.filter(match => getCount(match) > threshold);
     const overPercentage = (matchesOver.length / matches.length) * 100;
 
-    // Analyze recent form
     const recentMatches = matches.slice(0, 5);
     const recentOverForm = recentMatches.map(match => getCount(match) > threshold);
     const overHits = recentOverForm.filter(Boolean).length;
     const overConsistency = overHits / Math.min(5, recentMatches.length);
 
-    // Confidence and Value
-    // 💡 FIX 3: Added 'this.' prefix to getConfidenceLevel and calculateBetValue
     const overConfidence = this.getConfidenceLevel(overPercentage, overConsistency);
     const overValue = this.calculateBetValue(overPercentage, overConsistency, threshold, 'over', odds);
 
@@ -148,18 +141,14 @@ export class CornersAIService {
     const getCount = (match: { totalCorners: number; cornersFor: number; cornersAgainst: number }) => 
       this.getCornerCount(match, type);
 
-    // Calculate under percentage
     const matchesUnder = matches.filter(match => getCount(match) < threshold);
     const underPercentage = (matchesUnder.length / matches.length) * 100;
 
-    // Analyze recent form
     const recentMatches = matches.slice(0, 5);
     const recentUnderForm = recentMatches.map(match => getCount(match) < threshold);
     const underHits = recentUnderForm.filter(Boolean).length;
     const underConsistency = underHits / Math.min(5, recentMatches.length);
 
-    // Confidence and Value
-    // 💡 FIX 3: Added 'this.' prefix to getConfidenceLevel and calculateBetValue
     const underConfidence = this.getConfidenceLevel(underPercentage, underConsistency);
     const underValue = this.calculateBetValue(underPercentage, underConsistency, threshold, 'under', odds);
 
@@ -184,11 +173,9 @@ export class CornersAIService {
     type: CornerType,
     matchOdds: MatchOdds | null
   ): CornerThresholdAnalysis {
-    // Get specific odds for popular thresholds if available
     let overOdds: number | undefined;
     let underOdds: number | undefined;
     
-    // Only integrate odds for most popular corner totals for efficiency
     if (type === 'total' && this.MATCH_CORNER_THRESHOLDS.includes(threshold) && matchOdds?.totalCornersOdds) {
       overOdds = matchOdds.totalCornersOdds.overOdds;
       underOdds = matchOdds.totalCornersOdds.underOdds;
@@ -197,7 +184,6 @@ export class CornersAIService {
     const overAnalysis = this.analyzeCornerThresholdOver(matches, threshold, type, overOdds);
     const underAnalysis = this.analyzeCornerThresholdUnder(matches, threshold, type, underOdds);
 
-    // Pick best option: prioritize high confidence, then value
     if (overAnalysis.confidence === 'high' && overAnalysis.value >= underAnalysis.value) {
       return overAnalysis;
     } else if (underAnalysis.confidence === 'high' && underAnalysis.value >= overAnalysis.value) {
@@ -213,7 +199,6 @@ export class CornersAIService {
 
   /**
    * Analyze corner patterns for a specific team
-   * 💡 FIX 4: Explicitly typed the return value
    */
   private async analyzeTeamCornerPattern(teamName: string, venue: 'home' | 'away'): Promise<TeamCornerPattern> {
     const teamStats = await supabaseCornersService.getTeamCornerStats(teamName);
@@ -222,7 +207,6 @@ export class CornersAIService {
       throw new Error(`No corner data found for team: ${teamName}`);
     }
 
-    // 💡 FIX 5: Ensure 'relevantMatches' is correctly typed if needed, but the map looks fine here
     const relevantMatches = teamStats.matchDetails.map(match => ({
       opponent: match.opponent,
       cornersFor: match.cornersFor,
@@ -234,18 +218,15 @@ export class CornersAIService {
     const averageCornersAgainst = teamStats.cornersAgainst / teamStats.matches;
     const averageTotalCorners = averageCornersFor + averageCornersAgainst;
 
-    // Analyze team corner thresholds
     const thresholdAnalysis: { [key: string]: CornerThresholdAnalysis } = {};
     
     // For team-specific corners (for/against)
-    // 💡 FIX 6: Use 'this.TEAM_CORNER_THRESHOLDS' and specify the type of 'threshold'
     this.TEAM_CORNER_THRESHOLDS.forEach((threshold: number) => {
       thresholdAnalysis[`for_${threshold}`] = this.analyzeCornerThreshold(relevantMatches, threshold, 'for', null);
       thresholdAnalysis[`against_${threshold}`] = this.analyzeCornerThreshold(relevantMatches, threshold, 'against', null);
     });
 
     // For match total corners
-    // 💡 FIX 6: Use 'this.MATCH_CORNER_THRESHOLDS' and specify the type of 'threshold'
     this.MATCH_CORNER_THRESHOLDS.forEach((threshold: number) => {
       thresholdAnalysis[`total_${threshold}`] = this.analyzeCornerThreshold(relevantMatches, threshold, 'total', null);
     });
@@ -262,8 +243,8 @@ export class CornersAIService {
   }
 
   /**
+   * 🏆 FIX: Updated to temper high confidence when sample size (consistency) is low.
    * Calculate betting value score for corners
-   * 💡 FIX 3: This method definition is fine, but calls were missing 'this.'
    */
   private calculateBetValue(
     percentage: number, 
@@ -272,14 +253,19 @@ export class CornersAIService {
     betType: 'over' | 'under',
     odds?: number
   ): number {
-    // Base value calculation
     let baseValue = percentage * consistency;
     
     // Apply threshold difficulty adjustment
     if (betType === 'over') {
-      baseValue += (threshold * 2); // Corners are generally lower scoring than goals
+      baseValue += (threshold * 2); 
     } else {
-      baseValue += ((20 - threshold) * 2); // Adjust for corner range
+      baseValue += ((20 - threshold) * 2); 
+    }
+    
+    // 💡 NEW FIX: Temper 100% confidence based on sample size (consistency is based on 5 recent matches)
+    // If hit rate is near 100% but recent form (consistency) isn't excellent (0.8), penalize the value.
+    if (percentage >= 95 && consistency < this.CONSISTENCY_THRESHOLDS.EXCELLENT) {
+        baseValue *= 0.9; // Apply a 10% penalty
     }
     
     // Odds-based value calculation
@@ -301,7 +287,6 @@ export class CornersAIService {
 
   /**
    * Get confidence level based on percentage and consistency
-   * 💡 FIX 3: This method definition is fine, but calls were missing 'this.'
    */
   private getConfidenceLevel(percentage: number, consistency: number): 'high' | 'medium' | 'low' {
     if (percentage >= this.CONFIDENCE_THRESHOLDS.HIGH * 100 && consistency >= this.CONSISTENCY_THRESHOLDS.GOOD) {
@@ -314,7 +299,6 @@ export class CornersAIService {
 
   /**
    * Find optimal threshold from multiple options
-   * 💡 FIX 4: Explicitly typed the return value
    */
   private findOptimalThreshold(analyses: CornerThresholdAnalysis[], betType?: 'over' | 'under'): OptimalThreshold | null {
     let validAnalyses = analyses.filter(a => a.confidence !== 'low');
@@ -328,7 +312,6 @@ export class CornersAIService {
     const sorted = validAnalyses.sort((a, b) => b.value - a.value);
     const optimal = sorted[0];
     
-    // 💡 FIX 3: Added 'this.' prefix to generateThresholdReasoning
     const reasoning = this.generateThresholdReasoning(optimal, sorted.slice(1, 3));
     
     return {
@@ -340,7 +323,6 @@ export class CornersAIService {
 
   /**
    * Generate reasoning for threshold selection
-   * 💡 FIX 3: This method definition is fine, but calls were missing 'this.'
    */
   private generateThresholdReasoning(optimal: CornerThresholdAnalysis, alternatives: CornerThresholdAnalysis[]): string {
     let reasoning = `${optimal.betType === 'over' ? 'Over' : 'Under'} ${optimal.threshold} corners selected for optimal value`;
@@ -355,7 +337,6 @@ export class CornersAIService {
 
   /**
    * Generate optimized insights for total match corners
-   * 💡 FIX 4: Explicitly typed the input variables
    */
   private generateOptimalMatchCornerInsights(
     homePattern: TeamCornerPattern,
@@ -366,28 +347,24 @@ export class CornersAIService {
 
     const allCombinedAnalyses: CornerThresholdAnalysis[] = [];
     
-    // 💡 FIX 6: Use 'this.MATCH_CORNER_THRESHOLDS' and specify the type of 'threshold'
     this.MATCH_CORNER_THRESHOLDS.forEach((threshold: number) => {
       const homeAnalysis = homePattern.thresholdAnalysis[`total_${threshold}`];
       const awayAnalysis = awayPattern.thresholdAnalysis[`total_${threshold}`];
       
       if (!homeAnalysis || !awayAnalysis) return;
 
-      // Get odds for popular thresholds
       const overOdds = [8.5, 9.5, 10.5].includes(threshold) ? matchOdds?.totalCornersOdds?.overOdds : undefined;
       const underOdds = [8.5, 9.5, 10.5].includes(threshold) ? matchOdds?.totalCornersOdds?.underOdds : undefined;
 
       // Combined over analysis
       const combinedOverPercentage = (homeAnalysis.percentage + awayAnalysis.percentage) / 2;
       const combinedOverConsistency = (homeAnalysis.consistency + awayAnalysis.consistency) / 2;
-      // 💡 FIX 3: Added 'this.' prefix
       const combinedOverValue = this.calculateBetValue(combinedOverPercentage, combinedOverConsistency, threshold, 'over', overOdds);
 
       allCombinedAnalyses.push({
         threshold,
         percentage: combinedOverPercentage,
         consistency: combinedOverConsistency,
-        // 💡 FIX 3: Added 'this.' prefix
         confidence: this.getConfidenceLevel(combinedOverPercentage, combinedOverConsistency),
         recentForm: [...(homeAnalysis.recentForm || []), ...(awayAnalysis.recentForm || [])].slice(0, 5),
         betType: 'over',
@@ -398,14 +375,12 @@ export class CornersAIService {
       // Combined under analysis
       const combinedUnderPercentage = (homeAnalysis.percentage + awayAnalysis.percentage) / 2;
       const combinedUnderConsistency = (homeAnalysis.consistency + awayAnalysis.consistency) / 2;
-      // 💡 FIX 3: Added 'this.' prefix
       const combinedUnderValue = this.calculateBetValue(combinedUnderPercentage, combinedUnderConsistency, threshold, 'under', underOdds);
 
       allCombinedAnalyses.push({
         threshold,
         percentage: combinedUnderPercentage,
         consistency: combinedUnderConsistency,
-        // 💡 FIX 3: Added 'this.' prefix
         confidence: this.getConfidenceLevel(combinedUnderPercentage, combinedUnderConsistency),
         recentForm: [...(homeAnalysis.recentForm || []), ...(awayAnalysis.recentForm || [])].slice(0, 5),
         betType: 'under',
@@ -414,7 +389,7 @@ export class CornersAIService {
       });
     });
 
-    // 💡 Find the absolute single best bet (Over OR Under)
+    // Find the absolute single best bet (Over OR Under)
     const optimalBet = this.findOptimalThreshold(allCombinedAnalyses);
     
     if (optimalBet) {
@@ -437,7 +412,6 @@ export class CornersAIService {
 
   /**
    * Generate optimized insights for team-specific corners
-   * 💡 FIX 4: Explicitly typed the input variable
    */
   private generateOptimalTeamCornerInsights(
     teamPattern: TeamCornerPattern,
@@ -445,10 +419,8 @@ export class CornersAIService {
   ): AIInsight[] {
     const insights: AIInsight[] = [];
     
-    // Analyze team corner thresholds
     const analyses: CornerThresholdAnalysis[] = [];
     
-    // 💡 FIX 6: Use 'this.TEAM_CORNER_THRESHOLDS' and specify the type of 'threshold'
     this.TEAM_CORNER_THRESHOLDS.forEach((threshold: number) => {
       const forAnalysis = teamPattern.thresholdAnalysis[`for_${threshold}`];
       if (forAnalysis) {
@@ -456,7 +428,6 @@ export class CornersAIService {
       }
     });
     
-    // 💡 FIX 3: Added 'this.' prefix
     const optimal = this.findOptimalThreshold(analyses);
     
     if (optimal) {
@@ -480,7 +451,6 @@ export class CornersAIService {
 
   /**
    * Generate corner handicap insights (who will get most corners)
-   * 💡 FIX 4: Explicitly typed the input variables
    */
   private generateCornerHandicapInsights(
     homePattern: TeamCornerPattern,
@@ -488,7 +458,6 @@ export class CornersAIService {
   ): AIInsight[] {
     const insights: AIInsight[] = [];
     
-    // Calculate corner dominance patterns
     const homeWins = homePattern.recentMatches.filter(m => m.cornersFor > m.cornersAgainst).length;
     const awayWins = awayPattern.recentMatches.filter(m => m.cornersFor > m.cornersAgainst).length;
     const homeDraws = homePattern.recentMatches.filter(m => m.cornersFor === m.cornersAgainst).length;
@@ -498,11 +467,9 @@ export class CornersAIService {
     const awayWinPercentage = (awayWins / Math.max(awayPattern.recentMatches.length, 1)) * 100;
     const drawPercentage = ((homeDraws + awayDraws) / Math.max(homePattern.recentMatches.length + awayPattern.recentMatches.length, 1)) * 100;
     
-    // Corner advantage analysis
     const homeAdvantage = homePattern.averageCornersFor - homePattern.averageCornersAgainst;
     const awayAdvantage = awayPattern.averageCornersFor - awayPattern.averageCornersAgainst;
     
-    // Determine best bet
     if (homeWinPercentage > 60 && homeAdvantage > 1) {
       insights.push({
         id: 'corner-handicap-home',
@@ -545,24 +512,18 @@ export class CornersAIService {
     try {
       console.log(`[CornersAI] Generating optimized corner insights for ${homeTeam} vs ${awayTeam}`);
       
-      // 💡 FIX 3: Added 'this.' prefix to helper calls
       const homePattern = await this.analyzeTeamCornerPattern(homeTeam, 'home');
       const awayPattern = await this.analyzeTeamCornerPattern(awayTeam, 'away');
 
-      // Fetch odds data (if available)
       const matchOdds = await oddsAPIService.getOddsForMatch(homeTeam, awayTeam);
       
       const allInsights: AIInsight[] = [];
       
-      // Generate different types of corner insights
-      // 💡 FIX 3: Added 'this.' prefix to helper calls
       allInsights.push(...this.generateOptimalMatchCornerInsights(homePattern, awayPattern, matchOdds));
       allInsights.push(...this.generateOptimalTeamCornerInsights(homePattern, 'Home'));
       allInsights.push(...this.generateOptimalTeamCornerInsights(awayPattern, 'Away'));
-      // 💡 FIX 7: Corrected method name typo
       allInsights.push(...this.generateCornerHandicapInsights(homePattern, awayPattern));
       
-      // Filter and limit results
       console.log(`[CornersAI] Resolving potential conflicts among ${allInsights.length} generated insights...`);
       const resolutionResult = conflictResolverService.resolveConflicts(allInsights);
       
