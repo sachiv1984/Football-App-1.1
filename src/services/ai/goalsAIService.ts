@@ -1,6 +1,24 @@
 // src/services/ai/goalsAIService.ts
 import { supabaseGoalsService, DetailedGoalStats } from '../stats/supabaseGoalsService';
-import { conflictResolverService } from './conflictResolverService'; // <-- NEW IMPORT
+import { conflictResolverService } from './conflictResolverService';
+import { oddsAPIService } from '../api/oddsAPIService'; // 📦 NEW IMPORT PATH
+
+// 👇 NEW: Define the MatchOdds interface locally
+interface MatchOdds {
+  matchId: string;
+  totalGoalsOdds?: {
+    market: string;
+    overOdds: number;
+    underOdds: number;
+  };
+  bttsOdds?: {
+    market: string;
+    yesOdds: number;
+    noOdds: number;
+  };
+  lastFetched: number;
+}
+
 
 // Local type definition to avoid import conflicts
 interface AIInsight {
@@ -9,7 +27,7 @@ interface AIInsight {
   description: string;
   market?: string;
   confidence: 'high' | 'medium' | 'low';
-  odds?: string;
+  odds?: string; // 💰 NOW POPULATED WITH EXTERNAL ODDS
   supportingData?: string;
   source?: string;
   aiEnhanced?: boolean;
@@ -70,6 +88,8 @@ export class GoalsAIService {
 
   /**
    * Analyze goal patterns for a specific team
+   * NOTE: This method is left UNMODIFIED as it only relies on internal stats.
+   * Odds are injected at the analysis level (analyzeGoalThreshold).
    */
   private async analyzeTeamGoalPattern(teamName: string, venue: 'home' | 'away'): Promise<TeamGoalPattern> {
     const teamStats = await supabaseGoalsService.getTeamGoalStats(teamName);
@@ -117,11 +137,13 @@ export class GoalsAIService {
 
   /**
    * Analyze specific goal threshold with enhanced value calculation
+   * 🎯 UPDATED to accept MatchOdds
    */
   private analyzeGoalThreshold(
   matches: Array<{ totalGoals: number; goalsFor: number; goalsAgainst: number }>,
   threshold: number,
-  type: 'total' | 'for' | 'against'
+  type: 'total' | 'for' | 'against',
+  matchOdds?: MatchOdds // 🎯 NEW PARAMETER
 ): GoalThresholdAnalysis {
   
   const getGoalCount = (match: { totalGoals: number; goalsFor: number; goalsAgainst: number }) => {
@@ -155,15 +177,25 @@ export class GoalsAIService {
   const overConfidence = this.getConfidenceLevel(overPercentage, overConsistency);
   const underConfidence = this.getConfidenceLevel(underPercentage, underConsistency);
 
-  // Value scores
-  const overValue = this.calculateBetValue(overPercentage, overConsistency, threshold, 'over');
-  const underValue = this.calculateBetValue(underPercentage, underConsistency, threshold, 'under');
+  // 💰 NEW: Get specific odds for Total Goals 2.5
+  let overOdds: number | undefined;
+  let underOdds: number | undefined;
+  
+  // We only integrate odds for Total Goals 2.5 for efficiency
+  if (type === 'total' && threshold === 2.5) {
+      overOdds = matchOdds?.totalGoalsOdds?.overOdds;
+      underOdds = matchOdds?.totalGoalsOdds?.underOdds;
+  }
+  
+  // Value scores - pass the specific odds
+  const overValue = this.calculateBetValue(overPercentage, overConsistency, threshold, 'over', overOdds);
+  const underValue = this.calculateBetValue(underPercentage, underConsistency, threshold, 'under', underOdds);
 
   // Pick best option
   if (overValue > underValue && overConfidence !== 'low') {
     return {
       threshold,
-      percentage: Math.round(overPercentage * 10) / 10,   // ✅ fixed rounding (1 decimal place)
+      percentage: Math.round(overPercentage * 10) / 10,
       consistency: Math.round(overConsistency * 100) / 100,
       confidence: overConfidence,
       recentForm: recentOverForm,
@@ -173,7 +205,7 @@ export class GoalsAIService {
   } else if (underConfidence !== 'low') {
     return {
       threshold,
-      percentage: Math.round(underPercentage * 10) / 10,  // ✅ fixed
+      percentage: Math.round(underPercentage * 10) / 10,
       consistency: Math.round(underConsistency * 100) / 100,
       confidence: underConfidence,
       recentForm: recentUnderForm,
@@ -183,7 +215,7 @@ export class GoalsAIService {
   } else {
     return {
       threshold,
-      percentage: Math.round(overPercentage * 10) / 10,   // ✅ fixed
+      percentage: Math.round(overPercentage * 10) / 10,
       consistency: Math.round(overConsistency * 100) / 100,
       confidence: overConfidence,
       recentForm: recentOverForm,
@@ -196,17 +228,43 @@ export class GoalsAIService {
 
   /**
    * Calculate betting value score
+   * 🎯 UPDATED to prioritize positive edge when odds are available
    */
-  private calculateBetValue(percentage: number, consistency: number, threshold: number, betType: 'over' | 'under'): number {
+  private calculateBetValue(
+    percentage: number, 
+    consistency: number,
+    threshold: number,
+    betType: 'over' | 'under',
+    odds?: number // 💰 NEW PARAMETER
+  ): number {
+    // Start with the existing model score
     let baseValue = percentage * consistency;
     
-    // Adjust value based on threshold difficulty
+    // Apply existing threshold difficulty adjustment
     if (betType === 'over') {
-      // For over bets: higher thresholds are harder to hit but offer better odds
-      baseValue += (threshold * 5); // Bonus for higher thresholds
+      baseValue += (threshold * 5); 
     } else {
-      // For under bets: lower thresholds are harder to hit but offer better odds
-      baseValue += ((6 - threshold) * 5); // Bonus for lower thresholds
+      baseValue += ((6 - threshold) * 5);
+    }
+    
+    // --- ODDS-BASED VALUE CALCULATION (The Edge) ---
+    if (odds && odds > 1.05) { // Ensure odds are valid and worth betting on
+      // 1. Convert model percentage (e.g., 75) to probability (0.75)
+      const calculatedProbability = percentage / 100;
+      // 2. Implied Probability from Bookmaker (1 / Odds)
+      const impliedProbability = 1 / odds;
+      
+      // 3. Calculate the Edge/Value
+      const edge = calculatedProbability - impliedProbability;
+      
+      if (edge > 0.05) { // Significant positive edge (5%+)
+         // Dramatically amplify the score: this is a value bet!
+         baseValue += (edge * 2000) * consistency; // Edge provides a massive boost
+         baseValue += 500; // Fixed bonus for a proven value
+      } else if (edge < -0.10) {
+         // Decrease the score if the bet is extremely low value
+         baseValue += edge * 100; 
+      }
     }
     
     return baseValue;
@@ -272,10 +330,12 @@ export class GoalsAIService {
 
 /**
  * Generate optimized insights for total match goals
+ * 🎯 UPDATED to accept MatchOdds
  */
 private generateOptimalTotalGoalsInsights(
   homePattern: TeamGoalPattern,
-  awayPattern: TeamGoalPattern
+  awayPattern: TeamGoalPattern,
+  matchOdds?: MatchOdds // 🎯 NEW PARAMETER
 ): AIInsight[] {
   const insights: AIInsight[] = [];
 
@@ -290,6 +350,8 @@ private generateOptimalTotalGoalsInsights(
   };
 
   // Get all threshold analyses for both teams
+  // NOTE: These analyses DO NOT contain the odds-boosted value score yet, 
+  // unless the threshold is 2.5, which is handled in analyzeGoalThreshold.
   const homeAnalyses = Object.values(homePattern.thresholdAnalysis);
   const awayAnalyses = Object.values(awayPattern.thresholdAnalysis);
 
@@ -301,6 +363,11 @@ private generateOptimalTotalGoalsInsights(
     const awayAnalysis = awayAnalyses.find(a => a.threshold === threshold);
 
     if (homeAnalysis && awayAnalysis) {
+      
+      // 💰 Inject odds for the 2.5 threshold for the value calculation
+      let overOdds = (threshold === 2.5) ? matchOdds?.totalGoalsOdds?.overOdds : undefined;
+      let underOdds = (threshold === 2.5) ? matchOdds?.totalGoalsOdds?.underOdds : undefined;
+
       // Average the statistics
       const avgPercentage = (homeAnalysis.percentage + awayAnalysis.percentage) / 2;
       const avgConsistency = (homeAnalysis.consistency + awayAnalysis.consistency) / 2;
@@ -312,6 +379,9 @@ private generateOptimalTotalGoalsInsights(
           : homeAnalysis.value > awayAnalysis.value
           ? homeAnalysis.betType
           : awayAnalysis.betType;
+          
+      // Calculate the combined value using the odds for 2.5 threshold
+      const avgValue = this.calculateBetValue(avgPercentage, avgConsistency, threshold, betType, betType === 'over' ? overOdds : underOdds);
 
       combinedAnalyses.push({
         threshold,
@@ -320,7 +390,7 @@ private generateOptimalTotalGoalsInsights(
         confidence: this.getConfidenceLevel(avgPercentage, avgConsistency),
         recentForm: [...homeAnalysis.recentForm, ...awayAnalysis.recentForm].slice(0, 5),
         betType,
-        value: this.calculateBetValue(avgPercentage, avgConsistency, threshold, betType),
+        value: avgValue, // Use the odds-boosted value
       });
     }
   }
@@ -334,6 +404,9 @@ private generateOptimalTotalGoalsInsights(
       homePattern.thresholdAnalysis[key]?.recentForm.filter(Boolean).length || 0;
     const awayRecent =
       awayPattern.thresholdAnalysis[key]?.recentForm.filter(Boolean).length || 0;
+      
+    // 💰 Get the odds for the final insight (only available for 2.5 here)
+    const oddsValue = optimalOver.analysis.threshold === 2.5 ? matchOdds?.totalGoalsOdds?.overOdds : undefined;
 
     insights.push({
       id: `optimal-total-goals-over-${analysis.threshold}`,
@@ -343,6 +416,7 @@ private generateOptimalTotalGoalsInsights(
       )}% hit rate with strong consistency. ${optimalOver.reasoning}`,
       market: `Total Goals Over ${analysis.threshold}`,
       confidence: analysis.confidence,
+      odds: oddsValue ? oddsValue.toFixed(2) : undefined, // 💰 NEW: Include odds
       supportingData: `Combined analysis: ${homeRecent + awayRecent}/10 recent matches. Home avg: ${homePattern.averageTotalGoals}, Away avg: ${awayPattern.averageTotalGoals}`,
       aiEnhanced: true,
     });
@@ -352,6 +426,9 @@ private generateOptimalTotalGoalsInsights(
   const optimalUnder = this.findOptimalThreshold(combinedAnalyses, 'under');
   if (optimalUnder) {
     const analysis = optimalUnder.analysis;
+    
+    // 💰 Get the odds for the final insight (only available for 2.5 here)
+    const oddsValue = optimalUnder.analysis.threshold === 2.5 ? matchOdds?.totalGoalsOdds?.underOdds : undefined;
 
     insights.push({
       id: `optimal-total-goals-under-${analysis.threshold}`,
@@ -361,6 +438,7 @@ private generateOptimalTotalGoalsInsights(
       )}% hit rate with defensive trends identified. ${optimalUnder.reasoning}`,
       market: `Total Goals Under ${analysis.threshold}`,
       confidence: analysis.confidence,
+      odds: oddsValue ? oddsValue.toFixed(2) : undefined, // 💰 NEW: Include odds
       supportingData: `Defensive strength detected. Combined average: ${(
         (homePattern.averageTotalGoals + awayPattern.averageTotalGoals) /
         2
@@ -378,10 +456,12 @@ private generateOptimalTotalGoalsInsights(
 
   /**
    * Generate optimized insights for team-specific goals
+   * NOTE: Odds are NOT integrated here for efficiency (to save API calls)
    */
   private generateOptimalTeamGoalsInsights(
     teamPattern: TeamGoalPattern,
-    teamType: 'Home' | 'Away'
+    teamType: 'Home' | 'Away',
+    matchOdds?: MatchOdds // Kept for consistency, but not used internally
   ): AIInsight[] {
     const insights: AIInsight[] = [];
     
@@ -389,6 +469,7 @@ private generateOptimalTotalGoalsInsights(
     const matches = teamPattern.recentMatches;
     const thresholds = [0.5, 1.5, 2.5, 3.5, 4.5, 5.5];
     
+    // Calls the default analyzeGoalThreshold without odds
     const analyses: GoalThresholdAnalysis[] = thresholds.map(threshold => 
       this.analyzeGoalThreshold(matches, threshold, 'for')
     );
@@ -406,6 +487,7 @@ private generateOptimalTotalGoalsInsights(
         description: `Optimal ${teamType.toLowerCase()} team bet: ${analysis.percentage.toFixed(1)}% hit rate (${recentHits}/5 recent). ${optimal.reasoning}`,
         market: `${teamType} Team Goals ${analysis.betType === 'over' ? 'Over' : 'Under'} ${analysis.threshold}`,
         confidence: analysis.confidence,
+        // odds is undefined here
         supportingData: `Recent form: [${matches.slice(0, 5).map(m => m.goalsFor).join(', ')}]. Average: ${teamPattern.averageGoalsFor}/game`,
         aiEnhanced: true
       });
@@ -415,11 +497,13 @@ private generateOptimalTotalGoalsInsights(
   }
 
   /**
-   * Generate Both Teams to Score insights (unchanged - already optimal)
+   * Generate Both Teams to Score insights 
+   * 🎯 UPDATED to accept MatchOdds and include odds in output
    */
   private generateBTTSInsights(
     homePattern: TeamGoalPattern,
-    awayPattern: TeamGoalPattern
+    awayPattern: TeamGoalPattern,
+    matchOdds?: MatchOdds // 🎯 NEW PARAMETER
   ): AIInsight[] {
     const insights: AIInsight[] = [];
     
@@ -428,33 +512,42 @@ private generateOptimalTotalGoalsInsights(
     const awayRecentBTTS = awayPattern.recentMatches.filter(m => m.bothTeamsScored).length;
     const avgRecentBTTS = (homeRecentBTTS + awayRecentBTTS) / 2;
     
+    // Get the actual BTTS odds
+    const bttsYesOdds = matchOdds?.bttsOdds?.yesOdds;
+    const bttsNoOdds = matchOdds?.bttsOdds?.noOdds;
+    
+    // Calculate a simple value score for BTTS Yes
+    const yesConfidence = this.getConfidenceLevel(combinedBTTSPercentage, avgRecentBTTS / 5);
+    const yesValue = this.calculateBetValue(combinedBTTSPercentage, avgRecentBTTS / 5, 2.5, 'over', bttsYesOdds);
+    
     // BTTS - YES
-    if (combinedBTTSPercentage >= this.CONFIDENCE_THRESHOLDS.MEDIUM * 100) {
-      const consistency = avgRecentBTTS / 5;
-      const confidence = this.getConfidenceLevel(combinedBTTSPercentage, consistency);
-      
+    if (yesConfidence !== 'low') { // Check confidence level
       insights.push({
         id: 'optimal-btts-yes',
         title: 'Both Teams to Score - YES',
-        description: `Strong BTTS opportunity: ${combinedBTTSPercentage.toFixed(1)}% rate. Both teams show consistent scoring ability.`,
+        description: `Strong BTTS opportunity: ${combinedBTTSPercentage.toFixed(1)}% rate. Both teams show consistent scoring ability. Value Score: ${yesValue.toFixed(0)}`,
         market: 'Both Teams to Score - Yes',
-        confidence,
+        confidence: yesConfidence,
+        odds: bttsYesOdds ? bttsYesOdds.toFixed(2) : undefined, // 💰 NEW: Include odds
         supportingData: `Home: ${homeRecentBTTS}/5 recent, Away: ${awayRecentBTTS}/5 recent. Combined BTTS: ${combinedBTTSPercentage.toFixed(1)}%`
       });
     }
     
-    // BTTS - NO (only if significantly better than YES)
+    // BTTS - NO
     const bttsNoPercentage = 100 - combinedBTTSPercentage;
-    if (bttsNoPercentage >= this.CONFIDENCE_THRESHOLDS.MEDIUM * 100 && bttsNoPercentage > combinedBTTSPercentage + 10) {
-      const consistency = (10 - homeRecentBTTS - awayRecentBTTS) / 10;
-      const confidence = this.getConfidenceLevel(bttsNoPercentage, consistency);
-      
+    const noConsistency = (10 - homeRecentBTTS - awayRecentBTTS) / 10;
+    const noConfidence = this.getConfidenceLevel(bttsNoPercentage, noConsistency);
+    const noValue = this.calculateBetValue(bttsNoPercentage, noConsistency, 2.5, 'under', bttsNoOdds);
+
+    // Only suggest BTTS No if it has at least medium confidence AND a positive value edge
+    if (noConfidence !== 'low' && (bttsNoOdds && (bttsNoPercentage / 100) > (1 / bttsNoOdds))) {
       insights.push({
         id: 'optimal-btts-no',
         title: 'Both Teams to Score - NO',
-        description: `Strong defensive trend: ${bttsNoPercentage.toFixed(1)}% of matches see at least one team fail to score.`,
+        description: `Strong defensive trend: ${bttsNoPercentage.toFixed(1)}% of matches see at least one team fail to score. Value Score: ${noValue.toFixed(0)}`,
         market: 'Both Teams to Score - No',
-        confidence,
+        confidence: noConfidence,
+        odds: bttsNoOdds ? bttsNoOdds.toFixed(2) : undefined, // 💰 NEW: Include odds
         supportingData: `One or both teams struggle to score. Home avg: ${homePattern.averageGoalsFor}, Away avg: ${awayPattern.averageGoalsFor}`
       });
     }
@@ -464,6 +557,7 @@ private generateOptimalTotalGoalsInsights(
 
   /**
    * Main method: Generate optimized goal-related betting insights
+   * 🎯 UPDATED to fetch and pass MatchOdds
    */
   async generateGoalInsights(homeTeam: string, awayTeam: string): Promise<AIInsight[]> {
     try {
@@ -471,30 +565,30 @@ private generateOptimalTotalGoalsInsights(
       
       const homePattern = await this.analyzeTeamGoalPattern(homeTeam, 'home');
       const awayPattern = await this.analyzeTeamGoalPattern(awayTeam, 'away');
+
+      // 🎯 NEW STEP: Fetch odds data here (efficiently via cache)
+      const matchOdds = await oddsAPIService.getOddsForMatch(homeTeam, awayTeam); 
       
       const allInsights: AIInsight[] = [];
       
-      // 1. Generate all insights
-      allInsights.push(...this.generateOptimalTotalGoalsInsights(homePattern, awayPattern));
-      allInsights.push(...this.generateOptimalTeamGoalsInsights(homePattern, 'Home'));
-      allInsights.push(...this.generateOptimalTeamGoalsInsights(awayPattern, 'Away'));
-      allInsights.push(...this.generateBTTSInsights(homePattern, awayPattern));
+      // Pass matchOdds to generation functions
+      allInsights.push(...this.generateOptimalTotalGoalsInsights(homePattern, awayPattern, matchOdds));
+      allInsights.push(...this.generateOptimalTeamGoalsInsights(homePattern, 'Home', matchOdds));
+      allInsights.push(...this.generateOptimalTeamGoalsInsights(awayPattern, 'Away', matchOdds));
+      allInsights.push(...this.generateBTTSInsights(homePattern, awayPattern, matchOdds));
       
-      
-      // 2. CONFLICT RESOLUTION
+      // Filter and limit results
       console.log(`[GoalsAI] Resolving potential conflicts among ${allInsights.length} generated insights...`);
       const resolutionResult = conflictResolverService.resolveConflicts(allInsights);
       
-      const insightsToFilter = resolutionResult.resolvedInsights; // Use the list after conflicts are resolved
+      const insightsToFilter = resolutionResult.resolvedInsights;
       
-      // 3. Filter and limit results (using the resolved insights)
       const filteredInsights = insightsToFilter
         .filter(insight => insight.confidence !== 'low')
-        .slice(0, 6); 
+        .slice(0, 6);
       
       console.log(`[GoalsAI] ✅ Final insights after resolution: ${filteredInsights.length}`);
       console.log(`[GoalsAI] Resolution Summary: ${resolutionResult.summary}`);
-      
       return filteredInsights;
       
     } catch (error) {
