@@ -118,80 +118,80 @@ export class GoalsAIService {
    * Analyze specific goal threshold with enhanced value calculation
    */
   private analyzeGoalThreshold(
-    matches: Array<{ totalGoals: number; goalsFor: number; goalsAgainst: number }>,
-    threshold: number,
-    type: 'total' | 'for' | 'against'
-  ): GoalThresholdAnalysis {
-    
-    const getGoalCount = (match: { totalGoals: number; goalsFor: number; goalsAgainst: number }) => {
-      switch (type) {
-        case 'for': return match.goalsFor;
-        case 'against': return match.goalsAgainst;
-        default: return match.totalGoals;
-      }
-    };
-
-    // Calculate over percentage
-    const matchesOver = matches.filter(match => getGoalCount(match) > threshold);
-    const overPercentage = (matchesOver.length / matches.length) * 100;
-    
-    // Calculate under percentage
-    const matchesUnder = matches.filter(match => getGoalCount(match) < threshold);
-    const underPercentage = (matchesUnder.length / matches.length) * 100;
-
-    // Analyze recent form
-    const recentMatches = matches.slice(0, 5);
-    const recentOverForm = recentMatches.map(match => getGoalCount(match) > threshold);
-    const recentUnderForm = recentMatches.map(match => getGoalCount(match) < threshold);
-    
-    const overHits = recentOverForm.filter(Boolean).length;
-    const underHits = recentUnderForm.filter(Boolean).length;
-    
-    const overConsistency = overHits / Math.min(5, recentMatches.length);
-    const underConsistency = underHits / Math.min(5, recentMatches.length);
-
-    // Determine which bet type (over/under) is better
-    const overConfidence = this.getConfidenceLevel(overPercentage, overConsistency);
-    const underConfidence = this.getConfidenceLevel(underPercentage, underConsistency);
-    
-    // Calculate value scores (higher threshold = better for over, lower threshold = better for under)
-    const overValue = this.calculateBetValue(overPercentage, overConsistency, threshold, 'over');
-    const underValue = this.calculateBetValue(underPercentage, underConsistency, threshold, 'under');
-    
-    // Return the better option
-    if (overValue > underValue && overConfidence !== 'low') {
-      return {
-        threshold,
-        percentage: Math.round(overPercentage * 100) / 100,
-        consistency: Math.round(overConsistency * 100) / 100,
-        confidence: overConfidence,
-        recentForm: recentOverForm,
-        betType: 'over',
-        value: overValue
-      };
-    } else if (underConfidence !== 'low') {
-      return {
-        threshold,
-        percentage: Math.round(underPercentage * 100) / 100,
-        consistency: Math.round(underConsistency * 100) / 100,
-        confidence: underConfidence,
-        recentForm: recentUnderForm,
-        betType: 'under',
-        value: underValue
-      };
-    } else {
-      // Fallback to over bet if both are low confidence
-      return {
-        threshold,
-        percentage: Math.round(overPercentage * 100) / 100,
-        consistency: Math.round(overConsistency * 100) / 100,
-        confidence: overConfidence,
-        recentForm: recentOverForm,
-        betType: 'over',
-        value: overValue
-      };
+  matches: Array<{ totalGoals: number; goalsFor: number; goalsAgainst: number }>,
+  threshold: number,
+  type: 'total' | 'for' | 'against'
+): GoalThresholdAnalysis {
+  
+  const getGoalCount = (match: { totalGoals: number; goalsFor: number; goalsAgainst: number }) => {
+    switch (type) {
+      case 'for': return match.goalsFor;
+      case 'against': return match.goalsAgainst;
+      default: return match.totalGoals;
     }
+  };
+
+  // Calculate over percentage
+  const matchesOver = matches.filter(match => getGoalCount(match) > threshold);
+  const overPercentage = (matchesOver.length / matches.length) * 100;
+
+  // Calculate under percentage
+  const matchesUnder = matches.filter(match => getGoalCount(match) < threshold);
+  const underPercentage = (matchesUnder.length / matches.length) * 100;
+
+  // Analyze recent form
+  const recentMatches = matches.slice(0, 5);
+  const recentOverForm = recentMatches.map(match => getGoalCount(match) > threshold);
+  const recentUnderForm = recentMatches.map(match => getGoalCount(match) < threshold);
+
+  const overHits = recentOverForm.filter(Boolean).length;
+  const underHits = recentUnderForm.filter(Boolean).length;
+
+  const overConsistency = overHits / Math.min(5, recentMatches.length);
+  const underConsistency = underHits / Math.min(5, recentMatches.length);
+
+  // Confidence levels
+  const overConfidence = this.getConfidenceLevel(overPercentage, overConsistency);
+  const underConfidence = this.getConfidenceLevel(underPercentage, underConsistency);
+
+  // Value scores
+  const overValue = this.calculateBetValue(overPercentage, overConsistency, threshold, 'over');
+  const underValue = this.calculateBetValue(underPercentage, underConsistency, threshold, 'under');
+
+  // Pick best option
+  if (overValue > underValue && overConfidence !== 'low') {
+    return {
+      threshold,
+      percentage: Math.round(overPercentage * 10) / 10,   // ✅ fixed rounding (1 decimal place)
+      consistency: Math.round(overConsistency * 100) / 100,
+      confidence: overConfidence,
+      recentForm: recentOverForm,
+      betType: 'over',
+      value: overValue,
+    };
+  } else if (underConfidence !== 'low') {
+    return {
+      threshold,
+      percentage: Math.round(underPercentage * 10) / 10,  // ✅ fixed
+      consistency: Math.round(underConsistency * 100) / 100,
+      confidence: underConfidence,
+      recentForm: recentUnderForm,
+      betType: 'under',
+      value: underValue,
+    };
+  } else {
+    return {
+      threshold,
+      percentage: Math.round(overPercentage * 10) / 10,   // ✅ fixed
+      consistency: Math.round(overConsistency * 100) / 100,
+      confidence: overConfidence,
+      recentForm: recentOverForm,
+      betType: 'over',
+      value: overValue,
+    };
   }
+}
+
 
   /**
    * Calculate betting value score
