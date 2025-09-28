@@ -82,6 +82,9 @@ export const useAIBettingInsights = (
     isRefreshing: false
   });
 
+  // 👇 FIX 1: New state to track if essential services have been registered.
+  const [servicesReady, setServicesReady] = useState(false);
+
   // Refs for cleanup and persistence
   const abortControllerRef = useRef<AbortController | null>(null);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -169,6 +172,9 @@ export const useAIBettingInsights = (
       
       if (!service) {
         console.warn(`[AI Hook] Service '${serviceName}' not registered, skipping`);
+        // Note: Skipping an unregistered service is fine, but if ALL required
+        // services are unregistered on the first run, the retry logic below
+        // will be triggered, which is the original issue.
         continue;
       }
 
@@ -202,9 +208,16 @@ export const useAIBettingInsights = (
       if (retryCount < maxRetries) {
         console.log(`[AI Hook] All services failed, retrying in ${retryDelay}ms...`);
         
+        // 👇 FIX 3: Update state with service errors before retrying for better visibility
+        setState(prev => ({
+            ...prev,
+            serviceErrors: errors
+        }));
+
         return new Promise((resolve, reject) => {
           retryTimeoutRef.current = setTimeout(async () => {
             try {
+              // The recursive call to generateInsights
               const result = await generateInsights(home, away, retryCount + 1);
               resolve(result);
             } catch (err) {
@@ -213,6 +226,11 @@ export const useAIBettingInsights = (
           }, retryDelay);
         });
       } else {
+        // 👇 FIX 4: Update state with final service errors on maximum retry failure
+        setState(prev => ({
+            ...prev,
+            serviceErrors: errors
+        }));
         throw new Error(`All AI services failed after ${maxRetries} retries`);
       }
     }
@@ -226,13 +244,16 @@ export const useAIBettingInsights = (
       .slice(0, 12); // Maximum 12 total insights
 
     return sortedInsights;
-  }, [services, maxRetries, retryDelay]);
+  }, [services, maxRetries, retryDelay]); // Dependencies are correct
 
   /**
    * Load insights (main function)
    */
   const loadInsights = useCallback(async (forceRefresh = false) => {
-    if (!enabled || !homeTeam || !awayTeam) {
+    // 👇 FIX 2: Prevent loading if not enabled, or if teams are missing, OR IF SERVICES ARE NOT READY
+    if (!enabled || !homeTeam || !awayTeam || !servicesReady) {
+      // If we are waiting for services, don't run.
+      // If `enabled` is false, it returns silently.
       return;
     }
 
@@ -290,11 +311,13 @@ export const useAIBettingInsights = (
         ...prev,
         loading: false,
         isRefreshing: false,
-        error: (error as Error).message,
-        serviceErrors: prev.serviceErrors
+        // The serviceErrors array is updated inside generateInsights, 
+        // but ensure the main error is captured here too.
+        error: (error as Error).message, 
+        // serviceErrors: prev.serviceErrors (already updated or handled inside generateInsights)
       }));
     }
-  }, [enabled, homeTeam, awayTeam, generateInsights, getCachedInsights, setCachedInsights]);
+  }, [enabled, homeTeam, awayTeam, generateInsights, getCachedInsights, setCachedInsights, servicesReady]); // ADD servicesReady
 
   /**
    * Refresh insights manually
@@ -331,12 +354,14 @@ export const useAIBettingInsights = (
 
   // Effect: Load insights when teams change
   useEffect(() => {
+    // 👇 FIX 2: loadInsights is now gated by the servicesReady flag inside its body.
     loadInsights(false);
   }, [loadInsights]);
 
   // Effect: Set up auto-refresh if enabled
   useEffect(() => {
-    if (refreshInterval > 0 && enabled) {
+    // 👇 FIX 2: Also guard the auto-refresh until services are ready
+    if (refreshInterval > 0 && enabled && servicesReady) {
       refreshIntervalRef.current = setInterval(() => {
         console.log('[AI Hook] Auto-refreshing insights...');
         loadInsights(true);
@@ -348,7 +373,7 @@ export const useAIBettingInsights = (
         }
       };
     }
-  }, [refreshInterval, enabled, loadInsights]);
+  }, [refreshInterval, enabled, loadInsights, servicesReady]); // ADD servicesReady
 
   // Effect: Cleanup on unmount
   useEffect(() => {
@@ -377,6 +402,10 @@ export const useAIBettingInsights = (
         console.log('[AI Hook] Goals service registered');
       } catch (error) {
         console.error('[AI Hook] Failed to register goals service:', error);
+      } finally {
+        // 👇 FIX 1: Crucial change. Mark services as ready after registration attempt, 
+        // allowing loadInsights to run for the first time.
+        setServicesReady(true);
       }
     };
 
