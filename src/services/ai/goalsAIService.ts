@@ -1,5 +1,6 @@
 // src/services/ai/goalsAIService.ts
 import { supabaseGoalsService, DetailedGoalStats } from '../stats/supabaseGoalsService';
+import { conflictResolverService } from './conflictResolverService'; // <-- NEW IMPORT
 
 // Local type definition to avoid import conflicts
 interface AIInsight {
@@ -473,18 +474,27 @@ private generateOptimalTotalGoalsInsights(
       
       const allInsights: AIInsight[] = [];
       
-      // Generate optimal insights (no redundancy)
+      // 1. Generate all insights
       allInsights.push(...this.generateOptimalTotalGoalsInsights(homePattern, awayPattern));
       allInsights.push(...this.generateOptimalTeamGoalsInsights(homePattern, 'Home'));
       allInsights.push(...this.generateOptimalTeamGoalsInsights(awayPattern, 'Away'));
       allInsights.push(...this.generateBTTSInsights(homePattern, awayPattern));
       
-      // Filter and limit results
-      const filteredInsights = allInsights
-        .filter(insight => insight.confidence !== 'low')
-        .slice(0, 6); // Reduced from 8 since we're showing optimal bets only
       
-      console.log(`[GoalsAI] Generated ${filteredInsights.length} optimal goal insights`);
+      // 2. CONFLICT RESOLUTION
+      console.log(`[GoalsAI] Resolving potential conflicts among ${allInsights.length} generated insights...`);
+      const resolutionResult = conflictResolverService.resolveConflicts(allInsights);
+      
+      const insightsToFilter = resolutionResult.resolvedInsights; // Use the list after conflicts are resolved
+      
+      // 3. Filter and limit results (using the resolved insights)
+      const filteredInsights = insightsToFilter
+        .filter(insight => insight.confidence !== 'low')
+        .slice(0, 6); 
+      
+      console.log(`[GoalsAI] ✅ Final insights after resolution: ${filteredInsights.length}`);
+      console.log(`[GoalsAI] Resolution Summary: ${resolutionResult.summary}`);
+      
       return filteredInsights;
       
     } catch (error) {
