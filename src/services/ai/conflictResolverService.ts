@@ -538,9 +538,9 @@ export class ConflictResolverService {
     const teamThreshold = this.extractThreshold(teamGoal.market?.toLowerCase() || '');
     
     if (!totalThreshold || !teamThreshold) return false;
-    
-    const totalIsUnder = totalGoal.market?.toLowerCase().includes('under');
-    const teamIsOver = teamGoal.market?.toLowerCase().includes('over');
+  
+    const totalIsUnder = totalGoal.market?.toLowerCase().includes('under') ?? false; 
+    const teamIsOver = teamGoal.market?.toLowerCase().includes('over') ?? false;
     
     // Conflict if total under X and team over Y where Y approaches X
     return totalIsUnder && teamIsOver && teamThreshold >= totalThreshold * 0.7;
