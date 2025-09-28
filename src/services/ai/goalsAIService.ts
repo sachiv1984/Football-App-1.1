@@ -269,89 +269,111 @@ export class GoalsAIService {
     return reasoning;
   }
 
-  /**
-   * Generate optimized insights for total match goals
-   */
-  private generateOptimalTotalGoalsInsights(
-    homePattern: TeamGoalPattern,
-    awayPattern: TeamGoalPattern
-  ): AIInsight[] {
-    const insights: AIInsight[] = [];
-    
-    // Get all threshold analyses for both teams
-    const homeAnalyses = Object.values(homePattern.thresholdAnalysis);
-    const awayAnalyses = Object.values(awayPattern.thresholdAnalysis);
-    
-    // Combine and average the analyses
-    const combinedAnalyses: GoalThresholdAnalysis[] = [];
-    
-    const thresholds = [0.5, 1.5, 2.5, 3.5, 4.5];
-    
-    for (const threshold of thresholds) {
-      const homeAnalysis = homeAnalyses.find(a => a.threshold === threshold);
-      const awayAnalysis = awayAnalyses.find(a => a.threshold === threshold);
-      
-      if (homeAnalysis && awayAnalysis) {
-        // Average the statistics
-        const avgPercentage = (homeAnalysis.percentage + awayAnalysis.percentage) / 2;
-        const avgConsistency = (homeAnalysis.consistency + awayAnalysis.consistency) / 2;
-        
-        // Use the same bet type if both agree, otherwise pick the stronger one
-        const betType = homeAnalysis.betType === awayAnalysis.betType 
-          ? homeAnalysis.betType 
-          : homeAnalysis.value > awayAnalysis.value ? homeAnalysis.betType : awayAnalysis.betType;
-        
-        combinedAnalyses.push({
-          threshold,
-          percentage: avgPercentage,
-          consistency: avgConsistency,
-          confidence: this.getConfidenceLevel(avgPercentage, avgConsistency),
-          recentForm: [...homeAnalysis.recentForm, ...awayAnalysis.recentForm].slice(0, 5),
-          betType,
-          value: this.calculateBetValue(avgPercentage, avgConsistency, threshold, betType)
-        });
-      }
-    }
-    
-    // Find optimal over threshold
-    const optimalOver = this.findOptimalThreshold(combinedAnalyses, 'over');
-    if (optimalOver) {
-      const analysis = optimalOver.analysis;
-      const homeRecent = homePattern.thresholdAnalysis[`over${analysis.threshold.toString().replace('.', '')}`]?.recentForm.filter(Boolean).length || 0;
-      const awayRecent = awayPattern.thresholdAnalysis[`over${analysis.threshold.toString().replace('.', '')}`]?.recentForm.filter(Boolean).length || 0;
-      
-      insights.push({
-        id: `optimal-total-goals-over-${analysis.threshold}`,
-        title: `Over ${analysis.threshold} Total Goals`,
-        description: `Optimal over bet: ${analysis.percentage.toFixed(1)}% hit rate with strong consistency. ${optimalOver.reasoning}`,
-        market: `Total Goals Over ${analysis.threshold}`,
-        confidence: analysis.confidence,
-        supportingData: `Combined analysis: ${homeRecent + awayRecent}/10 recent matches. Home avg: ${homePattern.averageTotalGoals}, Away avg: ${awayPattern.averageTotalGoals}`,
-        aiEnhanced: true
+/**
+ * Generate optimized insights for total match goals
+ */
+private generateOptimalTotalGoalsInsights(
+  homePattern: TeamGoalPattern,
+  awayPattern: TeamGoalPattern
+): AIInsight[] {
+  const insights: AIInsight[] = [];
+
+  // Mapping thresholds to keys
+  const thresholdKeyMap: Record<number, keyof TeamGoalPattern['thresholdAnalysis']> = {
+    0.5: 'over05',
+    1.5: 'over15',
+    2.5: 'over25',
+    3.5: 'over35',
+    4.5: 'over45',
+    5.5: 'over55',
+  };
+
+  // Get all threshold analyses for both teams
+  const homeAnalyses = Object.values(homePattern.thresholdAnalysis);
+  const awayAnalyses = Object.values(awayPattern.thresholdAnalysis);
+
+  const combinedAnalyses: GoalThresholdAnalysis[] = [];
+  const thresholds = [0.5, 1.5, 2.5, 3.5, 4.5];
+
+  for (const threshold of thresholds) {
+    const homeAnalysis = homeAnalyses.find(a => a.threshold === threshold);
+    const awayAnalysis = awayAnalyses.find(a => a.threshold === threshold);
+
+    if (homeAnalysis && awayAnalysis) {
+      // Average the statistics
+      const avgPercentage = (homeAnalysis.percentage + awayAnalysis.percentage) / 2;
+      const avgConsistency = (homeAnalysis.consistency + awayAnalysis.consistency) / 2;
+
+      // Use the same bet type if both agree, otherwise pick the stronger one
+      const betType =
+        homeAnalysis.betType === awayAnalysis.betType
+          ? homeAnalysis.betType
+          : homeAnalysis.value > awayAnalysis.value
+          ? homeAnalysis.betType
+          : awayAnalysis.betType;
+
+      combinedAnalyses.push({
+        threshold,
+        percentage: avgPercentage,
+        consistency: avgConsistency,
+        confidence: this.getConfidenceLevel(avgPercentage, avgConsistency),
+        recentForm: [...homeAnalysis.recentForm, ...awayAnalysis.recentForm].slice(0, 5),
+        betType,
+        value: this.calculateBetValue(avgPercentage, avgConsistency, threshold, betType),
       });
     }
-    
-    // Find optimal under threshold
-    const optimalUnder = this.findOptimalThreshold(combinedAnalyses, 'under');
-    if (optimalUnder) {
-      const analysis = optimalUnder.analysis;
-      
-      insights.push({
-        id: `optimal-total-goals-under-${analysis.threshold}`,
-        title: `Under ${analysis.threshold} Total Goals`,
-        description: `Optimal under bet: ${analysis.percentage.toFixed(1)}% hit rate with defensive trends identified. ${optimalUnder.reasoning}`,
-        market: `Total Goals Under ${analysis.threshold}`,
-        confidence: analysis.confidence,
-        supportingData: `Defensive strength detected. Combined average: ${((homePattern.averageTotalGoals + awayPattern.averageTotalGoals) / 2).toFixed(1)} goals per game`,
-        aiEnhanced: true
-      });
-    }
-    
-    return insights.sort((a, b) => {
-      const confidenceOrder: Record<string, number> = { 'high': 3, 'medium': 2, 'low': 1 };
-      return (confidenceOrder[b.confidence] || 1) - (confidenceOrder[a.confidence] || 1);
+  }
+
+  // Find optimal over threshold
+  const optimalOver = this.findOptimalThreshold(combinedAnalyses, 'over');
+  if (optimalOver) {
+    const analysis = optimalOver.analysis;
+    const key = thresholdKeyMap[analysis.threshold];
+    const homeRecent =
+      homePattern.thresholdAnalysis[key]?.recentForm.filter(Boolean).length || 0;
+    const awayRecent =
+      awayPattern.thresholdAnalysis[key]?.recentForm.filter(Boolean).length || 0;
+
+    insights.push({
+      id: `optimal-total-goals-over-${analysis.threshold}`,
+      title: `Over ${analysis.threshold} Total Goals`,
+      description: `Optimal over bet: ${analysis.percentage.toFixed(
+        1
+      )}% hit rate with strong consistency. ${optimalOver.reasoning}`,
+      market: `Total Goals Over ${analysis.threshold}`,
+      confidence: analysis.confidence,
+      supportingData: `Combined analysis: ${homeRecent + awayRecent}/10 recent matches. Home avg: ${homePattern.averageTotalGoals}, Away avg: ${awayPattern.averageTotalGoals}`,
+      aiEnhanced: true,
     });
   }
+
+  // Find optimal under threshold
+  const optimalUnder = this.findOptimalThreshold(combinedAnalyses, 'under');
+  if (optimalUnder) {
+    const analysis = optimalUnder.analysis;
+
+    insights.push({
+      id: `optimal-total-goals-under-${analysis.threshold}`,
+      title: `Under ${analysis.threshold} Total Goals`,
+      description: `Optimal under bet: ${analysis.percentage.toFixed(
+        1
+      )}% hit rate with defensive trends identified. ${optimalUnder.reasoning}`,
+      market: `Total Goals Under ${analysis.threshold}`,
+      confidence: analysis.confidence,
+      supportingData: `Defensive strength detected. Combined average: ${(
+        (homePattern.averageTotalGoals + awayPattern.averageTotalGoals) /
+        2
+      ).toFixed(1)} goals per game`,
+      aiEnhanced: true,
+    });
+  }
+
+  return insights.sort((a, b) => {
+    const confidenceOrder: Record<string, number> = { high: 3, medium: 2, low: 1 };
+    return (confidenceOrder[b.confidence] || 1) - (confidenceOrder[a.confidence] || 1);
+  });
+}
+
 
   /**
    * Generate optimized insights for team-specific goals
