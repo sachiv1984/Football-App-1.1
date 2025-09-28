@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
 // Local type definitions to avoid import conflicts
-interface AIInsight {
+export interface AIInsight {
   id: string;
   title: string;
   description: string;
