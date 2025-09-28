@@ -13,6 +13,9 @@ export interface AIInsight {
   supportingData?: string;
   source?: string;
   aiEnhanced?: boolean;
+  // 👇 NEW: Added fields from conflictResolverService for completeness
+  conflictScore?: number; 
+  valueScore?: number;
 }
 
 // Service interfaces for future extensibility
