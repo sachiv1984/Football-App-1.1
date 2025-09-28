@@ -41,7 +41,7 @@ const StatsPage: React.FC = () => {
     currentFixture?.awayTeam?.name || '',
     {
       enabled: !!currentFixture,
-      services: ['goals'],
+      services: ['goals', 'corners'],
       cacheTimeout: 10 * 60 * 1000, // 10 minutes
       maxRetries: 2
     }
