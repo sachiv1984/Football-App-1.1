@@ -564,7 +564,7 @@ export class ConflictResolverService {
 
     return {
       ...winner,
-      description: `${winner.description} [Kept absolute best value insight from redundant group: ${alternatives}]`,
+      description: winner.description,
       conflictScore: conflicting.length - 1
     };
   }
