@@ -41,6 +41,7 @@ interface GoalThresholdAnalysis {
   recentForm: boolean[]; // Last 5 matches - did they hit this threshold?
   betType: 'over' | 'under';
   value: number; // Value score for betting (higher = better bet)
+  odds?: number; // 💰 NEW: Store the specific odds used for the value calculation
 }
 
 interface OptimalThreshold {
@@ -73,6 +74,8 @@ interface TeamGoalPattern {
   }>;
 }
 
+type GoalType = 'total' | 'for' | 'against';
+
 export class GoalsAIService {
   private readonly CONFIDENCE_THRESHOLDS = {
     HIGH: 0.75,    // 75%+ hit rate
@@ -85,6 +88,139 @@ export class GoalsAIService {
     GOOD: 0.6,       // 3/5 recent matches
     POOR: 0.4        // 2/5 or less recent matches
   };
+
+  /**
+   * Helper to get goal count based on type
+   */
+  private getGoalCount(
+    match: { totalGoals: number; goalsFor: number; goalsAgainst: number },
+    type: GoalType
+  ) {
+    switch (type) {
+      case 'for': return match.goalsFor;
+      case 'against': return match.goalsAgainst;
+      default: return match.totalGoals;
+    }
+  }
+  
+  // --- Core Goal Threshold Analysis Functions ---
+
+  /**
+   * Analyze goal threshold for an 'Over' bet type.
+   * 🎯 NEW: Extracted core logic from analyzeGoalThreshold for clarity.
+   */
+  private analyzeGoalThresholdOver(
+    matches: Array<{ totalGoals: number; goalsFor: number; goalsAgainst: number }>,
+    threshold: number,
+    type: GoalType,
+    odds?: number // Specific odds for this over bet
+  ): GoalThresholdAnalysis {
+    
+    const getCount = (match: { totalGoals: number; goalsFor: number; goalsAgainst: number }) => this.getGoalCount(match, type);
+
+    // Calculate over percentage
+    const matchesOver = matches.filter(match => getCount(match) > threshold);
+    const overPercentage = (matchesOver.length / matches.length) * 100;
+
+    // Analyze recent form
+    const recentMatches = matches.slice(0, 5);
+    const recentOverForm = recentMatches.map(match => getCount(match) > threshold);
+    const overHits = recentOverForm.filter(Boolean).length;
+    const overConsistency = overHits / Math.min(5, recentMatches.length);
+
+    // Confidence and Value
+    const overConfidence = this.getConfidenceLevel(overPercentage, overConsistency);
+    const overValue = this.calculateBetValue(overPercentage, overConsistency, threshold, 'over', odds);
+
+    return {
+      threshold,
+      percentage: Math.round(overPercentage * 10) / 10,
+      consistency: Math.round(overConsistency * 100) / 100,
+      confidence: overConfidence,
+      recentForm: recentOverForm,
+      betType: 'over',
+      value: overValue,
+      odds,
+    };
+  }
+
+  /**
+   * Analyze goal threshold for an 'Under' bet type.
+   * 🎯 NEW: Extracted core logic from analyzeGoalThreshold for clarity.
+   */
+  private analyzeGoalThresholdUnder(
+    matches: Array<{ totalGoals: number; goalsFor: number; goalsAgainst: number }>,
+    threshold: number,
+    type: GoalType,
+    odds?: number // Specific odds for this under bet
+  ): GoalThresholdAnalysis {
+    
+    const getCount = (match: { totalGoals: number; goalsFor: number; goalsAgainst: number }) => this.getGoalCount(match, type);
+
+    // Calculate under percentage
+    const matchesUnder = matches.filter(match => getCount(match) < threshold);
+    const underPercentage = (matchesUnder.length / matches.length) * 100;
+
+    // Analyze recent form
+    const recentMatches = matches.slice(0, 5);
+    const recentUnderForm = recentMatches.map(match => getCount(match) < threshold);
+    const underHits = recentUnderForm.filter(Boolean).length;
+    const underConsistency = underHits / Math.min(5, recentMatches.length);
+
+    // Confidence and Value
+    const underConfidence = this.getConfidenceLevel(underPercentage, underConsistency);
+    const underValue = this.calculateBetValue(underPercentage, underConsistency, threshold, 'under', odds);
+
+    return {
+      threshold,
+      percentage: Math.round(underPercentage * 10) / 10,
+      consistency: Math.round(underConsistency * 100) / 100,
+      confidence: underConfidence,
+      recentForm: recentUnderForm,
+      betType: 'under',
+      value: underValue,
+      odds,
+    };
+  }
+  
+  /**
+   * Analyze specific goal threshold with enhanced value calculation.
+   * 🎯 REFACTORED: Now calls the specific Over and Under functions and determines the optimal one.
+   */
+  private analyzeGoalThreshold(
+    matches: Array<{ totalGoals: number; goalsFor: number; goalsAgainst: number }>,
+    threshold: number,
+    type: GoalType,
+    matchOdds: MatchOdds | null // ⬅️ FIX: Accept null here
+  ): GoalThresholdAnalysis {
+    
+    // 💰 Get specific odds for Total Goals 2.5
+    let overOdds: number | undefined;
+    let underOdds: number | undefined;
+    
+    // We only integrate odds for Total Goals 2.5 for efficiency
+    if (type === 'total' && threshold === 2.5 && matchOdds) {
+        overOdds = matchOdds.totalGoalsOdds?.overOdds;
+        underOdds = matchOdds.totalGoalsOdds?.underOdds;
+    }
+
+    const overAnalysis = this.analyzeGoalThresholdOver(matches, threshold, type, overOdds);
+    const underAnalysis = this.analyzeGoalThresholdUnder(matches, threshold, type, underOdds);
+
+    // Pick best option: prioritize high confidence, then value
+    if (overAnalysis.confidence === 'high' && overAnalysis.value >= underAnalysis.value) {
+      return overAnalysis;
+    } else if (underAnalysis.confidence === 'high' && underAnalysis.value >= overAnalysis.value) {
+      return underAnalysis;
+    } else if (overAnalysis.confidence === 'medium' && overAnalysis.value >= underAnalysis.value) {
+      return overAnalysis;
+    } else if (underAnalysis.confidence === 'medium' && underAnalysis.value >= overAnalysis.value) {
+      return underAnalysis;
+    } else {
+      // Fallback: Return the one with the highest value (even if low confidence)
+      return overAnalysis.value > underAnalysis.value ? overAnalysis : underAnalysis;
+    }
+  }
 
   /**
    * Analyze goal patterns for a specific team
@@ -132,98 +268,6 @@ export class GoalsAIService {
       }))
     };
   }
-
-  /**
-   * Analyze specific goal threshold with enhanced value calculation
-   * 🎯 UPDATED to accept MatchOdds | null
-   */
-  private analyzeGoalThreshold(
-  matches: Array<{ totalGoals: number; goalsFor: number; goalsAgainst: number }>,
-  threshold: number,
-  type: 'total' | 'for' | 'against',
-  matchOdds: MatchOdds | null // ⬅️ FIX: Accept null here
-): GoalThresholdAnalysis {
-  
-  const getGoalCount = (match: { totalGoals: number; goalsFor: number; goalsAgainst: number }) => {
-    switch (type) {
-      case 'for': return match.goalsFor;
-      case 'against': return match.goalsAgainst;
-      default: return match.totalGoals;
-    }
-  };
-
-  // Calculate over percentage
-  const matchesOver = matches.filter(match => getGoalCount(match) > threshold);
-  const overPercentage = (matchesOver.length / matches.length) * 100;
-
-  // Calculate under percentage
-  const matchesUnder = matches.filter(match => getGoalCount(match) < threshold);
-  const underPercentage = (matchesUnder.length / matches.length) * 100;
-
-  // Analyze recent form
-  const recentMatches = matches.slice(0, 5);
-  const recentOverForm = recentMatches.map(match => getGoalCount(match) > threshold);
-  const recentUnderForm = recentMatches.map(match => getGoalCount(match) < threshold);
-
-  const overHits = recentOverForm.filter(Boolean).length;
-  const underHits = recentUnderForm.filter(Boolean).length;
-
-  const overConsistency = overHits / Math.min(5, recentMatches.length);
-  const underConsistency = underHits / Math.min(5, recentMatches.length);
-
-  // Confidence levels
-  const overConfidence = this.getConfidenceLevel(overPercentage, overConsistency);
-  const underConfidence = this.getConfidenceLevel(underPercentage, underConsistency);
-
-  // 💰 NEW: Get specific odds for Total Goals 2.5
-  let overOdds: number | undefined;
-  let underOdds: number | undefined;
-  
-  // We only integrate odds for Total Goals 2.5 for efficiency
-  if (type === 'total' && threshold === 2.5 && matchOdds) {
-      overOdds = matchOdds.totalGoalsOdds?.overOdds;
-      underOdds = matchOdds.totalGoalsOdds?.underOdds;
-  }
-  
-  // Value scores - pass the specific odds
-  const overValue = this.calculateBetValue(overPercentage, overConsistency, threshold, 'over', overOdds);
-  const underValue = this.calculateBetValue(underPercentage, underConsistency, threshold, 'under', underOdds);
-
-  // Pick best option
-  if (overValue > underValue && overConfidence !== 'low') {
-    return {
-      threshold,
-      percentage: Math.round(overPercentage * 10) / 10,
-      consistency: Math.round(overConsistency * 100) / 100,
-      confidence: overConfidence,
-      recentForm: recentOverForm,
-      betType: 'over',
-      value: overValue,
-    };
-  } else if (underConfidence !== 'low') {
-    return {
-      threshold,
-      percentage: Math.round(underPercentage * 10) / 10,
-      consistency: Math.round(underConsistency * 100) / 100,
-      confidence: underConfidence,
-      recentForm: recentUnderForm,
-      betType: 'under',
-      value: underValue,
-    };
-  } else {
-    // Return the one with higher value/confidence even if low (as a fallback)
-    return {
-      threshold,
-      percentage: Math.round(overPercentage * 10) / 10,
-      consistency: Math.round(overConsistency * 100) / 100,
-      confidence: overConfidence,
-      recentForm: recentOverForm,
-      betType: 'over',
-      value: overValue,
-    };
-  }
-}
-
 
   /**
    * Calculate betting value score
@@ -329,7 +373,7 @@ export class GoalsAIService {
 
 /**
  * Generate optimized insights for total match goals
- * 🎯 UPDATED to accept MatchOdds | null
+ * 🎯 REFACTORED: Simplifies the combined analysis by averaging, then calling the same Over/Under functions.
  */
 private generateOptimalTotalGoalsInsights(
   homePattern: TeamGoalPattern,
@@ -338,73 +382,63 @@ private generateOptimalTotalGoalsInsights(
 ): AIInsight[] {
   const insights: AIInsight[] = [];
 
-  // Mapping thresholds to keys
-  const thresholdKeyMap: Record<number, keyof TeamGoalPattern['thresholdAnalysis']> = {
-    0.5: 'over05',
-    1.5: 'over15',
-    2.5: 'over25',
-    3.5: 'over35',
-    4.5: 'over45',
-    5.5: 'over55',
-  };
-
   // Get all threshold analyses for both teams
   const homeAnalyses = Object.values(homePattern.thresholdAnalysis);
   const awayAnalyses = Object.values(awayPattern.thresholdAnalysis);
 
   const combinedAnalyses: GoalThresholdAnalysis[] = [];
-  const thresholds = [0.5, 1.5, 2.5, 3.5, 4.5];
+  const thresholds = [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]; // Include 5.5 now for completeness
 
   for (const threshold of thresholds) {
-    const homeAnalysis = homeAnalyses.find(a => a.threshold === threshold);
-    const awayAnalysis = awayAnalyses.find(a => a.threshold === threshold);
+    const homeOver = homeAnalyses.find(a => a.threshold === threshold && a.betType === 'over');
+    const awayOver = awayAnalyses.find(a => a.threshold === threshold && a.betType === 'over');
+    const homeUnder = homeAnalyses.find(a => a.threshold === threshold && a.betType === 'under');
+    const awayUnder = awayAnalyses.find(a => a.threshold === threshold && a.betType === 'under');
+    
+    if (!homeOver || !awayOver || !homeUnder || !awayUnder) continue; // Skip if data is incomplete
 
-    if (homeAnalysis && awayAnalysis) {
-      
-      // 💰 Inject odds for the 2.5 threshold for the value calculation
-      let overOdds = (threshold === 2.5) ? matchOdds?.totalGoalsOdds?.overOdds : undefined;
-      let underOdds = (threshold === 2.5) ? matchOdds?.totalGoalsOdds?.underOdds : undefined;
+    // 💰 Inject odds for the 2.5 threshold
+    const overOdds = (threshold === 2.5) ? matchOdds?.totalGoalsOdds?.overOdds : undefined;
+    const underOdds = (threshold === 2.5) ? matchOdds?.totalGoalsOdds?.underOdds : undefined;
 
-      // Average the statistics
-      const avgPercentage = (homeAnalysis.percentage + awayAnalysis.percentage) / 2;
-      const avgConsistency = (homeAnalysis.consistency + awayAnalysis.consistency) / 2;
+    // --- OVER COMBINED ANALYSIS ---
+    const combinedOverPercentage = (homeOver.percentage + awayOver.percentage) / 2;
+    const combinedOverConsistency = (homeOver.consistency + awayOver.consistency) / 2;
+    const combinedOverValue = this.calculateBetValue(combinedOverPercentage, combinedOverConsistency, threshold, 'over', overOdds);
 
-      // Use the same bet type if both agree, otherwise pick the stronger one
-      const betType =
-        homeAnalysis.betType === awayAnalysis.betType
-          ? homeAnalysis.betType
-          : homeAnalysis.value > awayAnalysis.value
-          ? homeAnalysis.betType
-          : awayAnalysis.betType;
-          
-      // Calculate the combined value using the odds for 2.5 threshold
-      const avgValue = this.calculateBetValue(avgPercentage, avgConsistency, threshold, betType, betType === 'over' ? overOdds : underOdds);
+    combinedAnalyses.push({
+      threshold,
+      percentage: combinedOverPercentage,
+      consistency: combinedOverConsistency,
+      confidence: this.getConfidenceLevel(combinedOverPercentage, combinedOverConsistency),
+      recentForm: [...homeOver.recentForm, ...awayOver.recentForm].slice(0, 5),
+      betType: 'over',
+      value: combinedOverValue,
+      odds: overOdds,
+    });
 
-      combinedAnalyses.push({
-        threshold,
-        percentage: avgPercentage,
-        consistency: avgConsistency,
-        confidence: this.getConfidenceLevel(avgPercentage, avgConsistency),
-        recentForm: [...homeAnalysis.recentForm, ...awayAnalysis.recentForm].slice(0, 5),
-        betType,
-        value: avgValue, // Use the odds-boosted value
-      });
-    }
+    // --- UNDER COMBINED ANALYSIS ---
+    const combinedUnderPercentage = (homeUnder.percentage + awayUnder.percentage) / 2;
+    const combinedUnderConsistency = (homeUnder.consistency + awayUnder.consistency) / 2;
+    const combinedUnderValue = this.calculateBetValue(combinedUnderPercentage, combinedUnderConsistency, threshold, 'under', underOdds);
+
+    combinedAnalyses.push({
+      threshold,
+      percentage: combinedUnderPercentage,
+      consistency: combinedUnderConsistency,
+      confidence: this.getConfidenceLevel(combinedUnderPercentage, combinedUnderConsistency),
+      recentForm: [...homeUnder.recentForm, ...awayUnder.recentForm].slice(0, 5),
+      betType: 'under',
+      value: combinedUnderValue,
+      odds: underOdds,
+    });
   }
 
   // Find optimal over threshold
   const optimalOver = this.findOptimalThreshold(combinedAnalyses, 'over');
   if (optimalOver) {
     const analysis = optimalOver.analysis;
-    const key = thresholdKeyMap[analysis.threshold];
-    const homeRecent =
-      homePattern.thresholdAnalysis[key]?.recentForm.filter(Boolean).length || 0;
-    const awayRecent =
-      awayPattern.thresholdAnalysis[key]?.recentForm.filter(Boolean).length || 0;
-      
-    // 💰 Get the odds for the final insight (only available for 2.5 here)
-    const oddsValue = optimalOver.analysis.threshold === 2.5 ? matchOdds?.totalGoalsOdds?.overOdds : undefined;
-
+    
     insights.push({
       id: `optimal-total-goals-over-${analysis.threshold}`,
       title: `Over ${analysis.threshold} Total Goals`,
@@ -413,8 +447,8 @@ private generateOptimalTotalGoalsInsights(
       )}% hit rate with strong consistency. ${optimalOver.reasoning}`,
       market: `Total Goals Over ${analysis.threshold}`,
       confidence: analysis.confidence,
-      odds: oddsValue ? oddsValue.toFixed(2) : undefined, // 💰 NEW: Include odds
-      supportingData: `Combined analysis: ${homeRecent + awayRecent}/10 recent matches. Home avg: ${homePattern.averageTotalGoals}, Away avg: ${awayPattern.averageTotalGoals}`,
+      odds: analysis.odds ? analysis.odds.toFixed(2) : undefined, // 💰 Use the stored odds
+      supportingData: `Home avg: ${homePattern.averageTotalGoals}, Away avg: ${awayPattern.averageTotalGoals}`,
       aiEnhanced: true,
     });
   }
@@ -424,9 +458,6 @@ private generateOptimalTotalGoalsInsights(
   if (optimalUnder) {
     const analysis = optimalUnder.analysis;
     
-    // 💰 Get the odds for the final insight (only available for 2.5 here)
-    const oddsValue = optimalUnder.analysis.threshold === 2.5 ? matchOdds?.totalGoalsOdds?.underOdds : undefined;
-
     insights.push({
       id: `optimal-total-goals-under-${analysis.threshold}`,
       title: `Under ${analysis.threshold} Total Goals`,
@@ -435,8 +466,8 @@ private generateOptimalTotalGoalsInsights(
       )}% hit rate with defensive trends identified. ${optimalUnder.reasoning}`,
       market: `Total Goals Under ${analysis.threshold}`,
       confidence: analysis.confidence,
-      odds: oddsValue ? oddsValue.toFixed(2) : undefined, // 💰 NEW: Include odds
-      supportingData: `Defensive strength detected. Combined average: ${(
+      odds: analysis.odds ? analysis.odds.toFixed(2) : undefined, // 💰 Use the stored odds
+      supportingData: `Combined average: ${(
         (homePattern.averageTotalGoals + awayPattern.averageTotalGoals) /
         2
       ).toFixed(1)} goals per game`,
@@ -465,12 +496,14 @@ private generateOptimalTotalGoalsInsights(
     
     // Analyze team-specific goal thresholds
     const matches = teamPattern.recentMatches;
-    const thresholds = [0.5, 1.5, 2.5, 3.5, 4.5, 5.5];
+    const thresholds = [0.5, 1.5, 2.5, 3.5]; // Limit thresholds for team-specific
     
-    // Calls the default analyzeGoalThreshold without odds (passing null)
-    const analyses: GoalThresholdAnalysis[] = thresholds.map(threshold => 
-      this.analyzeGoalThreshold(matches, threshold, 'for', null)
-    );
+    // Call the specific Over/Under functions without odds (passing undefined)
+    const analyses: GoalThresholdAnalysis[] = [];
+    thresholds.forEach(threshold => {
+      analyses.push(this.analyzeGoalThresholdOver(matches, threshold, 'for', undefined));
+      analyses.push(this.analyzeGoalThresholdUnder(matches, threshold, 'for', undefined));
+    });
     
     // Find optimal threshold for this team
     const optimal = this.findOptimalThreshold(analyses);
@@ -516,7 +549,7 @@ private generateOptimalTotalGoalsInsights(
     
     // Calculate a simple value score for BTTS Yes
     const yesConfidence = this.getConfidenceLevel(combinedBTTSPercentage, avgRecentBTTS / 5);
-    const yesValue = this.calculateBetValue(combinedBTTSPercentage, avgRecentBTTS / 5, 2.5, 'over', bttsYesOdds);
+    const yesValue = this.calculateBetValue(combinedBTTSPercentage, avgRecentBTTS / 5, 2.5, 'over', bttsYesOdds); // Use 2.5 as a neutral threshold factor
     
     // BTTS - YES
     if (yesConfidence !== 'low') { // Check confidence level
@@ -537,8 +570,11 @@ private generateOptimalTotalGoalsInsights(
     const noConfidence = this.getConfidenceLevel(bttsNoPercentage, noConsistency);
     const noValue = this.calculateBetValue(bttsNoPercentage, noConsistency, 2.5, 'under', bttsNoOdds);
 
-    // Only suggest BTTS No if it has at least medium confidence AND a positive value edge
-    if (noConfidence !== 'low' && (bttsNoOdds && (bttsNoPercentage / 100) > (1 / bttsNoOdds))) {
+    // Only suggest BTTS No if it has at least medium confidence OR a strong positive value edge (edge > 0.05)
+    const impliedProbNo = bttsNoOdds ? (1 / bttsNoOdds) : 1;
+    const hasPositiveEdgeNo = (bttsNoPercentage / 100) - impliedProbNo > 0.05;
+
+    if (noConfidence !== 'low' || hasPositiveEdgeNo) {
       insights.push({
         id: 'optimal-btts-no',
         title: 'Both Teams to Score - NO',
