@@ -2,7 +2,8 @@ name: Scrape FBref Fixtures
 
 on:
   schedule:
-    - cron: "30 22 * * *"
+    - cron: "30 22 * * *" #Run at 10:30 PM UTC
+    - cron: "0 5 * * *" #Run at 5:00 AM UTC
   workflow_dispatch:
 
 jobs:
