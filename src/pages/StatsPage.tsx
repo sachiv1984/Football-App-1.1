@@ -10,7 +10,6 @@ import AIInsightCard from '../components/insights/AIInsightCard/AIInsightCard';
 import { useFixtureNavigation } from '../hooks/useNavigation';
 import { useFixtures } from '../hooks/useFixtures';
 import { useGameWeekFixtures } from '../hooks/useGameWeekFixtures';
-// 👇 FIX 1: Import the necessary types from the hook file
 import { useAIBettingInsights, AIInsight } from '../hooks/useAIBettingInsights';
 import { designTokens } from '../styles/designTokens';
 import { Brain, RefreshCw, AlertCircle } from 'lucide-react';
@@ -41,7 +40,6 @@ const StatsPage: React.FC = () => {
     currentFixture?.awayTeam?.name || '',
     {
       enabled: !!currentFixture,
-      services: ['goals', 'corners'],
       cacheTimeout: 10 * 60 * 1000, // 10 minutes
       maxRetries: 2
     }
