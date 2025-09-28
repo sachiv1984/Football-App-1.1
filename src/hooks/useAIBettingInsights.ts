@@ -73,7 +73,7 @@ export const useAIBettingInsights = (
     maxRetries = 3,
     retryDelay = 2000,
     cacheTimeout = 10 * 60 * 1000, // 10 minutes default cache
-    services = ['goals'] // Default to just goals service
+    services = ['goals', 'corners'] // 👈 UPDATED: Default to goals and corners services
   } = options;
 
   // State
@@ -436,17 +436,24 @@ export const useAIBettingInsights = (
     };
   }, []);
 
-  // Auto-register goals service when available
+  // 👈 UPDATED: Auto-register goals and corners services when available
   useEffect(() => {
     const initializeServices = async () => {
       try {
         // Dynamic import to avoid circular dependencies
         const { goalsAIService } = await import('../services/ai/goalsAIService');
+        const { cornersAIService } = await import('../services/ai/cornersAIService');
+        
         registerService('goals', {
           generateInsights: goalsAIService.generateGoalInsights.bind(goalsAIService)
         });
+        
+        registerService('corners', {
+          generateInsights: cornersAIService.generateCornerInsights.bind(cornersAIService)
+        });
+        
       } catch (error) {
-        console.error('[AI Hook] ❌ Failed to register goals service:', error);
+        console.error('[AI Hook] ❌ Failed to register services:', error);
       } finally {
         // Crucial change. Mark services as ready after registration attempt.
         setServicesReady(true);
@@ -497,4 +504,3 @@ export const useAIBettingInsights = (
 
 // Type exports for use in components
 export type AIBettingHookReturn = ReturnType<typeof useAIBettingInsights>;
-// AIInsight is exported at the top of the file
