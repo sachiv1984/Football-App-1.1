@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
 // Local type definitions to avoid import conflicts
+// 👇 FIX 1: Export the AIInsight interface so it can be imported in StatsPage.tsx
 export interface AIInsight {
   id: string;
   title: string;
@@ -82,7 +83,7 @@ export const useAIBettingInsights = (
     isRefreshing: false
   });
 
-  // New state to track if essential services have been registered.
+  // 👇 FIX 2: New state to gate the initial data fetch until services are loaded
   const [servicesReady, setServicesReady] = useState(false);
 
   // Refs for cleanup and persistence
@@ -113,9 +114,7 @@ export const useAIBettingInsights = (
    * Check if cached insights are still valid
    */
   const isCacheValid = useCallback((cached: CachedInsights): boolean => {
-    const isValid = Date.now() - cached.timestamp < cacheTimeout;
-    // console.log(`[AI Hook] Cache check: Valid=${isValid}`); // Too verbose, omit
-    return isValid;
+    return Date.now() - cached.timestamp < cacheTimeout;
   }, [cacheTimeout]);
 
   /**
@@ -129,11 +128,11 @@ export const useAIBettingInsights = (
       console.log(`[AI Hook] Using valid cached insights for ${cacheKey}. Timestamp: ${new Date(cached.timestamp).toLocaleTimeString()}`); // 👈 IMPROVED LOG
       return cached.insights;
     }
-
+    
     if (cached) {
-      console.log(`[AI Hook] Cache expired for ${cacheKey}. Cache time: ${new Date(cached.timestamp).toLocaleTimeString()}.`); // 👈 ADDED LOG for expired cache
+      console.log(`[AI Hook] Cache expired for ${cacheKey}. Cache time: ${new Date(cached.timestamp).toLocaleTimeString()}.`); // 👈 ADDED LOG
     } else {
-      console.log(`[AI Hook] No cache found for ${cacheKey}.`); // 👈 ADDED LOG for no cache
+      console.log(`[AI Hook] No cache found for ${cacheKey}.`); // 👈 ADDED LOG
     }
     
     return null;
@@ -210,7 +209,6 @@ export const useAIBettingInsights = (
       }
     }
     
-    // 👇 ADDED LOG for clarity on execution outcome
     console.log(`[AI Hook] Generation summary: ${servicesAttempted} services attempted. ${allInsights.length} total insights generated. ${errors.length} service errors.`); 
 
     // Handle errors
@@ -260,12 +258,12 @@ export const useAIBettingInsights = (
    * Load insights (main function)
    */
   const loadInsights = useCallback(async (forceRefresh = false) => {
-    // 👇 ADDED LOG with reason for exit
+    // 👇 FIX 3: Gate execution if services are not ready
     if (!enabled) { console.log('[AI Hook] 🛑 loadInsights: Disabled by options.'); return; }
     if (!homeTeam || !awayTeam) { console.log('[AI Hook] 🛑 loadInsights: Missing team names.'); return; }
     if (!servicesReady) { console.log('[AI Hook] 🛑 loadInsights: Services not yet ready.'); return; }
     
-    console.log(`[AI Hook] 🚀 loadInsights: Triggered (Force: ${forceRefresh}) for ${homeTeam} vs ${awayTeam}`); // 👈 IMPROVED LOG
+    console.log(`[AI Hook] 🚀 loadInsights: Triggered (Force: ${forceRefresh}) for ${homeTeam} vs ${awayTeam}`);
 
     // Check cache first (unless forcing refresh)
     if (!forceRefresh) {
@@ -279,7 +277,6 @@ export const useAIBettingInsights = (
           error: null,
           lastUpdated: Date.now()
         }));
-        // 👇 ADDED LOG to indicate successful cache exit
         console.log('[AI Hook] ➡️ loadInsights: Exiting after successful cache hit.'); 
         return;
       }
@@ -288,7 +285,7 @@ export const useAIBettingInsights = (
     // Cancel any existing request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
-      console.log('[AI Hook] 🗑️ loadInsights: Aborted previous request.'); // 👈 ADDED LOG
+      console.log('[AI Hook] 🗑️ loadInsights: Aborted previous request.');
     }
 
     abortControllerRef.current = new AbortController();
@@ -316,25 +313,25 @@ export const useAIBettingInsights = (
         lastUpdated: Date.now()
       }));
 
-      console.log(`[AI Hook] 🎉 Successfully loaded and finished (Total: ${insights.length} insights)`); // 👈 IMPROVED LOG
+      console.log(`[AI Hook] 🎉 Successfully loaded and finished (Total: ${insights.length} insights)`);
 
     } catch (error) {
-      console.error('[AI Hook] 💔 Failed to load insights:', error); // 👈 IMPROVED LOG
+      console.error('[AI Hook] 💔 Failed to load insights:', error);
       
       setState(prev => ({
         ...prev,
         loading: false,
         isRefreshing: false,
-        error: (error as Error).message,
+        error: (error as Error).message, 
       }));
     }
-  }, [enabled, homeTeam, awayTeam, generateInsights, getCachedInsights, setCachedInsights, servicesReady]); 
+  }, [enabled, homeTeam, awayTeam, generateInsights, getCachedInsights, setCachedInsights, servicesReady]); // ADD servicesReady
 
   /**
    * Refresh insights manually
    */
   const refresh = useCallback(() => {
-    console.log('[AI Hook] 🔄 Manual refresh requested.'); // 👈 ADDED LOG
+    console.log('[AI Hook] 🔄 Manual refresh requested.');
     loadInsights(true);
   }, [loadInsights]);
 
@@ -342,7 +339,7 @@ export const useAIBettingInsights = (
    * Retry after error
    */
   const retry = useCallback(() => {
-    console.log('[AI Hook] 🔄 Retry requested.'); // 👈 ADDED LOG
+    console.log('[AI Hook] 🔄 Retry requested.');
     setState(prev => ({
       ...prev,
       error: null,
@@ -351,33 +348,60 @@ export const useAIBettingInsights = (
     loadInsights(false);
   }, [loadInsights]);
 
+  /**
+   * Get insights for specific service
+   */
+  const getInsightsByService = useCallback((serviceName: string): AIInsight[] => {
+    return state.insights.filter(insight => insight.source === serviceName);
+  }, [state.insights]);
+
+  /**
+   * Get insights by confidence level
+   */
+  const getInsightsByConfidence = useCallback((confidence: 'high' | 'medium' | 'low'): AIInsight[] => {
+    return state.insights.filter(insight => insight.confidence === confidence);
+  }, [state.insights]);
+
   // Effect: Load insights when teams change or services become ready
   useEffect(() => {
-    console.log(`[AI Hook] 💡 useEffect[loadInsights]: Running. Teams: ${homeTeam} vs ${awayTeam}. Services Ready: ${servicesReady}`); // 👈 ADDED LOG
+    console.log(`[AI Hook] 💡 useEffect[loadInsights]: Running. Teams: ${homeTeam} vs ${awayTeam}. Services Ready: ${servicesReady}`);
     loadInsights(false);
-  }, [loadInsights, homeTeam, awayTeam, servicesReady]); // Added homeTeam/awayTeam to dependency array for clarity
+  }, [loadInsights, homeTeam, awayTeam, servicesReady]); // Added homeTeam/awayTeam and servicesReady
 
   // Effect: Set up auto-refresh if enabled
   useEffect(() => {
     if (refreshInterval > 0 && enabled && servicesReady) {
-      console.log(`[AI Hook] ⏱️ Auto-refresh enabled: Interval ${refreshInterval}ms`); // 👈 ADDED LOG
+      console.log(`[AI Hook] ⏱️ Auto-refresh enabled: Interval ${refreshInterval}ms`);
       refreshIntervalRef.current = setInterval(() => {
         console.log('[AI Hook] 🔄 Auto-refreshing insights...');
         loadInsights(true);
       }, refreshInterval);
 
       return () => {
-        console.log('[AI Hook] 🆑 Clearing auto-refresh interval.'); // 👈 ADDED LOG
+        console.log('[AI Hook] 🆑 Clearing auto-refresh interval.');
         if (refreshIntervalRef.current) {
           clearInterval(refreshIntervalRef.current);
         }
       };
     } else {
-        console.log('[AI Hook] ⏱️ Auto-refresh disabled or waiting for services.'); // 👈 ADDED LOG
+        console.log('[AI Hook] ⏱️ Auto-refresh disabled or waiting for services.');
     }
   }, [refreshInterval, enabled, loadInsights, servicesReady]);
 
-  // ... (Cleanup and utility effects omitted for brevity, no logs added there)
+  // Effect: Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+      }
+    };
+  }, []);
 
   // Auto-register goals service when available
   useEffect(() => {
@@ -391,9 +415,9 @@ export const useAIBettingInsights = (
       } catch (error) {
         console.error('[AI Hook] ❌ Failed to register goals service:', error);
       } finally {
-        // Crucial change. Mark services as ready after registration attempt.
+        // 👇 FIX 4: Crucial change. Mark services as ready after registration attempt.
         setServicesReady(true);
-        console.log('[AI Hook] ⚙️ All initial services processed. servicesReady set to true.'); // 👈 ADDED LOG
+        console.log('[AI Hook] ⚙️ All initial services processed. servicesReady set to true.');
       }
     };
 
@@ -401,6 +425,43 @@ export const useAIBettingInsights = (
   }, [registerService]);
 
   return {
-    // ... (return object is unchanged)
+    // Core state
+    insights: state.insights,
+    loading: state.loading,
+    error: state.error,
+    isRefreshing: state.isRefreshing,
+    lastUpdated: state.lastUpdated,
+    
+    // Service errors for debugging
+    serviceErrors: state.serviceErrors,
+    
+    // Actions
+    refresh,
+    retry,
+    clearCache,
+    registerService,
+    
+    // Utility functions
+    getInsightsByService,
+    getInsightsByConfidence,
+    
+    // Cache info
+    cacheStatus: {
+      size: cacheRef.current.size,
+      keys: Array.from(cacheRef.current.keys())
+    },
+    
+    // Stats
+    stats: {
+      totalInsights: state.insights.length,
+      highConfidence: state.insights.filter(i => i.confidence === 'high').length,
+      mediumConfidence: state.insights.filter(i => i.confidence === 'medium').length,
+      lowConfidence: state.insights.filter(i => i.confidence === 'low').length,
+      services: services.length
+    }
   };
 };
+
+// Type exports for use in components
+export type AIBettingHookReturn = ReturnType<typeof useAIBettingInsights>;
+// Note: AIInsight is exported directly above the interface definition.
