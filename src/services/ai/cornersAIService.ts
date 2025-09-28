@@ -3,6 +3,15 @@ import { supabaseCornersService, DetailedCornerStats } from '../stats/supabaseCo
 import { conflictResolverService } from './conflictResolverService';
 import { oddsAPIService } from '../api/oddsAPIService';
 
+// --- NEW/UPDATED INTERFACES FOR FIX ---
+
+// Define the required structure for the conflict flag
+interface ConflictingGoalInsight {
+    betLine: number;
+    betType: 'over' | 'under';
+    confidence: 'high' | 'medium' | 'low';
+}
+
 // Local interface definitions
 interface MatchOdds {
   matchId: string;
@@ -77,6 +86,10 @@ export class CornersAIService {
     POOR: 0.4
   };
 
+  // Penalty constant for High Confidence Under 2.5 Goals
+  // We use a significant value deduction (e.g., 2000 points) to penalize the Value Score
+  private readonly CORNER_GOAL_PENALTY = 2000; 
+
   private readonly MATCH_CORNER_THRESHOLDS = [4.5, 5.5, 6.5, 7.5, 8.5, 9.5, 10.5, 11.5, 12.5, 13.5, 14.5, 15.5];
   private readonly TEAM_CORNER_THRESHOLDS = [2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5, 9.5, 10.5, 11.5, 12.5];
 
@@ -101,7 +114,9 @@ export class CornersAIService {
     matches: Array<{ totalCorners: number; cornersFor: number; cornersAgainst: number }>,
     threshold: number,
     type: CornerType,
-    odds?: number
+    odds: number | undefined,
+    // 👇 FIX 2: Added optional conflict flag to pass to calculateBetValue
+    conflictFlag: ConflictingGoalInsight | null
   ): CornerThresholdAnalysis {
     const getCount = (match: { totalCorners: number; cornersFor: number; cornersAgainst: number }) => 
       this.getCornerCount(match, type);
@@ -115,7 +130,9 @@ export class CornersAIService {
     const overConsistency = overHits / Math.min(5, recentMatches.length);
 
     const overConfidence = this.getConfidenceLevel(overPercentage, overConsistency);
-    const overValue = this.calculateBetValue(overPercentage, overConsistency, threshold, 'over', odds);
+    
+    // 👇 FIX 3: Pass conflict flag to value calculation
+    const overValue = this.calculateBetValue(overPercentage, overConsistency, threshold, 'over', odds, conflictFlag);
 
     return {
       threshold,
@@ -136,7 +153,9 @@ export class CornersAIService {
     matches: Array<{ totalCorners: number; cornersFor: number; cornersAgainst: number }>,
     threshold: number,
     type: CornerType,
-    odds?: number
+    odds: number | undefined,
+    // 👇 FIX 2: Added optional conflict flag to pass to calculateBetValue
+    conflictFlag: ConflictingGoalInsight | null
   ): CornerThresholdAnalysis {
     const getCount = (match: { totalCorners: number; cornersFor: number; cornersAgainst: number }) => 
       this.getCornerCount(match, type);
@@ -150,7 +169,9 @@ export class CornersAIService {
     const underConsistency = underHits / Math.min(5, recentMatches.length);
 
     const underConfidence = this.getConfidenceLevel(underPercentage, underConsistency);
-    const underValue = this.calculateBetValue(underPercentage, underConsistency, threshold, 'under', odds);
+    
+    // 👇 FIX 3: Pass conflict flag to value calculation
+    const underValue = this.calculateBetValue(underPercentage, underConsistency, threshold, 'under', odds, conflictFlag);
 
     return {
       threshold,
@@ -171,7 +192,9 @@ export class CornersAIService {
     matches: Array<{ totalCorners: number; cornersFor: number; cornersAgainst: number }>,
     threshold: number,
     type: CornerType,
-    matchOdds: MatchOdds | null
+    matchOdds: MatchOdds | null,
+    // 👇 FIX 2: Added optional conflict flag to pass to value calculation
+    conflictFlag: ConflictingGoalInsight | null 
   ): CornerThresholdAnalysis {
     let overOdds: number | undefined;
     let underOdds: number | undefined;
@@ -181,8 +204,9 @@ export class CornersAIService {
       underOdds = matchOdds.totalCornersOdds.underOdds;
     }
 
-    const overAnalysis = this.analyzeCornerThresholdOver(matches, threshold, type, overOdds);
-    const underAnalysis = this.analyzeCornerThresholdUnder(matches, threshold, type, underOdds);
+    // 👇 FIX 4: Pass conflict flag to helper functions
+    const overAnalysis = this.analyzeCornerThresholdOver(matches, threshold, type, overOdds, conflictFlag);
+    const underAnalysis = this.analyzeCornerThresholdUnder(matches, threshold, type, underOdds, conflictFlag);
 
     if (overAnalysis.confidence === 'high' && overAnalysis.value >= underAnalysis.value) {
       return overAnalysis;
@@ -200,7 +224,12 @@ export class CornersAIService {
   /**
    * Analyze corner patterns for a specific team
    */
-  private async analyzeTeamCornerPattern(teamName: string, venue: 'home' | 'away'): Promise<TeamCornerPattern> {
+  private async analyzeTeamCornerPattern(
+    teamName: string, 
+    venue: 'home' | 'away',
+    // 👇 FIX 2: Added optional conflict flag to pass to value calculation
+    conflictFlag: ConflictingGoalInsight | null
+  ): Promise<TeamCornerPattern> {
     const teamStats = await supabaseCornersService.getTeamCornerStats(teamName);
     
     if (!teamStats) {
@@ -222,13 +251,15 @@ export class CornersAIService {
     
     // For team-specific corners (for/against)
     this.TEAM_CORNER_THRESHOLDS.forEach((threshold: number) => {
-      thresholdAnalysis[`for_${threshold}`] = this.analyzeCornerThreshold(relevantMatches, threshold, 'for', null);
-      thresholdAnalysis[`against_${threshold}`] = this.analyzeCornerThreshold(relevantMatches, threshold, 'against', null);
+      // 👇 FIX 5: Pass conflict flag to analyzeCornerThreshold
+      thresholdAnalysis[`for_${threshold}`] = this.analyzeCornerThreshold(relevantMatches, threshold, 'for', null, conflictFlag);
+      thresholdAnalysis[`against_${threshold}`] = this.analyzeCornerThreshold(relevantMatches, threshold, 'against', null, conflictFlag);
     });
 
     // For match total corners
     this.MATCH_CORNER_THRESHOLDS.forEach((threshold: number) => {
-      thresholdAnalysis[`total_${threshold}`] = this.analyzeCornerThreshold(relevantMatches, threshold, 'total', null);
+      // 👇 FIX 5: Pass conflict flag to analyzeCornerThreshold
+      thresholdAnalysis[`total_${threshold}`] = this.analyzeCornerThreshold(relevantMatches, threshold, 'total', null, conflictFlag);
     });
 
     return {
@@ -251,7 +282,9 @@ export class CornersAIService {
     consistency: number,
     threshold: number,
     betType: 'over' | 'under',
-    odds?: number
+    odds: number | undefined,
+    // 👇 FIX 6: Accept conflict flag here to apply penalty
+    conflictFlag: ConflictingGoalInsight | null
   ): number {
     let baseValue = percentage * consistency;
     
@@ -263,7 +296,6 @@ export class CornersAIService {
     }
     
     // 💡 NEW FIX: Temper 100% confidence based on sample size (consistency is based on 5 recent matches)
-    // If hit rate is near 100% but recent form (consistency) isn't excellent (0.8), penalize the value.
     if (percentage >= 95 && consistency < this.CONSISTENCY_THRESHOLDS.EXCELLENT) {
         baseValue *= 0.9; // Apply a 10% penalty
     }
@@ -282,6 +314,17 @@ export class CornersAIService {
       }
     }
     
+    // 🎯 CRITICAL FIX: Apply cross-market conflict penalty
+    if (conflictFlag && betType === 'over') {
+        // High Confidence Under X.5 Goals strongly contradicts Over Corners
+        console.log(`[CornersAI] ⚠️ Applying ${this.CORNER_GOAL_PENALTY} penalty to Over ${threshold} corners due to High Confidence Under ${conflictFlag.betLine} Goals.`);
+        baseValue -= this.CORNER_GOAL_PENALTY;
+        // Ensure value doesn't go below a certain threshold to avoid negative scoring dominance
+        if (baseValue < 0) {
+            baseValue = 0;
+        }
+    }
+
     return baseValue;
   }
 
@@ -341,7 +384,9 @@ export class CornersAIService {
   private generateOptimalMatchCornerInsights(
     homePattern: TeamCornerPattern,
     awayPattern: TeamCornerPattern,
-    matchOdds: MatchOdds | null
+    matchOdds: MatchOdds | null,
+    // 👇 FIX 2: Added optional conflict flag 
+    conflictFlag: ConflictingGoalInsight | null
   ): AIInsight[] {
     const insights: AIInsight[] = [];
 
@@ -356,10 +401,11 @@ export class CornersAIService {
       const overOdds = [8.5, 9.5, 10.5].includes(threshold) ? matchOdds?.totalCornersOdds?.overOdds : undefined;
       const underOdds = [8.5, 9.5, 10.5].includes(threshold) ? matchOdds?.totalCornersOdds?.underOdds : undefined;
 
-      // Combined over analysis
+      // Combined over analysis (recalculating combined values)
       const combinedOverPercentage = (homeAnalysis.percentage + awayAnalysis.percentage) / 2;
       const combinedOverConsistency = (homeAnalysis.consistency + awayAnalysis.consistency) / 2;
-      const combinedOverValue = this.calculateBetValue(combinedOverPercentage, combinedOverConsistency, threshold, 'over', overOdds);
+      // 👇 FIX 7: Pass conflict flag to value calculation
+      const combinedOverValue = this.calculateBetValue(combinedOverPercentage, combinedOverConsistency, threshold, 'over', overOdds, conflictFlag);
 
       allCombinedAnalyses.push({
         threshold,
@@ -372,10 +418,11 @@ export class CornersAIService {
         odds: overOdds,
       });
 
-      // Combined under analysis
+      // Combined under analysis (recalculating combined values)
       const combinedUnderPercentage = (homeAnalysis.percentage + awayAnalysis.percentage) / 2;
       const combinedUnderConsistency = (homeAnalysis.consistency + awayAnalysis.consistency) / 2;
-      const combinedUnderValue = this.calculateBetValue(combinedUnderPercentage, combinedUnderConsistency, threshold, 'under', underOdds);
+      // 👇 FIX 7: Pass conflict flag (only affects Over, but consistency is key)
+      const combinedUnderValue = this.calculateBetValue(combinedUnderPercentage, combinedUnderConsistency, threshold, 'under', underOdds, conflictFlag);
 
       allCombinedAnalyses.push({
         threshold,
@@ -415,16 +462,31 @@ export class CornersAIService {
    */
   private generateOptimalTeamCornerInsights(
     teamPattern: TeamCornerPattern,
-    teamType: 'Home' | 'Away'
+    teamType: 'Home' | 'Away',
+    // 👇 FIX 2: Added optional conflict flag 
+    conflictFlag: ConflictingGoalInsight | null
   ): AIInsight[] {
     const insights: AIInsight[] = [];
     
     const analyses: CornerThresholdAnalysis[] = [];
     
     this.TEAM_CORNER_THRESHOLDS.forEach((threshold: number) => {
-      const forAnalysis = teamPattern.thresholdAnalysis[`for_${threshold}`];
-      if (forAnalysis) {
-        analyses.push(forAnalysis);
+      // Re-analyze using the conflict flag for accurate valueScore
+      // This is a cleaner way to ensure the penalty is applied during the optimal selection process.
+      const analysis = this.analyzeCornerThreshold(
+        teamPattern.recentMatches.map(m => ({
+            totalCorners: m.totalCorners, 
+            cornersFor: m.cornersFor, 
+            cornersAgainst: m.cornersAgainst
+        })), 
+        threshold, 
+        'for', 
+        null, 
+        conflictFlag // 👇 FIX 8: Pass conflict flag
+      );
+      
+      if (analysis) {
+        analyses.push(analysis);
       }
     });
     
@@ -507,21 +569,28 @@ export class CornersAIService {
 
   /**
    * Main method: Generate optimized corner-related betting insights
+   * 👇 CRITICAL FIX 9: Update method signature to accept the conflict flag
    */
-  async generateCornerInsights(homeTeam: string, awayTeam: string): Promise<AIInsight[]> {
+  async generateCornerInsights(
+    homeTeam: string, 
+    awayTeam: string, 
+    conflictFlag: ConflictingGoalInsight | null // <--- ADDED REQUIRED ARGUMENT
+  ): Promise<AIInsight[]> {
     try {
       console.log(`[CornersAI] Generating optimized corner insights for ${homeTeam} vs ${awayTeam}`);
       
-      const homePattern = await this.analyzeTeamCornerPattern(homeTeam, 'home');
-      const awayPattern = await this.analyzeTeamCornerPattern(awayTeam, 'away');
+      // 👇 FIX 10: Pass conflict flag down to analysis functions
+      const homePattern = await this.analyzeTeamCornerPattern(homeTeam, 'home', conflictFlag);
+      const awayPattern = await this.analyzeTeamCornerPattern(awayTeam, 'away', conflictFlag);
 
       const matchOdds = await oddsAPIService.getOddsForMatch(homeTeam, awayTeam);
       
       const allInsights: AIInsight[] = [];
       
-      allInsights.push(...this.generateOptimalMatchCornerInsights(homePattern, awayPattern, matchOdds));
-      allInsights.push(...this.generateOptimalTeamCornerInsights(homePattern, 'Home'));
-      allInsights.push(...this.generateOptimalTeamCornerInsights(awayPattern, 'Away'));
+      // 👇 FIX 11: Pass conflict flag down to generator functions
+      allInsights.push(...this.generateOptimalMatchCornerInsights(homePattern, awayPattern, matchOdds, conflictFlag));
+      allInsights.push(...this.generateOptimalTeamCornerInsights(homePattern, 'Home', conflictFlag));
+      allInsights.push(...this.generateOptimalTeamCornerInsights(awayPattern, 'Away', conflictFlag));
       allInsights.push(...this.generateCornerHandicapInsights(homePattern, awayPattern));
       
       console.log(`[CornersAI] Resolving potential conflicts among ${allInsights.length} generated insights...`);
