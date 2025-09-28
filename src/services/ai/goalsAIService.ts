@@ -1,6 +1,18 @@
 // src/services/ai/goalsAIService.ts
 import { supabaseGoalsService, DetailedGoalStats } from '../stats/supabaseGoalsService';
-import { AIInsight } from '../../components/insights/AIInsightCard/AIInsightCard.types';
+
+// Local type definition to avoid import conflicts
+interface AIInsight {
+  id: string;
+  title: string;
+  description: string;
+  market?: string;
+  confidence: 'high' | 'medium' | 'low';
+  odds?: string;
+  supportingData?: string;
+  source?: string;
+  aiEnhanced?: boolean;
+}
 
 interface GoalThresholdAnalysis {
   threshold: number;
@@ -120,7 +132,7 @@ export class GoalsAIService {
   ): GoalThresholdAnalysis {
     
     // Determine which goal count to use
-    const getGoalCount = (match: any) => {
+    const getGoalCount = (match: { totalGoals: number; goalsFor: number; goalsAgainst: number }) => {
       switch (type) {
         case 'for': return match.goalsFor;
         case 'against': return match.goalsAgainst;
@@ -159,26 +171,25 @@ export class GoalsAIService {
   /**
    * Analyze goal patterns for team-specific goals (home/away team goals)
    */
-private analyzeTeamSpecificGoals(
-  matches: Array<{ goalsFor: number; goalsAgainst: number; totalGoals: number }>
-): {
-  over05: GoalThresholdAnalysis;
-  over15: GoalThresholdAnalysis;
-  over25: GoalThresholdAnalysis;
-  over35: GoalThresholdAnalysis;
-  over45: GoalThresholdAnalysis;
-  over55: GoalThresholdAnalysis;
-} {
-  return {
-    over05: this.analyzeGoalThreshold(matches, 0.5, 'for'),
-    over15: this.analyzeGoalThreshold(matches, 1.5, 'for'),
-    over25: this.analyzeGoalThreshold(matches, 2.5, 'for'),
-    over35: this.analyzeGoalThreshold(matches, 3.5, 'for'),
-    over45: this.analyzeGoalThreshold(matches, 4.5, 'for'),
-    over55: this.analyzeGoalThreshold(matches, 5.5, 'for')
-  };
-}
-
+  private analyzeTeamSpecificGoals(
+    matches: Array<{ goalsFor: number; goalsAgainst: number; totalGoals: number }>
+  ): {
+    over05: GoalThresholdAnalysis;
+    over15: GoalThresholdAnalysis;
+    over25: GoalThresholdAnalysis;
+    over35: GoalThresholdAnalysis;
+    over45: GoalThresholdAnalysis;
+    over55: GoalThresholdAnalysis;
+  } {
+    return {
+      over05: this.analyzeGoalThreshold(matches, 0.5, 'for'),
+      over15: this.analyzeGoalThreshold(matches, 1.5, 'for'),
+      over25: this.analyzeGoalThreshold(matches, 2.5, 'for'),
+      over35: this.analyzeGoalThreshold(matches, 3.5, 'for'),
+      over45: this.analyzeGoalThreshold(matches, 4.5, 'for'),
+      over55: this.analyzeGoalThreshold(matches, 5.5, 'for')
+    };
+  }
 
   /**
    * Generate insights for total match goals
@@ -240,11 +251,10 @@ private analyzeTeamSpecificGoals(
     }
 
     // Sort by confidence and percentage
-return insights.sort((a, b) => {
-  type ConfidenceLevel = 'high' | 'medium' | 'low';
-  const confidenceOrder: Record<ConfidenceLevel, number> = { high: 3, medium: 2, low: 1 };
-  return confidenceOrder[b.confidence] - confidenceOrder[a.confidence];
-});
+    return insights.sort((a, b) => {
+      const confidenceOrder: Record<string, number> = { high: 3, medium: 2, low: 1 };
+      return (confidenceOrder[b.confidence] || 1) - (confidenceOrder[a.confidence] || 1);
+    });
   }
 
   /**
@@ -280,7 +290,7 @@ return insights.sort((a, b) => {
           description: `${teamType} team strong attacking form: ${analysis.percentage}% hit rate (${recentHits}/5 recent matches). Average ${teamPattern.averageGoalsFor} goals per game.`,
           market: `${teamType} Team Goals Over ${threshold.value}`,
           confidence: analysis.confidence,
-          supportingData: `Recent form: [${teamPattern.recentMatches.slice(0, 5).map(m => m.goalsFor).join(', ')}]`
+          supportingData: `Recent form: [${teamPattern.recentMatches.slice(0, 5).map((m: any) => m.goalsFor).join(', ')}]`
         });
       }
     }
@@ -301,8 +311,8 @@ return insights.sort((a, b) => {
     const combinedBTTSPercentage = (homePattern.bttsPercentage + awayPattern.bttsPercentage) / 2;
     
     // Analyze recent BTTS form
-    const homeRecentBTTS = homePattern.recentMatches.filter(m => m.bothTeamsScored).length;
-    const awayRecentBTTS = awayPattern.recentMatches.filter(m => m.bothTeamsScored).length;
+    const homeRecentBTTS = homePattern.recentMatches.filter((m: any) => m.bothTeamsScored).length;
+    const awayRecentBTTS = awayPattern.recentMatches.filter((m: any) => m.bothTeamsScored).length;
     const avgRecentBTTS = (homeRecentBTTS + awayRecentBTTS) / 2;
     
     // BTTS - YES
