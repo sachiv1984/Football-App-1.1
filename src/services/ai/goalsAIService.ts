@@ -1,7 +1,7 @@
 // src/services/ai/goalsAIService.ts
 import { supabaseGoalsService, DetailedGoalStats } from '../stats/supabaseGoalsService';
 import { conflictResolverService } from './conflictResolverService';
-import { oddsAPIService } from '../api/oddsAPIService'; // 📦 NEW IMPORT PATH
+import { oddsAPIService } from '../api/oddsAPIService'; 
 
 // 👇 NEW: Define the MatchOdds interface locally
 interface MatchOdds {
@@ -88,8 +88,6 @@ export class GoalsAIService {
 
   /**
    * Analyze goal patterns for a specific team
-   * NOTE: This method is left UNMODIFIED as it only relies on internal stats.
-   * Odds are injected at the analysis level (analyzeGoalThreshold).
    */
   private async analyzeTeamGoalPattern(teamName: string, venue: 'home' | 'away'): Promise<TeamGoalPattern> {
     const teamStats = await supabaseGoalsService.getTeamGoalStats(teamName);
@@ -106,12 +104,12 @@ export class GoalsAIService {
 
     // Analyze each threshold with both over and under
     const thresholdAnalysis = {
-      over05: this.analyzeGoalThreshold(relevantMatches, 0.5, 'total'),
-      over15: this.analyzeGoalThreshold(relevantMatches, 1.5, 'total'),
-      over25: this.analyzeGoalThreshold(relevantMatches, 2.5, 'total'),
-      over35: this.analyzeGoalThreshold(relevantMatches, 3.5, 'total'),
-      over45: this.analyzeGoalThreshold(relevantMatches, 4.5, 'total'),
-      over55: this.analyzeGoalThreshold(relevantMatches, 5.5, 'total')
+      over05: this.analyzeGoalThreshold(relevantMatches, 0.5, 'total', null), // Pass null for internal calls
+      over15: this.analyzeGoalThreshold(relevantMatches, 1.5, 'total', null),
+      over25: this.analyzeGoalThreshold(relevantMatches, 2.5, 'total', null),
+      over35: this.analyzeGoalThreshold(relevantMatches, 3.5, 'total', null),
+      over45: this.analyzeGoalThreshold(relevantMatches, 4.5, 'total', null),
+      over55: this.analyzeGoalThreshold(relevantMatches, 5.5, 'total', null)
     };
 
     const bttsMatches = relevantMatches.filter(m => m.bothTeamsScored).length;
@@ -137,13 +135,13 @@ export class GoalsAIService {
 
   /**
    * Analyze specific goal threshold with enhanced value calculation
-   * 🎯 UPDATED to accept MatchOdds
+   * 🎯 UPDATED to accept MatchOdds | null
    */
   private analyzeGoalThreshold(
   matches: Array<{ totalGoals: number; goalsFor: number; goalsAgainst: number }>,
   threshold: number,
   type: 'total' | 'for' | 'against',
-  matchOdds?: MatchOdds // 🎯 NEW PARAMETER
+  matchOdds: MatchOdds | null // ⬅️ FIX: Accept null here
 ): GoalThresholdAnalysis {
   
   const getGoalCount = (match: { totalGoals: number; goalsFor: number; goalsAgainst: number }) => {
@@ -182,9 +180,9 @@ export class GoalsAIService {
   let underOdds: number | undefined;
   
   // We only integrate odds for Total Goals 2.5 for efficiency
-  if (type === 'total' && threshold === 2.5) {
-      overOdds = matchOdds?.totalGoalsOdds?.overOdds;
-      underOdds = matchOdds?.totalGoalsOdds?.underOdds;
+  if (type === 'total' && threshold === 2.5 && matchOdds) {
+      overOdds = matchOdds.totalGoalsOdds?.overOdds;
+      underOdds = matchOdds.totalGoalsOdds?.underOdds;
   }
   
   // Value scores - pass the specific odds
@@ -213,6 +211,7 @@ export class GoalsAIService {
       value: underValue,
     };
   } else {
+    // Return the one with higher value/confidence even if low (as a fallback)
     return {
       threshold,
       percentage: Math.round(overPercentage * 10) / 10,
@@ -330,12 +329,12 @@ export class GoalsAIService {
 
 /**
  * Generate optimized insights for total match goals
- * 🎯 UPDATED to accept MatchOdds
+ * 🎯 UPDATED to accept MatchOdds | null
  */
 private generateOptimalTotalGoalsInsights(
   homePattern: TeamGoalPattern,
   awayPattern: TeamGoalPattern,
-  matchOdds?: MatchOdds // 🎯 NEW PARAMETER
+  matchOdds: MatchOdds | null // ⬅️ FIX: Accept null here
 ): AIInsight[] {
   const insights: AIInsight[] = [];
 
@@ -350,8 +349,6 @@ private generateOptimalTotalGoalsInsights(
   };
 
   // Get all threshold analyses for both teams
-  // NOTE: These analyses DO NOT contain the odds-boosted value score yet, 
-  // unless the threshold is 2.5, which is handled in analyzeGoalThreshold.
   const homeAnalyses = Object.values(homePattern.thresholdAnalysis);
   const awayAnalyses = Object.values(awayPattern.thresholdAnalysis);
 
@@ -457,11 +454,12 @@ private generateOptimalTotalGoalsInsights(
   /**
    * Generate optimized insights for team-specific goals
    * NOTE: Odds are NOT integrated here for efficiency (to save API calls)
+   * 🎯 CORRECTED to accept MatchOdds | null
    */
   private generateOptimalTeamGoalsInsights(
     teamPattern: TeamGoalPattern,
     teamType: 'Home' | 'Away',
-    matchOdds?: MatchOdds // Kept for consistency, but not used internally
+    matchOdds: MatchOdds | null // ⬅️ FIX: Accept null here
   ): AIInsight[] {
     const insights: AIInsight[] = [];
     
@@ -469,9 +467,9 @@ private generateOptimalTotalGoalsInsights(
     const matches = teamPattern.recentMatches;
     const thresholds = [0.5, 1.5, 2.5, 3.5, 4.5, 5.5];
     
-    // Calls the default analyzeGoalThreshold without odds
+    // Calls the default analyzeGoalThreshold without odds (passing null)
     const analyses: GoalThresholdAnalysis[] = thresholds.map(threshold => 
-      this.analyzeGoalThreshold(matches, threshold, 'for')
+      this.analyzeGoalThreshold(matches, threshold, 'for', null)
     );
     
     // Find optimal threshold for this team
@@ -498,12 +496,12 @@ private generateOptimalTotalGoalsInsights(
 
   /**
    * Generate Both Teams to Score insights 
-   * 🎯 UPDATED to accept MatchOdds and include odds in output
+   * 🎯 CORRECTED to accept MatchOdds | null
    */
   private generateBTTSInsights(
     homePattern: TeamGoalPattern,
     awayPattern: TeamGoalPattern,
-    matchOdds?: MatchOdds // 🎯 NEW PARAMETER
+    matchOdds: MatchOdds | null // ⬅️ FIX: Accept null here
   ): AIInsight[] {
     const insights: AIInsight[] = [];
     
