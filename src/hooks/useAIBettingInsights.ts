@@ -1,5 +1,7 @@
 // src/hooks/useAIBettingInsights.ts
 import { useState, useEffect, useCallback, useRef } from 'react';
+// 👇 NEW: Import the single Orchestrator Service
+import { aiOptionService } from '../services/ai/AIOptionService'; 
 
 // Local type definitions to avoid import conflicts
 // 👇 FIX 1: Export the AIInsight interface
@@ -12,23 +14,19 @@ export interface AIInsight {
   odds?: string;
   supportingData?: string;
   source?: string;
-  aiEnhanced?: boolean;
   // 👇 NEW: Added fields from conflictResolverService for completeness
   conflictScore?: number; 
   valueScore?: number;
 }
 
-// Service interfaces for future extensibility
+// Service interfaces for future extensibility (kept for structure, but the primary 
+// hook logic now uses the Orchestrator which implements this concept internally)
 interface AIService {
   generateInsights(homeTeam: string, awayTeam: string): Promise<AIInsight[]>;
 }
 
 interface AIServiceRegistry {
-  goals?: AIService;
-  cards?: AIService;
-  corners?: AIService;
-  shots?: AIService;
-  fouls?: AIService;
+  orchestrator?: AIService; // We now rely on one service for all
 }
 
 interface UseAIBettingInsightsOptions {
@@ -37,7 +35,8 @@ interface UseAIBettingInsightsOptions {
   maxRetries?: number;
   retryDelay?: number;
   cacheTimeout?: number; // Cache timeout in ms
-  services?: (keyof AIServiceRegistry)[]; // Which services to use
+  // 👇 REMOVED: The 'services' option is now redundant as we always use the orchestrator
+  // services?: (keyof AIServiceRegistry)[]; 
 }
 
 interface AIInsightError {
@@ -73,7 +72,7 @@ export const useAIBettingInsights = (
     maxRetries = 3,
     retryDelay = 2000,
     cacheTimeout = 10 * 60 * 1000, // 10 minutes default cache
-    services = ['goals', 'corners'] // 👈 UPDATED: Default to goals and corners services
+    // services = ['goals', 'corners'] // Removed as we use the orchestrator
   } = options;
 
   // State
@@ -96,18 +95,17 @@ export const useAIBettingInsights = (
   const cacheRef = useRef<Map<string, CachedInsights>>(new Map());
 
   // 👇 LOOP FIX: Ref to track the key inputs since the last actual load, 
-  // preventing redundant loads triggered by state updates.
   const lastLoadRef = useRef<string | null>(null);
 
-  // Service registry (will be populated as we add more services)
+  // Service registry (simplified: holds the one orchestrator)
   const serviceRegistry = useRef<AIServiceRegistry>({});
 
   /**
-   * Register AI services dynamically
+   * Register AI services dynamically (simplified to only register the orchestrator)
    */
   const registerService = useCallback((serviceName: keyof AIServiceRegistry, service: AIService) => {
     serviceRegistry.current[serviceName] = service;
-    console.log(`[AI Hook] Service '${serviceName}' registered.`);
+    console.log(`[AI Hook] Orchestrator Service '${serviceName}' registered.`);
   }, []);
 
   /**
@@ -169,109 +167,83 @@ export const useAIBettingInsights = (
   }, []);
 
   /**
-   * Generate insights from all enabled services
+   * Generate insights from the Orchestrator Service
+   * 🏆 CRITICAL FIX: Only call the aiOptionService.generateMatchInsights
    */
   const generateInsights = useCallback(async (
     home: string, 
     away: string, 
     retryCount = 0
   ): Promise<AIInsight[]> => {
-    console.log(`[AI Hook] 🔄 Starting insight generation for ${home} vs ${away} (Attempt ${retryCount + 1}/${maxRetries + 1})`);
+    const orchestratorService = serviceRegistry.current.orchestrator;
+    const serviceName = 'orchestrator';
     
-    const allInsights: AIInsight[] = [];
-    const errors: AIInsightError[] = [];
-    let servicesAttempted = 0;
-
-    // Process each enabled service
-    for (const serviceName of services) {
-      const service = serviceRegistry.current[serviceName];
-      
-      if (!service) {
-        console.warn(`[AI Hook] ⚠️ Service '${serviceName}' not registered, skipping`);
-        continue;
-      }
-      servicesAttempted++;
-
-      try {
-        console.log(`[AI Hook] ⚙️ Calling ${serviceName} service...`);
-        const serviceInsights = await service.generateInsights(home, away);
+    if (!orchestratorService) {
+        throw new Error("AI Orchestrator service not ready or registered.");
+    }
+    
+    console.log(`[AI Hook] 🔄 Starting insight generation via ORCHESTRATOR for ${home} vs ${away} (Attempt ${retryCount + 1}/${maxRetries + 1})`);
+    
+    try {
+        // 🎯 THE CORE CHANGE: Call the single orchestrator method
+        const serviceInsights = await orchestratorService.generateInsights(home, away);
         
-        // Add service identifier to insights
+        // No need for conflict resolution or complex sorting here, as the orchestrator already did it.
+        // Just add the source tag (which should be 'orchestrator' or already present)
         const taggedInsights = serviceInsights.map(insight => ({
-          ...insight,
-          id: `${serviceName}-${insight.id}`,
-          source: serviceName
+            ...insight,
+            source: insight.source || serviceName // Use existing source if present, or tag as orchestrator
         }));
+
+        console.log(`[AI Hook] ✅ ORCHESTRATOR service returned ${taggedInsights.length} final insights`);
         
-        allInsights.push(...taggedInsights);
-        console.log(`[AI Hook] ✅ ${serviceName} service returned ${serviceInsights.length} insights`);
+        return taggedInsights;
         
-      } catch (error) {
-        console.error(`[AI Hook] ❌ Error in ${serviceName} service:`, error);
-        errors.push({
-          service: serviceName,
-          error: error as Error,
-          timestamp: Date.now()
-        });
-      }
+    } catch (error) {
+        console.error(`[AI Hook] ❌ Error in ORCHESTRATOR service:`, error);
+        
+        const errors: AIInsightError[] = [{
+            service: serviceName,
+            error: error as Error,
+            timestamp: Date.now()
+        }];
+
+        if (retryCount < maxRetries) {
+            console.log(`[AI Hook] 🛑 Orchestrator failed, retrying in ${retryDelay}ms...`);
+            
+            setState(prev => ({
+                ...prev,
+                serviceErrors: errors
+            }));
+
+            return new Promise((resolve, reject) => {
+                retryTimeoutRef.current = setTimeout(async () => {
+                    try {
+                        const result = await generateInsights(home, away, retryCount + 1);
+                        resolve(result);
+                    } catch (err) {
+                        reject(err);
+                    }
+                }, retryDelay);
+            });
+        } else {
+            setState(prev => ({
+                ...prev,
+                serviceErrors: errors
+            }));
+            throw new Error(`AI Orchestrator failed after ${maxRetries} retries: ${(error as Error).message}`);
+        }
     }
-    
-    console.log(`[AI Hook] Generation summary: ${servicesAttempted} services attempted. ${allInsights.length} total insights generated. ${errors.length} service errors.`); 
-
-    // Handle errors
-    if (allInsights.length === 0 && errors.length > 0) {
-      // All services failed
-      if (retryCount < maxRetries) {
-        console.log(`[AI Hook] 🛑 All services failed, retrying in ${retryDelay}ms...`);
-        
-        // Update state with service errors before retrying
-        setState(prev => ({
-            ...prev,
-            serviceErrors: errors
-        }));
-
-        return new Promise((resolve, reject) => {
-          retryTimeoutRef.current = setTimeout(async () => {
-            try {
-              const result = await generateInsights(home, away, retryCount + 1);
-              resolve(result);
-            } catch (err) {
-              reject(err);
-            }
-          }, retryDelay);
-        });
-      } else {
-        // Update state with final service errors on maximum retry failure
-        setState(prev => ({
-            ...prev,
-            serviceErrors: errors
-        }));
-        throw new Error(`All AI services failed after ${maxRetries} retries`);
-      }
-    }
-
-    // Sort insights by confidence and limit results
-    const sortedInsights = allInsights
-      .sort((a, b) => {
-        const confidenceOrder: Record<string, number> = { 'high': 3, 'medium': 2, 'low': 1 };
-        return (confidenceOrder[b.confidence] || 1) - (confidenceOrder[a.confidence] || 1);
-      })
-      .slice(0, 12); // Maximum 12 total insights
-
-    return sortedInsights;
-  }, [services, maxRetries, retryDelay]);
+  }, [maxRetries, retryDelay]);
 
   /**
    * Load insights (main function)
    */
   const loadInsights = useCallback(async (forceRefresh = false) => {
-    // Note: The main useEffect now handles the servicesReady/enabled/team checks
-    
     // Check cache first (unless forcing refresh)
     if (!forceRefresh) {
       const cached = getCachedInsights(homeTeam, awayTeam);
       if (cached) {
-        // This setState triggers a re-render
         setState(prev => ({
           ...prev,
           insights: cached,
@@ -328,18 +300,13 @@ export const useAIBettingInsights = (
       }));
     }
   }, [homeTeam, awayTeam, generateInsights, getCachedInsights, setCachedInsights]); 
-  // Removed 'enabled' and 'servicesReady' from dependency array here 
-  // because the calling useEffect handles those checks, simplifying loadInsights.
 
   /**
    * Refresh insights manually
    */
   const refresh = useCallback(() => {
     console.log('[AI Hook] 🔄 Manual refresh requested.');
-    
-    // LOOP FIX: Clear the lastLoadRef on manual refresh so the load is forced.
     lastLoadRef.current = null; 
-    
     loadInsights(true);
   }, [loadInsights]);
 
@@ -348,10 +315,7 @@ export const useAIBettingInsights = (
    */
   const retry = useCallback(() => {
     console.log('[AI Hook] 🔄 Retry requested.');
-    
-    // LOOP FIX: Clear the lastLoadRef on retry so the load is forced.
     lastLoadRef.current = null; 
-    
     setState(prev => ({
       ...prev,
       error: null,
@@ -361,7 +325,7 @@ export const useAIBettingInsights = (
   }, [loadInsights]);
 
   /**
-   * Get insights for specific service
+   * Get insights for specific service (Now uses the 'source' tag from the insights)
    */
   const getInsightsByService = useCallback((serviceName: string): AIInsight[] => {
     return state.insights.filter(insight => insight.source === serviceName);
@@ -376,25 +340,20 @@ export const useAIBettingInsights = (
 
   // 👇 LOOP FIX: Use a single, gated useEffect to trigger the load.
   useEffect(() => {
-    // Generate a unique identifier for the current combination of inputs
     const currentKey = `${homeTeam}-${awayTeam}-${servicesReady}-${enabled}`;
 
-    // Prevent running if not enabled or teams are missing, and services aren't ready
     if (!enabled || !homeTeam || !awayTeam || !servicesReady) {
         console.log(`[AI Hook] 🛑 Gated load: Enabled=${enabled}, Teams=${!!homeTeam && !!awayTeam}, Ready=${servicesReady}`);
-        // If we exit here, we might need to update the ref if an invalid state persists
-        // For simplicity, we only check against the key when all conditions are met.
         return;
     }
 
-    // Prevents redundant re-runs triggered by setState *after* a load is complete.
     if (lastLoadRef.current === currentKey) {
         console.log(`[AI Hook] 🛑 Skipping redundant load: Key ${currentKey} is unchanged.`);
         return;
     }
 
     console.log(`[AI Hook] 💡 Initial/Team/Ready Load Triggered: Key ${currentKey}`);
-    lastLoadRef.current = currentKey; // Update ref BEFORE calling loadInsights
+    lastLoadRef.current = currentKey; 
     
     loadInsights(false);
     
@@ -436,28 +395,22 @@ export const useAIBettingInsights = (
     };
   }, []);
 
-  // 👈 UPDATED: Auto-register goals and corners services when available
+  // 🏆 CRITICAL: Only register the single AI Orchestrator service
   useEffect(() => {
     const initializeServices = async () => {
       try {
-        // Dynamic import to avoid circular dependencies
-        const { goalsAIService } = await import('../services/ai/goalsAIService');
-        const { cornersAIService } = await import('../services/ai/cornersAIService');
+        // Dynamic import of the single entry point
+        const { aiOptionService } = await import('../services/ai/AIOptionService');
         
-        registerService('goals', {
-          generateInsights: goalsAIService.generateGoalInsights.bind(goalsAIService)
-        });
-        
-        registerService('corners', {
-          generateInsights: cornersAIService.generateCornerInsights.bind(cornersAIService)
+        registerService('orchestrator', {
+          generateInsights: aiOptionService.generateMatchInsights.bind(aiOptionService)
         });
         
       } catch (error) {
-        console.error('[AI Hook] ❌ Failed to register services:', error);
+        console.error('[AI Hook] ❌ Failed to register ORCHESTRATOR service:', error);
       } finally {
-        // Crucial change. Mark services as ready after registration attempt.
         setServicesReady(true);
-        console.log('[AI Hook] ⚙️ All initial services processed. servicesReady set to true.');
+        console.log('[AI Hook] ⚙️ Orchestrator service registered. servicesReady set to true.');
       }
     };
 
@@ -497,7 +450,8 @@ export const useAIBettingInsights = (
       highConfidence: state.insights.filter(i => i.confidence === 'high').length,
       mediumConfidence: state.insights.filter(i => i.confidence === 'medium').length,
       lowConfidence: state.insights.filter(i => i.confidence === 'low').length,
-      services: services.length
+      // The concept of 'services' is simplified, but we keep a count of the primary one
+      services: serviceRegistry.current.orchestrator ? 1 : 0
     }
   };
 };
