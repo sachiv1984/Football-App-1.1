@@ -10,7 +10,8 @@ import AIInsightCard from '../components/insights/AIInsightCard/AIInsightCard';
 import { useFixtureNavigation } from '../hooks/useNavigation';
 import { useFixtures } from '../hooks/useFixtures';
 import { useGameWeekFixtures } from '../hooks/useGameWeekFixtures';
-import { useAIBettingInsights } from '../hooks/useAIBettingInsights';
+// 👇 FIX 1: Import the necessary types from the hook file
+import { useAIBettingInsights, AIInsight } from '../hooks/useAIBettingInsights';
 import { designTokens } from '../styles/designTokens';
 import { Brain, RefreshCw, AlertCircle } from 'lucide-react';
 import type { Fixture } from '../types';
@@ -27,6 +28,7 @@ const StatsPage: React.FC = () => {
   const { fixtures: gameWeekFixtures } = useGameWeekFixtures();
 
   // AI Betting Insights Hook
+  // The hook is correctly called with string arguments (even if empty initially)
   const {
     insights,
     loading: insightsLoading,
@@ -210,7 +212,8 @@ const StatsPage: React.FC = () => {
                       AI Betting Insights
                     </h2>
                     <p className="text-sm text-gray-600 mt-1">
-                      {insightStats.totalInsights > 0 
+                      {/* Note: insightStats may be an empty object on initial render, but the hook structure handles it */}
+                      {insightStats?.totalInsights > 0 
                         ? `${insightStats.totalInsights} insights • ${insightStats.highConfidence} high confidence • ${insightStats.mediumConfidence} medium confidence`
                         : 'Analyzing match data for betting opportunities...'
                       }
@@ -277,7 +280,8 @@ const StatsPage: React.FC = () => {
               {!insightsLoading && !insightsError && insights.length > 0 && (
                 <>
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-                    {insights.map((insight) => (
+                    {/* 👇 FIX 2: Explicitly type the 'insight' parameter to resolve TS7006 */}
+                    {insights.map((insight: AIInsight) => ( 
                       <AIInsightCard
                         key={insight.id}
                         insight={insight}
@@ -332,3 +336,4 @@ const StatsPage: React.FC = () => {
 };
 
 export default StatsPage;
+
