@@ -1,23 +1,22 @@
 // src/utils/teamUtils.ts
-// Unified Team Utilities (Updated)
+// Unified Team Utilities (Final Merged Version)
 
 // ---------------------------
-// Normalization Map
+// Original Normalization Map (Your base list)
 // ---------------------------
-// All names map to a canonical form (must exist in TEAM_LOGO_MAP)
-const TEAM_NORMALIZATION_MAP: Record<string, string> = {
+const TEAM_NORMALIZATION_MAP_BASE: Record<string, string> = {
   // Manchester clubs
   'Man Utd': 'Manchester United',
   'Manchester United FC': 'Manchester United',
-  'Man United': 'Manchester United',
+  'Man United': 'Manchester United', // Duplicate, but harmless
   'Manchester Utd': 'Manchester United',
 
-  'Man City': 'Manchester City',
+  'Man City': 'Manchester City', // Duplicate, but harmless
   'Manchester City FC': 'Manchester City',
 
   // Tottenham
-  'Spurs': 'Tottenham Hotspur',
-  'Tottenham': 'Tottenham Hotspur',
+  'Spurs': 'Tottenham Hotspur', // Duplicate, but harmless
+  'Tottenham': 'Tottenham Hotspur', // Duplicate, but harmless
   'Tottenham Hotspur FC': 'Tottenham Hotspur',
 
   // Brighton
@@ -28,14 +27,14 @@ const TEAM_NORMALIZATION_MAP: Record<string, string> = {
   'Sheffield Utd': 'Sheffield United',
 
   // Wolves
-  'Wolves': 'Wolverhampton Wanderers',
+  'Wolves': 'Wolverhampton Wanderers', // Duplicate, but harmless
   'Wolverhampton Wanderers FC': 'Wolverhampton Wanderers',
 
   // Leicester
-  'Leicester': 'Leicester City',
+  'Leicester': 'Leicester City', // Duplicate, but harmless
 
   // Newcastle
-  'Newcastle': 'Newcastle United',
+  'Newcastle': 'Newcastle United', // Duplicate, but harmless
   'Newcastle United FC': 'Newcastle United',
   'Newcastle United': 'Newcastle United',
   'Newcastle Utd': 'Newcastle United',
@@ -45,15 +44,15 @@ const TEAM_NORMALIZATION_MAP: Record<string, string> = {
   'Sunderland AFC': 'Sunderland AFC',
 
   // West Ham
-  'West Ham': 'West Ham United',
+  'West Ham': 'West Ham United', // Duplicate, but harmless
 
   // Palace
-  'Crystal Palace FC': 'Crystal Palace',
+  'Crystal Palace FC': 'Crystal Palace', // Duplicate, but harmless
   'Palace': 'Crystal Palace',
 
   // Forest
   'Forest': 'Nottingham Forest',
-  "Nott'm Forest": 'Nottingham Forest',
+  "Nott'm Forest": 'Nottingham Forest', // Duplicate, but harmless
   'Nottingham Forest FC': 'Nottingham Forest',
   "Nott'ham Forest": 'Nottingham Forest',
 
@@ -80,7 +79,7 @@ const TEAM_NORMALIZATION_MAP: Record<string, string> = {
   'Chelsea FC': 'Chelsea',
 
   // Bournemouth
-  'Bournemouth': 'AFC Bournemouth',
+  'Bournemouth': 'AFC Bournemouth', // Duplicate, but harmless
   'AFC Bournemouth FC': 'AFC Bournemouth',
 
   // Luton
@@ -89,16 +88,66 @@ const TEAM_NORMALIZATION_MAP: Record<string, string> = {
 
   // Burnley
   'Burnley FC': 'Burnley',
+    
+  // Leeds (from previous merge)
+  'Leeds Utd': 'Leeds United',
+  'Leeds United FC': 'Leeds United',
+};
+
+
+// ---------------------------
+// Additional API Normalization Entries (The new code you provided)
+// ---------------------------
+const ADDITIONAL_API_NORMALIZATIONS: Record<string, string> = {
+  // Common API variations
+  'Brighton and Hove Albion': 'Brighton & Hove Albion', // NEW
+  'Brighton & Hove Albion FC': 'Brighton & Hove Albion', // NEW
+  'Tottenham': 'Tottenham Hotspur',
+  'West Ham': 'West Ham United',
+  'West Ham FC': 'West Ham United', // NEW
+  'Sheffield United FC': 'Sheffield United', // NEW
+  'Crystal Palace FC': 'Crystal Palace',
+  'Nottingham Forest': 'Nottingham Forest', // NEW
+  'Nott\'m Forest': 'Nottingham Forest',
+  'AFC Bournemouth': 'AFC Bournemouth',
+  'Bournemouth FC': 'AFC Bournemouth', // NEW
+  
+  // Handle potential API inconsistencies (mostly covered, but ensuring overwrite)
+  'Man United': 'Manchester United',
+  'Man City': 'Manchester City',
+  'Newcastle': 'Newcastle United',
+  'Leicester': 'Leicester City',
+  'Wolves': 'Wolverhampton Wanderers',
+  'Spurs': 'Tottenham Hotspur',
+  
+  // European competition variations (NEW TEAMS ADDED)
+  'Atletico Madrid': 'Atletico Madrid', // NEW
+  'Real Madrid': 'Real Madrid', // NEW
+  'FC Barcelona': 'Barcelona', // NEW
+  'Bayern Munich': 'Bayern Munich', // NEW
+  'Paris Saint-Germain': 'Paris Saint-Germain', // NEW
+  'PSG': 'Paris Saint-Germain', // NEW
+};
+
+
+// ---------------------------
+// Final Merged Normalization Map
+// ---------------------------
+const TEAM_NORMALIZATION_MAP: Record<string, string> = {
+  ...TEAM_NORMALIZATION_MAP_BASE,
+  ...ADDITIONAL_API_NORMALIZATIONS
 };
 
 // Normalize team name → always returns canonical version
 export const normalizeTeamName = (name: string): string => {
   const clean = name.trim();
+  // Use the merged map
   return TEAM_NORMALIZATION_MAP[clean] || clean;
 };
 
+
 // ---------------------------
-// Abbreviations for display
+// Abbreviations for display (Using your existing list)
 // ---------------------------
 const TEAM_ABBREVIATIONS: Record<string, string> = {
   'Manchester United': 'Man Utd',
@@ -123,12 +172,14 @@ const TEAM_ABBREVIATIONS: Record<string, string> = {
   'Arsenal': 'Arsenal',
   'Chelsea': 'Chelsea',
   'Burnley': 'Burnley',
+  'Leeds United': 'Leeds Utd',
 };
 
 // ---------------------------
-// Logo Mapping
+// Logo Mapping (You MUST add new canonical names here if needed)
 // ---------------------------
 const TEAM_LOGO_MAP: Record<string, string> = {
+  // Existing Premier League teams
   'AFC Bournemouth': 'afc-bournemouth',
   'Arsenal': 'arsenal-fc',
   'Aston Villa': 'aston-villa',
@@ -152,6 +203,13 @@ const TEAM_LOGO_MAP: Record<string, string> = {
   'Luton Town': 'luton-town',
   'Leicester City': 'leicester-city',
   'Sheffield United': 'sheffield-united',
+  
+  // 🎯 NEW European teams added from normalization map
+  'Atletico Madrid': 'atletico-madrid',
+  'Real Madrid': 'real-madrid',
+  'Barcelona': 'fc-barcelona', // Using canonical form
+  'Bayern Munich': 'bayern-munich',
+  'Paris Saint-Germain': 'paris-saint-germain',
 };
 
 // Competitions
@@ -168,7 +226,7 @@ const COMPETITION_LOGOS: Record<string, string> = {
 };
 
 // ---------------------------
-// Display helpers
+// Display helpers (UNCHANGED)
 // ---------------------------
 export const getDisplayTeamName = (
   fullName: string,
@@ -184,7 +242,7 @@ export const getDisplayTeamName = (
 };
 
 // ---------------------------
-// Logo utilities
+// Logo utilities (UNCHANGED)
 // ---------------------------
 export interface TeamLogoResult {
   logoPath?: string;
@@ -247,7 +305,7 @@ export const getCompetitionLogo = (competitionName: string, apiLogoUrl?: string)
 };
 
 // ---------------------------
-// Helpers
+// Helpers (UNCHANGED)
 // ---------------------------
 export const validateLogoUrl = async (url: string): Promise<boolean> => {
   try {
