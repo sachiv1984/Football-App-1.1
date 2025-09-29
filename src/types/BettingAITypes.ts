@@ -16,7 +16,7 @@ export interface AIInsight {
   supportingData?: string;
   source?: string; // e.g., 'GoalsAI', 'CornersAI'
   aiEnhanced?: boolean;
-  
+
   // Crucial fields for sorting and conflict resolution
   valueScore?: number; // The Calculated Expected Value (EV) or similar metric (The higher, the better)
   conflictScore?: number; // Used internally by conflictResolverService
@@ -33,9 +33,9 @@ export interface ThresholdAnalysis {
   confidence: 'high' | 'medium' | 'low';
   recentForm: boolean[]; // Last 5 matches - did they hit this threshold?
   betType: 'over' | 'under';
-  
+
   // Value calculated using the Centralized StatisticalAIGenerator
-  value: number; 
+  value: number;
   odds?: number; // The specific odds used for the value calculation (raw number)
 }
 
@@ -64,9 +64,6 @@ export interface ConflictFlag {
 // (Used within the GoalsAIService, CardsAIService, etc., for clarity)
 // ====================================================================
 
-// Although similar, these are kept separate because their inputs (match data)
-// and related constants are different. They all implement ThresholdAnalysis.
-
 export interface GoalThresholdAnalysis extends ThresholdAnalysis {}
 export interface CornerThresholdAnalysis extends ThresholdAnalysis {}
 export interface CardThresholdAnalysis extends ThresholdAnalysis {}
@@ -78,29 +75,24 @@ export interface CardThresholdAnalysis extends ThresholdAnalysis {}
 
 /**
  * Standardized structure for raw odds data retrieved from the API.
- * This should technically live in a dedicated APITypes.ts, but is placed here
- * for immediate utility for the AI services.
  */
 export interface MatchOdds {
   matchId: string;
   lastFetched: number;
-  
+
   // Goals
   totalGoalsOdds?: { market: string; overOdds: number; underOdds: number; };
   bttsOdds?: { market: string; yesOdds: number; noOdds: number; };
-  
+
   // Cards
   totalCardsOdds?: { market: string; overOdds: number; underOdds: number; };
   homeCardsOdds?: { market: string; overOdds: number; underOdds: number; };
   awayCardsOdds?: { market: string; overOdds: number; underOdds: number; };
   mostCardsOdds?: { market: string; homeOdds: number; awayOdds: number; drawOdds: number; };
-  
+
   // Corners
   totalCornersOdds?: { market: string; overOdds: number; underOdds: number; };
   homeCornersOdds?: { market: string; overOdds: number; underOdds: number; };
   awayCornersOdds?: { market: string; overOdds: number; underOdds: number; };
   mostCornersOdds?: { market: string; homeOdds: number; awayOdds: number; drawOdds: number; };
 }
-
-// Re-export the core interfaces for easy access
-export type { AIInsight, ThresholdAnalysis };
