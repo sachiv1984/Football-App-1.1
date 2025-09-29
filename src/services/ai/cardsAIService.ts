@@ -762,6 +762,13 @@ export class CardsAIService {
           : analysis.consistency >= 0.6 
               ? 'Good consistency' 
               : 'Moderate consistency';
+              
+      // --- NEW: Calculate opponent's cards-against average ---
+      const opponentMatches = teamPattern.recentMatches;
+      const opponentAvgCards = opponentMatches.length > 0 
+          ? opponentMatches.reduce((s, m) => s + m.cardsAgainst, 0) / opponentMatches.length 
+          : 0;
+      // --- END NEW ---
 
       // --- REVISED DESCRIPTION AND TITLE (UX FIX) ---
       const isValue = analysis.value > 0.0001;
@@ -779,6 +786,13 @@ export class CardsAIService {
       const supportReasoning = isValue 
           ? `Reasoning: ${optimal.reasoning}` 
           : 'Reasoning: Optimal confidence/probability chosen, EV margin is zero.';
+          
+      const supportingData = `EV: ${analysis.value.toFixed(4)} | ${supportReasoning}. 
+        Recent form (cards for): [${teamPattern.recentMatches.slice(0, 5).map(m => m.cardsFor).join(', ')}].
+        Team Avg (Cards For): ${teamPattern.averageCardsShown.toFixed(2)}/game.
+        Opponent Pressure Avg (Cards Against): ${opponentAvgCards.toFixed(2)}/game.
+        Venue Analysis: ${teamPattern.venue}.
+      `.trim().replace(/\s\s+/g, ' ');
       // --- END REVISION ---
       
       insights.push({
@@ -788,7 +802,7 @@ export class CardsAIService {
         market: `${teamType} Team Cards ${analysis.betType === 'over' ? 'Over' : 'Under'} ${analysis.threshold}`,
         confidence: analysis.confidence,
         odds: analysis.odds ? analysis.odds.toFixed(2) : undefined,
-        supportingData: `EV: ${analysis.value.toFixed(4)} | ${supportReasoning}`,
+        supportingData: supportingData, // Use the new comprehensive supporting data
         aiEnhanced: true,
         valueScore: analysis.value,
       });
