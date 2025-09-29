@@ -181,7 +181,6 @@ export class GoalsAIService {
       venue: 'home' | 'away'
   ): Promise<TeamGoalPattern> {
       // NOTE: Assuming supabaseGoalsService.getTeamGoalStats returns the structure needed.
-      // This is a minimal implementation to satisfy the type check.
       const teamStats = await supabaseGoalsService.getTeamGoalStats(teamName);
       
       if (!teamStats) {
@@ -297,7 +296,7 @@ export class GoalsAIService {
         market: `Total Goals ${analysis.betType === 'over' ? 'Over' : 'Under'} ${analysis.threshold}`,
         confidence: analysis.confidence,
         odds: analysis.odds ? analysis.odds.toFixed(2) : undefined,
-        supportingData: `EV: ${analysis.value.toFixed(4)} | Reasoning: ${optimalOver.reasoning}`,
+        supportingData: `Historical Hit Rate: ${analysis.percentage.toFixed(1)}% | EV Edge: ${analysis.value.toFixed(4)} | Reasoning: ${optimalOver.reasoning}`,
         aiEnhanced: true,
         valueScore: analysis.value,
       });
@@ -315,7 +314,7 @@ export class GoalsAIService {
         market: `Total Goals ${analysis.betType === 'over' ? 'Over' : 'Under'} ${analysis.threshold}`,
         confidence: analysis.confidence,
         odds: analysis.odds ? analysis.odds.toFixed(2) : undefined,
-        supportingData: `EV: ${analysis.value.toFixed(4)} | Reasoning: ${optimalUnder.reasoning}`,
+        supportingData: `Historical Hit Rate: ${analysis.percentage.toFixed(1)}% | EV Edge: ${analysis.value.toFixed(4)} | Reasoning: ${optimalUnder.reasoning}`,
         aiEnhanced: true,
         valueScore: analysis.value,
       });
