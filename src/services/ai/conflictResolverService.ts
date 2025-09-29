@@ -1,6 +1,6 @@
 // src/services/ai/conflictResolverService.ts
 
-// Local type definition
+// Local type definition (Ensuring valueScore and conflictScore are known)
 interface AIInsight {
   id: string;
   title: string;
@@ -52,7 +52,7 @@ export class ConflictResolverService {
       resolve: (conflicting) => this.resolveDirectOverUnderConflict(conflicting)
     });
 
-    // Rule 2: Logical BTTS Conflicts
+    // Rule 2: Logical BTTS Conflicts (Not strictly for Cards, but kept for completeness)
     this.conflictRules.push({
       id: 'btts-team-goals',
       name: 'BTTS vs Team Goals Conflict',
@@ -61,7 +61,7 @@ export class ConflictResolverService {
       resolve: (conflicting) => this.resolveBTTSTeamGoalsConflict(conflicting)
     });
 
-    // Rule 3: Overlapping/Contradictory Threshold Conflicts (CRITICAL for corners)
+    // Rule 3: Overlapping/Contradictory Threshold Conflicts (CRITICAL for corners/goals/cards)
     this.conflictRules.push({
       id: 'overlapping-thresholds',
       name: 'Overlapping/Contradictory Threshold Conflict',
@@ -70,7 +70,7 @@ export class ConflictResolverService {
       resolve: (conflicting) => this.resolveOverlappingThresholds(conflicting)
     });
 
-    // Rule 4: Team Goals vs Total Goals Conflicts
+    // Rule 4: Team Goals vs Total Goals Conflicts (Kept for completeness)
     this.conflictRules.push({
       id: 'team-total-goals',
       name: 'Team Goals vs Total Goals Conflict',
@@ -79,13 +79,22 @@ export class ConflictResolverService {
       resolve: (conflicting) => this.resolveTeamTotalGoalsConflict(conflicting)
     });
 
-    // Rule 5: Redundant Similar Bets (Updated to handle corner redundancy accurately)
+    // Rule 5: Redundant Similar Bets
     this.conflictRules.push({
       id: 'redundant-similar',
       name: 'Redundant Similar Bets',
       priority: 6,
       detect: (insights) => this.detectRedundantSimilarBets(insights),
       resolve: (conflicting) => this.resolveRedundantSimilarBets(conflicting)
+    });
+    
+    // 🏆 Rule 6: Most Cards vs. Team Card Threshold Conflict (NEW for Cards logic)
+    this.conflictRules.push({
+      id: 'most-cards-threshold',
+      name: 'Most Cards vs Team Card Threshold Conflict',
+      priority: 5,
+      detect: (insights) => this.detectMostCardsThresholdConflicts(insights),
+      resolve: (conflicting) => this.resolveMostCardsThresholdConflict(conflicting)
     });
   }
 
@@ -243,7 +252,7 @@ export class ConflictResolverService {
   }
 
   /**
-   * Detect BTTS vs Team Goals conflicts
+   * Detect BTTS vs Team Goals conflicts (General logic, kept)
    */
   private detectBTTSTeamGoalsConflicts(insights: AIInsight[]): AIInsight[][] {
     const conflicts: AIInsight[][] = [];
@@ -276,7 +285,7 @@ export class ConflictResolverService {
       const overBets = groupInsights.filter(i => i.market?.toLowerCase().includes('over'));
       const underBets = groupInsights.filter(i => i.market?.toLowerCase().includes('under'));
 
-      // 1. Check for Severe Contradictions (e.g., Over 10.5 and Under 9.5 corners)
+      // 1. Check for Severe Contradictions (e.g., Over 10.5 and Under 9.5)
       for (const over of overBets) {
         const overThreshold = this.extractThreshold(over.market || '');
         if (!overThreshold) continue;
@@ -287,23 +296,17 @@ export class ConflictResolverService {
           
           // Severe conflict if: Over X AND Under Y where X >= Y 
           if (overThreshold >= underThreshold) {
-            console.log(`[ConflictResolver] 🚨 Severe Contradiction Detected: ${over.title} vs ${under.title}`);
             conflicts.push([over, under]);
           }
         }
       }
-      
-      // 2. Check for Redundancy (If Over 9.5 and Over 10.5 exist, this is now handled by Rule 5)
-      // We keep this detection here for *Overlapping* (non-redundant) checks if needed, 
-      // but the core redundancy check is moved to Rule 5 for cleaner separation.
-      // For now, only the severe contradiction is handled here.
     }
     
     return conflicts;
   }
 
   /**
-   * Detect team goals vs total goals conflicts
+   * Detect team goals vs total goals conflicts (General logic, kept)
    */
   private detectTeamTotalGoalsConflicts(insights: AIInsight[]): AIInsight[][] {
     const conflicts: AIInsight[][] = [];
@@ -323,7 +326,7 @@ export class ConflictResolverService {
   }
 
   /**
-   * 🏆 REFACTORED: Detect redundant similar bets (handles threshold and general redundancy)
+   * Detect redundant similar bets (handles threshold and general redundancy)
    */
   private detectRedundantSimilarBets(insights: AIInsight[]): AIInsight[][] {
     const conflicts: AIInsight[][] = [];
@@ -336,7 +339,6 @@ export class ConflictResolverService {
       if (groupInsights.length < 2) continue;
 
       // 1. Check for **Threshold Redundancy** within the same base market
-      // (e.g., Total Goals Over 2.5 vs Total Goals Over 3.5, or multiple Over corners)
       if (baseMarket.includes('over') || baseMarket.includes('under')) {
         const overBets = groupInsights.filter(i => i.market?.toLowerCase().includes('over'));
         const underBets = groupInsights.filter(i => i.market?.toLowerCase().includes('under'));
@@ -389,40 +391,82 @@ export class ConflictResolverService {
   }
 
   /**
+   * 🏆 NEW: Detect logical conflicts between Most Cards and specific Team Card Over/Under bets.
+   * Conflict Example: Most Cards - Away (Away team gets more cards) AND Home Team Cards Over 4.5
+   * (If the Home team gets 5 cards, it's highly unlikely the Away team gets *more* cards than that).
+   */
+  private detectMostCardsThresholdConflicts(insights: AIInsight[]): AIInsight[][] {
+    const conflicts: AIInsight[][] = [];
+    
+    const mostCards = insights.filter(i => i.market?.toLowerCase().includes('most cards'));
+    const teamCards = insights.filter(i => i.market?.toLowerCase().includes('team cards'));
+
+    const HOME_REGEX = /(home|team a)/i;
+    const AWAY_REGEX = /(away|team b)/i;
+
+    for (const most of mostCards) {
+      const mostMarket = most.market?.toLowerCase() || '';
+      
+      const mostIsHome = mostMarket.includes('home');
+      const mostIsAway = mostMarket.includes('away');
+      
+      if (!mostIsHome && !mostIsAway) continue; // Ignore 'Draw' for this rule
+
+      for (const team of teamCards) {
+        const teamMarket = team.market?.toLowerCase() || '';
+        const teamThreshold = this.extractThreshold(teamMarket);
+
+        if (!teamThreshold || teamThreshold < 3.5) continue; // Only relevant for higher thresholds (e.g., 3.5+)
+
+        const teamIsOver = teamMarket.includes('over');
+        
+        // Logical Conflict:
+        // Case 1: Most Cards is AWAY, but Home Team Cards OVER a high threshold (e.g., 4.5)
+        const isConflict1 = mostIsAway && teamIsOver && HOME_REGEX.test(teamMarket) && teamThreshold >= 4.5;
+
+        // Case 2: Most Cards is HOME, but Away Team Cards OVER a high threshold (e.g., 4.5)
+        const isConflict2 = mostIsHome && teamIsOver && AWAY_REGEX.test(teamMarket) && teamThreshold >= 4.5;
+        
+        if (isConflict1 || isConflict2) {
+          conflicts.push([most, team]);
+        }
+      }
+    }
+    
+    return conflicts;
+  }
+
+  /**
    * CONFLICT RESOLUTION METHODS
    */
 
   /**
-   * Resolve direct over/under conflict by keeping the higher confidence bet
+   * Resolve direct over/under conflict by keeping the highest value bet
    */
   private resolveDirectOverUnderConflict(conflicting: AIInsight[]): AIInsight | null {
     if (conflicting.length !== 2) return null;
     
     const [insight1, insight2] = conflicting;
+    const value1 = insight1.valueScore || 0;
+    const value2 = insight2.valueScore || 0;
     const confidence1 = this.getConfidenceScore(insight1.confidence);
     const confidence2 = this.getConfidenceScore(insight2.confidence);
     
-    if (confidence1 === confidence2) {
-      const percentage1 = this.extractPercentageFromDescription(insight1.description);
-      const percentage2 = this.extractPercentageFromDescription(insight2.description);
-      
-      if (percentage1 > percentage2) {
-        return { ...insight1, conflictScore: 1 };
-      } else {
-        return { ...insight2, conflictScore: 1 };
-      }
+    // Prioritize value score, then confidence
+    if (value1 === value2) {
+        return confidence1 > confidence2 ? insight1 : insight2;
     }
     
-    const winner = confidence1 > confidence2 ? insight1 : insight2;
+    const winner = value1 > value2 ? insight1 : insight2;
     return {
       ...winner,
-      description: `${winner.description} [Chosen over conflicting ${confidence1 > confidence2 ? insight2.title : insight1.title}]`,
-      conflictScore: Math.abs(confidence1 - confidence2)
+      description: `${winner.description} [Chosen over conflicting ${winner === insight1 ? insight2.title : insight1.title}]`,
+      conflictScore: 1
     };
   }
 
   /**
-   * Resolve BTTS vs Team Goals conflict
+   * Resolve BTTS vs Team Goals conflict (General logic, kept)
    */
   private resolveBTTSTeamGoalsConflict(conflicting: AIInsight[]): AIInsight | null {
     const btts = conflicting.find(i => i.market?.toLowerCase().includes('both teams to score'));
@@ -430,22 +474,16 @@ export class ConflictResolverService {
     
     if (!btts || !teamGoal) return null;
     
-    const bttsConfidence = this.getConfidenceScore(btts.confidence);
-    const teamConfidence = this.getConfidenceScore(teamGoal.confidence);
+    const bttsValue = btts.valueScore || 0;
+    const teamValue = teamGoal.valueScore || 0;
     
-    if (bttsConfidence >= teamConfidence) {
-      return {
-        ...btts,
-        description: `${btts.description} [Logical priority over team goal constraint]`,
-        conflictScore: 1
-      };
-    } else {
-      return {
-        ...teamGoal,
-        description: `${teamGoal.description} [Overrides BTTS due to stronger confidence]`,
-        conflictScore: 1
-      };
-    }
+    const winner = bttsValue >= teamValue ? btts : teamGoal;
+    
+    return {
+      ...winner,
+      description: `${winner.description} [Chosen due to stronger value in logical conflict]`,
+      conflictScore: 1
+    };
   }
 
   /**
@@ -475,31 +513,29 @@ export class ConflictResolverService {
     });
 
     if (severeContradictions.length > 0) {
-        const highestConfidence = severeContradictions.reduce((best, current) => 
-            getScore(current) > getScore(best) ? current : best
+        const highestValue = severeContradictions.reduce((best, current) => 
+            (current.valueScore || 0) > (best.valueScore || 0) ? current : best
         );
         
-        const isUnique = severeContradictions.filter(i => getScore(i) === getScore(highestConfidence)).length === 1;
+        // If there's a unique winner by value, keep it. Otherwise, remove all.
+        const isUnique = severeContradictions.filter(i => (i.valueScore || 0) === (highestValue.valueScore || 0)).length === 1;
 
         if (isUnique) {
             return { 
-                ...highestConfidence, 
+                ...highestValue, 
                 conflictScore: conflicting.length,
-                description: `${highestConfidence.description} [Chosen over severe contradiction]`
+                description: `${highestValue.description} [Chosen over severe contradiction (Highest Value)]`
             };
         } else {
             return null; // Irreconcilable: remove all
         }
     }
 
-    // Since this rule is primarily for severe contradictions, 
-    // redundancy (Over 9.5 vs Over 10.5) is now handled by Rule 5.
-    // If no severe contradiction, no resolution is needed here.
     return null;
   }
 
   /**
-   * Resolve team vs total goals conflict
+   * Resolve team vs total goals conflict (General logic, kept)
    */
   private resolveTeamTotalGoalsConflict(conflicting: AIInsight[]): AIInsight | null {
     const totalGoal = conflicting.find(i => i.market?.toLowerCase().includes('total goals'));
@@ -511,19 +547,19 @@ export class ConflictResolverService {
       return null;
     }
     
-    const totalConf = this.getConfidenceScore(totalGoal.confidence);
-    const teamConf = this.getConfidenceScore(teamGoal.confidence);
+    const totalValue = totalGoal.valueScore || 0;
+    const teamValue = teamGoal.valueScore || 0;
     
-    const winner = totalConf >= teamConf ? totalGoal : teamGoal;
+    const winner = totalValue >= teamValue ? totalGoal : teamGoal;
     return {
       ...winner,
-      description: `${winner.description} [Chosen due to stronger confidence in conflict with other goal market]`,
+      description: `${winner.description} [Chosen due to stronger value in conflict with other goal market]`,
       conflictScore: 1
     };
   }
 
   /**
-   * 🏆 UPDATED: Resolve redundant similar bets by keeping the best one based on valueScore and optimality
+   * Resolve redundant similar bets by keeping the best one based on valueScore and optimality
    */
   private resolveRedundantSimilarBets(conflicting: AIInsight[]): AIInsight | null {
     if (conflicting.length === 0) return null;
@@ -573,6 +609,34 @@ export class ConflictResolverService {
   }
 
   /**
+   * 🏆 NEW: Resolve Most Cards vs. Team Card Threshold conflict
+   */
+  private resolveMostCardsThresholdConflict(conflicting: AIInsight[]): AIInsight | null {
+    if (conflicting.length !== 2) return null;
+
+    const [most, team] = conflicting.sort((a, b) => b.valueScore - a.valueScore);
+
+    // If there is a large difference in value score, trust the higher value one.
+    if (Math.abs(most.valueScore - team.valueScore) > 500) {
+        return {
+            ...most,
+            description: `${most.description} [Kept due to significantly higher value score in logical conflict]`
+        };
+    }
+    
+    // If the value scores are similar, prioritize the more specific bet (Team Card Threshold)
+    if (team.market.includes('cards over')) {
+        return {
+            ...team,
+            description: `${team.description} [Kept due to being the more specific bet in a tied logical conflict]`
+        };
+    }
+
+    // Fallback: Remove both as the contradiction is high and scores are close
+    return null; 
+  }
+
+  /**
    * HELPER METHODS
    */
 
@@ -597,7 +661,6 @@ export class ConflictResolverService {
 
   /**
    * Groups insights by their market *without* the over/under and threshold part.
-   * e.g., "Total Corners Over 9.5" and "Total Corners Over 10.5" both map to "total corners"
    */
   private groupInsightsByBaseMarket(insights: AIInsight[]): Map<string, AIInsight[]> {
     const groups = new Map<string, AIInsight[]>();
@@ -620,20 +683,7 @@ export class ConflictResolverService {
       .replace(/\s+/g, ' ')
       .trim();
   }
-
-  /**
-   * **REMOVED** findRedundantThresholds as its logic is now embedded in detectRedundantSimilarBets
-
-  private hasOverlappingThreshold(insight1: AIInsight, insight2: AIInsight): boolean {
-    const threshold1 = this.extractThreshold(insight1.market?.toLowerCase() || '');
-    const threshold2 = this.extractThreshold(insight2.market?.toLowerCase() || '');
-    
-    if (!threshold1 || !threshold2) return false;
-    
-    return Math.abs(threshold1 - threshold2) <= 1.0;
-  }
-  */
-
+  
   private isTeamTotalGoalConflict(totalGoal: AIInsight, teamGoal: AIInsight): boolean {
     const totalThreshold = this.extractThreshold(totalGoal.market?.toLowerCase() || '');
     const teamThreshold = this.extractThreshold(teamGoal.market?.toLowerCase() || '');
@@ -644,7 +694,6 @@ export class ConflictResolverService {
     const teamIsOver = teamGoal.market?.toLowerCase().includes('over') ?? false;
     
     // Simple logical conflict check: If Total Under X and Team Over Y, where Y makes X impossible/very unlikely
-    // Using a threshold * 0.7 is an assumption; a better check is Y >= X or Y close to X
     return totalIsUnder && teamIsOver && teamThreshold >= totalThreshold;
   }
 
