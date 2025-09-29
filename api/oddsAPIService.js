@@ -1,5 +1,5 @@
 // api/oddsAPIService.js
-import { normalizeTeamName } from '../src/utils/teamUtils.ts';
+import { normalizeTeamName } from '../src/utils/teamUtils.js';
 
 
 const API_KEY = process.env.ODDS_API_KEY;
