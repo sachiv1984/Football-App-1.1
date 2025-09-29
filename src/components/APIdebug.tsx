@@ -14,7 +14,6 @@ const APIdebug = () => {
   const [rawResponse, setRawResponse] = useState<any>(null);
   const [showRawData, setShowRawData] = useState(false);
 
-  // Common Premier League teams for quick testing
   const premierLeagueTeams = [
     'Arsenal', 'Aston Villa', 'Bournemouth', 'Brentford', 'Brighton',
     'Chelsea', 'Crystal Palace', 'Everton', 'Fulham', 'Liverpool',
@@ -27,16 +26,14 @@ const APIdebug = () => {
     setLogs(prev => [{ timestamp, message, type }, ...prev].slice(0, 20));
   };
 
-  // Check API key status on mount
   useEffect(() => {
     checkApiKeyStatus();
   }, []);
 
   const checkApiKeyStatus = () => {
-    // Check if API key exists (client-side check)
     const hasKey = typeof process !== 'undefined' && process.env?.ODDS_API_KEY;
     const hasViteKey = typeof import.meta !== 'undefined' && import.meta.env?.VITE_ODDS_API_KEY;
-    
+
     if (hasKey || hasViteKey) {
       setApiKeyStatus('configured');
       addLog('✅ API key detected in environment', 'success');
@@ -53,84 +50,19 @@ const APIdebug = () => {
     addLog(`🔍 Fetching odds for ${homeTeam} vs ${awayTeam}...`, 'info');
 
     try {
-      // TODO: Replace with actual API call
-      // import { oddsAPIService } from '../services/api/oddsAPIService';
-      // const data = await oddsAPIService.getOddsForMatch(homeTeam, awayTeam);
-      
-      // Mock the API response structure for now
-      const normalizedHome = homeTeam.toLowerCase().replace(/\s+/g, '');
-      const normalizedAway = awayTeam.toLowerCase().replace(/\s+/g, '');
-      const matchId = `${normalizedHome}_vs_${normalizedAway}`;
-      
-      addLog(`📝 Generated Match ID: ${matchId}`, 'info');
+      const response = await fetch(`/api/odds?home=${encodeURIComponent(homeTeam)}&away=${encodeURIComponent(awayTeam)}`);
+      const data = await response.json();
 
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      const mockData = {
-        matchId,
-        totalGoalsOdds: {
-          market: 'Over/Under 2.5 Goals',
-          overOdds: 1.95,
-          underOdds: 1.90
-        },
-        bttsOdds: {
-          market: 'Both Teams To Score',
-          yesOdds: 1.85,
-          noOdds: 2.00
-        },
-        totalCardsOdds: {
-          market: 'Over/Under 4.5 Cards',
-          overOdds: 1.88,
-          underOdds: 1.92
-        },
-        homeCardsOdds: {
-          market: 'Home Team Over/Under 2.5 Cards',
-          overOdds: 2.10,
-          underOdds: 1.75
-        },
-        awayCardsOdds: {
-          market: 'Away Team Over/Under 2.5 Cards',
-          overOdds: 2.05,
-          underOdds: 1.78
-        },
-        mostCardsOdds: {
-          market: 'Most Cards',
-          homeOdds: 2.20,
-          awayOdds: 2.10,
-          drawOdds: 3.50
-        },
-        totalCornersOdds: {
-          market: 'Over/Under 9.5 Corners',
-          overOdds: 1.91,
-          underOdds: 1.89
-        },
-        homeCornersOdds: {
-          market: 'Home Team Over/Under 4.5 Corners',
-          overOdds: 1.95,
-          underOdds: 1.85
-        },
-        awayCornersOdds: {
-          market: 'Away Team Over/Under 4.5 Corners',
-          overOdds: 2.00,
-          underOdds: 1.80
-        },
-        mostCornersOdds: {
-          market: 'Most Corners',
-          homeOdds: 2.10,
-          awayOdds: 2.20,
-          drawOdds: 3.50
-        },
-        lastFetched: Date.now()
-      };
-
-      setOddsData(mockData);
-      setRawResponse(mockData);
-      addLog('✅ Odds data fetched successfully', 'success');
-      addLog(`📊 Markets found: Goals, BTTS, Cards, Corners`, 'success');
-      
-      // Update cache status
-      updateCacheStatus();
+      if (!response.ok) {
+        setError(data.error || 'Unknown error');
+        addLog(`❌ ${data.error || 'Failed to fetch odds'}`, 'error');
+      } else {
+        setOddsData(data);
+        setRawResponse(data);
+        addLog('✅ Odds fetched successfully', 'success');
+        addLog(`📊 Markets found: Goals, BTTS, Cards, Corners`, 'success');
+        updateCacheStatus(data);
+      }
     } catch (err: any) {
       setError(err.message);
       addLog(`❌ Error: ${err.message}`, 'error');
@@ -139,35 +71,52 @@ const APIdebug = () => {
     }
   };
 
-  const updateCacheStatus = () => {
-    // Mock cache status
-    const mockCache = {
-      size: 3,
-      matches: ['arsenal_vs_chelsea', 'liverpool_vs_mancity', 'manu_vs_tottenham'],
-      entries: [
-        {
-          matchId: 'arsenal_vs_chelsea',
-          hasGoalsOdds: true,
-          hasBttsOdds: true,
-          hasCardsOdds: true,
-          hasMostCardsOdds: true,
-          hasCornersOdds: true,
-          age: 150000
-        },
-        {
-          matchId: 'liverpool_vs_mancity',
-          hasGoalsOdds: true,
-          hasBttsOdds: true,
-          hasCardsOdds: false,
-          hasMostCardsOdds: false,
-          hasCornersOdds: true,
-          age: 350000
-        }
-      ]
-    };
-    
-    setCacheStatus(mockCache);
-    addLog('🔄 Cache status updated', 'info');
+  const updateCacheStatus = (data?: any) => {
+    // If no data provided, keep previous mock cache
+    if (!data) {
+      const mockCache = {
+        size: 3,
+        matches: ['arsenal_vs_chelsea', 'liverpool_vs_mancity', 'manu_vs_tottenham'],
+        entries: [
+          {
+            matchId: 'arsenal_vs_chelsea',
+            hasGoalsOdds: true,
+            hasBttsOdds: true,
+            hasCardsOdds: true,
+            hasMostCardsOdds: true,
+            hasCornersOdds: true,
+            age: 150000
+          },
+          {
+            matchId: 'liverpool_vs_mancity',
+            hasGoalsOdds: true,
+            hasBttsOdds: true,
+            hasCardsOdds: false,
+            hasMostCardsOdds: false,
+            hasCornersOdds: true,
+            age: 350000
+          }
+        ]
+      };
+      setCacheStatus(mockCache);
+      addLog('🔄 Cache status updated', 'info');
+    } else {
+      const matchId = `${homeTeam.toLowerCase().replace(/\s+/g, '')}_vs_${awayTeam.toLowerCase().replace(/\s+/g, '')}`;
+      setCacheStatus({
+        size: 1,
+        matches: [matchId],
+        entries: [{
+          matchId,
+          hasGoalsOdds: !!data.totalGoalsOdds,
+          hasBttsOdds: !!data.bttsOdds,
+          hasCardsOdds: !!data.totalCardsOdds,
+          hasMostCardsOdds: !!data.mostCardsOdds,
+          hasCornersOdds: !!data.totalCornersOdds,
+          age: 0
+        }]
+      });
+      addLog('🔄 Cache status updated with latest fetch', 'info');
+    }
   };
 
   const clearCache = () => {
@@ -230,13 +179,11 @@ const APIdebug = () => {
             <div className="flex-1">
               <h3 className="text-blue-300 font-semibold mb-1">Configuration Check</h3>
               <p className="text-blue-200 text-sm mb-2">
-                This dashboard simulates your oddsAPIService. To use real data:
+                This dashboard calls your serverless odds API. Make sure:
               </p>
               <ul className="text-blue-200 text-sm space-y-1 list-disc list-inside">
-                <li>Set <code className="bg-blue-900/30 px-1 rounded">ODDS_API_KEY</code> in your .env file</li>
-                <li>Or set <code className="bg-blue-900/30 px-1 rounded">VITE_ODDS_API_KEY</code> for Vite projects</li>
-                <li>Current sport key: <code className="bg-blue-900/30 px-1 rounded">soccer_epl</code></li>
-                <li>Bookmaker: <code className="bg-blue-900/30 px-1 rounded">draftkings</code></li>
+                <li>Set <code className="bg-blue-900/30 px-1 rounded">ODDS_API_KEY</code> in .env</li>
+                <li>Or <code className="bg-blue-900/30 px-1 rounded">VITE_ODDS_API_KEY</code> for Vite</li>
               </ul>
             </div>
           </div>
@@ -328,7 +275,7 @@ const APIdebug = () => {
           </div>
         )}
 
-        {/* Odds Display - Compact version to save space */}
+        {/* Odds Display */}
         {oddsData && !showRawData && (
           <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
             <div className="flex items-center justify-between mb-6">
@@ -339,7 +286,7 @@ const APIdebug = () => {
               </div>
             </div>
 
-            {/* Goals & Cards Grid */}
+            {/* Goals, BTTS, Cards, Corners */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Goals */}
               {oddsData.totalGoalsOdds && (
@@ -430,26 +377,17 @@ const APIdebug = () => {
           </div>
         )}
 
-        {/* Cache Status & Activity Logs Side by Side */}
+        {/* Cache & Logs */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Cache Status */}
+          {/* Cache */}
           <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-white">Cache Status</h2>
               <div className="flex gap-2">
-                <button
-                  onClick={updateCacheStatus}
-                  className="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-lg hover:bg-blue-500/30 transition-all text-sm flex items-center gap-1"
-                >
-                  <RefreshCw className="w-3 h-3" />
-                  Refresh
+                <button onClick={() => updateCacheStatus()} className="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-lg hover:bg-blue-500/30 text-sm flex items-center gap-1">
+                  <RefreshCw className="w-3 h-3" /> Refresh
                 </button>
-                <button
-                  onClick={clearCache}
-                  className="px-3 py-1 bg-red-500/20 text-red-300 rounded-lg hover:bg-red-500/30 transition-all text-sm"
-                >
-                  Clear
-                </button>
+                <button onClick={clearCache} className="px-3 py-1 bg-red-500/20 text-red-300 rounded-lg hover:bg-red-500/30 text-sm">Clear</button>
               </div>
             </div>
 
@@ -478,23 +416,13 @@ const APIdebug = () => {
                         <div key={idx} className="bg-black/20 rounded p-3">
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-purple-200 text-sm font-mono">{entry.matchId}</span>
-                            <span className="text-purple-300 text-xs">
-                              {Math.floor(entry.age / 1000 / 60)}m ago
-                            </span>
+                            <span className="text-purple-300 text-xs">{Math.floor(entry.age / 1000 / 60)}m ago</span>
                           </div>
                           <div className="flex gap-2 flex-wrap">
-                            {entry.hasGoalsOdds && (
-                              <span className="text-xs bg-green-500/20 text-green-300 px-2 py-0.5 rounded">⚽ Goals</span>
-                            )}
-                            {entry.hasBttsOdds && (
-                              <span className="text-xs bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded">🎯 BTTS</span>
-                            )}
-                            {entry.hasCardsOdds && (
-                              <span className="text-xs bg-yellow-500/20 text-yellow-300 px-2 py-0.5 rounded">🟨 Cards</span>
-                            )}
-                            {entry.hasCornersOdds && (
-                              <span className="text-xs bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded">🚩 Corners</span>
-                            )}
+                            {entry.hasGoalsOdds && <span className="text-xs bg-green-500/20 text-green-300 px-2 py-0.5 rounded">⚽ Goals</span>}
+                            {entry.hasBttsOdds && <span className="text-xs bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded">🎯 BTTS</span>}
+                            {entry.hasCardsOdds && <span className="text-xs bg-yellow-500/20 text-yellow-300 px-2 py-0.5 rounded">🟨 Cards</span>}
+                            {entry.hasCornersOdds && <span className="text-xs bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded">🚩 Corners</span>}
                           </div>
                         </div>
                       ))}
@@ -510,7 +438,7 @@ const APIdebug = () => {
             )}
           </div>
 
-          {/* Activity Logs */}
+          {/* Logs */}
           <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
             <h2 className="text-xl font-semibold text-white mb-4">Activity Logs</h2>
             <div className="space-y-2 max-h-96 overflow-y-auto">
@@ -521,10 +449,7 @@ const APIdebug = () => {
                 </div>
               ) : (
                 logs.map((log, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex items-start gap-2 p-2 rounded-lg text-xs ${getLogColor(log.type)}`}
-                  >
+                  <div key={idx} className={`flex items-start gap-2 p-2 rounded-lg text-xs ${getLogColor(log.type)}`}>
                     <span className="text-purple-400 font-mono flex-shrink-0">{log.timestamp}</span>
                     <span className="flex-1">{log.message}</span>
                   </div>
