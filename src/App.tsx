@@ -20,9 +20,7 @@ function App() {
           <Route path="/stats/:matchId" element={<StatsPage />} />
           
           {/* Debug route - only available in development */}
-          {isDevelopment && (
             <Route path="/debug/api" element={<APIdebug />} />
-          )}
         </Routes>
       </div>
     </Router>
