@@ -52,9 +52,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build:client": "tsc --project tsconfig.json && vite build",
-    "build:server": "tsc --project tsconfig.server.json",
-    "build": "npm run build:client && npm run build:server",
+    "build": "tsc && vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
@@ -62,7 +60,7 @@
     "deploy": "gh-pages -d dist",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,md}\"",
     "type-check": "tsc --noEmit",
-    "scrape:fixtures": "ts-node --esm scripts/scrapeFixtures.ts",
+    "scrape:fixtures": "ts-node scripts/scrapeFixtures.ts",
     "test-data": "node test-update.js"
   }
 }
