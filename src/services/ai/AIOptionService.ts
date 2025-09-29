@@ -1,29 +1,11 @@
-// src/services/ai/AIOptionService.ts
-
 import { goalsAIService } from './goalsAIService';
 import { cornersAIService } from './cornersAIService';
 // 🎯 NEW: Import the Cards AI Service
 import { cardsAIService } from './cardsAIService'; 
 import { conflictResolverService } from './conflictResolverService';
 
-// Re-defining shared interfaces for clarity and independence
-interface AIInsight {
-  id: string;
-  title: string;
-  description: string;
-  market?: string;
-  confidence: 'high' | 'medium' | 'low';
-  odds?: string;
-  supportingData?: string;
-  aiEnhanced?: boolean;
-  valueScore?: number;
-}
-
-interface ConflictingGoalInsight {
-    betLine: number;
-    betType: 'over' | 'under';
-    confidence: 'high' | 'medium' | 'low';
-}
+// 🎯 FIX: Import the necessary types from the shared file
+import { AIInsight, ConflictFlag } from '../../types/BettingAITypes'; 
 
 /**
  * Orchestrates all AI services.
@@ -45,7 +27,8 @@ export class AIOptionService {
     const goalInsights = await goalsAIService.generateGoalInsights(homeTeam, awayTeam);
     
     // 2. Determine the CONFLICTING GOAL INSIGHT (Penalty Flag)
-    const conflictingGoalInsight: ConflictingGoalInsight | null = this.getConflictFlag(goalInsights);
+    // We use the imported ConflictFlag type here.
+    const conflictingGoalInsight: ConflictFlag | null = this.getConflictFlag(goalInsights);
     
     if (conflictingGoalInsight) {
         console.log(`[Orchestrator] 🚩 Conflict Flag: High Confidence ${conflictingGoalInsight.betType.toUpperCase()} ${conflictingGoalInsight.betLine} Goals detected.`);
@@ -65,7 +48,8 @@ export class AIOptionService {
     ]);
 
     // 4. Combine ALL Insights
-    const allInsights = [...goalInsights, ...cornerInsights, ...cardInsights]; // 🎯 AGGREGATION: Include cardInsights
+    // 🎯 AGGREGATION: Include cardInsights
+    const allInsights = [...goalInsights, ...cornerInsights, ...cardInsights]; 
 
     // 5. Run Final Conflict Resolution (Direct Over/Under, Redundancy, etc.)
     console.log(`[Orchestrator] Aggregated ${allInsights.length} raw insights. Starting final resolution and sorting.`);
@@ -75,7 +59,8 @@ export class AIOptionService {
     const finalInsights = resolutionResult.resolvedInsights
       .sort((a, b) => {
         const confidenceOrder: Record<string, number> = { high: 3, medium: 2, low: 1 };
-        const confDiff = (confidenceOrder[b.confidence] || 1) - (confidenceOrder[a.confidence] || 1);
+        // ConfDiff check uses 0 as fallback, which is safer than 1.
+        const confDiff = (confidenceOrder[b.confidence] || 0) - (confidenceOrder[a.confidence] || 0); 
         if (confDiff !== 0) return confDiff;
         
         // Use penalized/calculated valueScore for final ranking
@@ -90,7 +75,7 @@ export class AIOptionService {
   /**
    * Helper to check the generated goal insights for the specific conflict condition.
    */
-  private getConflictFlag(insights: AIInsight[]): ConflictingGoalInsight | null {
+  private getConflictFlag(insights: AIInsight[]): ConflictFlag | null {
     // Look for the "Under 2.5 Total Goals" insight with High Confidence
     const under25GoalInsight = insights.find(
       (insight) => 
