@@ -199,16 +199,14 @@ export class CardsAIService {
     let overOdds: number | undefined;
     let underOdds: number | undefined;
     
-    // NOTE: This logic relies on specific threshold alignment for odds
     if (type === 'total' && threshold === 4.5 && matchOdds?.totalCardsOdds) {
       overOdds = matchOdds.totalCardsOdds.overOdds;
       underOdds = matchOdds.totalCardsOdds.underOdds;
     } 
-    else if (type === 'for' && threshold === 2.5 && matchOdds?.homeCardsOdds) { // Assuming 2.5 is the main line for team cards
+    else if (type === 'for' && threshold === 2.5 && matchOdds?.homeCardsOdds) { 
       overOdds = matchOdds.homeCardsOdds.overOdds;
       underOdds = matchOdds.homeCardsOdds.underOdds;
     } 
-    // NOTE: The 'against' line for the home team is the 'for' line for the away team, but we'll stick to 'for' for simplicity
     
     const overAnalysis = this.analyzeCardThresholdOver(matches, threshold, type, overOdds);
     const underAnalysis = this.analyzeCardThresholdUnder(matches, threshold, type, underOdds);
@@ -349,7 +347,7 @@ export class CardsAIService {
     const combinedAnalyses: CardThresholdAnalysis[] = [];
     const relevantThresholds = this.getRelevantThresholds(uniqueMatchDetails); 
 
-    relevantThresholds.forEach((threshold: number) => { // 🛠️ FIX: Added type 'number' for threshold
+    relevantThresholds.forEach((threshold: number) => { 
       
       const overOdds = (threshold === 4.5) ? matchOdds?.totalCardsOdds?.overOdds : undefined;
       const underOdds = (threshold === 4.5) ? matchOdds?.totalCardsOdds?.underOdds : undefined;
@@ -371,19 +369,18 @@ export class CardsAIService {
       }
       
       const recentHits = analysis.recentForm.filter(Boolean).length;
-      const consistencyAdj = analysis.consistency >= 0.8 ? 'Excellent consistency' : analysis.consistency >= 0.6 ? 'Good consistency' : 'Moderate consistency';
-
-      const isValue = analysis.value > 0.0001;
-      const supportReasoning = isValue ? `Reasoning: ${optimalOver.reasoning}` : 'Reasoning: Optimal confidence/probability chosen, EV margin is zero.';
+      
+      // 🛠️ FIX: Updated supportingData
+      const supportReasoning = `Historical Hit Rate: ${analysis.percentage.toFixed(1)}% | Recent Form: ${recentHits}/5 | EV Edge: ${analysis.value.toFixed(4)}`;
 
       insights.push({
         id: `optimal-total-cards-over-${analysis.threshold}`,
         title: `Total Cards ${analysis.betType === 'over' ? 'Over' : 'Under'} ${analysis.threshold}`,
-        description: `Strong **${analysis.betType.toUpperCase()} ${analysis.threshold}** bet with **${analysis.percentage.toFixed(1)}%** historical success rate. Recent form: ${recentHits}/5 matches hit this threshold. **${consistencyAdj}**. ${optimalOver.reasoning}${varianceDowngradeReason}`.trim().replace(/\s\s+/g, ' '),
+        description: `Strong **${analysis.betType.toUpperCase()} ${analysis.threshold}** bet with **${analysis.percentage.toFixed(1)}%** historical success rate. Recent form: ${recentHits}/5 matches hit this threshold.${varianceDowngradeReason}`.trim().replace(/\s\s+/g, ' '),
         market: `Total Cards ${analysis.betType === 'over' ? 'Over' : 'Under'} ${analysis.threshold}`,
         confidence: finalConfidence, 
         odds: analysis.odds ? analysis.odds.toFixed(2) : undefined,
-        supportingData: `EV: ${analysis.value.toFixed(4)} | ${supportReasoning}`,
+        supportingData: supportReasoning,
         aiEnhanced: true,
         valueScore: analysis.value,
       });
@@ -399,19 +396,18 @@ export class CardsAIService {
         }
         
         const recentHits = analysis.recentForm.filter(Boolean).length;
-        const consistencyAdj = analysis.consistency >= 0.8 ? 'Excellent consistency' : analysis.consistency >= 0.6 ? 'Good consistency' : 'Moderate consistency';
-
-        const isValue = analysis.value > 0.0001;
-        const supportReasoning = isValue ? `Reasoning: ${optimalUnder.reasoning}` : 'Reasoning: Optimal confidence/probability chosen, EV margin is zero.';
+        
+        // 🛠️ FIX: Updated supportingData
+        const supportReasoning = `Historical Hit Rate: ${analysis.percentage.toFixed(1)}% | Recent Form: ${recentHits}/5 | EV Edge: ${analysis.value.toFixed(4)}`;
 
         insights.push({
             id: `optimal-total-cards-under-${analysis.threshold}`,
             title: `Total Cards ${analysis.betType === 'over' ? 'Over' : 'Under'} ${analysis.threshold}`,
-            description: `Strong **${analysis.betType.toUpperCase()} ${analysis.threshold}** bet with **${analysis.percentage.toFixed(1)}%** historical success rate. Recent form: ${recentHits}/5 matches hit this threshold. **${consistencyAdj}**. ${optimalUnder.reasoning}${varianceDowngradeReason}`.trim().replace(/\s\s+/g, ' '),
+            description: `Strong **${analysis.betType.toUpperCase()} ${analysis.threshold}** bet with **${analysis.percentage.toFixed(1)}%** historical success rate. Recent form: ${recentHits}/5 matches hit this threshold.${varianceDowngradeReason}`.trim().replace(/\s\s+/g, ' '),
             market: `Total Cards ${analysis.betType === 'over' ? 'Over' : 'Under'} ${analysis.threshold}`,
             confidence: finalConfidence, 
             odds: analysis.odds ? analysis.odds.toFixed(2) : undefined,
-            supportingData: `EV: ${analysis.value.toFixed(4)} | ${supportReasoning}`,
+            supportingData: supportReasoning,
             aiEnhanced: true,
             valueScore: analysis.value,
         });
@@ -455,6 +451,9 @@ export class CardsAIService {
         const analysis = optimal.analysis;
         const recentHits = analysis.recentForm.filter(Boolean).length;
         const isValueBet = analysis.value > 0.0001;
+
+        // 🛠️ FIX: Updated supportingData
+        const supportReasoning = `Historical Hit Rate: ${analysis.percentage.toFixed(1)}% | Consistency Score: ${analysis.consistency.toFixed(2)} | EV Edge: ${analysis.value.toFixed(4)}`;
         
         insights.push({
             id: `optimal-${teamType.toLowerCase()}-cards-${analysis.betType}-${analysis.threshold}`,
@@ -463,7 +462,7 @@ export class CardsAIService {
             market: `${teamType} Team Cards ${analysis.betType === 'over' ? 'Over' : 'Under'} ${analysis.threshold}`,
             confidence: analysis.confidence,
             odds: analysis.odds ? analysis.odds.toFixed(2) : undefined,
-            supportingData: `EV: ${analysis.value.toFixed(4)} | Reasoning: ${optimal.reasoning}`,
+            supportingData: supportReasoning,
             aiEnhanced: true,
             valueScore: analysis.value,
         });
@@ -474,7 +473,7 @@ export class CardsAIService {
 
   /**
    * Generate insights for which team will receive the most cards (handicap/most cards market).
-   * 🛠️ FIX: This missing method is now included.
+   * 🛠️ FIX: This missing method is now included and supportingData improved.
    */
   private generateMostCardsInsights(
       homePattern: TeamCardPattern,
@@ -485,7 +484,7 @@ export class CardsAIService {
       
       if (!matchOdds?.mostCardsOdds) return [];
       
-      const { homeOdds, awayOdds, drawOdds } = matchOdds.mostCardsOdds;
+      const { homeOdds, awayOdds } = matchOdds.mostCardsOdds;
 
       const homeAvg = homePattern.averageCardsShown;
       const awayAvg = awayPattern.averageCardsShown;
@@ -496,6 +495,10 @@ export class CardsAIService {
       
       if (homeProb > 0.55 && homeAvg > awayAvg + 0.5) {
           const ev = statisticalAIGenerator.calculateExpectedValue(homeProb * 100, 1.0, homeOdds);
+          
+          // 🛠️ FIX: Updated supportingData
+          const avgComparison = `Home Avg: ${homeAvg.toFixed(2)} vs Away Avg: ${awayAvg.toFixed(2)}`;
+
           insights.push({
               id: 'most-cards-home',
               title: 'Home Team Most Cards',
@@ -503,12 +506,16 @@ export class CardsAIService {
               market: 'Most Cards - Home',
               confidence: homeProb > 0.65 ? 'high' : 'medium',
               odds: homeOdds.toFixed(2),
-              supportingData: `Probability: ${(homeProb * 100).toFixed(1)}% | EV: ${ev.toFixed(4)}`,
+              supportingData: `${avgComparison} | Calculated Win Probability: ${(homeProb * 100).toFixed(1)}% | EV Edge: ${ev.toFixed(4)}`, 
               aiEnhanced: true,
               valueScore: ev
           });
       } else if (awayProb > 0.55 && awayAvg > homeAvg + 0.5) {
           const ev = statisticalAIGenerator.calculateExpectedValue(awayProb * 100, 1.0, awayOdds);
+          
+          // 🛠️ FIX: Updated supportingData
+          const avgComparison = `Away Avg: ${awayAvg.toFixed(2)} vs Home Avg: ${homeAvg.toFixed(2)}`;
+
           insights.push({
               id: 'most-cards-away',
               title: 'Away Team Most Cards',
@@ -516,7 +523,7 @@ export class CardsAIService {
               market: 'Most Cards - Away',
               confidence: awayProb > 0.65 ? 'high' : 'medium',
               odds: awayOdds.toFixed(2),
-              supportingData: `Probability: ${(awayProb * 100).toFixed(1)}% | EV: ${ev.toFixed(4)}`,
+              supportingData: `${avgComparison} | Calculated Win Probability: ${(awayProb * 100).toFixed(1)}% | EV Edge: ${ev.toFixed(4)}`,
               aiEnhanced: true,
               valueScore: ev
           });
