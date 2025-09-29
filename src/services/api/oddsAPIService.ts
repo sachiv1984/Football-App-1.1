@@ -4,57 +4,54 @@ import { normalizeTeamName } from '../../utils/teamUtils';
 
 interface MatchOdds {
   matchId: string;
-  // Goals markets
   totalGoalsOdds?: {
-    market: string; // e.g., 'Over/Under 2.5'
+    market: string;
     overOdds: number;
     underOdds: number;
   };
   bttsOdds?: {
-    market: string; // e.g., 'Both Teams To Score'
+    market: string;
     yesOdds: number;
     noOdds: number;
   };
-  // Cards markets
   totalCardsOdds?: {
-    market: string; // e.g., 'Over/Under 4.5 Cards'
+    market: string;
     overOdds: number;
     underOdds: number;
   };
   homeCardsOdds?: {
-    market: string; // e.g., 'Home Team Over/Under 2.5 Cards'
+    market: string;
     overOdds: number;
     underOdds: number;
   };
   awayCardsOdds?: {
-    market: string; // e.g., 'Away Team Over/Under 2.5 Cards'
+    market: string;
     overOdds: number;
     underOdds: number;
   };
   mostCardsOdds?: {
-    market: string; // e.g., 'Most Cards'
+    market: string;
     homeOdds: number;
     awayOdds: number;
     drawOdds: number;
   };
-  // 🆕 CORNERS MARKETS 
   totalCornersOdds?: {
-    market: string; // e.g., 'Over/Under 9.5 Corners'
+    market: string;
     overOdds: number;
     underOdds: number;
   };
   homeCornersOdds?: {
-    market: string; // e.g., 'Home Team Over/Under 4.5 Corners'
+    market: string;
     overOdds: number;
     underOdds: number;
   };
   awayCornersOdds?: {
-    market: string; // e.g., 'Away Team Over/Under 4.5 Corners'
+    market: string;
     overOdds: number;
     underOdds: number;
   };
   mostCornersOdds?: {
-    market: string; // e.g., 'Most Corners'
+    market: string;
     homeOdds: number;
     awayOdds: number;
     drawOdds: number;
@@ -62,55 +59,66 @@ interface MatchOdds {
   lastFetched: number;
 }
 
-// --- KEEP EXISTING INTERFACES ---
-
 interface OddsOutcome {
-    name: string;
-    price: number;
-    point?: number; // For totals markets (e.g., 4.5 cards)
+  name: string;
+  price: number;
+  point?: number;
 }
 
 interface OddsMarket {
-    key: string;
-    outcomes: OddsOutcome[];
+  key: string;
+  outcomes: OddsOutcome[];
 }
 
 interface OddsBookmaker {
-    key: string;
-    markets: OddsMarket[];
+  key: string;
+  title: string;
+  markets: OddsMarket[];
 }
 
 interface APIMatchData {
-    id: string;
-    sport_key: string;
-    home_team: string;
-    away_team: string;
-    bookmakers: OddsBookmaker[];
+  id: string;
+  sport_key: string;
+  sport_title: string;
+  commence_time: string;
+  home_team: string;
+  away_team: string;
+  bookmakers: OddsBookmaker[];
 }
 
-// -------------------------------------------
+// 🔑 Try multiple environment variable sources
+const API_KEY = 
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_ODDS_API_KEY) ||
+  (typeof process !== 'undefined' && process.env?.ODDS_API_KEY) ||
+  (typeof process !== 'undefined' && process.env?.VITE_ODDS_API_KEY);
 
-// 🔑 Access the GitHub Secret via environment variable
-const API_KEY = process.env.ODDS_API_KEY; 
-// 🌐 Replace with your actual odds API base URL
-const BASE_URL = 'https://api.the-odds-api.com/v4'; 
-// ⏱️ Cache for 10 minutes (600,000 ms) to avoid redundant calls
-const CACHE_TIMEOUT = 10 * 60 * 1000; 
-// 🎯 Specify the bookmaker key you want to use for consistency
-const BOOKMAKER_KEY = 'draftkings'; 
-// NOTE: Replace 'soccer_epl' with your specific sport key if needed
-const SPORT_KEY = 'soccer_epl'; 
+const BASE_URL = 'https://api.the-odds-api.com/v4';
+const CACHE_TIMEOUT = 10 * 60 * 1000; // 10 minutes
+const BOOKMAKER_KEY = 'draftkings';
+const SPORT_KEY = 'soccer_epl';
+
+// 🆕 Debug mode flag
+const DEBUG_MODE = true;
 
 export class OddsAPIService {
   private oddsCache: Map<string, MatchOdds> = new Map();
+  private apiCallCount = 0;
+  private cacheHitCount = 0;
 
   constructor() {
     if (!API_KEY) {
-      console.warn("ODDS_API_KEY is not set. Odds functionality will be mocked or disabled.");
+      console.warn(
+        '[OddsAPI] ⚠️ ODDS_API_KEY not found. Set VITE_ODDS_API_KEY in .env file.\n' +
+        'Example: VITE_ODDS_API_KEY=your_api_key_here'
+      );
+    } else {
+      console.log('[OddsAPI] ✅ API key detected. Service initialized.');
     }
   }
 
-  // Use normalization for match ID consistency
+  /**
+   * Generate a normalized match ID for cache consistency
+   */
   private generateMatchId(home: string, away: string): string {
     const normalizedHome = normalizeTeamName(home);
     const normalizedAway = normalizeTeamName(away);
@@ -118,84 +126,129 @@ export class OddsAPIService {
   }
 
   /**
-   * 1. The Cache-First Strategy (Efficiency Focus)
+   * Main method: Get odds for a match (cache-first strategy)
    */
   public async getOddsForMatch(homeTeam: string, awayTeam: string): Promise<MatchOdds | null> {
     const matchId = this.generateMatchId(homeTeam, awayTeam);
     const cachedOdds = this.oddsCache.get(matchId);
 
-    // 💰 EFFICIENT STEP 1: Check Cache
+    // Step 1: Check cache
     if (cachedOdds && (Date.now() - cachedOdds.lastFetched < CACHE_TIMEOUT)) {
-      console.log(`[OddsAPI] ✅ Cache hit for ${matchId}. Returning cached data.`);
+      this.cacheHitCount++;
+      if (DEBUG_MODE) {
+        console.log(
+          `[OddsAPI] ✅ Cache HIT for ${matchId}\n` +
+          `  Age: ${Math.floor((Date.now() - cachedOdds.lastFetched) / 1000)}s\n` +
+          `  Hit Rate: ${this.getCacheHitRate()}%`
+        );
+      }
       return cachedOdds;
     }
 
-    // 🛑 If API key is missing, return null or stale cache
+    // Step 2: Check if API key is available
     if (!API_KEY) {
+      console.warn(`[OddsAPI] ⚠️ No API key - returning ${cachedOdds ? 'stale cache' : 'null'}`);
       return cachedOdds || null;
     }
 
-    // 🌐 EFFICIENT STEP 2: Fetch and Update
+    // Step 3: Fetch from API
     try {
+      if (DEBUG_MODE) {
+        console.log(`[OddsAPI] 🌐 Cache MISS for ${matchId}. Fetching from API...`);
+      }
+
       const odds = await this.fetchOddsFromAPI(matchId);
+      
       if (odds) {
         const newOdds: MatchOdds = { ...odds, matchId, lastFetched: Date.now() };
         this.oddsCache.set(matchId, newOdds);
-        console.log(`[OddsAPI] 📈 Cache updated for ${matchId}. Call used.`);
+        this.apiCallCount++;
+        
+        if (DEBUG_MODE) {
+          this.logOddsSuccess(matchId, newOdds);
+        }
+        
         return newOdds;
       }
-      return null;
+
+      console.warn(`[OddsAPI] ⚠️ No odds found for ${matchId}`);
+      return cachedOdds || null;
+
     } catch (error) {
-      console.error(`[OddsAPI] ❌ Failed to fetch odds for ${matchId}:`, error);
-      if (cachedOdds) {
-         console.log(`[OddsAPI] Returning STALE cache data due to error (API call saved).`);
+      console.error(`[OddsAPI] ❌ Error fetching odds for ${matchId}:`, error);
+      
+      if (error instanceof Error) {
+        if (error.message.includes('401')) {
+          console.error('[OddsAPI] 🔑 Authentication failed - check your API key');
+        } else if (error.message.includes('429')) {
+          console.error('[OddsAPI] ⏱️ Rate limit exceeded - using cached data if available');
+        } else if (error.message.includes('404')) {
+          console.error('[OddsAPI] 🔍 Match not found in API response');
+        }
       }
+
+      // Return stale cache if available
+      if (cachedOdds) {
+        console.log(`[OddsAPI] 📦 Returning stale cache (age: ${Math.floor((Date.now() - cachedOdds.lastFetched) / 1000)}s)`);
+      }
+      
       return cachedOdds || null;
     }
   }
-  
-  // --- TEAM MATCHING HELPER METHODS ---
 
   /**
-   * Enhanced team matching using normalization and partial checks.
+   * Enhanced team matching with detailed logging
    */
   private findMatchData(data: APIMatchData[], homeTeam: string, awayTeam: string): APIMatchData | undefined {
     const normalizedHome = normalizeTeamName(homeTeam);
     const normalizedAway = normalizeTeamName(awayTeam);
 
-    console.log(`[OddsAPI] Looking for match: ${normalizedHome} vs ${normalizedAway}`);
-    
-    return data.find((match: APIMatchData) => {
+    if (DEBUG_MODE) {
+      console.log(`[OddsAPI] 🔍 Searching for: ${normalizedHome} vs ${normalizedAway}`);
+      console.log(`[OddsAPI] 📋 Available matches (${data.length}):`);
+      data.forEach((m, i) => {
+        console.log(`  ${i + 1}. ${m.home_team} vs ${m.away_team}`);
+      });
+    }
+
+    const match = data.find((match: APIMatchData) => {
       const apiHome = normalizeTeamName(match.home_team);
       const apiAway = normalizeTeamName(match.away_team);
-      
-      // 1. Direct match (most reliable)
+
+      // Direct match
       const directMatch = (apiHome === normalizedHome && apiAway === normalizedAway) ||
                          (apiHome === normalizedAway && apiAway === normalizedHome);
-      
+
       if (directMatch) {
-        console.log(`[OddsAPI] ✅ Direct match found: ${match.home_team} vs ${match.away_team}`);
+        if (DEBUG_MODE) {
+          console.log(`[OddsAPI] ✅ Direct match found: ${match.home_team} vs ${match.away_team}`);
+        }
         return true;
       }
-      
-      // 2. Partial matching for edge cases
+
+      // Partial match
       const homeMatches = this.isTeamNameMatch(apiHome, normalizedHome) || 
                          this.isTeamNameMatch(apiAway, normalizedHome);
       const awayMatches = this.isTeamNameMatch(apiHome, normalizedAway) || 
                          this.isTeamNameMatch(apiAway, normalizedAway);
-      
+
       if (homeMatches && awayMatches) {
-        console.log(`[OddsAPI] ✅ Partial match found: ${match.home_team} vs ${match.away_team}`);
+        if (DEBUG_MODE) {
+          console.log(`[OddsAPI] ⚡ Partial match found: ${match.home_team} vs ${match.away_team}`);
+        }
         return true;
       }
-      
+
       return false;
     });
+
+    if (!match && DEBUG_MODE) {
+      console.warn(`[OddsAPI] ❌ No match found for ${normalizedHome} vs ${normalizedAway}`);
+    }
+
+    return match;
   }
 
-  /**
-   * Additional matching logic for edge cases.
-   */
   private isTeamNameMatch(apiName: string, targetName: string): boolean {
     const cleanApiName = this.cleanTeamName(apiName);
     const cleanTargetName = this.cleanTeamName(targetName);
@@ -205,9 +258,6 @@ export class OddsAPIService {
     return cleanApiName.includes(cleanTargetName) || cleanTargetName.includes(cleanApiName);
   }
 
-  /**
-   * Cleans the team name for partial matching checks.
-   */
   private cleanTeamName(name: string): string {
     return name
       .toLowerCase()
@@ -217,324 +267,384 @@ export class OddsAPIService {
       .trim();
   }
 
-  // --- ODDS EXTRACTION METHODS ---
-
   /**
-   * Extracts Total Goals (Over/Under 2.5) odds from a bookmaker.
+   * Extract odds methods with enhanced error handling
    */
   private extractTotalGoalsOdds(bookmaker: OddsBookmaker): MatchOdds['totalGoalsOdds'] | undefined {
-    const totalsMarket = bookmaker.markets.find((m: OddsMarket) => m.key === 'totals');
-    if (!totalsMarket) return undefined;
+    try {
+      const totalsMarket = bookmaker.markets.find((m: OddsMarket) => m.key === 'totals');
+      if (!totalsMarket) return undefined;
 
-    const over25 = totalsMarket.outcomes.find((o: OddsOutcome) => 
-      o.name === 'Over' && o.point === 2.5
-    );
-    const under25 = totalsMarket.outcomes.find((o: OddsOutcome) => 
-      o.name === 'Under' && o.point === 2.5
-    );
+      const over25 = totalsMarket.outcomes.find((o: OddsOutcome) => 
+        o.name === 'Over' && o.point === 2.5
+      );
+      const under25 = totalsMarket.outcomes.find((o: OddsOutcome) => 
+        o.name === 'Under' && o.point === 2.5
+      );
 
-    if (over25 && under25) {
+      if (over25 && under25) {
         return {
-            market: 'Over/Under 2.5 Goals',
-            overOdds: over25.price,
-            underOdds: under25.price,
+          market: 'Over/Under 2.5 Goals',
+          overOdds: over25.price,
+          underOdds: under25.price,
         };
+      }
+    } catch (error) {
+      console.error('[OddsAPI] Error extracting total goals odds:', error);
     }
     return undefined;
   }
 
-  /**
-   * Extracts Both Teams to Score (BTTS) odds from a bookmaker.
-   */
   private extractBttsOdds(bookmaker: OddsBookmaker): MatchOdds['bttsOdds'] | undefined {
-    const bttsMarket = bookmaker.markets.find((m: OddsMarket) => m.key === 'btts');
-    if (!bttsMarket) return undefined;
+    try {
+      const bttsMarket = bookmaker.markets.find((m: OddsMarket) => m.key === 'btts');
+      if (!bttsMarket) return undefined;
 
-    const bttsYes = bttsMarket.outcomes.find((o: OddsOutcome) => o.name === 'Yes');
-    const bttsNo = bttsMarket.outcomes.find((o: OddsOutcome) => o.name === 'No');
+      const bttsYes = bttsMarket.outcomes.find((o: OddsOutcome) => o.name === 'Yes');
+      const bttsNo = bttsMarket.outcomes.find((o: OddsOutcome) => o.name === 'No');
 
-    if (bttsYes && bttsNo) {
+      if (bttsYes && bttsNo) {
         return {
-            market: 'Both Teams To Score',
-            yesOdds: bttsYes.price,
-            noOdds: bttsNo.price,
+          market: 'Both Teams To Score',
+          yesOdds: bttsYes.price,
+          noOdds: bttsNo.price,
         };
+      }
+    } catch (error) {
+      console.error('[OddsAPI] Error extracting BTTS odds:', error);
     }
     return undefined;
   }
 
-  /**
-   * Extracts Total Cards (Over/Under 4.5) odds from a bookmaker.
-   */
   private extractTotalCardsOdds(bookmaker: OddsBookmaker): MatchOdds['totalCardsOdds'] | undefined {
-    // Look for the player props market that typically contains cards
-    const cardsMarket = bookmaker.markets.find((m: OddsMarket) => 
-      m.key === 'player_cards' || m.key === 'total_cards' || m.key === 'booking_points'
-    );
-    
-    if (!cardsMarket) return undefined;
+    try {
+      const cardsMarket = bookmaker.markets.find((m: OddsMarket) => 
+        m.key === 'player_cards' || m.key === 'total_cards' || m.key === 'booking_points'
+      );
+      
+      if (!cardsMarket) return undefined;
 
-    // Try to find Over/Under 4.5 cards (most common threshold)
-    const over45 = cardsMarket.outcomes.find((o: OddsOutcome) => 
-      o.name === 'Over' && (o.point === 4.5 || o.point === 45) // Some APIs use booking points (10 per yellow)
-    );
-    const under45 = cardsMarket.outcomes.find((o: OddsOutcome) => 
-      o.name === 'Under' && (o.point === 4.5 || o.point === 45)
-    );
+      const over45 = cardsMarket.outcomes.find((o: OddsOutcome) => 
+        o.name === 'Over' && (o.point === 4.5 || o.point === 45)
+      );
+      const under45 = cardsMarket.outcomes.find((o: OddsOutcome) => 
+        o.name === 'Under' && (o.point === 4.5 || o.point === 45)
+      );
 
-    if (over45 && under45) {
+      if (over45 && under45) {
         return {
-            market: 'Over/Under 4.5 Cards',
-            overOdds: over45.price,
-            underOdds: under45.price,
+          market: 'Over/Under 4.5 Cards',
+          overOdds: over45.price,
+          underOdds: under45.price,
         };
+      }
+    } catch (error) {
+      console.error('[OddsAPI] Error extracting cards odds:', error);
     }
     return undefined;
   }
 
-  /**
-   * Extracts Home Team Cards odds from a bookmaker.
-   */
   private extractHomeCardsOdds(bookmaker: OddsBookmaker): MatchOdds['homeCardsOdds'] | undefined {
-    const homeCardsMarket = bookmaker.markets.find((m: OddsMarket) => 
-      m.key === 'home_team_cards' || m.key === 'home_booking_points'
-    );
-    
-    if (!homeCardsMarket) return undefined;
+    try {
+      const homeCardsMarket = bookmaker.markets.find((m: OddsMarket) => 
+        m.key === 'home_team_cards' || m.key === 'home_booking_points'
+      );
+      
+      if (!homeCardsMarket) return undefined;
 
-    const over25 = homeCardsMarket.outcomes.find((o: OddsOutcome) => 
-      o.name === 'Over' && (o.point === 2.5 || o.point === 25)
-    );
-    const under25 = homeCardsMarket.outcomes.find((o: OddsOutcome) => 
-      o.name === 'Under' && (o.point === 2.5 || o.point === 25)
-    );
+      const over25 = homeCardsMarket.outcomes.find((o: OddsOutcome) => 
+        o.name === 'Over' && (o.point === 2.5 || o.point === 25)
+      );
+      const under25 = homeCardsMarket.outcomes.find((o: OddsOutcome) => 
+        o.name === 'Under' && (o.point === 2.5 || o.point === 25)
+      );
 
-    if (over25 && under25) {
+      if (over25 && under25) {
         return {
-            market: 'Home Team Over/Under 2.5 Cards',
-            overOdds: over25.price,
-            underOdds: under25.price,
+          market: 'Home Team Over/Under 2.5 Cards',
+          overOdds: over25.price,
+          underOdds: under25.price,
         };
+      }
+    } catch (error) {
+      console.error('[OddsAPI] Error extracting home cards odds:', error);
     }
     return undefined;
   }
 
-  /**
-   * Extracts Away Team Cards odds from a bookmaker.
-   */
   private extractAwayCardsOdds(bookmaker: OddsBookmaker): MatchOdds['awayCardsOdds'] | undefined {
-    const awayCardsMarket = bookmaker.markets.find((m: OddsMarket) => 
-      m.key === 'away_team_cards' || m.key === 'away_booking_points'
-    );
-    
-    if (!awayCardsMarket) return undefined;
+    try {
+      const awayCardsMarket = bookmaker.markets.find((m: OddsMarket) => 
+        m.key === 'away_team_cards' || m.key === 'away_booking_points'
+      );
+      
+      if (!awayCardsMarket) return undefined;
 
-    const over25 = awayCardsMarket.outcomes.find((o: OddsOutcome) => 
-      o.name === 'Over' && (o.point === 2.5 || o.point === 25)
-    );
-    const under25 = awayCardsMarket.outcomes.find((o: OddsOutcome) => 
-      o.name === 'Under' && (o.point === 2.5 || o.point === 25)
-    );
+      const over25 = awayCardsMarket.outcomes.find((o: OddsOutcome) => 
+        o.name === 'Over' && (o.point === 2.5 || o.point === 25)
+      );
+      const under25 = awayCardsMarket.outcomes.find((o: OddsOutcome) => 
+        o.name === 'Under' && (o.point === 2.5 || o.point === 25)
+      );
 
-    if (over25 && under25) {
+      if (over25 && under25) {
         return {
-            market: 'Away Team Over/Under 2.5 Cards',
-            overOdds: over25.price,
-            underOdds: under25.price,
+          market: 'Away Team Over/Under 2.5 Cards',
+          overOdds: over25.price,
+          underOdds: under25.price,
         };
+      }
+    } catch (error) {
+      console.error('[OddsAPI] Error extracting away cards odds:', error);
     }
     return undefined;
   }
 
-  /**
-   * Extracts Most Cards (Home/Away/Draw) odds from a bookmaker.
-   */
   private extractMostCardsOdds(bookmaker: OddsBookmaker): MatchOdds['mostCardsOdds'] | undefined {
-    const mostCardsMarket = bookmaker.markets.find((m: OddsMarket) => 
-      m.key === 'most_cards' || m.key === 'team_to_receive_most_cards'
-    );
-    
-    if (!mostCardsMarket) return undefined;
+    try {
+      const mostCardsMarket = bookmaker.markets.find((m: OddsMarket) => 
+        m.key === 'most_cards' || m.key === 'team_to_receive_most_cards'
+      );
+      
+      if (!mostCardsMarket) return undefined;
 
-    const homeOdds = mostCardsMarket.outcomes.find((o: OddsOutcome) => 
-      o.name === 'Home' || o.name.includes('Home')
-    );
-    const awayOdds = mostCardsMarket.outcomes.find((o: OddsOutcome) => 
-      o.name === 'Away' || o.name.includes('Away')
-    );
-    const drawOdds = mostCardsMarket.outcomes.find((o: OddsOutcome) => 
-      o.name === 'Draw' || o.name === 'Neither' || o.name === 'Equal'
-    );
+      const homeOdds = mostCardsMarket.outcomes.find((o: OddsOutcome) => 
+        o.name === 'Home' || o.name.includes('Home')
+      );
+      const awayOdds = mostCardsMarket.outcomes.find((o: OddsOutcome) => 
+        o.name === 'Away' || o.name.includes('Away')
+      );
+      const drawOdds = mostCardsMarket.outcomes.find((o: OddsOutcome) => 
+        o.name === 'Draw' || o.name === 'Neither' || o.name === 'Equal'
+      );
 
-    if (homeOdds && awayOdds && drawOdds) {
+      if (homeOdds && awayOdds && drawOdds) {
         return {
-            market: 'Most Cards',
-            homeOdds: homeOdds.price,
-            awayOdds: awayOdds.price,
-            drawOdds: drawOdds.price,
+          market: 'Most Cards',
+          homeOdds: homeOdds.price,
+          awayOdds: awayOdds.price,
+          drawOdds: drawOdds.price,
         };
+      }
+    } catch (error) {
+      console.error('[OddsAPI] Error extracting most cards odds:', error);
     }
     return undefined;
   }
 
-  // --- 🆕 CORNERS EXTRACTION METHODS ---
-
-  /**
-   * 🆕 Extracts Total Corners (Over/Under) odds from a bookmaker.
-   * Targets 9.5 as a common line, but will grab the first 'totals' market if corner-specific.
-   */
   private extractTotalCornersOdds(bookmaker: OddsBookmaker): MatchOdds['totalCornersOdds'] | undefined {
-    // Corner markets typically use keys like 'totals', 'corners_totals', or similar
-    const cornerTotalsMarket = bookmaker.markets.find((m: OddsMarket) => 
-      m.key === 'totals' && m.outcomes.some(o => o.name === 'Over' && o.point === 9.5) || 
-      m.key === 'corners_totals'
-    );
-    
-    if (!cornerTotalsMarket) return undefined;
+    try {
+      const cornerTotalsMarket = bookmaker.markets.find((m: OddsMarket) => 
+        (m.key === 'totals' && m.outcomes.some(o => o.name === 'Over' && o.point === 9.5)) || 
+        m.key === 'corners_totals'
+      );
+      
+      if (!cornerTotalsMarket) return undefined;
 
-    // Try to find the Over/Under 9.5 market (most common)
-    const over95 = cornerTotalsMarket.outcomes.find((o: OddsOutcome) => 
-      o.name === 'Over' && o.point === 9.5
-    );
-    const under95 = cornerTotalsMarket.outcomes.find((o: OddsOutcome) => 
-      o.name === 'Under' && o.point === 9.5
-    );
+      const over95 = cornerTotalsMarket.outcomes.find((o: OddsOutcome) => 
+        o.name === 'Over' && o.point === 9.5
+      );
+      const under95 = cornerTotalsMarket.outcomes.find((o: OddsOutcome) => 
+        o.name === 'Under' && o.point === 9.5
+      );
 
-    if (over95 && under95) {
+      if (over95 && under95) {
         return {
-            market: 'Over/Under 9.5 Corners',
-            overOdds: over95.price,
-            underOdds: under95.price,
+          market: 'Over/Under 9.5 Corners',
+          overOdds: over95.price,
+          underOdds: under95.price,
         };
+      }
+    } catch (error) {
+      console.error('[OddsAPI] Error extracting corners odds:', error);
     }
     return undefined;
   }
-  
-  /**
-   * 🆕 Extracts Most Corners (Home/Away/Draw) odds from a bookmaker.
-   */
+
   private extractMostCornersOdds(bookmaker: OddsBookmaker): MatchOdds['mostCornersOdds'] | undefined {
-    const mostCornersMarket = bookmaker.markets.find((m: OddsMarket) => 
-      m.key === 'most_corners' || m.key === 'team_to_take_most_corners'
-    );
-    
-    if (!mostCornersMarket) return undefined;
+    try {
+      const mostCornersMarket = bookmaker.markets.find((m: OddsMarket) => 
+        m.key === 'most_corners' || m.key === 'team_to_take_most_corners'
+      );
+      
+      if (!mostCornersMarket) return undefined;
 
-    const homeOdds = mostCornersMarket.outcomes.find((o: OddsOutcome) => 
-      o.name === 'Home' || o.name.includes('Home')
-    );
-    const awayOdds = mostCornersMarket.outcomes.find((o: OddsOutcome) => 
-      o.name === 'Away' || o.name.includes('Away')
-    );
-    const drawOdds = mostCornersMarket.outcomes.find((o: OddsOutcome) => 
-      o.name === 'Draw' || o.name === 'Equal'
-    );
+      const homeOdds = mostCornersMarket.outcomes.find((o: OddsOutcome) => 
+        o.name === 'Home' || o.name.includes('Home')
+      );
+      const awayOdds = mostCornersMarket.outcomes.find((o: OddsOutcome) => 
+        o.name === 'Away' || o.name.includes('Away')
+      );
+      const drawOdds = mostCornersMarket.outcomes.find((o: OddsOutcome) => 
+        o.name === 'Draw' || o.name === 'Equal'
+      );
 
-    if (homeOdds && awayOdds && drawOdds) {
+      if (homeOdds && awayOdds && drawOdds) {
         return {
-            market: 'Most Corners',
-            homeOdds: homeOdds.price,
-            awayOdds: awayOdds.price,
-            drawOdds: drawOdds.price,
+          market: 'Most Corners',
+          homeOdds: homeOdds.price,
+          awayOdds: awayOdds.price,
+          drawOdds: drawOdds.price,
         };
+      }
+    } catch (error) {
+      console.error('[OddsAPI] Error extracting most corners odds:', error);
     }
     return undefined;
   }
-  
-  // NOTE: Home/Away specific corner odds are less common in general feeds, 
-  // but if available, they would use similar logic to the card extraction methods 
-  // with keys like 'home_corners_totals', etc. They are omitted for brevity unless needed.
-
 
   /**
-   * Helper function to extract all odds from a bookmaker.
+   * Extract all odds from a bookmaker
    */
   private extractOddsFromBookmaker(bookmaker: OddsBookmaker): Omit<MatchOdds, 'matchId' | 'lastFetched'> {
-    return {
-      // Goals markets
+    const odds = {
       totalGoalsOdds: this.extractTotalGoalsOdds(bookmaker),
       bttsOdds: this.extractBttsOdds(bookmaker),
-      // Cards markets
       totalCardsOdds: this.extractTotalCardsOdds(bookmaker),
       homeCardsOdds: this.extractHomeCardsOdds(bookmaker),
       awayCardsOdds: this.extractAwayCardsOdds(bookmaker),
       mostCardsOdds: this.extractMostCardsOdds(bookmaker),
-      // 🆕 Corners markets
       totalCornersOdds: this.extractTotalCornersOdds(bookmaker),
-      homeCornersOdds: undefined, // Currently not extracting team-specific corner totals
-      awayCornersOdds: undefined, // Currently not extracting team-specific corner totals
+      homeCornersOdds: undefined,
+      awayCornersOdds: undefined,
       mostCornersOdds: this.extractMostCornersOdds(bookmaker),
     };
+
+    if (DEBUG_MODE) {
+      const marketsFound = Object.entries(odds)
+        .filter(([_, value]) => value !== undefined)
+        .map(([key]) => key);
+      
+      console.log(`[OddsAPI] 📊 Markets extracted from ${bookmaker.title}:`, marketsFound);
+    }
+
+    return odds;
   }
 
   /**
-   * 2. Actual API Call Logic - UPDATED with cards and corners markets
+   * Fetch odds from The Odds API
    */
   private async fetchOddsFromAPI(matchId: string): Promise<Omit<MatchOdds, 'matchId' | 'lastFetched'> | null> {
     const parts = matchId.split('_vs_');
     if (parts.length !== 2) {
-      console.error(`[OddsAPI] Invalid matchId format: ${matchId}`);
+      console.error(`[OddsAPI] ❌ Invalid matchId format: ${matchId}`);
       return null;
     }
 
-    const homeTeam = parts[0]; 
+    const homeTeam = parts[0];
     const awayTeam = parts[1];
 
-    // 🆕 Request goals, cards, AND corners markets
     const marketsToRequest = [
-        'totals', // For goals (2.5) and total corners (9.5)
-        'btts',
-        'player_cards', 'total_cards', 'booking_points', 'home_team_cards', 'away_team_cards', 'most_cards',
-        // Common corner market keys
-        'corners_totals', 
-        'most_corners', 
-        'team_to_take_most_corners'
+      'totals',
+      'btts',
+      'player_cards',
+      'total_cards',
+      'booking_points',
+      'home_team_cards',
+      'away_team_cards',
+      'most_cards',
+      'corners_totals',
+      'most_corners',
+      'team_to_take_most_corners'
     ].join(',');
 
-    const url = `${BASE_URL}/odds?apiKey=${API_KEY}&sport=${SPORT_KEY}&regions=uk&markets=${marketsToRequest}&oddsFormat=decimal`;
-    
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-        throw new Error(`Odds API failed: ${response.status} - ${response.statusText}`);
-    }
-    
-    const data: APIMatchData[] = await response.json();
-    
-    const matchData = this.findMatchData(data, homeTeam, awayTeam);
-    
-    if (!matchData) {
-        console.log(`[OddsAPI] Match data not found for ${homeTeam} vs ${awayTeam}`);
-        console.log(`[OddsAPI] Available matches:`, data.map(m => `${m.home_team} vs ${m.away_team}`));
-        return null;
+    const url = `${BASE_URL}/sports/${SPORT_KEY}/odds?apiKey=${API_KEY}&regions=uk&markets=${marketsToRequest}&oddsFormat=decimal`;
+
+    if (DEBUG_MODE) {
+      console.log(`[OddsAPI] 🌐 API Request URL: ${url.replace(API_KEY!, 'API_KEY_HIDDEN')}`);
     }
 
-    // Extract odds from the specific bookmaker
-    const bookmaker = matchData.bookmakers.find((b) => b.key === BOOKMAKER_KEY);
-    
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(
+        `API request failed: ${response.status} ${response.statusText}\n` +
+        `Response: ${errorText}`
+      );
+    }
+
+    const data: APIMatchData[] = await response.json();
+
+    if (DEBUG_MODE) {
+      console.log(`[OddsAPI] 📥 Received ${data.length} matches from API`);
+    }
+
+    const matchData = this.findMatchData(data, homeTeam, awayTeam);
+
+    if (!matchData) {
+      console.warn(
+        `[OddsAPI] ❌ Match not found: ${homeTeam} vs ${awayTeam}\n` +
+        `Available matches:\n` +
+        data.map(m => `  - ${m.home_team} vs ${m.away_team}`).join('\n')
+      );
+      return null;
+    }
+
+    // Try to find the preferred bookmaker
+    let bookmaker = matchData.bookmakers.find((b) => b.key === BOOKMAKER_KEY);
+
     if (!bookmaker) {
-        console.warn(`[OddsAPI] Bookmaker '${BOOKMAKER_KEY}' not found for this match. Attempting fallback...`);
-        const fallbackBookmaker = matchData.bookmakers[0];
-        if (fallbackBookmaker) {
-          console.log(`[OddsAPI] Using fallback bookmaker: ${fallbackBookmaker.key}`);
-          return this.extractOddsFromBookmaker(fallbackBookmaker);
-        }
+      console.warn(
+        `[OddsAPI] ⚠️ Preferred bookmaker '${BOOKMAKER_KEY}' not found.\n` +
+        `Available bookmakers: ${matchData.bookmakers.map(b => b.key).join(', ')}`
+      );
+
+      // Use first available bookmaker as fallback
+      bookmaker = matchData.bookmakers[0];
+
+      if (!bookmaker) {
+        console.error('[OddsAPI] ❌ No bookmakers available for this match');
         return null;
+      }
+
+      console.log(`[OddsAPI] 🔄 Using fallback bookmaker: ${bookmaker.title}`);
     }
 
     return this.extractOddsFromBookmaker(bookmaker);
   }
 
   /**
-   * Public method to clear cache (useful for testing)
+   * Log successful odds fetch (debug helper)
    */
-  public clearCache(): void {
-    this.oddsCache.clear();
-    console.log('[OddsAPI] Cache cleared');
+  private logOddsSuccess(matchId: string, odds: MatchOdds): void {
+    const markets = [];
+    if (odds.totalGoalsOdds) markets.push('Goals');
+    if (odds.bttsOdds) markets.push('BTTS');
+    if (odds.totalCardsOdds) markets.push('Cards');
+    if (odds.totalCornersOdds) markets.push('Corners');
+    if (odds.mostCardsOdds) markets.push('Most Cards');
+    if (odds.mostCornersOdds) markets.push('Most Corners');
+
+    console.log(
+      `[OddsAPI] ✅ Successfully fetched odds for ${matchId}\n` +
+      `  Markets: ${markets.join(', ')}\n` +
+      `  API calls: ${this.apiCallCount}\n` +
+      `  Cache hits: ${this.cacheHitCount}\n` +
+      `  Hit rate: ${this.getCacheHitRate()}%`
+    );
   }
 
   /**
-   * Public method to get cache status (useful for debugging)
+   * Calculate cache hit rate
+   */
+  private getCacheHitRate(): number {
+    const total = this.apiCallCount + this.cacheHitCount;
+    if (total === 0) return 0;
+    return Math.round((this.cacheHitCount / total) * 100);
+  }
+
+  /**
+   * Clear the cache
+   */
+  public clearCache(): void {
+    const size = this.oddsCache.size;
+    this.oddsCache.clear();
+    console.log(`[OddsAPI] 🗑️ Cache cleared (${size} entries removed)`);
+  }
+
+  /**
+   * Get cache status for debugging
    */
   public getCacheStatus() {
     return {
@@ -546,11 +656,83 @@ export class OddsAPIService {
         hasBttsOdds: !!odds.bttsOdds,
         hasCardsOdds: !!odds.totalCardsOdds,
         hasMostCardsOdds: !!odds.mostCardsOdds,
-        // 🆕 Check for corner odds
         hasCornersOdds: !!odds.totalCornersOdds || !!odds.mostCornersOdds,
-        age: Date.now() - odds.lastFetched
-      }))
+        age: Date.now() - odds.lastFetched,
+        cacheExpiry: CACHE_TIMEOUT - (Date.now() - odds.lastFetched),
+      })),
+      stats: {
+        apiCalls: this.apiCallCount,
+        cacheHits: this.cacheHitCount,
+        hitRate: this.getCacheHitRate(),
+      },
     };
+  }
+
+  /**
+   * Reset statistics
+   */
+  public resetStats(): void {
+    this.apiCallCount = 0;
+    this.cacheHitCount = 0;
+    console.log('[OddsAPI] 📊 Statistics reset');
+  }
+
+  /**
+   * Test API connection
+   */
+  public async testConnection(): Promise<boolean> {
+    if (!API_KEY) {
+      console.error('[OddsAPI] ❌ Cannot test connection: No API key configured');
+      return false;
+    }
+
+    try {
+      const url = `${BASE_URL}/sports/${SPORT_KEY}/odds?apiKey=${API_KEY}&regions=uk&markets=h2h&oddsFormat=decimal`;
+      const response = await fetch(url);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log(
+          `[OddsAPI] ✅ Connection test successful!\n` +
+          `  Found ${data.length} matches available\n` +
+          `  API Status: OK`
+        );
+        return true;
+      } else {
+        console.error(
+          `[OddsAPI] ❌ Connection test failed: ${response.status} ${response.statusText}`
+        );
+        return false;
+      }
+    } catch (error) {
+      console.error('[OddsAPI] ❌ Connection test failed:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get available matches from API (for debugging)
+   */
+  public async getAvailableMatches(): Promise<string[]> {
+    if (!API_KEY) {
+      console.warn('[OddsAPI] ⚠️ No API key - cannot fetch available matches');
+      return [];
+    }
+
+    try {
+      const url = `${BASE_URL}/sports/${SPORT_KEY}/odds?apiKey=${API_KEY}&regions=uk&markets=h2h&oddsFormat=decimal`;
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+      }
+
+      const data: APIMatchData[] = await response.json();
+      return data.map(m => `${m.home_team} vs ${m.away_team}`);
+    } catch (error) {
+      console.error('[OddsAPI] Error fetching available matches:', error);
+      return [];
+    }
   }
 }
 
