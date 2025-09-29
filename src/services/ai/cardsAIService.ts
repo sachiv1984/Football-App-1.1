@@ -575,15 +575,28 @@ export class CardsAIService {
     if (optimalOver) {
       const analysis = optimalOver.analysis;
       
-      // --- REVISED DESCRIPTION AND TITLE (UX FIX) ---
-      const hitDescription = `${analysis.percentage.toFixed(1)}% hit rate (Consistency: ${analysis.consistency.toFixed(2)})`;
-      const isValue = analysis.value > 0.0001;
-      const title = `Total Cards ${analysis.betType === 'over' ? 'Over' : 'Under'} ${analysis.threshold}`;
-      const description = isValue 
-          ? `Value Bet! This outcome is likely (${hitDescription}) and shows a positive edge against the current odds.`
-          : `High Confidence. This outcome is very likely (${hitDescription}), though the market odds fully account for the probability.`;
+      // Calculate hits for the optimal selection
+      const recentHits = analysis.recentForm.filter(Boolean).length;
+      
+      // Determine consistency adjective
+      const consistencyAdj = analysis.consistency >= 0.8 
+          ? 'Excellent consistency' 
+          : analysis.consistency >= 0.6 
+              ? 'Good consistency' 
+              : 'Moderate consistency';
+
+      // --- ENHANCED DESCRIPTION (AS REQUESTED) ---
+      const description = `
+        Strong **${analysis.betType.toUpperCase()} ${analysis.threshold}** bet with **${analysis.percentage.toFixed(1)}%** historical success rate.
+        Recent form: ${recentHits}/5 matches hit this threshold.
+        **${consistencyAdj}**.
+        ${optimalOver.reasoning}
+      `.trim().replace(/\s\s+/g, ' '); // Clean up extra whitespace
+
+      // --- END ENHANCED DESCRIPTION ---
       
       // --- REVISED SUPPORTING DATA LOGIC (UX FIX) ---
+      const isValue = analysis.value > 0.0001;
       const supportReasoning = isValue 
           ? `Reasoning: ${optimalOver.reasoning}` 
           : 'Reasoning: Optimal confidence/probability chosen, EV margin is zero.';
@@ -591,7 +604,7 @@ export class CardsAIService {
 
       insights.push({
         id: `optimal-total-cards-over-${analysis.threshold}`,
-        title: title,
+        title: `Total Cards ${analysis.betType === 'over' ? 'Over' : 'Under'} ${analysis.threshold}`,
         description: description,
         market: `Total Cards ${analysis.betType === 'over' ? 'Over' : 'Under'} ${analysis.threshold}`,
         confidence: analysis.confidence,
@@ -606,15 +619,27 @@ export class CardsAIService {
     if (optimalUnder) {
       const analysis = optimalUnder.analysis;
       
-      // --- REVISED DESCRIPTION AND TITLE (UX FIX) ---
-      const hitDescription = `${analysis.percentage.toFixed(1)}% hit rate (Consistency: ${analysis.consistency.toFixed(2)})`;
-      const isValue = analysis.value > 0.0001;
-      const title = `Total Cards ${analysis.betType === 'over' ? 'Over' : 'Under'} ${analysis.threshold}`;
-      const description = isValue 
-          ? `Value Bet! This outcome is likely (${hitDescription}) and shows a positive edge against the current odds.`
-          : `High Confidence. This outcome is very likely (${hitDescription}), though the market odds fully account for the probability.`;
+      // Calculate hits for the optimal selection
+      const recentHits = analysis.recentForm.filter(Boolean).length;
+      
+      // Determine consistency adjective
+      const consistencyAdj = analysis.consistency >= 0.8 
+          ? 'Excellent consistency' 
+          : analysis.consistency >= 0.6 
+              ? 'Good consistency' 
+              : 'Moderate consistency';
+
+      // --- ENHANCED DESCRIPTION (AS REQUESTED) ---
+      const description = `
+        Strong **${analysis.betType.toUpperCase()} ${analysis.threshold}** bet with **${analysis.percentage.toFixed(1)}%** historical success rate.
+        Recent form: ${recentHits}/5 matches hit this threshold.
+        **${consistencyAdj}**.
+        ${optimalUnder.reasoning}
+      `.trim().replace(/\s\s+/g, ' '); // Clean up extra whitespace
+      // --- END ENHANCED DESCRIPTION ---
       
       // --- REVISED SUPPORTING DATA LOGIC (UX FIX) ---
+      const isValue = analysis.value > 0.0001;
       const supportReasoning = isValue 
           ? `Reasoning: ${optimalUnder.reasoning}` 
           : 'Reasoning: Optimal confidence/probability chosen, EV margin is zero.';
@@ -622,7 +647,7 @@ export class CardsAIService {
       
       insights.push({
         id: `optimal-total-cards-under-${analysis.threshold}`,
-        title: title,
+        title: `Total Cards ${analysis.betType === 'over' ? 'Over' : 'Under'} ${analysis.threshold}`,
         description: description,
         market: `Total Cards ${analysis.betType === 'over' ? 'Over' : 'Under'} ${analysis.threshold}`,
         confidence: analysis.confidence,
@@ -685,14 +710,25 @@ export class CardsAIService {
       const analysis = optimal.analysis;
       const recentHits = analysis.recentForm.filter(Boolean).length;
       
+      // Determine consistency adjective
+      const consistencyAdj = analysis.consistency >= 0.8 
+          ? 'Excellent consistency' 
+          : analysis.consistency >= 0.6 
+              ? 'Good consistency' 
+              : 'Moderate consistency';
+
       // --- REVISED DESCRIPTION AND TITLE (UX FIX) ---
-      const hitDescription = `${analysis.percentage.toFixed(1)}% hit rate (${recentHits}/5 recent games)`;
       const isValue = analysis.value > 0.0001;
       const title = `${teamType} Team ${analysis.betType === 'over' ? 'Over' : 'Under'} ${analysis.threshold} Cards`;
-      const description = isValue 
-          ? `Value Bet! This team outcome is likely (${hitDescription}) and shows a positive edge against the current odds.`
-          : `High Confidence. This team outcome is very likely (${hitDescription}), though the market odds fully account for the probability.`;
       
+      // Re-using the enhanced format for consistency
+      const description = `
+        Strong **${analysis.betType.toUpperCase()} ${analysis.threshold}** bet for the ${teamType} team with **${analysis.percentage.toFixed(1)}%** historical success rate.
+        Recent form: ${recentHits}/5 matches hit this threshold.
+        **${consistencyAdj}**.
+        ${optimal.reasoning}
+      `.trim().replace(/\s\s+/g, ' ');
+
       // --- REVISED SUPPORTING DATA LOGIC (UX FIX) ---
       const supportReasoning = isValue 
           ? `Reasoning: ${optimal.reasoning}` 
