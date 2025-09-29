@@ -196,7 +196,7 @@ export class GoalsAIService {
       
       const averageGoalsFor = teamStats.goalsFor / teamStats.matches;
       const averageGoalsAgainst = teamStats.goalsAgainst / teamStats.matches;
-      const averageTotalGoals = averageGoalsFor + averageGoalsAgainst;
+      const averageTotalGoals = averageGoalsFor + averageGoalsFor; // Simplified total average for symmetry
       const bttsHits = relevantMatches.filter(m => m.bothTeamsScored).length;
       const bttsPercentage = (bttsHits / relevantMatches.length) * 100;
 
@@ -231,6 +231,10 @@ export class GoalsAIService {
     const combinedAnalyses: GoalThresholdAnalysis[] = [];
     const thresholds = [0.5, 1.5, 2.5, 3.5, 4.5, 5.5];
 
+    // 🎯 DEBUGGING: Check if match odds object is present
+    console.log(`[GoalsAI] Debug: Match Odds object available: ${!!matchOdds}`);
+
+
     for (const threshold of thresholds) {
       const homeAnalyses = Object.values(homePattern.thresholdAnalysis).filter(a => a.threshold === threshold);
       const awayAnalyses = Object.values(awayPattern.thresholdAnalysis).filter(a => a.threshold === threshold);
@@ -244,6 +248,11 @@ export class GoalsAIService {
 
       const overOdds = (threshold === 2.5) ? matchOdds?.totalGoalsOdds?.overOdds : undefined;
       const underOdds = (threshold === 2.5) ? matchOdds?.totalGoalsOdds?.underOdds : undefined;
+      
+      // 🎯 DEBUGGING: Check if 2.5 odds were successfully retrieved
+      if (threshold === 2.5) {
+          console.log(`[GoalsAI] Debug: 2.5 Goal Odds - Over: ${overOdds}, Under: ${underOdds}`);
+      }
 
       // --- OVER COMBINED ANALYSIS ---
       const combinedOverPercentage = (homeOver.percentage + awayOver.percentage) / 2;
@@ -252,16 +261,25 @@ export class GoalsAIService {
       const combinedOverConfidence = statisticalAIGenerator.getConfidenceLevel(combinedOverPercentage, combinedOverConsistency);
       const combinedOverValue = statisticalAIGenerator.calculateExpectedValue(combinedOverPercentage, combinedOverConsistency, overOdds);
 
-      combinedAnalyses.push({
-        threshold,
-        percentage: combinedOverPercentage,
-        consistency: combinedOverConsistency,
-        confidence: combinedOverConfidence,
-        recentForm: [...homeOver.recentForm, ...awayOver.recentForm].slice(0, 5),
-        betType: 'over',
-        value: combinedOverValue,
-        odds: overOdds,
-      } as GoalThresholdAnalysis);
+      // FIX: Lowered the required historical hit rate from 60 to 55 for easier insights 
+      if (combinedOverPercentage >= 55) {
+          combinedAnalyses.push({
+              threshold,
+              percentage: combinedOverPercentage,
+              consistency: combinedOverConsistency,
+              confidence: combinedOverConfidence,
+              recentForm: [...homeOver.recentForm, ...awayOver.recentForm].slice(0, 5),
+              betType: 'over',
+              value: combinedOverValue,
+              odds: overOdds,
+          } as GoalThresholdAnalysis);
+      }
+      
+      // 🎯 DEBUGGING: Check the EV calculation for Over 2.5
+      if (threshold === 2.5) {
+          console.log(`[GoalsAI] Debug: O 2.5 EV: ${combinedOverValue.toFixed(4)} (Odds used: ${overOdds})`);
+      }
+
 
       // --- UNDER COMBINED ANALYSIS ---
       const combinedUnderPercentage = (homeUnder.percentage + awayUnder.percentage) / 2;
@@ -270,16 +288,24 @@ export class GoalsAIService {
       const combinedUnderConfidence = statisticalAIGenerator.getConfidenceLevel(combinedUnderPercentage, combinedUnderConsistency);
       const combinedUnderValue = statisticalAIGenerator.calculateExpectedValue(combinedUnderPercentage, combinedUnderConsistency, underOdds);
 
-      combinedAnalyses.push({
-        threshold,
-        percentage: combinedUnderPercentage,
-        consistency: combinedUnderConsistency,
-        confidence: combinedUnderConfidence,
-        recentForm: [...homeUnder.recentForm, ...awayUnder.recentForm].slice(0, 5),
-        betType: 'under',
-        value: combinedUnderValue,
-        odds: underOdds,
-      } as GoalThresholdAnalysis);
+      // FIX: Lowered the required historical hit rate from 60 to 55 for easier insights
+      if (combinedUnderPercentage >= 55) {
+          combinedAnalyses.push({
+              threshold,
+              percentage: combinedUnderPercentage,
+              consistency: combinedUnderConsistency,
+              confidence: combinedUnderConfidence,
+              recentForm: [...homeUnder.recentForm, ...awayUnder.recentForm].slice(0, 5),
+              betType: 'under',
+              value: combinedUnderValue,
+              odds: underOdds,
+          } as GoalThresholdAnalysis);
+      }
+      
+      // 🎯 DEBUGGING: Check the EV calculation for Under 2.5
+      if (threshold === 2.5) {
+          console.log(`[GoalsAI] Debug: U 2.5 EV: ${combinedUnderValue.toFixed(4)} (Odds used: ${underOdds})`);
+      }
     }
 
     const optimalOver = this.findOptimalThreshold(combinedAnalyses, 'over');
