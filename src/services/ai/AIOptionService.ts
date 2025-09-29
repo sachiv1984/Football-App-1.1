@@ -1,5 +1,9 @@
+// src/services/ai/AIOptionService.ts
+
 import { goalsAIService } from './goalsAIService';
 import { cornersAIService } from './cornersAIService';
+// 🎯 NEW: Import the Cards AI Service
+import { cardsAIService } from './cardsAIService'; 
 import { conflictResolverService } from './conflictResolverService';
 
 // Re-defining shared interfaces for clarity and independence
@@ -22,7 +26,7 @@ interface ConflictingGoalInsight {
 }
 
 /**
- * Orchestrates the Goal AI and Corner AI services.
+ * Orchestrates all AI services.
  * It enforces cross-market conflict resolution by passing the 
  * "High Confidence Under 2.5 Goals" flag to the Corner AI for penalty application.
  */
@@ -37,7 +41,7 @@ export class AIOptionService {
   async generateMatchInsights(homeTeam: string, awayTeam: string): Promise<AIInsight[]> {
     console.log(`\n🤖 --- AI ORCHESTRATOR START: ${homeTeam} vs ${awayTeam} --- 🤖`);
 
-    // 1. Generate Goal Insights FIRST
+    // 1. Generate Goal Insights FIRST (to get the conflict flag)
     const goalInsights = await goalsAIService.generateGoalInsights(homeTeam, awayTeam);
     
     // 2. Determine the CONFLICTING GOAL INSIGHT (Penalty Flag)
@@ -47,15 +51,24 @@ export class AIOptionService {
         console.log(`[Orchestrator] 🚩 Conflict Flag: High Confidence ${conflictingGoalInsight.betType.toUpperCase()} ${conflictingGoalInsight.betLine} Goals detected.`);
     }
 
-    // 3. Generate Corner Insights, passing the conflict flag (penalty is applied internally)
-    // NOTE: We assume the external Goal AI will generate the full list, and the 
-    // Corner AI will handle the penalty on Over Corners based on the flag.
-    const cornerInsights = await cornersAIService.generateCornerInsights(homeTeam, awayTeam, conflictingGoalInsight);
+    // 3. Generate Corner and Card Insights CONCURRENTLY
+    
+    const [
+        cornerInsights,
+        // 🎯 INTEGRATION: Add the Cards AI service call
+        cardInsights 
+    ] = await Promise.all([
+        // Corners AI receives the conflict flag
+        cornersAIService.generateCornerInsights(homeTeam, awayTeam, conflictingGoalInsight),
+        // 🎯 INTEGRATION: Cards AI does not need the conflict flag
+        cardsAIService.generateCardInsights(homeTeam, awayTeam)
+    ]);
 
-    // 4. Combine Insights
-    const allInsights = [...goalInsights, ...cornerInsights];
+    // 4. Combine ALL Insights
+    const allInsights = [...goalInsights, ...cornerInsights, ...cardInsights]; // 🎯 AGGREGATION: Include cardInsights
 
     // 5. Run Final Conflict Resolution (Direct Over/Under, Redundancy, etc.)
+    console.log(`[Orchestrator] Aggregated ${allInsights.length} raw insights. Starting final resolution and sorting.`);
     const resolutionResult = conflictResolverService.resolveConflicts(allInsights);
     
     // 6. Final Sort and Limit (Prioritize High Confidence, then Value Score)
