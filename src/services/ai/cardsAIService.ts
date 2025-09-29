@@ -1,23 +1,20 @@
 // src/services/ai/cardsAIService.ts
-import { supabaseCardsService, DetailedCardStats } from '../stats/supabaseCardsService';
+import { supabaseCardsService } from '../stats/supabaseCardsService';
 import { conflictResolverService } from './conflictResolverService';
 import { oddsAPIService } from '../api/oddsAPIService';
-import { statisticalAIGenerator } from '../../utils/StatisticalAIGenerator'; // 🚀 NEW UTILITY IMPORT
+import { statisticalAIGenerator } from '../../utils/StatisticalAIGenerator'; 
 
-// 💡 NEW: Import standardized types
 import { 
   AIInsight, 
   MatchOdds, 
   ThresholdAnalysis, 
-  OptimalThreshold 
+  OptimalThreshold, 
+  CardThresholdAnalysis 
 } from '../../types/BettingAITypes'; 
 
-// Use standardized interfaces, extending ThresholdAnalysis for clarity
-interface CardThresholdAnalysis extends ThresholdAnalysis {}
 interface OptimalThresholdType extends OptimalThreshold<CardThresholdAnalysis> {}
 
-
-// CRITICAL FIX: Explicitly define the match detail structure to include 'venue'
+// CRITICAL FIX: Explicitly define the match detail structure 
 interface CardPatternMatchDetail {
     opponent: string;
     cardsFor: number;
@@ -43,14 +40,10 @@ interface TeamCardPattern {
 type CardType = 'total' | 'for' | 'against';
 
 export class CardsAIService {
-  // --- CACHING PROPERTIES REMAINS DOMAIN-SPECIFIC ---
+  
   private patternCache: Map<string, { pattern: TeamCardPattern; timestamp: number }> = new Map();
-  private readonly PATTERN_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
-  // --- END CACHING PROPERTIES ---
-
-  // ❌ REMOVED: CONFIDENCE_THRESHOLDS (Now in StatisticalAIGenerator)
-  // ❌ REMOVED: CONSISTENCY_THRESHOLDS (Now in StatisticalAIGenerator)
-  private readonly CARD_THRESHOLDS = [0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5]; // Keep as reference
+  private readonly PATTERN_CACHE_TTL = 30 * 60 * 1000; 
+  private readonly CARD_THRESHOLDS = [0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5];
 
   /**
    * Helper to get card count based on type
@@ -66,8 +59,6 @@ export class CardsAIService {
     }
   }
 
-  // --- Core Card Threshold Analysis Functions ---
-
   /**
    * Add variance analysis (Remains domain-specific)
    */
@@ -82,10 +73,9 @@ export class CardsAIService {
   }
 
   /**
-   * Helper to create an empty analysis object when no match data is available.
+   * Helper to create an empty analysis object
    */
   private createEmptyAnalysis(threshold: number, betType: 'over' | 'under', odds?: number): CardThresholdAnalysis {
-    console.warn(`[CardsAI] Creating empty analysis for ${betType} ${threshold} - no match data available`);
     return {
         threshold,
         percentage: 0,
@@ -97,10 +87,27 @@ export class CardsAIService {
         odds
     } as CardThresholdAnalysis;
   }
+  
+  /**
+   * Helper to determine the relevant card thresholds.
+   * 🛠️ FIX: This missing method is now included.
+   */
+  private getRelevantThresholds(matches: CardPatternMatchDetail[]): number[] {
+      const maxCards = Math.max(...matches.map(m => m.totalCards), 0);
+      const minCards = Math.min(...matches.map(m => m.totalCards), 0);
+
+      const relevant = this.CARD_THRESHOLDS.filter(t => 
+          t > minCards - 2 && t < maxCards + 2
+      );
+
+      if (!relevant.includes(4.5)) relevant.push(4.5);
+      
+      return Array.from(new Set(relevant)).sort((a, b) => a - b);
+  }
+
 
   /**
    * Analyze card threshold for an 'Over' bet type.
-   * 💡 REFACTORED: Delegates Consistency, Confidence, and Value to utility.
    */
   private analyzeCardThresholdOver(
     matches: Array<{ totalCards: number; cardsFor: number; cardsAgainst: number }>,
@@ -109,12 +116,9 @@ export class CardsAIService {
     odds?: number
   ): CardThresholdAnalysis {
     
-    if (matches.length === 0) {
-      return this.createEmptyAnalysis(threshold, 'over', odds);
-    }
+    if (matches.length === 0) return this.createEmptyAnalysis(threshold, 'over', odds);
     
-    const getCount = (match: { totalCards: number; cardsFor: number; cardsAgainst: number }) => 
-      this.getCardCount(match, type);
+    const getCount = (match: { totalCards: number; cardsFor: number; cardsAgainst: number }) => this.getCardCount(match, type);
 
     const matchesOver = matches.filter(match => getCount(match) > threshold);
     const overPercentage = (matchesOver.length / matches.length) * 100;
@@ -125,10 +129,7 @@ export class CardsAIService {
     
     const sampleSize = Math.min(5, recentMatches.length || 1); 
 
-    // 🚀 NEW: Use utility to calculate consistency (standardized low sample penalty)
     const overConsistency = statisticalAIGenerator.calculateConsistency(overHits, sampleSize);
-
-    // 🚀 NEW: Use utility for Confidence and Value (EV)
     const overConfidence = statisticalAIGenerator.getConfidenceLevel(overPercentage, overConsistency);
     const overValue = statisticalAIGenerator.calculateExpectedValue(overPercentage, overConsistency, odds);
 
@@ -146,7 +147,6 @@ export class CardsAIService {
 
   /**
    * Analyze card threshold for an 'Under' bet type.
-   * 💡 REFACTORED: Delegates Consistency, Confidence, and Value to utility.
    */
   private analyzeCardThresholdUnder(
     matches: Array<{ totalCards: number; cardsFor: number; cardsAgainst: number }>,
@@ -155,12 +155,9 @@ export class CardsAIService {
     odds?: number
   ): CardThresholdAnalysis {
 
-    if (matches.length === 0) {
-      return this.createEmptyAnalysis(threshold, 'under', odds);
-    }
+    if (matches.length === 0) return this.createEmptyAnalysis(threshold, 'under', odds);
     
-    const getCount = (match: { totalCards: number; cardsFor: number; cardsAgainst: number }) => 
-      this.getCardCount(match, type);
+    const getCount = (match: { totalCards: number; cardsFor: number; cardsAgainst: number }) => this.getCardCount(match, type);
 
     const matchesUnder = matches.filter(match => getCount(match) < threshold);
     const underPercentage = (matchesUnder.length / matches.length) * 100;
@@ -171,10 +168,7 @@ export class CardsAIService {
     
     const sampleSize = Math.min(5, recentMatches.length || 1); 
 
-    // 🚀 NEW: Use utility to calculate consistency
     const underConsistency = statisticalAIGenerator.calculateConsistency(underHits, sampleSize);
-
-    // 🚀 NEW: Use utility for Confidence and Value (EV)
     const underConfidence = statisticalAIGenerator.getConfidenceLevel(underPercentage, underConsistency);
     const underValue = statisticalAIGenerator.calculateExpectedValue(underPercentage, underConsistency, odds);
 
@@ -200,31 +194,25 @@ export class CardsAIService {
     matchOdds: MatchOdds | null
   ): CardThresholdAnalysis {
     
-    if (matches.length === 0) {
-        return this.createEmptyAnalysis(threshold, 'over', undefined); 
-    }
+    if (matches.length === 0) return this.createEmptyAnalysis(threshold, 'over', undefined); 
 
     let overOdds: number | undefined;
     let underOdds: number | undefined;
     
-    // (Odds assignment logic remains the same)
+    // NOTE: This logic relies on specific threshold alignment for odds
     if (type === 'total' && threshold === 4.5 && matchOdds?.totalCardsOdds) {
       overOdds = matchOdds.totalCardsOdds.overOdds;
       underOdds = matchOdds.totalCardsOdds.underOdds;
     } 
-    else if (type === 'for' && threshold === 2.5 && matchOdds?.homeCardsOdds) {
+    else if (type === 'for' && threshold === 2.5 && matchOdds?.homeCardsOdds) { // Assuming 2.5 is the main line for team cards
       overOdds = matchOdds.homeCardsOdds.overOdds;
       underOdds = matchOdds.homeCardsOdds.underOdds;
     } 
-    else if (type === 'against' && threshold === 2.5 && matchOdds?.awayCardsOdds) {
-      overOdds = matchOdds.awayCardsOdds.overOdds;
-      underOdds = matchOdds.awayCardsOdds.underOdds;
-    }
-
+    // NOTE: The 'against' line for the home team is the 'for' line for the away team, but we'll stick to 'for' for simplicity
+    
     const overAnalysis = this.analyzeCardThresholdOver(matches, threshold, type, overOdds);
     const underAnalysis = this.analyzeCardThresholdUnder(matches, threshold, type, underOdds);
 
-    // 💡 REFACTORED: Use standard selection logic (Confidence then Value)
     const overValue = overAnalysis.value ?? 0;
     const underValue = underAnalysis.value ?? 0;
 
@@ -241,34 +229,80 @@ export class CardsAIService {
     }
   }
 
-  // ... (analyzeTeamCardPattern remains the same as it's domain/cache specific)
+  /**
+   * Analyze card patterns for a specific team (Home or Away).
+   * 🛠️ FIX: This missing method is now included.
+   */
+  private async analyzeTeamCardPattern(
+      teamName: string, 
+      venue: 'home' | 'away',
+      matchOdds: MatchOdds | null
+  ): Promise<TeamCardPattern> {
+      
+      const cached = this.patternCache.get(teamName);
+      if (cached && Date.now() - cached.timestamp < this.PATTERN_CACHE_TTL) {
+          return cached.pattern;
+      }
 
-  // ❌ REMOVED: calculateBetValue (Now in StatisticalAIGenerator)
+      const teamStats: any = await supabaseCardsService.getTeamCardStats(teamName);
+      
+      if (!teamStats) {
+        throw new Error(`No card data found for team: ${teamName}`);
+      }
 
-  // 🚀 NEW: Use utility's downgrade confidence
+      const relevantMatches: CardPatternMatchDetail[] = teamStats.matchDetails.map((match: any) => ({
+          opponent: match.opponent,
+          cardsFor: match.cardsFor,
+          cardsAgainst: match.cardsAgainst,
+          totalCards: match.totalCards,
+          venue: match.venue, 
+          date: match.date,
+          matchweek: match.matchweek,
+      }));
+      
+      const averageCardsShown = teamStats.cards / teamStats.matches;
+      const averageCardsAgainst = teamStats.cardsAgainst / teamStats.matches;
+      const averageTotalCards = averageCardsShown + averageCardsAgainst;
+
+      const thresholdAnalysis: { [key: string]: CardThresholdAnalysis } = {};
+      const relevantThresholds = this.getRelevantThresholds(relevantMatches);
+
+      relevantThresholds.forEach((threshold: number) => {
+          if (threshold === 1.5 || threshold === 2.5 || threshold === 3.5) {
+              thresholdAnalysis[`for_${threshold}`] = this.analyzeCardThreshold(relevantMatches, threshold, 'for', matchOdds);
+              thresholdAnalysis[`against_${threshold}`] = this.analyzeCardThreshold(relevantMatches, threshold, 'against', matchOdds);
+          }
+      });
+
+      const pattern: TeamCardPattern = {
+          team: teamName,
+          venue,
+          averageCardsShown: Math.round(averageCardsShown * 100) / 100,
+          averageCardsAgainst: Math.round(averageCardsAgainst * 100) / 100,
+          averageTotalCards: Math.round(averageTotalCards * 100) / 100,
+          thresholdAnalysis,
+          recentMatches: relevantMatches.slice(0, 5) 
+      };
+      
+      this.patternCache.set(teamName, { pattern, timestamp: Date.now() });
+      return pattern;
+  }
+
+  /**
+   * Use utility's downgrade confidence
+   */
   private downgradeConfidence(confidence: 'high' | 'medium' | 'low'): 'high' | 'medium' | 'low' {
       return statisticalAIGenerator.downgradeConfidence(confidence);
   }
 
-  // ❌ REMOVED: getConfidenceLevel (Now in StatisticalAIGenerator)
-
   /**
    * Find optimal threshold from multiple options
-   * 💡 REFACTORED: Uses the centralized utility function.
    */
   private findOptimalThreshold(analyses: CardThresholdAnalysis[], betType?: 'over' | 'under'): OptimalThresholdType | null {
-    // 🚀 NEW: Call the centralized utility method
     const result = statisticalAIGenerator.findOptimal(analyses, betType);
     
-    // Cast generic ThresholdAnalysis to local type
     if (!result) return null;
     return result as OptimalThresholdType; 
-  }
-
-  // ❌ REMOVED: generateThresholdReasoning (Now in StatisticalAIGenerator) - We use the reasoning from the OptimalThreshold result.
-  private generateThresholdReasoning(optimal: CardThresholdAnalysis, alternatives: CardThresholdAnalysis[]): string {
-    // We can call the utility directly here if we want to ensure the logic remains centralized
-    return statisticalAIGenerator['generateReasoning'](optimal, alternatives);
   }
 
   /**
@@ -281,18 +315,14 @@ export class CardsAIService {
   ): AIInsight[] {
     const insights: AIInsight[] = [];
     
-    // (Data combination and variance calculation remains domain-specific)
     const combinedMatchDetails = [
       ...homePattern.recentMatches, 
       ...awayPattern.recentMatches
     ];
-    // ... (deduplication logic)
+    
     const uniqueMatchesMap = new Map<string, CardPatternMatchDetail>();
     combinedMatchDetails.forEach(match => {
-        const dateKey = match.date || 'unknown';
-        const matchweekKey = match.matchweek || 'unknown';
-        const key = `${dateKey}-${matchweekKey}-${match.totalCards}`; 
-
+        const key = `${match.date || 'unknown'}-${match.matchweek || 'unknown'}-${match.totalCards}`; 
         if (!uniqueMatchesMap.has(key)) {
             uniqueMatchesMap.set(key, match);
         }
@@ -319,7 +349,7 @@ export class CardsAIService {
     const combinedAnalyses: CardThresholdAnalysis[] = [];
     const relevantThresholds = this.getRelevantThresholds(uniqueMatchDetails); 
 
-    relevantThresholds.forEach(threshold => {
+    relevantThresholds.forEach((threshold: number) => { // 🛠️ FIX: Added type 'number' for threshold
       
       const overOdds = (threshold === 4.5) ? matchOdds?.totalCardsOdds?.overOdds : undefined;
       const underOdds = (threshold === 4.5) ? matchOdds?.totalCardsOdds?.underOdds : undefined;
@@ -335,7 +365,6 @@ export class CardsAIService {
     if (optimalOver) {
       let analysis = optimalOver.analysis;
       
-      // Apply Variance Downgrade (Uses the utility method)
       let finalConfidence = analysis.confidence;
       if (variance > 2.5 && analysis.confidence !== 'low') {
         finalConfidence = this.downgradeConfidence(analysis.confidence);
@@ -360,7 +389,6 @@ export class CardsAIService {
       });
     }
 
-    // ... (similar block for optimalUnder)
     const optimalUnder = this.findOptimalThreshold(combinedAnalyses, 'under');
     if (optimalUnder) {
         let analysis = optimalUnder.analysis;
@@ -389,7 +417,6 @@ export class CardsAIService {
         });
     }
 
-    // Sort by Confidence, then by EV
     return insights.sort((a, b) => {
       const confidenceOrder: Record<string, number> = { high: 3, medium: 2, low: 1 };
       const confidenceDiff = (confidenceOrder[b.confidence] || 0) - (confidenceOrder[a.confidence] || 0);
@@ -400,8 +427,103 @@ export class CardsAIService {
       return (b.valueScore ?? 0) - (a.valueScore ?? 0);
     });
   }
+  
+  /**
+   * Generate optimized insights for team-specific cards (e.g., Home Over 2.5 Cards)
+   * 🛠️ FIX: This missing method is now included.
+   */
+  private generateOptimalTeamCardsInsights(
+    teamPattern: TeamCardPattern,
+    teamType: 'Home' | 'Away',
+    matchOdds: MatchOdds | null
+  ): AIInsight[] {
+    const insights: AIInsight[] = [];
+    const analyses: CardThresholdAnalysis[] = [];
+    
+    const relevantThresholds = this.getRelevantThresholds(teamPattern.recentMatches);
 
-  // ... (generateOptimalTeamCardsInsights logic remains largely the same, but uses the refactored threshold analysis)
+    relevantThresholds.filter(t => t === 1.5 || t === 2.5 || t === 3.5).forEach((threshold: number) => {
+        const analysis = teamPattern.thresholdAnalysis[`for_${threshold}`];
+        if (analysis) {
+            analyses.push(analysis);
+        }
+    });
+    
+    const optimal = this.findOptimalThreshold(analyses);
+    
+    if (optimal) {
+        const analysis = optimal.analysis;
+        const recentHits = analysis.recentForm.filter(Boolean).length;
+        const isValueBet = analysis.value > 0.0001;
+        
+        insights.push({
+            id: `optimal-${teamType.toLowerCase()}-cards-${analysis.betType}-${analysis.threshold}`,
+            title: `${teamType} Team ${analysis.betType === 'over' ? 'Over' : 'Under'} ${analysis.threshold} Cards`,
+            description: `Optimal ${teamType.toLowerCase()} card bet: **${analysis.percentage.toFixed(1)}%** hit rate (${recentHits}/5 recent). ${isValueBet ? 'Value edge detected.' : 'Strong confidence selection.'}`,
+            market: `${teamType} Team Cards ${analysis.betType === 'over' ? 'Over' : 'Under'} ${analysis.threshold}`,
+            confidence: analysis.confidence,
+            odds: analysis.odds ? analysis.odds.toFixed(2) : undefined,
+            supportingData: `EV: ${analysis.value.toFixed(4)} | Reasoning: ${optimal.reasoning}`,
+            aiEnhanced: true,
+            valueScore: analysis.value,
+        });
+    }
+    
+    return insights;
+  }
+
+  /**
+   * Generate insights for which team will receive the most cards (handicap/most cards market).
+   * 🛠️ FIX: This missing method is now included.
+   */
+  private generateMostCardsInsights(
+      homePattern: TeamCardPattern,
+      awayPattern: TeamCardPattern,
+      matchOdds: MatchOdds | null
+  ): AIInsight[] {
+      const insights: AIInsight[] = [];
+      
+      if (!matchOdds?.mostCardsOdds) return [];
+      
+      const { homeOdds, awayOdds, drawOdds } = matchOdds.mostCardsOdds;
+
+      const homeAvg = homePattern.averageCardsShown;
+      const awayAvg = awayPattern.averageCardsShown;
+      
+      const totalAvg = homeAvg + awayAvg;
+      const homeProb = totalAvg > 0 ? (homeAvg / totalAvg) : 0.5;
+      const awayProb = totalAvg > 0 ? (awayAvg / totalAvg) : 0.5;
+      
+      if (homeProb > 0.55 && homeAvg > awayAvg + 0.5) {
+          const ev = statisticalAIGenerator.calculateExpectedValue(homeProb * 100, 1.0, homeOdds);
+          insights.push({
+              id: 'most-cards-home',
+              title: 'Home Team Most Cards',
+              description: `Home team's high average cards (${homeAvg.toFixed(2)}) suggests they are likely to receive the most bookings.`,
+              market: 'Most Cards - Home',
+              confidence: homeProb > 0.65 ? 'high' : 'medium',
+              odds: homeOdds.toFixed(2),
+              supportingData: `Probability: ${(homeProb * 100).toFixed(1)}% | EV: ${ev.toFixed(4)}`,
+              aiEnhanced: true,
+              valueScore: ev
+          });
+      } else if (awayProb > 0.55 && awayAvg > homeAvg + 0.5) {
+          const ev = statisticalAIGenerator.calculateExpectedValue(awayProb * 100, 1.0, awayOdds);
+          insights.push({
+              id: 'most-cards-away',
+              title: 'Away Team Most Cards',
+              description: `Away team's high average cards (${awayAvg.toFixed(2)}) suggests they are likely to receive the most bookings.`,
+              market: 'Most Cards - Away',
+              confidence: awayProb > 0.65 ? 'high' : 'medium',
+              odds: awayOdds.toFixed(2),
+              supportingData: `Probability: ${(awayProb * 100).toFixed(1)}% | EV: ${ev.toFixed(4)}`,
+              aiEnhanced: true,
+              valueScore: ev
+          });
+      }
+      return insights;
+  }
+
 
   /**
    * Main method: Generate optimized card-related betting insights
@@ -427,7 +549,6 @@ export class CardsAIService {
       
       const insightsToFilter = resolutionResult.resolvedInsights as AIInsight[];
       
-      // 🚀 NEW: Standardized final sorting based on Confidence and ValueScore (EV)
       const confidenceOrder: Record<string, number> = { high: 3, medium: 2, low: 1 };
       
       const sortedInsights = insightsToFilter
@@ -445,7 +566,6 @@ export class CardsAIService {
       const filteredInsights = sortedInsights.slice(0, 6);
       
       console.log(`[CardsAI] ✅ Final insights after resolution: ${filteredInsights.length}`);
-      console.log(`[CardsAI] Resolution Summary: ${resolutionResult.summary}`);
       return filteredInsights;
       
     } catch (error) {
