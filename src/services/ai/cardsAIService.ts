@@ -151,7 +151,18 @@ export class CardsAIService {
     const recentMatches = matches.slice(0, 5);
     const recentOverForm = recentMatches.map(match => getCount(match) > threshold);
     const overHits = recentOverForm.filter(Boolean).length;
-    const overConsistency = overHits / Math.min(5, recentMatches.length || 1); // Protect against zero division
+    
+    const sampleSize = Math.min(5, recentMatches.length || 1); // Protect division
+    let overConsistency = overHits / sampleSize;
+
+    // --- NEW: Apply Penalty for Low Sample Size (3 or 4 matches) ---
+    if (sampleSize < 5) {
+        // Penalty factor: 1.0 for 5 matches, 0.8 for 4 matches, 0.6 for 3 matches.
+        const maxConsistencyFactor = sampleSize * 0.2; 
+        overConsistency = overConsistency * maxConsistencyFactor;
+        overConsistency = Math.max(overConsistency, 0.1); // Floor for stability
+    }
+    // --- END PENALTY ---
 
     // Confidence and Value (UPDATED: Using new EV calculation)
     const overConfidence = this.getConfidenceLevel(overPercentage, overConsistency);
@@ -195,7 +206,18 @@ export class CardsAIService {
     const recentMatches = matches.slice(0, 5);
     const recentUnderForm = recentMatches.map(match => getCount(match) < threshold);
     const underHits = recentUnderForm.filter(Boolean).length;
-    const underConsistency = underHits / Math.min(5, recentMatches.length || 1); // Protect against zero division
+    
+    const sampleSize = Math.min(5, recentMatches.length || 1); // Protect division
+    let underConsistency = underHits / sampleSize;
+
+    // --- NEW: Apply Penalty for Low Sample Size (3 or 4 matches) ---
+    if (sampleSize < 5) {
+        // Penalty factor: 1.0 for 5 matches, 0.8 for 4 matches, 0.6 for 3 matches.
+        const maxConsistencyFactor = sampleSize * 0.2; 
+        underConsistency = underConsistency * maxConsistencyFactor;
+        underConsistency = Math.max(underConsistency, 0.1); // Floor for stability
+    }
+    // --- END PENALTY ---
 
     // Confidence and Value (UPDATED: Using new EV calculation)
     const underConfidence = this.getConfidenceLevel(underPercentage, underConsistency);
@@ -349,7 +371,7 @@ export class CardsAIService {
   /**
    * Calculate betting value score (The Edge/Weighted Expected Value).
    * A positive score indicates a profitable edge.
-   * * @param percentage Our calculated probability of the outcome hitting (0-100)
+   * @param percentage Our calculated probability of the outcome hitting (0-100)
    * @param consistency How consistently the outcome has hit recently (0-1)
    * @param odds The bookmaker's odds for the bet
    */
@@ -358,7 +380,8 @@ export class CardsAIService {
     consistency: number,
     odds?: number
   ): number {
-    if (!odds || odds <= 1.05) { // Minimum odds for a meaningful bet
+    // We require a minimal edge/odds to consider it a bet worth tracking
+    if (!odds || odds <= 1.05) { 
         return 0; 
     }
 
@@ -380,6 +403,7 @@ export class CardsAIService {
    * Get confidence level based on percentage and consistency
    */
   private getConfidenceLevel(percentage: number, consistency: number): 'high' | 'medium' | 'low' {
+    // Note: Consistency here is the PENALIZED consistency for low sample size
     if (percentage >= this.CONFIDENCE_THRESHOLDS.HIGH * 100 && consistency >= this.CONSISTENCY_THRESHOLDS.GOOD) {
       return 'high';
     } else if (percentage >= this.CONFIDENCE_THRESHOLDS.MEDIUM * 100 && consistency >= this.CONSISTENCY_THRESHOLDS.POOR) {
@@ -392,8 +416,8 @@ export class CardsAIService {
    * Find optimal threshold from multiple options
    */
   private findOptimalThreshold(analyses: CardThresholdAnalysis[], betType?: 'over' | 'under'): OptimalThreshold | null {
-    // Now filtering out only positive EV scores, as we are looking for 'value' bets.
-    let validAnalyses = analyses.filter(a => a.value > 0);
+    // Only filter out "low" confidence predictions for the optimal threshold finder.
+    let validAnalyses = analyses.filter(a => a.confidence !== 'low');
     
     if (betType) {
       validAnalyses = validAnalyses.filter(a => a.betType === betType);
@@ -401,7 +425,7 @@ export class CardsAIService {
     
     if (validAnalyses.length === 0) return null;
     
-    // Sort by value (safely handling undefined) - now the higher the EV, the better.
+    // Sort by value (EV), favoring the highest value bets
     const sorted = validAnalyses.sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
     const optimal = sorted[0];
     
@@ -480,8 +504,8 @@ export class CardsAIService {
             cardsAgainst: match.totalCards,
         }));
         
-    if (totalMatchCardData.length < 5) {
-        console.warn("[CardsAI] Insufficient unique match data for Total Cards analysis (need 5+). Skipping.");
+    if (totalMatchCardData.length < 3) { // <-- LOWERED THRESHOLD TO 3
+        console.warn("[CardsAI] Insufficient unique match data for Total Cards analysis (need 3+). Skipping.");
         return [];
     }
     
@@ -508,7 +532,7 @@ export class CardsAIService {
       insights.push({
         id: `optimal-total-cards-over-${analysis.threshold}`,
         title: `Over ${analysis.threshold} Total Cards`,
-        description: `Optimal over bet: ${analysis.percentage.toFixed(1)}% hit rate (Consistency: ${analysis.consistency}). **EV: ${analysis.value.toFixed(4)}**. ${optimalOver.reasoning}`,
+        description: `Optimal over bet: ${analysis.percentage.toFixed(1)}% hit rate (Consistency: ${analysis.consistency.toFixed(2)}). **EV: ${analysis.value.toFixed(4)}**. ${optimalOver.reasoning}`,
         market: `Total Cards Over ${analysis.threshold}`,
         confidence: analysis.confidence,
         odds: analysis.odds ? analysis.odds.toFixed(2) : undefined,
@@ -525,7 +549,7 @@ export class CardsAIService {
       insights.push({
         id: `optimal-total-cards-under-${analysis.threshold}`,
         title: `Under ${analysis.threshold} Total Cards`,
-        description: `Optimal under bet: ${analysis.percentage.toFixed(1)}% hit rate (Consistency: ${analysis.consistency}). **EV: ${analysis.value.toFixed(4)}**. ${optimalUnder.reasoning}`,
+        description: `Optimal under bet: ${analysis.percentage.toFixed(1)}% hit rate (Consistency: ${analysis.consistency.toFixed(2)}). **EV: ${analysis.value.toFixed(4)}**. ${optimalUnder.reasoning}`,
         market: `Total Cards Under ${analysis.threshold}`,
         confidence: analysis.confidence,
         odds: analysis.odds ? analysis.odds.toFixed(2) : undefined,
@@ -535,11 +559,13 @@ export class CardsAIService {
       });
     }
 
+    // Sort by Confidence, then by EV
     return insights.sort((a, b) => {
       const confidenceOrder: Record<string, number> = { high: 3, medium: 2, low: 1 };
-      // Prioritize EV for sorting within the same confidence level
-      if (confidenceOrder[b.confidence] !== confidenceOrder[a.confidence]) {
-          return (confidenceOrder[b.confidence] || 1) - (confidenceOrder[a.confidence] || 1);
+      const confidenceDiff = (confidenceOrder[b.confidence] || 0) - (confidenceOrder[a.confidence] || 0);
+      
+      if (confidenceDiff !== 0) {
+          return confidenceDiff;
       }
       return (b.valueScore ?? 0) - (a.valueScore ?? 0);
     });
@@ -596,12 +622,20 @@ export class CardsAIService {
       });
     }
     
-    return insights;
+    // Sort by Confidence, then by EV
+    return insights.sort((a, b) => {
+      const confidenceOrder: Record<string, number> = { high: 3, medium: 2, low: 1 };
+      const confidenceDiff = (confidenceOrder[b.confidence] || 0) - (confidenceOrder[a.confidence] || 0);
+      
+      if (confidenceDiff !== 0) {
+          return confidenceDiff;
+      }
+      return (b.valueScore ?? 0) - (a.valueScore ?? 0);
+    });
   }
 
   /**
    * Generate Most Cards insights (Home/Away/Draw)
-   * UPDATED: Now uses EV for value scoring.
    */
   private generateMostCardsInsights(
     homePattern: TeamCardPattern,
@@ -630,14 +664,13 @@ export class CardsAIService {
     
     // DRAW (Estimate a draw based on close averages)
     const drawOdds = matchOdds?.mostCardsOdds?.drawOdds;
-    // If the difference is small (<0.5), we allocate the remainder of the probability to a Draw, plus some from the favorites.
     const avgDiff = Math.abs(homeAvg - awayAvg);
     let drawPercentage: number;
     
     if (avgDiff < 0.5) {
         // High likelihood of draw, split the probabilities
-        const totalProb = homeProb + awayProb; // Should be around 1.0
-        drawPercentage = (1 - totalProb) * 100 + (Math.min(homeProb, awayProb) / 2) * 100; // Allocate remainder + half of the smaller
+        const totalProb = homeProb + awayProb; 
+        drawPercentage = (1 - totalProb) * 100 + (Math.min(homeProb, awayProb) / 2) * 100;
     } else {
         // Standard remainder
         drawPercentage = Math.max(0, 1 - homeProb - awayProb) * 100;
@@ -649,8 +682,8 @@ export class CardsAIService {
     predictions.forEach(p => {
         const value = this.calculateBetValue(p.percentage, 0.6, p.odds); 
         
-        // Only generate an insight if the EV is positive and the probability is reasonable
-        if (value > 0.05 && p.percentage > 30) { // Require at least 5% EV edge
+        // Only generate an insight if EV is positive and probability is reasonable
+        if (value > 0.05 && p.percentage > 30) { 
             const confidence = p.percentage > 55 ? 'high' : p.percentage > 45 ? 'medium' : 'low';
             
             insights.push({
@@ -673,7 +706,6 @@ export class CardsAIService {
 
   /**
    * Main method: Generate optimized card-related betting insights
-   * NOTE: The refereeName parameter is REMOVED since the data is unavailable pre-match.
    */
   async generateCardInsights(homeTeam: string, awayTeam: string): Promise<AIInsight[]> {
     try {
@@ -696,13 +728,30 @@ export class CardsAIService {
       
       const insightsToFilter = resolutionResult.resolvedInsights as AIInsight[];
       
-      // Filter for positive EV (ValueScore > 0)
-      const filteredInsights = insightsToFilter
-        .filter(insight => (insight.valueScore ?? 0) > 0)
-        .sort((a, b) => (b.valueScore ?? 0) - (a.valueScore ?? 0))
-        .slice(0, 6); // Cap at 6 best value bets
+      // 1. Sort Insights: High Confidence first, then highest EV (ValueScore)
+      const confidenceOrder: Record<string, number> = { high: 3, medium: 2, low: 1 };
       
-      console.log(`[CardsAI] ✅ Final insights after resolution (Positive EV only): ${filteredInsights.length}`);
+      const sortedInsights = insightsToFilter
+        .filter(insight => insight.confidence !== 'low') // Filter out the least reliable
+        .sort((a, b) => {
+            const confidenceDiff = (confidenceOrder[b.confidence] || 0) - (confidenceOrder[a.confidence] || 0);
+            
+            // Primary sort: Confidence (High > Medium)
+            if (confidenceDiff !== 0) {
+                return confidenceDiff;
+            }
+            
+            // Secondary sort: Expected Value (EV) score
+            return (b.valueScore ?? 0) - (a.valueScore ?? 0);
+        });
+
+      // 2. Select a maximum of 6 insights
+      const filteredInsights = sortedInsights.slice(0, 6);
+      
+      const valueBets = filteredInsights.filter(i => (i.valueScore ?? 0) > 0).length;
+      
+      console.log(`[CardsAI] ✅ Final insights after resolution: ${filteredInsights.length}`);
+      console.log(`[CardsAI] Value Bets identified (EV > 0): ${valueBets}`);
       console.log(`[CardsAI] Resolution Summary: ${resolutionResult.summary}`);
       return filteredInsights;
       
