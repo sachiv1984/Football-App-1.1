@@ -1,4 +1,102 @@
-import { normalizeTeamName } from '../../utils/teamUtils';
+// src/services/api/oddsAPIService.ts (FIXED: Self-contained module)
+
+// =========================================================
+// 1. Team Normalization Utility (COPIED IN-LINE)
+//    This block replaces the external 'import { normalizeTeamName } from "../../utils/teamUtils";'
+//    and uses only the parts required for ID generation and API matching.
+// =========================================================
+const TEAM_NORMALIZATION_MAP: Record<string, string> = {
+  // Manchester clubs
+  'Man Utd': 'Manchester United',
+  'Manchester United FC': 'Manchester United',
+  'Man United': 'Manchester United',
+  'Manchester Utd': 'Manchester United',
+  'Man City': 'Manchester City',
+  'Manchester City FC': 'Manchester City',
+  // Tottenham
+  'Spurs': 'Tottenham Hotspur',
+  'Tottenham': 'Tottenham Hotspur',
+  'Tottenham Hotspur FC': 'Tottenham Hotspur',
+  // Brighton
+  'Brighton': 'Brighton & Hove Albion',
+  'Brighton Hove Albion': 'Brighton & Hove Albion',
+  'Brighton and Hove Albion': 'Brighton & Hove Albion',
+  'Brighton & Hove Albion FC': 'Brighton & Hove Albion',
+  // Sheffield
+  'Sheffield Utd': 'Sheffield United',
+  'Sheffield United FC': 'Sheffield United',
+  // Wolves
+  'Wolves': 'Wolverhampton Wanderers',
+  'Wolverhampton Wanderers FC': 'Wolverhampton Wanderers',
+  // Leicester
+  'Leicester': 'Leicester City',
+  // Newcastle
+  'Newcastle': 'Newcastle United',
+  'Newcastle United FC': 'Newcastle United',
+  'Newcastle United': 'Newcastle United',
+  'Newcastle Utd': 'Newcastle United',
+  // Sunderland
+  'Sunderland': 'Sunderland AFC',
+  'Sunderland AFC': 'Sunderland AFC',
+  // West Ham
+  'West Ham': 'West Ham United',
+  'West Ham FC': 'West Ham United',
+  // Palace
+  'Crystal Palace FC': 'Crystal Palace',
+  'Palace': 'Crystal Palace',
+  // Forest
+  'Forest': 'Nottingham Forest',
+  "Nott'm Forest": 'Nottingham Forest',
+  'Nottingham Forest FC': 'Nottingham Forest',
+  "Nott'ham Forest": 'Nottingham Forest',
+  'Nottingham Forest': 'Nottingham Forest',
+  // Villa
+  'Villa': 'Aston Villa',
+  'Aston Villa FC': 'Aston Villa',
+  // Fulham
+  'Fulham FC': 'Fulham',
+  // Brentford
+  'Brentford FC': 'Brentford',
+  // Everton
+  'Everton FC': 'Everton',
+  // Liverpool
+  'Liverpool FC': 'Liverpool',
+  // Arsenal
+  'Arsenal FC': 'Arsenal',
+  // Chelsea
+  'Chelsea FC': 'Chelsea',
+  // Bournemouth
+  'Bournemouth': 'AFC Bournemouth',
+  'AFC Bournemouth FC': 'AFC Bournemouth',
+  'Bournemouth FC': 'AFC Bournemouth',
+  'AFC Bournemouth': 'AFC Bournemouth',
+  // Luton
+  'Luton': 'Luton Town',
+  'Luton Town FC': 'Luton Town',
+  // Burnley
+  'Burnley FC': 'Burnley',
+  // Leeds
+  'Leeds Utd': 'Leeds United',
+  'Leeds United FC': 'Leeds United',
+  // European competition variations (optional but harmless)
+  'Atletico Madrid': 'Atletico Madrid',
+  'Real Madrid': 'Real Madrid',
+  'FC Barcelona': 'Barcelona',
+  'Bayern Munich': 'Bayern Munich',
+  'Paris Saint-Germain': 'Paris Saint-Germain',
+  'PSG': 'Paris Saint-Germain',
+};
+
+// Normalize team name → always returns canonical version
+const normalizeTeamName = (name: string): string => {
+  const clean = name.trim();
+  // Lookup canonical name, fall back to original clean name
+  return TEAM_NORMALIZATION_MAP[clean] || clean;
+};
+
+// =========================================================
+// 2. Original Service Interfaces and Exports
+// =========================================================
 
 export interface MatchOdds {
   matchId: string;
@@ -31,6 +129,7 @@ export class OddsAPIService {
     if (!API_KEY) console.warn('[OddsAPI] ⚠️ ODDS_API_KEY not set in environment');
   }
 
+  // Uses the local normalizeTeamName function
   private generateMatchId(home: string, away: string) {
     return `${normalizeTeamName(home).toLowerCase().replace(/\s+/g, '')}_vs_${normalizeTeamName(away).toLowerCase().replace(/\s+/g, '')}`;
   }
@@ -82,8 +181,10 @@ export class OddsAPIService {
     }
 
     const match = data.find(m => {
+      // Uses the local normalizeTeamName function
       const apiHome = normalizeTeamName(m.home_team);
       const apiAway = normalizeTeamName(m.away_team);
+      // Logic for matching home/away or away/home
       return (apiHome === homeTeam && apiAway === awayTeam) || (apiHome === awayTeam && apiAway === homeTeam);
     });
     if (!match) return null;
