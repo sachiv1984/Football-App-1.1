@@ -95,6 +95,11 @@ interface TeamCardPattern {
 type CardType = 'total' | 'for' | 'against';
 
 export class CardsAIService {
+  // --- NEW CACHING PROPERTIES ---
+  private patternCache: Map<string, { pattern: TeamCardPattern; timestamp: number }> = new Map();
+  private readonly PATTERN_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+  // --- END NEW CACHING PROPERTIES ---
+
   private readonly CONFIDENCE_THRESHOLDS = {
     HIGH: 0.75,
     MEDIUM: 0.60,
@@ -311,7 +316,6 @@ export class CardsAIService {
 
   /**
    * Optimize threshold selection based on the team's historical card data.
-   * This is a significant performance and relevance optimization.
    */
   private getRelevantThresholds(matches: CardPatternMatchDetail[]): number[] {
     if (matches.length === 0) return [3.5, 4.5, 5.5]; // Default safe thresholds
@@ -328,12 +332,21 @@ export class CardsAIService {
 
   /**
    * Analyze card patterns for a specific team
+   * --- CACHE INTEGRATION HERE ---
    */
   private async analyzeTeamCardPattern(
     teamName: string, 
     venue: 'home' | 'away', 
     matchOdds: MatchOdds | null
   ): Promise<TeamCardPattern> {
+    const cacheKey = `${teamName}_${venue}`;
+    const cached = this.patternCache.get(cacheKey);
+    
+    if (cached && Date.now() - cached.timestamp < this.PATTERN_CACHE_TTL) {
+      console.log(`[CardsAI] Using cached pattern for ${cacheKey}`);
+      return cached.pattern;
+    }
+
     const teamStats = await supabaseCardsService.getTeamCardStats(teamName);
     
     if (!teamStats) {
@@ -373,7 +386,7 @@ export class CardsAIService {
     });
     // --- END OPTIMIZATION ---
 
-    return {
+    const pattern: TeamCardPattern = {
       team: teamName,
       venue,
       averageCardsShown: Math.round(averageCardsShown * 100) / 100,
@@ -390,6 +403,12 @@ export class CardsAIService {
         matchweek: match.matchweek 
       })) as CardPatternMatchDetail[]
     };
+    
+    // --- CACHE THE RESULT ---
+    this.patternCache.set(cacheKey, { pattern, timestamp: Date.now() });
+    // --- END CACHE THE RESULT ---
+
+    return pattern;
   }
 
   /**
@@ -819,8 +838,10 @@ export class CardsAIService {
     try {
       console.log(`[CardsAI] Generating optimized insights for ${homeTeam} vs ${awayTeam}`);
       
+      // NOTE: We fetch odds first as they are needed for the subsequent pattern analysis calls.
       const matchOdds = await oddsAPIService.getOddsForMatch(homeTeam, awayTeam); 
       
+      // These calls will now utilize the cache
       const homePattern = await this.analyzeTeamCardPattern(homeTeam, 'home', matchOdds);
       const awayPattern = await this.analyzeTeamCardPattern(awayTeam, 'away', matchOdds);
 
