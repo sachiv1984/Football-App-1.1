@@ -133,6 +133,22 @@ export class CardsAIService {
   // --- Core Card Threshold Analysis Functions ---
 
   /**
+   * Add variance analysis for better confidence.
+   * NOTE: This method calculates the Standard Deviation, which is the square root of variance.
+   */
+  private calculateVariance(matches: CardPatternMatchDetail[]): number {
+      if (matches.length === 0) return 0;
+      const cards = matches.map(m => m.totalCards);
+      const avg = cards.reduce((s, c) => s + c, 0) / cards.length;
+      
+      // Calculate Variance
+      const variance = cards.reduce((s, c) => s + Math.pow(c - avg, 2), 0) / cards.length;
+      
+      // Return Standard Deviation (Square Root of Variance) for better interpretability
+      return Math.sqrt(variance);
+  }
+
+  /**
    * Analyze card threshold for an 'Over' bet type.
    */
   private analyzeCardThresholdOver(
@@ -441,6 +457,15 @@ export class CardsAIService {
     // Return the weighted EV, rounded for clean output
     return Math.round(weightedEV * 10000) / 10000;
   }
+  
+  /**
+   * Helper to downgrade confidence one level
+   */
+  private downgradeConfidence(confidence: 'high' | 'medium' | 'low'): 'high' | 'medium' | 'low' {
+      if (confidence === 'high') return 'medium';
+      if (confidence === 'medium') return 'low';
+      return 'low';
+  }
 
   /**
    * Get confidence level based on percentage and consistency
@@ -551,6 +576,16 @@ export class CardsAIService {
         return [];
     }
     
+    // --- VARIANCE CALCULATION ---
+    const variance = this.calculateVariance(uniqueMatchDetails);
+    let varianceDowngradeReason = '';
+
+    if (variance > 2.5) {
+      console.log(`[CardsAI] High variance detected (${variance.toFixed(2)}), adjusting confidence`);
+      varianceDowngradeReason = ` (Variance: ${variance.toFixed(2)} - High risk, confidence reduced).`;
+    }
+    // --- END VARIANCE CALCULATION ---
+    
     const combinedAnalyses: CardThresholdAnalysis[] = [];
     
     // --- OPTIMIZATION: Use relevant thresholds only for total cards ---
@@ -573,7 +608,13 @@ export class CardsAIService {
     // Step 5: Find optimal over/under thresholds
     const optimalOver = this.findOptimalThreshold(combinedAnalyses, 'over');
     if (optimalOver) {
-      const analysis = optimalOver.analysis;
+      let analysis = optimalOver.analysis;
+      
+      // Apply Variance Downgrade
+      let finalConfidence = analysis.confidence;
+      if (variance > 2.5 && analysis.confidence !== 'low') {
+        finalConfidence = this.downgradeConfidence(analysis.confidence);
+      }
       
       // Calculate hits for the optimal selection
       const recentHits = analysis.recentForm.filter(Boolean).length;
@@ -585,16 +626,15 @@ export class CardsAIService {
               ? 'Good consistency' 
               : 'Moderate consistency';
 
-      // --- ENHANCED DESCRIPTION (AS REQUESTED) ---
+      // --- ENHANCED DESCRIPTION ---
       const description = `
         Strong **${analysis.betType.toUpperCase()} ${analysis.threshold}** bet with **${analysis.percentage.toFixed(1)}%** historical success rate.
         Recent form: ${recentHits}/5 matches hit this threshold.
         **${consistencyAdj}**.
-        ${optimalOver.reasoning}
+        ${optimalOver.reasoning}${varianceDowngradeReason}
       `.trim().replace(/\s\s+/g, ' '); // Clean up extra whitespace
-
       // --- END ENHANCED DESCRIPTION ---
-      
+
       // --- REVISED SUPPORTING DATA LOGIC (UX FIX) ---
       const isValue = analysis.value > 0.0001;
       const supportReasoning = isValue 
@@ -607,7 +647,7 @@ export class CardsAIService {
         title: `Total Cards ${analysis.betType === 'over' ? 'Over' : 'Under'} ${analysis.threshold}`,
         description: description,
         market: `Total Cards ${analysis.betType === 'over' ? 'Over' : 'Under'} ${analysis.threshold}`,
-        confidence: analysis.confidence,
+        confidence: finalConfidence, // Use final confidence
         odds: analysis.odds ? analysis.odds.toFixed(2) : undefined,
         supportingData: `EV: ${analysis.value.toFixed(4)} | ${supportReasoning}`,
         aiEnhanced: true,
@@ -617,7 +657,13 @@ export class CardsAIService {
 
     const optimalUnder = this.findOptimalThreshold(combinedAnalyses, 'under');
     if (optimalUnder) {
-      const analysis = optimalUnder.analysis;
+      let analysis = optimalUnder.analysis;
+      
+      // Apply Variance Downgrade
+      let finalConfidence = analysis.confidence;
+      if (variance > 2.5 && analysis.confidence !== 'low') {
+        finalConfidence = this.downgradeConfidence(analysis.confidence);
+      }
       
       // Calculate hits for the optimal selection
       const recentHits = analysis.recentForm.filter(Boolean).length;
@@ -629,12 +675,12 @@ export class CardsAIService {
               ? 'Good consistency' 
               : 'Moderate consistency';
 
-      // --- ENHANCED DESCRIPTION (AS REQUESTED) ---
+      // --- ENHANCED DESCRIPTION ---
       const description = `
         Strong **${analysis.betType.toUpperCase()} ${analysis.threshold}** bet with **${analysis.percentage.toFixed(1)}%** historical success rate.
         Recent form: ${recentHits}/5 matches hit this threshold.
         **${consistencyAdj}**.
-        ${optimalUnder.reasoning}
+        ${optimalUnder.reasoning}${varianceDowngradeReason}
       `.trim().replace(/\s\s+/g, ' '); // Clean up extra whitespace
       // --- END ENHANCED DESCRIPTION ---
       
@@ -650,7 +696,7 @@ export class CardsAIService {
         title: `Total Cards ${analysis.betType === 'over' ? 'Over' : 'Under'} ${analysis.threshold}`,
         description: description,
         market: `Total Cards ${analysis.betType === 'over' ? 'Over' : 'Under'} ${analysis.threshold}`,
-        confidence: analysis.confidence,
+        confidence: finalConfidence, // Use final confidence
         odds: analysis.odds ? analysis.odds.toFixed(2) : undefined,
         supportingData: `EV: ${analysis.value.toFixed(4)} | ${supportReasoning}`,
         aiEnhanced: true,
