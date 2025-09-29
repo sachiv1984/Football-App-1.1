@@ -155,7 +155,7 @@ export class CardsAIService {
     const sampleSize = Math.min(5, recentMatches.length || 1); // Protect division
     let overConsistency = overHits / sampleSize;
 
-    // --- NEW: Apply Penalty for Low Sample Size (3 or 4 matches) ---
+    // --- Apply Penalty for Low Sample Size (3 or 4 matches) ---
     if (sampleSize < 5) {
         // Penalty factor: 1.0 for 5 matches, 0.8 for 4 matches, 0.6 for 3 matches.
         const maxConsistencyFactor = sampleSize * 0.2; 
@@ -210,7 +210,7 @@ export class CardsAIService {
     const sampleSize = Math.min(5, recentMatches.length || 1); // Protect division
     let underConsistency = underHits / sampleSize;
 
-    // --- NEW: Apply Penalty for Low Sample Size (3 or 4 matches) ---
+    // --- Apply Penalty for Low Sample Size (3 or 4 matches) ---
     if (sampleSize < 5) {
         // Penalty factor: 1.0 for 5 matches, 0.8 for 4 matches, 0.6 for 3 matches.
         const maxConsistencyFactor = sampleSize * 0.2; 
@@ -440,23 +440,22 @@ export class CardsAIService {
 
   /**
    * Generate reasoning for threshold selection
+   * REVISED: Output is now strictly technical for internal review/support data.
    */
   private generateThresholdReasoning(optimal: CardThresholdAnalysis, alternatives: CardThresholdAnalysis[]): string {
-    let reasoning = `${optimal.betType === 'over' ? 'Over' : 'Under'} ${optimal.threshold} selected for optimal **Expected Value (EV)** score of ${optimal.value.toFixed(4)}`;
+    // Start with the raw EV score, which is the primary reason for selection
+    let reasoning = `Optimal EV Score: ${optimal.value.toFixed(4)}`;
     
     if (alternatives.length > 0) {
       const alt = alternatives[0];
       const optimalValue = optimal.value ?? 0;
       const altValue = alt.value ?? 0;
 
-      if (optimal.betType === alt.betType && optimalValue > altValue) {
-        if (optimal.betType === 'over' && alt.threshold < optimal.threshold) {
-            reasoning += `. Higher-risk, higher-reward threshold chosen over ${alt.threshold} for significant EV edge.`;
-        } else if (optimal.betType === 'under' && alt.threshold > optimal.threshold) {
-            reasoning += `. Lower-risk, higher-reward threshold chosen over ${alt.threshold} for significant EV edge.`;
-        } else {
-            reasoning += `. Beats alternative ${alt.betType} ${alt.threshold} by EV score.`;
-        }
+      // Only add detail if a meaningful alternative was considered and beaten
+      if (optimalValue > altValue + 0.005) { // Require a small difference for note
+        reasoning += `. Beat Alt (${alt.betType} ${alt.threshold}, EV ${alt.value.toFixed(4)}) for higher EV edge.`;
+      } else if (optimal.betType !== alt.betType) {
+        reasoning += `. Best option chosen over alternative bet type (EV: ${alt.value.toFixed(4)}).`;
       }
     }
     
@@ -536,6 +535,11 @@ export class CardsAIService {
       const description = isValue 
           ? `Value Bet! This outcome is likely (${hitDescription}) and shows a positive edge against the current odds.`
           : `High Confidence. This outcome is very likely (${hitDescription}), though the market odds fully account for the probability.`;
+      
+      // --- REVISED SUPPORTING DATA LOGIC (UX FIX) ---
+      const supportReasoning = isValue 
+          ? `Reasoning: ${optimalOver.reasoning}` 
+          : 'Reasoning: Optimal confidence/probability chosen, EV margin is zero.';
       // --- END REVISION ---
 
       insights.push({
@@ -545,9 +549,7 @@ export class CardsAIService {
         market: `Total Cards ${analysis.betType === 'over' ? 'Over' : 'Under'} ${analysis.threshold}`,
         confidence: analysis.confidence,
         odds: analysis.odds ? analysis.odds.toFixed(2) : undefined,
-        // --- REVISED SUPPORTING DATA (UX FIX) ---
-        supportingData: `EV: ${analysis.value.toFixed(4)} | Reasoning: ${optimalOver.reasoning}`,
-        // --- END REVISION ---
+        supportingData: `EV: ${analysis.value.toFixed(4)} | ${supportReasoning}`,
         aiEnhanced: true,
         valueScore: analysis.value,
       });
@@ -564,6 +566,11 @@ export class CardsAIService {
       const description = isValue 
           ? `Value Bet! This outcome is likely (${hitDescription}) and shows a positive edge against the current odds.`
           : `High Confidence. This outcome is very likely (${hitDescription}), though the market odds fully account for the probability.`;
+      
+      // --- REVISED SUPPORTING DATA LOGIC (UX FIX) ---
+      const supportReasoning = isValue 
+          ? `Reasoning: ${optimalUnder.reasoning}` 
+          : 'Reasoning: Optimal confidence/probability chosen, EV margin is zero.';
       // --- END REVISION ---
       
       insights.push({
@@ -573,9 +580,7 @@ export class CardsAIService {
         market: `Total Cards ${analysis.betType === 'over' ? 'Over' : 'Under'} ${analysis.threshold}`,
         confidence: analysis.confidence,
         odds: analysis.odds ? analysis.odds.toFixed(2) : undefined,
-        // --- REVISED SUPPORTING DATA (UX FIX) ---
-        supportingData: `EV: ${analysis.value.toFixed(4)} | Reasoning: ${optimalUnder.reasoning}`,
-        // --- END REVISION ---
+        supportingData: `EV: ${analysis.value.toFixed(4)} | ${supportReasoning}`,
         aiEnhanced: true,
         valueScore: analysis.value,
       });
@@ -638,6 +643,11 @@ export class CardsAIService {
       const description = isValue 
           ? `Value Bet! This team outcome is likely (${hitDescription}) and shows a positive edge against the current odds.`
           : `High Confidence. This team outcome is very likely (${hitDescription}), though the market odds fully account for the probability.`;
+      
+      // --- REVISED SUPPORTING DATA LOGIC (UX FIX) ---
+      const supportReasoning = isValue 
+          ? `Reasoning: ${optimal.reasoning}` 
+          : 'Reasoning: Optimal confidence/probability chosen, EV margin is zero.';
       // --- END REVISION ---
       
       insights.push({
@@ -647,9 +657,7 @@ export class CardsAIService {
         market: `${teamType} Team Cards ${analysis.betType === 'over' ? 'Over' : 'Under'} ${analysis.threshold}`,
         confidence: analysis.confidence,
         odds: analysis.odds ? analysis.odds.toFixed(2) : undefined,
-        // --- REVISED SUPPORTING DATA (UX FIX) ---
-        supportingData: `EV: ${analysis.value.toFixed(4)} | Reasoning: ${optimal.reasoning}`,
-        // --- END REVISION ---
+        supportingData: `EV: ${analysis.value.toFixed(4)} | ${supportReasoning}`,
         aiEnhanced: true,
         valueScore: analysis.value,
       });
@@ -803,4 +811,3 @@ export class CardsAIService {
 }
 
 export const cardsAIService = new CardsAIService();
-
