@@ -237,8 +237,10 @@ export class CardsAIService {
   
   /**
    * Helper to create an empty analysis object when no match data is available.
+   * FIX: Added console.warn for operational monitoring.
    */
   private createEmptyAnalysis(threshold: number, betType: 'over' | 'under', odds?: number): CardThresholdAnalysis {
+    console.warn(`[CardsAI] Creating empty analysis for ${betType} ${threshold} - no match data available`);
     return {
         threshold,
         percentage: 0,
@@ -714,7 +716,6 @@ export class CardsAIService {
     if (totalWeightedAvg === 0) return [];
     
     let predictedWinner: 'home' | 'away' | 'draw' = 'draw';
-    let minPredictionPercentage = 0; // The minimum probability we need to see value
     const cardsDifference = Math.abs(homeWeightedAvg - awayWeightedAvg);
     const threshold = 0.8; // The threshold for a confident, non-draw prediction
 
@@ -722,7 +723,7 @@ export class CardsAIService {
     if (cardsDifference >= threshold) {
         predictedWinner = homeWeightedAvg > awayWeightedAvg ? 'home' : 'away';
     } else if (cardsDifference <= 0.3) {
-        // If averages are very close, predict Draw
+        // If averages are very close (<= 0.3 card difference), predict Draw
         predictedWinner = 'draw';
     } else {
         // Ambiguous middle ground (0.3 < diff < 0.8) - skip the market
@@ -742,7 +743,7 @@ export class CardsAIService {
         predictions.push({ betType: 'away', percentage: awayProb * 100, odds: matchOdds?.mostCardsOdds?.awayOdds });
     } else { // predictedWinner === 'draw'
         const drawOdds = matchOdds?.mostCardsOdds?.drawOdds;
-        // Estimate draw probability as the remaining probability based on difference
+        // Estimate draw probability based on the inverse of the difference and cap it.
         let drawPercentage = (1 - homeProb - awayProb) * 100 + (100 * (1 - cardsDifference / threshold)); 
         drawPercentage = Math.min(drawPercentage, 45); // Cap draw percentage for realism
         predictions.push({ betType: 'draw', percentage: drawPercentage, odds: drawOdds });
@@ -752,7 +753,7 @@ export class CardsAIService {
     predictions.forEach(p => {
         const value = this.calculateBetValue(p.percentage, 0.6, p.odds); 
         
-        // Only generate an insight if EV is positive and the prediction matches the winner
+        // Only generate an insight if EV is positive
         const isValueBet = value > 0.0001;
         
         if (isValueBet) { 
