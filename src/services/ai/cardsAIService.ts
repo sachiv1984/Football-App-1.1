@@ -504,7 +504,7 @@ export class CardsAIService {
             cardsAgainst: match.totalCards,
         }));
         
-    if (totalMatchCardData.length < 3) { // <-- LOWERED THRESHOLD TO 3
+    if (totalMatchCardData.length < 3) { // LOWERED THRESHOLD TO 3
         console.warn("[CardsAI] Insufficient unique match data for Total Cards analysis (need 3+). Skipping.");
         return [];
     }
@@ -529,14 +529,25 @@ export class CardsAIService {
     if (optimalOver) {
       const analysis = optimalOver.analysis;
       
+      // --- REVISED DESCRIPTION AND TITLE (UX FIX) ---
+      const hitDescription = `${analysis.percentage.toFixed(1)}% hit rate (Consistency: ${analysis.consistency.toFixed(2)})`;
+      const isValue = analysis.value > 0.0001;
+      const title = `Total Cards ${analysis.betType === 'over' ? 'Over' : 'Under'} ${analysis.threshold}`;
+      const description = isValue 
+          ? `Value Bet! This outcome is likely (${hitDescription}) and shows a positive edge against the current odds.`
+          : `High Confidence. This outcome is very likely (${hitDescription}), though the market odds fully account for the probability.`;
+      // --- END REVISION ---
+
       insights.push({
         id: `optimal-total-cards-over-${analysis.threshold}`,
-        title: `Over ${analysis.threshold} Total Cards`,
-        description: `Optimal over bet: ${analysis.percentage.toFixed(1)}% hit rate (Consistency: ${analysis.consistency.toFixed(2)}). **EV: ${analysis.value.toFixed(4)}**. ${optimalOver.reasoning}`,
-        market: `Total Cards Over ${analysis.threshold}`,
+        title: title,
+        description: description,
+        market: `Total Cards ${analysis.betType === 'over' ? 'Over' : 'Under'} ${analysis.threshold}`,
         confidence: analysis.confidence,
         odds: analysis.odds ? analysis.odds.toFixed(2) : undefined,
-        supportingData: `Sampled total card counts: [${totalMatchCardData.map(m => m.totalCards).join(', ')}]`,
+        // --- REVISED SUPPORTING DATA (UX FIX) ---
+        supportingData: `EV: ${analysis.value.toFixed(4)} | Reasoning: ${optimalOver.reasoning}`,
+        // --- END REVISION ---
         aiEnhanced: true,
         valueScore: analysis.value,
       });
@@ -546,14 +557,25 @@ export class CardsAIService {
     if (optimalUnder) {
       const analysis = optimalUnder.analysis;
       
+      // --- REVISED DESCRIPTION AND TITLE (UX FIX) ---
+      const hitDescription = `${analysis.percentage.toFixed(1)}% hit rate (Consistency: ${analysis.consistency.toFixed(2)})`;
+      const isValue = analysis.value > 0.0001;
+      const title = `Total Cards ${analysis.betType === 'over' ? 'Over' : 'Under'} ${analysis.threshold}`;
+      const description = isValue 
+          ? `Value Bet! This outcome is likely (${hitDescription}) and shows a positive edge against the current odds.`
+          : `High Confidence. This outcome is very likely (${hitDescription}), though the market odds fully account for the probability.`;
+      // --- END REVISION ---
+      
       insights.push({
         id: `optimal-total-cards-under-${analysis.threshold}`,
-        title: `Under ${analysis.threshold} Total Cards`,
-        description: `Optimal under bet: ${analysis.percentage.toFixed(1)}% hit rate (Consistency: ${analysis.consistency.toFixed(2)}). **EV: ${analysis.value.toFixed(4)}**. ${optimalUnder.reasoning}`,
-        market: `Total Cards Under ${analysis.threshold}`,
+        title: title,
+        description: description,
+        market: `Total Cards ${analysis.betType === 'over' ? 'Over' : 'Under'} ${analysis.threshold}`,
         confidence: analysis.confidence,
         odds: analysis.odds ? analysis.odds.toFixed(2) : undefined,
-        supportingData: `Sampled total card counts: [${totalMatchCardData.map(m => m.totalCards).join(', ')}]`,
+        // --- REVISED SUPPORTING DATA (UX FIX) ---
+        supportingData: `EV: ${analysis.value.toFixed(4)} | Reasoning: ${optimalUnder.reasoning}`,
+        // --- END REVISION ---
         aiEnhanced: true,
         valueScore: analysis.value,
       });
@@ -609,14 +631,25 @@ export class CardsAIService {
       const analysis = optimal.analysis;
       const recentHits = analysis.recentForm.filter(Boolean).length;
       
+      // --- REVISED DESCRIPTION AND TITLE (UX FIX) ---
+      const hitDescription = `${analysis.percentage.toFixed(1)}% hit rate (${recentHits}/5 recent games)`;
+      const isValue = analysis.value > 0.0001;
+      const title = `${teamType} Team ${analysis.betType === 'over' ? 'Over' : 'Under'} ${analysis.threshold} Cards`;
+      const description = isValue 
+          ? `Value Bet! This team outcome is likely (${hitDescription}) and shows a positive edge against the current odds.`
+          : `High Confidence. This team outcome is very likely (${hitDescription}), though the market odds fully account for the probability.`;
+      // --- END REVISION ---
+      
       insights.push({
         id: `optimal-${teamType.toLowerCase()}-cards-${analysis.betType}-${analysis.threshold}`,
-        title: `${teamType} Team ${analysis.betType === 'over' ? 'Over' : 'Under'} ${analysis.threshold} Cards`,
-        description: `Optimal ${teamType.toLowerCase()} team bet: ${analysis.percentage.toFixed(1)}% hit rate (${recentHits}/5 recent). **EV: ${analysis.value.toFixed(4)}**. ${optimal.reasoning}`,
+        title: title,
+        description: description,
         market: `${teamType} Team Cards ${analysis.betType === 'over' ? 'Over' : 'Under'} ${analysis.threshold}`,
         confidence: analysis.confidence,
         odds: analysis.odds ? analysis.odds.toFixed(2) : undefined,
-        supportingData: `Recent form: [${teamPattern.recentMatches.slice(0, 5).map(m => m.cardsFor).join(', ')}]. Average: ${teamPattern.averageCardsShown}/game`,
+        // --- REVISED SUPPORTING DATA (UX FIX) ---
+        supportingData: `EV: ${analysis.value.toFixed(4)} | Reasoning: ${optimal.reasoning}`,
+        // --- END REVISION ---
         aiEnhanced: true,
         valueScore: analysis.value,
       });
@@ -685,15 +718,22 @@ export class CardsAIService {
         // Only generate an insight if EV is positive and probability is reasonable
         if (value > 0.05 && p.percentage > 30) { 
             const confidence = p.percentage > 55 ? 'high' : p.percentage > 45 ? 'medium' : 'low';
-            
+            const teamTitle = p.betType.charAt(0).toUpperCase() + p.betType.slice(1);
+
+            // --- REVISED DESCRIPTION AND TITLE (UX FIX) ---
+            const description = `Value Bet! Based on average disciplinary records, **${teamTitle}** is significantly more likely (${p.percentage.toFixed(1)}% conceptual chance) to receive the most cards.`;
+            // --- END REVISION ---
+
             insights.push({
                 id: `most-cards-${p.betType}`,
-                title: `Most Cards: ${p.betType.charAt(0).toUpperCase() + p.betType.slice(1)}`,
-                description: `Predicted ${p.betType} based on disciplinary averages (${p.percentage.toFixed(1)}% conceptual chance). **EV: ${value.toFixed(4)}**.`,
-                market: `Most Cards - ${p.betType.charAt(0).toUpperCase() + p.betType.slice(1)}`,
+                title: `Most Cards: ${teamTitle}`,
+                description: description,
+                market: `Most Cards - ${teamTitle}`,
                 confidence,
                 odds: p.odds ? p.odds.toFixed(2) : undefined,
-                supportingData: `Home avg cards: ${homePattern.averageCardsShown}, Away avg cards: ${awayPattern.averageCardsShown}`,
+                // --- REVISED SUPPORTING DATA (UX FIX) ---
+                supportingData: `EV: ${value.toFixed(4)} | Home Avg: ${homePattern.averageCardsShown}, Away Avg: ${awayPattern.averageCardsShown}`,
+                // --- END REVISION ---
                 aiEnhanced: true,
                 valueScore: value
             });
@@ -748,7 +788,7 @@ export class CardsAIService {
       // 2. Select a maximum of 6 insights
       const filteredInsights = sortedInsights.slice(0, 6);
       
-      const valueBets = filteredInsights.filter(i => (i.valueScore ?? 0) > 0).length;
+      const valueBets = filteredInsights.filter(i => (i.valueScore ?? 0) > 0.0001).length; // Check for positive EV
       
       console.log(`[CardsAI] ✅ Final insights after resolution: ${filteredInsights.length}`);
       console.log(`[CardsAI] Value Bets identified (EV > 0): ${valueBets}`);
@@ -763,3 +803,4 @@ export class CardsAIService {
 }
 
 export const cardsAIService = new CardsAIService();
+
