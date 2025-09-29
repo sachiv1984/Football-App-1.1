@@ -58,7 +58,7 @@ interface CardThresholdAnalysis {
   confidence: 'high' | 'medium' | 'low';
   recentForm: boolean[]; 
   betType: 'over' | 'under';
-  value: number; 
+  value: number; // This now represents the Weighted Expected Value (EV)
   odds?: number; 
 }
 
@@ -151,11 +151,11 @@ export class CardsAIService {
     const recentMatches = matches.slice(0, 5);
     const recentOverForm = recentMatches.map(match => getCount(match) > threshold);
     const overHits = recentOverForm.filter(Boolean).length;
-    const overConsistency = overHits / Math.min(5, recentMatches.length);
+    const overConsistency = overHits / Math.min(5, recentMatches.length || 1); // Protect against zero division
 
-    // Confidence and Value
+    // Confidence and Value (UPDATED: Using new EV calculation)
     const overConfidence = this.getConfidenceLevel(overPercentage, overConsistency);
-    const overValue = this.calculateBetValue(overPercentage, overConsistency, threshold, 'over', odds);
+    const overValue = this.calculateBetValue(overPercentage, overConsistency, odds);
 
     return {
       threshold,
@@ -195,11 +195,11 @@ export class CardsAIService {
     const recentMatches = matches.slice(0, 5);
     const recentUnderForm = recentMatches.map(match => getCount(match) < threshold);
     const underHits = recentUnderForm.filter(Boolean).length;
-    const underConsistency = underHits / Math.min(5, recentMatches.length);
+    const underConsistency = underHits / Math.min(5, recentMatches.length || 1); // Protect against zero division
 
-    // Confidence and Value
+    // Confidence and Value (UPDATED: Using new EV calculation)
     const underConfidence = this.getConfidenceLevel(underPercentage, underConsistency);
-    const underValue = this.calculateBetValue(underPercentage, underConsistency, threshold, 'under', odds);
+    const underValue = this.calculateBetValue(underPercentage, underConsistency, odds);
 
     return {
       threshold,
@@ -279,7 +279,7 @@ export class CardsAIService {
     } else if (underAnalysis.confidence === 'medium' && underValue >= overValue) {
       return underAnalysis;
     } else {
-      // Fallback: Return the one with the highest value
+      // Fallback: Return the one with the highest value (EV)
       return overValue > underValue ? overAnalysis : underAnalysis;
     }
   }
@@ -347,40 +347,33 @@ export class CardsAIService {
   }
 
   /**
-   * Calculate betting value score
+   * Calculate betting value score (The Edge/Weighted Expected Value).
+   * A positive score indicates a profitable edge.
+   * * @param percentage Our calculated probability of the outcome hitting (0-100)
+   * @param consistency How consistently the outcome has hit recently (0-1)
+   * @param odds The bookmaker's odds for the bet
    */
   private calculateBetValue(
     percentage: number, 
     consistency: number,
-    threshold: number,
-    betType: 'over' | 'under',
     odds?: number
   ): number {
-    // Start with the base model score
-    let baseValue = percentage * consistency;
-    
-    // Apply threshold difficulty adjustment 
-    if (betType === 'over') {
-      baseValue += (threshold * 3); 
-    } else {
-      baseValue += ((10 - threshold) * 3);
+    if (!odds || odds <= 1.05) { // Minimum odds for a meaningful bet
+        return 0; 
     }
+
+    const calculatedProbability = percentage / 100;
+    const impliedProbability = 1 / odds;
     
-    // Odds-based value calculation (The Edge)
-    if (odds && odds > 1.05) {
-      const calculatedProbability = percentage / 100;
-      const impliedProbability = 1 / odds;
-      const edge = calculatedProbability - impliedProbability;
-      
-      if (edge > 0.05) { // Significant positive edge (5%+)
-         baseValue += (edge * 2000) * consistency;
-         baseValue += 500;
-      } else if (edge < -0.10) {
-         baseValue += edge * 100; 
-      }
-    }
+    // Core Expected Value (EV) calculation:
+    // EV = (P_win * Profit) - (P_loss * Loss) where Profit = Odds - 1
+    const rawEdge = (calculatedProbability * (odds - 1)) - ((1 - calculatedProbability) * 1);
     
-    return baseValue;
+    // Weight the raw EV by consistency. This rewards highly consistent patterns.
+    const weightedEV = rawEdge * consistency;
+
+    // Return the weighted EV, rounded for clean output
+    return Math.round(weightedEV * 10000) / 10000;
   }
 
   /**
@@ -399,7 +392,8 @@ export class CardsAIService {
    * Find optimal threshold from multiple options
    */
   private findOptimalThreshold(analyses: CardThresholdAnalysis[], betType?: 'over' | 'under'): OptimalThreshold | null {
-    let validAnalyses = analyses.filter(a => a.confidence !== 'low');
+    // Now filtering out only positive EV scores, as we are looking for 'value' bets.
+    let validAnalyses = analyses.filter(a => a.value > 0);
     
     if (betType) {
       validAnalyses = validAnalyses.filter(a => a.betType === betType);
@@ -407,7 +401,7 @@ export class CardsAIService {
     
     if (validAnalyses.length === 0) return null;
     
-    // Sort by value (safely handling undefined)
+    // Sort by value (safely handling undefined) - now the higher the EV, the better.
     const sorted = validAnalyses.sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
     const optimal = sorted[0];
     
@@ -424,7 +418,7 @@ export class CardsAIService {
    * Generate reasoning for threshold selection
    */
   private generateThresholdReasoning(optimal: CardThresholdAnalysis, alternatives: CardThresholdAnalysis[]): string {
-    let reasoning = `${optimal.betType === 'over' ? 'Over' : 'Under'} ${optimal.threshold} selected for optimal value`;
+    let reasoning = `${optimal.betType === 'over' ? 'Over' : 'Under'} ${optimal.threshold} selected for optimal **Expected Value (EV)** score of ${optimal.value.toFixed(4)}`;
     
     if (alternatives.length > 0) {
       const alt = alternatives[0];
@@ -433,11 +427,11 @@ export class CardsAIService {
 
       if (optimal.betType === alt.betType && optimalValue > altValue) {
         if (optimal.betType === 'over' && alt.threshold < optimal.threshold) {
-            reasoning += `. Higher-risk, higher-reward threshold chosen over ${alt.threshold} for significant value edge.`;
+            reasoning += `. Higher-risk, higher-reward threshold chosen over ${alt.threshold} for significant EV edge.`;
         } else if (optimal.betType === 'under' && alt.threshold > optimal.threshold) {
-            reasoning += `. Lower-risk, higher-reward threshold chosen over ${alt.threshold} for significant value edge.`;
+            reasoning += `. Lower-risk, higher-reward threshold chosen over ${alt.threshold} for significant EV edge.`;
         } else {
-            reasoning += `. Beats alternative ${alt.betType} ${alt.threshold} by value score.`;
+            reasoning += `. Beats alternative ${alt.betType} ${alt.threshold} by EV score.`;
         }
       }
     }
@@ -514,7 +508,7 @@ export class CardsAIService {
       insights.push({
         id: `optimal-total-cards-over-${analysis.threshold}`,
         title: `Over ${analysis.threshold} Total Cards`,
-        description: `Optimal over bet: ${analysis.percentage.toFixed(1)}% hit rate with strong consistency. ${optimalOver.reasoning}`,
+        description: `Optimal over bet: ${analysis.percentage.toFixed(1)}% hit rate (Consistency: ${analysis.consistency}). **EV: ${analysis.value.toFixed(4)}**. ${optimalOver.reasoning}`,
         market: `Total Cards Over ${analysis.threshold}`,
         confidence: analysis.confidence,
         odds: analysis.odds ? analysis.odds.toFixed(2) : undefined,
@@ -531,7 +525,7 @@ export class CardsAIService {
       insights.push({
         id: `optimal-total-cards-under-${analysis.threshold}`,
         title: `Under ${analysis.threshold} Total Cards`,
-        description: `Optimal under bet: ${analysis.percentage.toFixed(1)}% hit rate with disciplined trends identified. ${optimalUnder.reasoning}`,
+        description: `Optimal under bet: ${analysis.percentage.toFixed(1)}% hit rate (Consistency: ${analysis.consistency}). **EV: ${analysis.value.toFixed(4)}**. ${optimalUnder.reasoning}`,
         market: `Total Cards Under ${analysis.threshold}`,
         confidence: analysis.confidence,
         odds: analysis.odds ? analysis.odds.toFixed(2) : undefined,
@@ -543,7 +537,11 @@ export class CardsAIService {
 
     return insights.sort((a, b) => {
       const confidenceOrder: Record<string, number> = { high: 3, medium: 2, low: 1 };
-      return (confidenceOrder[b.confidence] || 1) - (confidenceOrder[a.confidence] || 1);
+      // Prioritize EV for sorting within the same confidence level
+      if (confidenceOrder[b.confidence] !== confidenceOrder[a.confidence]) {
+          return (confidenceOrder[b.confidence] || 1) - (confidenceOrder[a.confidence] || 1);
+      }
+      return (b.valueScore ?? 0) - (a.valueScore ?? 0);
     });
   }
 
@@ -588,7 +586,7 @@ export class CardsAIService {
       insights.push({
         id: `optimal-${teamType.toLowerCase()}-cards-${analysis.betType}-${analysis.threshold}`,
         title: `${teamType} Team ${analysis.betType === 'over' ? 'Over' : 'Under'} ${analysis.threshold} Cards`,
-        description: `Optimal ${teamType.toLowerCase()} team bet: ${analysis.percentage.toFixed(1)}% hit rate (${recentHits}/5 recent). ${optimal.reasoning}`,
+        description: `Optimal ${teamType.toLowerCase()} team bet: ${analysis.percentage.toFixed(1)}% hit rate (${recentHits}/5 recent). **EV: ${analysis.value.toFixed(4)}**. ${optimal.reasoning}`,
         market: `${teamType} Team Cards ${analysis.betType === 'over' ? 'Over' : 'Under'} ${analysis.threshold}`,
         confidence: analysis.confidence,
         odds: analysis.odds ? analysis.odds.toFixed(2) : undefined,
@@ -603,6 +601,7 @@ export class CardsAIService {
 
   /**
    * Generate Most Cards insights (Home/Away/Draw)
+   * UPDATED: Now uses EV for value scoring.
    */
   private generateMostCardsInsights(
     homePattern: TeamCardPattern,
@@ -611,56 +610,70 @@ export class CardsAIService {
   ): AIInsight[] {
     const insights: AIInsight[] = [];
     
-    // Simple prediction based on average cards shown
+    // Simple prediction based on average cards shown by the teams (For Cards)
     const homeAvg = homePattern.averageCardsShown;
     const awayAvg = awayPattern.averageCardsShown;
-    
-    let predictedWinner: 'home' | 'away' | 'draw' = 'draw';
-    if (homeAvg > awayAvg + 0.5) { 
-        predictedWinner = 'home';
-    } else if (awayAvg > homeAvg + 0.5) {
-        predictedWinner = 'away';
-    }
-
-    const homeOdds = matchOdds?.mostCardsOdds?.homeOdds;
-    const awayOdds = matchOdds?.mostCardsOdds?.awayOdds;
-    const drawOdds = matchOdds?.mostCardsOdds?.drawOdds;
-    
     const totalAvg = homeAvg + awayAvg;
+    
+    if (totalAvg === 0) return [];
+
+    // Calculate conceptual probability and corresponding odds/type
+    const predictions: Array<{ betType: 'home' | 'away' | 'draw'; percentage: number; odds?: number }> = [];
+
+    // HOME
     const homeProb = homeAvg / totalAvg;
+    predictions.push({ betType: 'home', percentage: homeProb * 100, odds: matchOdds?.mostCardsOdds?.homeOdds });
+
+    // AWAY
     const awayProb = awayAvg / totalAvg;
-    let drawProb = Math.max(0, 1 - homeProb - awayProb); 
-    if (Math.abs(homeAvg - awayAvg) < 0.5) {
-        drawProb = (homeProb + awayProb) / 4;
-    }
-
-    const betType = predictedWinner;
-    const percentage = betType === 'home' ? homeProb * 100 : betType === 'away' ? awayProb * 100 : drawProb * 100;
-    const odds = betType === 'home' ? homeOdds : betType === 'away' ? awayOdds : drawOdds;
-
-    const value = this.calculateBetValue(percentage, 0.7, 4.5, 'over', odds);
+    predictions.push({ betType: 'away', percentage: awayProb * 100, odds: matchOdds?.mostCardsOdds?.awayOdds });
     
-    if (percentage > 35) {
-      const confidence = percentage > 55 ? 'high' : percentage > 45 ? 'medium' : 'low';
-      
-      insights.push({
-        id: `most-cards-${betType}`,
-        title: `Most Cards: ${betType.charAt(0).toUpperCase() + betType.slice(1)}`,
-        description: `${betType === 'home' ? homePattern.team : betType === 'away' ? awayPattern.team : 'Referee likely to call a card draw'} based on average disciplinary tendency (${percentage.toFixed(1)}% conceptual chance).`,
-        market: `Most Cards - ${betType.charAt(0).toUpperCase() + betType.slice(1)}`,
-        confidence,
-        odds: odds ? odds.toFixed(2) : undefined,
-        supportingData: `Home avg cards: ${homePattern.averageCardsShown}, Away avg cards: ${awayPattern.averageCardsShown}`,
-        aiEnhanced: true,
-        valueScore: value
-      });
+    // DRAW (Estimate a draw based on close averages)
+    const drawOdds = matchOdds?.mostCardsOdds?.drawOdds;
+    // If the difference is small (<0.5), we allocate the remainder of the probability to a Draw, plus some from the favorites.
+    const avgDiff = Math.abs(homeAvg - awayAvg);
+    let drawPercentage: number;
+    
+    if (avgDiff < 0.5) {
+        // High likelihood of draw, split the probabilities
+        const totalProb = homeProb + awayProb; // Should be around 1.0
+        drawPercentage = (1 - totalProb) * 100 + (Math.min(homeProb, awayProb) / 2) * 100; // Allocate remainder + half of the smaller
+    } else {
+        // Standard remainder
+        drawPercentage = Math.max(0, 1 - homeProb - awayProb) * 100;
     }
     
-    return insights;
+    predictions.push({ betType: 'draw', percentage: drawPercentage, odds: drawOdds });
+
+    // Find the bet with the best EV (using a fixed "consistency" of 0.6 for this market type due to lack of match-specific data)
+    predictions.forEach(p => {
+        const value = this.calculateBetValue(p.percentage, 0.6, p.odds); 
+        
+        // Only generate an insight if the EV is positive and the probability is reasonable
+        if (value > 0.05 && p.percentage > 30) { // Require at least 5% EV edge
+            const confidence = p.percentage > 55 ? 'high' : p.percentage > 45 ? 'medium' : 'low';
+            
+            insights.push({
+                id: `most-cards-${p.betType}`,
+                title: `Most Cards: ${p.betType.charAt(0).toUpperCase() + p.betType.slice(1)}`,
+                description: `Predicted ${p.betType} based on disciplinary averages (${p.percentage.toFixed(1)}% conceptual chance). **EV: ${value.toFixed(4)}**.`,
+                market: `Most Cards - ${p.betType.charAt(0).toUpperCase() + p.betType.slice(1)}`,
+                confidence,
+                odds: p.odds ? p.odds.toFixed(2) : undefined,
+                supportingData: `Home avg cards: ${homePattern.averageCardsShown}, Away avg cards: ${awayPattern.averageCardsShown}`,
+                aiEnhanced: true,
+                valueScore: value
+            });
+        }
+    });
+    
+    // Sort by EV
+    return insights.sort((a, b) => (b.valueScore ?? 0) - (a.valueScore ?? 0));
   }
 
   /**
    * Main method: Generate optimized card-related betting insights
+   * NOTE: The refereeName parameter is REMOVED since the data is unavailable pre-match.
    */
   async generateCardInsights(homeTeam: string, awayTeam: string): Promise<AIInsight[]> {
     try {
@@ -683,12 +696,13 @@ export class CardsAIService {
       
       const insightsToFilter = resolutionResult.resolvedInsights as AIInsight[];
       
+      // Filter for positive EV (ValueScore > 0)
       const filteredInsights = insightsToFilter
-        .filter(insight => insight.confidence !== 'low')
+        .filter(insight => (insight.valueScore ?? 0) > 0)
         .sort((a, b) => (b.valueScore ?? 0) - (a.valueScore ?? 0))
-        .slice(0, 6);
+        .slice(0, 6); // Cap at 6 best value bets
       
-      console.log(`[CardsAI] ✅ Final insights after resolution: ${filteredInsights.length}`);
+      console.log(`[CardsAI] ✅ Final insights after resolution (Positive EV only): ${filteredInsights.length}`);
       console.log(`[CardsAI] Resolution Summary: ${resolutionResult.summary}`);
       return filteredInsights;
       
