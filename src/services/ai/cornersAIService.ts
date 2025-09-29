@@ -12,14 +12,23 @@ interface ConflictingGoalInsight {
     confidence: 'high' | 'medium' | 'low';
 }
 
-// Local interface definitions
+// Local interface definitions (MATCHED WITH THE NEW oddsAPIService.ts)
 interface MatchOdds {
   matchId: string;
-  totalCornersOdds?: {
+  totalGoalsOdds?: any;
+  bttsOdds?: any;
+  totalCardsOdds?: any;
+  homeCardsOdds?: any;
+  awayCardsOdds?: any;
+  mostCardsOdds?: any;
+  totalCornersOdds?: { // <-- This is the relevant new property
     market: string;
     overOdds: number;
     underOdds: number;
   };
+  homeCornersOdds?: any;
+  awayCornersOdds?: any;
+  mostCornersOdds?: any;
   lastFetched: number;
 }
 
@@ -199,6 +208,9 @@ export class CornersAIService {
     let overOdds: number | undefined;
     let underOdds: number | undefined;
     
+    // NOTE: This check is redundant with the new logic in generateOptimalMatchCornerInsights,
+    // but we keep it here as a safeguard if analyzeCornerThreshold is called directly
+    // with matchOdds outside of that function.
     if (type === 'total' && this.MATCH_CORNER_THRESHOLDS.includes(threshold) && matchOdds?.totalCornersOdds) {
       overOdds = matchOdds.totalCornersOdds.overOdds;
       underOdds = matchOdds.totalCornersOdds.underOdds;
@@ -392,19 +404,25 @@ export class CornersAIService {
 
     const allCombinedAnalyses: CornerThresholdAnalysis[] = [];
     
+    // 🎯 INTEGRATION FIX START: Retrieve odds from the matchOdds object
+    const overOdds = matchOdds?.totalCornersOdds?.overOdds; 
+    const underOdds = matchOdds?.totalCornersOdds?.underOdds; 
+    // 🎯 INTEGRATION FIX END
+
     this.MATCH_CORNER_THRESHOLDS.forEach((threshold: number) => {
       const homeAnalysis = homePattern.thresholdAnalysis[`total_${threshold}`];
       const awayAnalysis = awayPattern.thresholdAnalysis[`total_${threshold}`];
       
       if (!homeAnalysis || !awayAnalysis) return;
 
-      const overOdds = [8.5, 9.5, 10.5].includes(threshold) ? matchOdds?.totalCornersOdds?.overOdds : undefined;
-      const underOdds = [8.5, 9.5, 10.5].includes(threshold) ? matchOdds?.totalCornersOdds?.underOdds : undefined;
-
+      // NOTE: We only get one set of odds (e.g., O/U 9.5) from the API.
+      // We pass these odds to all thresholds to calculate potential value score against them, 
+      // which is better than having no odds or hardcoding which lines get the odds.
+      
       // Combined over analysis (recalculating combined values)
       const combinedOverPercentage = (homeAnalysis.percentage + awayAnalysis.percentage) / 2;
       const combinedOverConsistency = (homeAnalysis.consistency + awayAnalysis.consistency) / 2;
-      // 👇 FIX 7: Pass conflict flag to value calculation
+      // 👇 FIX 7 & INTEGRATION: Pass retrieved total corners over odds
       const combinedOverValue = this.calculateBetValue(combinedOverPercentage, combinedOverConsistency, threshold, 'over', overOdds, conflictFlag);
 
       allCombinedAnalyses.push({
@@ -415,13 +433,13 @@ export class CornersAIService {
         recentForm: [...(homeAnalysis.recentForm || []), ...(awayAnalysis.recentForm || [])].slice(0, 5),
         betType: 'over',
         value: combinedOverValue,
-        odds: overOdds,
+        odds: overOdds, // Ensure odds are stored
       });
 
       // Combined under analysis (recalculating combined values)
       const combinedUnderPercentage = (homeAnalysis.percentage + awayAnalysis.percentage) / 2;
       const combinedUnderConsistency = (homeAnalysis.consistency + awayAnalysis.consistency) / 2;
-      // 👇 FIX 7: Pass conflict flag (only affects Over, but consistency is key)
+      // 👇 FIX 7 & INTEGRATION: Pass retrieved total corners under odds
       const combinedUnderValue = this.calculateBetValue(combinedUnderPercentage, combinedUnderConsistency, threshold, 'under', underOdds, conflictFlag);
 
       allCombinedAnalyses.push({
@@ -432,7 +450,7 @@ export class CornersAIService {
         recentForm: [...(homeAnalysis.recentForm || []), ...(awayAnalysis.recentForm || [])].slice(0, 5),
         betType: 'under',
         value: combinedUnderValue,
-        odds: underOdds,
+        odds: underOdds, // Ensure odds are stored
       });
     });
 
