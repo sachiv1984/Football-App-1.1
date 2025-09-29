@@ -1,15 +1,14 @@
 // api/oddsAPIService.js
-const fetch = require('node-fetch');
-const { normalizeTeamName } = require('../../utils/teamUtils'); // adjust path if needed
+import { normalizeTeamName } from '../utils/teamUtils.js'; // adjust path if needed
 
 const API_KEY = process.env.ODDS_API_KEY;
 const BASE_URL = 'https://api.the-odds-api.com/v4';
-const CACHE_TIMEOUT = 10 * 60 * 1000; // 10 min
+const CACHE_TIMEOUT = 10 * 60 * 1000; // 10 minutes
 const BOOKMAKER_KEY = 'draftkings';
 const SPORT_KEY = 'soccer_epl';
 const DEBUG_MODE = true;
 
-class OddsAPIService {
+export class OddsAPIService {
   constructor() {
     this.oddsCache = new Map();
     this.apiCallCount = 0;
@@ -36,10 +35,7 @@ class OddsAPIService {
       return cached;
     }
 
-    if (!API_KEY) {
-      console.warn('[OddsAPI] ⚠️ No API key, returning cached data or null');
-      return cached || null;
-    }
+    if (!API_KEY) return cached || null;
 
     try {
       if (DEBUG_MODE) console.log(`[OddsAPI] 🌐 Fetching odds for ${matchId} from API...`);
@@ -70,7 +66,6 @@ class OddsAPIService {
     if (!response.ok) throw new Error(`API request failed: ${response.status} ${response.statusText}`);
 
     const data = await response.json();
-
     const match = data.find(m => {
       const apiHome = normalizeTeamName(m.home_team);
       const apiAway = normalizeTeamName(m.away_team);
@@ -78,7 +73,6 @@ class OddsAPIService {
     });
 
     if (!match) return null;
-
     let bookmaker = match.bookmakers.find(b => b.key === BOOKMAKER_KEY) || match.bookmakers[0];
     if (!bookmaker) return null;
 
@@ -86,30 +80,51 @@ class OddsAPIService {
   }
 
   extractOddsFromBookmaker(bookmaker) {
-    // For simplicity, only returning empty structure placeholders
-    // You can implement extraction logic here similar to TS version
     return {
-      totalGoalsOdds: undefined,
-      bttsOdds: undefined,
-      totalCardsOdds: undefined,
+      totalGoalsOdds: this.extractTotalGoalsOdds(bookmaker),
+      bttsOdds: this.extractBttsOdds(bookmaker),
+      totalCardsOdds: this.extractTotalCardsOdds(bookmaker),
       homeCardsOdds: undefined,
       awayCardsOdds: undefined,
       mostCardsOdds: undefined,
       totalCornersOdds: undefined,
       homeCornersOdds: undefined,
       awayCornersOdds: undefined,
-      mostCornersOdds: undefined
+      mostCornersOdds: undefined,
     };
+  }
+
+  extractTotalGoalsOdds(bookmaker) {
+    const market = bookmaker.markets.find(m => m.key === 'totals');
+    if (!market) return undefined;
+    const over = market.outcomes.find(o => o.name === 'Over' && o.point === 2.5);
+    const under = market.outcomes.find(o => o.name === 'Under' && o.point === 2.5);
+    if (!over || !under) return undefined;
+    return { market: 'Over/Under 2.5 Goals', overOdds: over.price, underOdds: under.price };
+  }
+
+  extractBttsOdds(bookmaker) {
+    const market = bookmaker.markets.find(m => m.key === 'btts');
+    if (!market) return undefined;
+    const yes = market.outcomes.find(o => o.name === 'Yes');
+    const no = market.outcomes.find(o => o.name === 'No');
+    if (!yes || !no) return undefined;
+    return { market: 'Both Teams To Score', yesOdds: yes.price, noOdds: no.price };
+  }
+
+  extractTotalCardsOdds(bookmaker) {
+    const market = bookmaker.markets.find(m => ['player_cards','total_cards','booking_points'].includes(m.key));
+    if (!market) return undefined;
+    const over = market.outcomes.find(o => o.name === 'Over' && [4.5,45].includes(o.point ?? 0));
+    const under = market.outcomes.find(o => o.name === 'Under' && [4.5,45].includes(o.point ?? 0));
+    if (!over || !under) return undefined;
+    return { market: 'Over/Under 4.5 Cards', overOdds: over.price, underOdds: under.price };
   }
 
   clearCache() { this.oddsCache.clear(); }
-  getCacheStatus() {
-    return {
-      size: this.oddsCache.size,
-      apiCalls: this.apiCallCount,
-      cacheHits: this.cacheHitCount
-    };
-  }
+  getCacheStatus() { return { size: this.oddsCache.size, apiCalls: this.apiCallCount, cacheHits: this.cacheHitCount }; }
 }
 
-module.exports = { oddsAPIService: new OddsAPIService() };
+// ✅ Export an instance for use
+export const oddsAPIService = new OddsAPIService();
+
