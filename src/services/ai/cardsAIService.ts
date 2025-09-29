@@ -107,6 +107,8 @@ export class CardsAIService {
     POOR: 0.4
   };
 
+  // NOTE: This full list is no longer used directly in the analysis loop, 
+  // but kept as a reference for available thresholds.
   private readonly CARD_THRESHOLDS = [0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5];
 
   /**
@@ -122,7 +124,7 @@ export class CardsAIService {
       default: return match.totalCards;
     }
   }
-  
+
   // --- Core Card Threshold Analysis Functions ---
 
   /**
@@ -237,7 +239,6 @@ export class CardsAIService {
   
   /**
    * Helper to create an empty analysis object when no match data is available.
-   * FIX: Added console.warn for operational monitoring.
    */
   private createEmptyAnalysis(threshold: number, betType: 'over' | 'under', odds?: number): CardThresholdAnalysis {
     console.warn(`[CardsAI] Creating empty analysis for ${betType} ${threshold} - no match data available`);
@@ -309,6 +310,23 @@ export class CardsAIService {
   }
 
   /**
+   * Optimize threshold selection based on the team's historical card data.
+   * This is a significant performance and relevance optimization.
+   */
+  private getRelevantThresholds(matches: CardPatternMatchDetail[]): number[] {
+    if (matches.length === 0) return [3.5, 4.5, 5.5]; // Default safe thresholds
+    
+    const avgCards = matches.reduce((sum, m) => sum + m.totalCards, 0) / matches.length;
+    
+    // Determine the focused range of thresholds
+    if (avgCards < 3) return [0.5, 1.5, 2.5, 3.5, 4.5];
+    if (avgCards < 5) return [2.5, 3.5, 4.5, 5.5, 6.5];
+    if (avgCards < 7) return [3.5, 4.5, 5.5, 6.5, 7.5];
+    return [4.5, 5.5, 6.5, 7.5, 8.5];
+  }
+
+
+  /**
    * Analyze card patterns for a specific team
    */
   private async analyzeTeamCardPattern(
@@ -339,8 +357,11 @@ export class CardsAIService {
 
     const thresholdAnalysis: { [key: string]: CardThresholdAnalysis } = {};
     
+    // --- OPTIMIZATION: Use relevant thresholds only ---
+    const relevantThresholds = this.getRelevantThresholds(relevantMatches);
+    
     // Analyze each threshold for Total, For, and Against
-    this.CARD_THRESHOLDS.forEach(threshold => {
+    relevantThresholds.forEach(threshold => {
       // Total Match Cards (based on this team's match history)
       thresholdAnalysis[`total_${threshold}`] = this.analyzeCardThreshold(relevantMatches, threshold, 'total', matchOdds);
       
@@ -350,6 +371,7 @@ export class CardsAIService {
       // Cards Against (Team-specific cards received)
       thresholdAnalysis[`against_${threshold}`] = this.analyzeCardThreshold(relevantMatches, threshold, 'against', matchOdds);
     });
+    // --- END OPTIMIZATION ---
 
     return {
       team: teamName,
@@ -512,8 +534,11 @@ export class CardsAIService {
     
     const combinedAnalyses: CardThresholdAnalysis[] = [];
     
-    // Step 4: Analyze each threshold using the unified match data
-    this.CARD_THRESHOLDS.forEach(threshold => {
+    // --- OPTIMIZATION: Use relevant thresholds only for total cards ---
+    const relevantThresholds = this.getRelevantThresholds(uniqueMatchDetails); 
+
+    // Step 4: Analyze each relevant threshold using the unified match data
+    relevantThresholds.forEach(threshold => {
       
       const overOdds = (threshold === 4.5) ? matchOdds?.totalCardsOdds?.overOdds : undefined;
       const underOdds = (threshold === 4.5) ? matchOdds?.totalCardsOdds?.underOdds : undefined;
@@ -524,6 +549,7 @@ export class CardsAIService {
       combinedAnalyses.push(overAnalysis);
       combinedAnalyses.push(underAnalysis);
     });
+    // --- END OPTIMIZATION ---
 
     // Step 5: Find optimal over/under thresholds
     const optimalOver = this.findOptimalThreshold(combinedAnalyses, 'over');
@@ -611,7 +637,9 @@ export class CardsAIService {
     const insights: AIInsight[] = [];
     
     const teamOdds = teamType === 'Home' ? matchOdds?.homeCardsOdds : matchOdds?.awayCardsOdds;
-    const thresholds = [0.5, 1.5, 2.5, 3.5, 4.5];
+    // NOTE: For team cards, we'll keep the analyzed thresholds limited to the common ones 
+    // for simplicity, as the team card data is a subset of the total match cards data.
+    const thresholds = [0.5, 1.5, 2.5, 3.5, 4.5]; 
     
     const analyses: CardThresholdAnalysis[] = [];
     
