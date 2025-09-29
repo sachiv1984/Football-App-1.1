@@ -91,31 +91,41 @@ export class OddsAPIService {
 
   /** Fetch odds from The Odds API */
   private async fetchOddsFromAPI(matchId: string) {
-    const [homeTeam, awayTeam] = matchId.split('_vs_');
-    const markets = [
-      'totals', 'btts', 'player_cards', 'total_cards', 'booking_points',
-      'home_team_cards', 'away_team_cards', 'most_cards',
-      'corners_totals', 'most_corners', 'team_to_take_most_corners'
-    ].join(',');
+  const [homeTeam, awayTeam] = matchId.split('_vs_');
+  const markets = [
+    'totals', 'btts', 'player_cards', 'total_cards', 'booking_points',
+    'home_team_cards', 'away_team_cards', 'most_cards',
+    'corners_totals', 'most_corners', 'team_to_take_most_corners'
+  ].join(',');
 
-    const url = `${BASE_URL}/sports/${SPORT_KEY}/odds?apiKey=${API_KEY}&regions=uk&markets=${markets}&oddsFormat=decimal`;
+  const url = `${BASE_URL}/sports/${SPORT_KEY}/odds?apiKey=${API_KEY}&regions=uk&markets=${markets}&oddsFormat=decimal`;
 
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`API request failed: ${response.status} ${response.statusText}`);
-    const data: APIMatchData[] = await response.json();
-
-    const match = data.find(m => {
-      const apiHome = normalizeTeamName(m.home_team);
-      const apiAway = normalizeTeamName(m.away_team);
-      return (apiHome === homeTeam && apiAway === awayTeam) || (apiHome === awayTeam && apiAway === homeTeam);
-    });
-
-    if (!match) return null;
-    let bookmaker = match.bookmakers.find(b => b.key === BOOKMAKER_KEY) || match.bookmakers[0];
-    if (!bookmaker) return null;
-
-    return this.extractOddsFromBookmaker(bookmaker);
+  const response = await fetch(url);
+  
+  const text = await response.text(); // always read as text first
+  if (!response.ok) {
+    throw new Error(`[OddsAPI] Request failed: ${response.status} ${response.statusText} — Response: ${text}`);
   }
+
+  let data: APIMatchData[];
+  try {
+    data = JSON.parse(text);
+  } catch (err) {
+    throw new Error(`[OddsAPI] Failed to parse JSON response: ${text}`);
+  }
+
+  const match = data.find(m => {
+    const apiHome = normalizeTeamName(m.home_team);
+    const apiAway = normalizeTeamName(m.away_team);
+    return (apiHome === homeTeam && apiAway === awayTeam) || (apiHome === awayTeam && apiAway === homeTeam);
+  });
+
+  if (!match) return null;
+  const bookmaker = match.bookmakers.find(b => b.key === BOOKMAKER_KEY) || match.bookmakers[0];
+  if (!bookmaker) return null;
+
+  return this.extractOddsFromBookmaker(bookmaker);
+}
 
   /** Extract odds from bookmaker */
   private extractOddsFromBookmaker(bookmaker: OddsBookmaker): Omit<MatchOdds, 'matchId' | 'lastFetched'> {
