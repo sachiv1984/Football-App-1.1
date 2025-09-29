@@ -676,6 +676,17 @@ export class CardsAIService {
   }
 
   /**
+   * Helper to get the average cards shown over the last N matches
+   * @param matches The list of recent matches
+   * @param count The number of recent matches to consider
+   */
+  private getRecentCardsAvg(matches: CardPatternMatchDetail[], count: number = 5): number {
+    const recent = matches.slice(0, count);
+    if (recent.length === 0) return 0;
+    return recent.reduce((sum, m) => sum + m.cardsFor, 0) / recent.length;
+  }
+
+  /**
    * Generate Most Cards insights (Home/Away/Draw)
    */
   private generateMostCardsInsights(
@@ -685,51 +696,71 @@ export class CardsAIService {
   ): AIInsight[] {
     const insights: AIInsight[] = [];
     
-    // Simple prediction based on average cards shown by the teams (For Cards)
     const homeAvg = homePattern.averageCardsShown;
     const awayAvg = awayPattern.averageCardsShown;
-    const totalAvg = homeAvg + awayAvg;
     
-    if (totalAvg === 0) return [];
+    if (homeAvg === 0 && awayAvg === 0) return [];
 
-    // Calculate conceptual probability and corresponding odds/type
-    const predictions: Array<{ betType: 'home' | 'away' | 'draw'; percentage: number; odds?: number }> = [];
+    // --- NEW WEIGHTED AVERAGE CALCULATION ---
+    const homeRecentAvg = this.getRecentCardsAvg(homePattern.recentMatches);
+    const awayRecentAvg = this.getRecentCardsAvg(awayPattern.recentMatches);
 
-    // HOME
-    const homeProb = homeAvg / totalAvg;
-    predictions.push({ betType: 'home', percentage: homeProb * 100, odds: matchOdds?.mostCardsOdds?.homeOdds });
+    // Weighted: 60% recent form, 40% overall average
+    const homeWeightedAvg = (homeRecentAvg * 0.6) + (homeAvg * 0.4);
+    const awayWeightedAvg = (awayRecentAvg * 0.6) + (awayAvg * 0.4);
 
-    // AWAY
-    const awayProb = awayAvg / totalAvg;
-    predictions.push({ betType: 'away', percentage: awayProb * 100, odds: matchOdds?.mostCardsOdds?.awayOdds });
+    const totalWeightedAvg = homeWeightedAvg + awayWeightedAvg;
     
-    // DRAW (Estimate a draw based on close averages)
-    const drawOdds = matchOdds?.mostCardsOdds?.drawOdds;
-    const avgDiff = Math.abs(homeAvg - awayAvg);
-    let drawPercentage: number;
+    if (totalWeightedAvg === 0) return [];
     
-    if (avgDiff < 0.5) {
-        // High likelihood of draw, split the probabilities
-        const totalProb = homeProb + awayProb; 
-        drawPercentage = (1 - totalProb) * 100 + (Math.min(homeProb, awayProb) / 2) * 100;
+    let predictedWinner: 'home' | 'away' | 'draw' = 'draw';
+    let minPredictionPercentage = 0; // The minimum probability we need to see value
+    const cardsDifference = Math.abs(homeWeightedAvg - awayWeightedAvg);
+    const threshold = 0.8; // The threshold for a confident, non-draw prediction
+
+    // Determine the predicted winner based on the threshold
+    if (cardsDifference >= threshold) {
+        predictedWinner = homeWeightedAvg > awayWeightedAvg ? 'home' : 'away';
+    } else if (cardsDifference <= 0.3) {
+        // If averages are very close, predict Draw
+        predictedWinner = 'draw';
     } else {
-        // Standard remainder
-        drawPercentage = Math.max(0, 1 - homeProb - awayProb) * 100;
+        // Ambiguous middle ground (0.3 < diff < 0.8) - skip the market
+        return [];
     }
+    // --- END NEW WEIGHTED AVERAGE CALCULATION ---
     
-    predictions.push({ betType: 'draw', percentage: drawPercentage, odds: drawOdds });
+    // Calculate conceptual probability and corresponding odds/type
+    const homeProb = homeWeightedAvg / totalWeightedAvg;
+    const awayProb = awayWeightedAvg / totalWeightedAvg;
+
+    const predictions: Array<{ betType: 'home' | 'away' | 'draw'; percentage: number; odds?: number }> = [];
+    
+    if (predictedWinner === 'home') {
+        predictions.push({ betType: 'home', percentage: homeProb * 100, odds: matchOdds?.mostCardsOdds?.homeOdds });
+    } else if (predictedWinner === 'away') {
+        predictions.push({ betType: 'away', percentage: awayProb * 100, odds: matchOdds?.mostCardsOdds?.awayOdds });
+    } else { // predictedWinner === 'draw'
+        const drawOdds = matchOdds?.mostCardsOdds?.drawOdds;
+        // Estimate draw probability as the remaining probability based on difference
+        let drawPercentage = (1 - homeProb - awayProb) * 100 + (100 * (1 - cardsDifference / threshold)); 
+        drawPercentage = Math.min(drawPercentage, 45); // Cap draw percentage for realism
+        predictions.push({ betType: 'draw', percentage: drawPercentage, odds: drawOdds });
+    }
 
     // Find the bet with the best EV (using a fixed "consistency" of 0.6 for this market type due to lack of match-specific data)
     predictions.forEach(p => {
         const value = this.calculateBetValue(p.percentage, 0.6, p.odds); 
         
-        // Only generate an insight if EV is positive and probability is reasonable
-        if (value > 0.05 && p.percentage > 30) { 
+        // Only generate an insight if EV is positive and the prediction matches the winner
+        const isValueBet = value > 0.0001;
+        
+        if (isValueBet) { 
             const confidence = p.percentage > 55 ? 'high' : p.percentage > 45 ? 'medium' : 'low';
             const teamTitle = p.betType.charAt(0).toUpperCase() + p.betType.slice(1);
 
             // --- REVISED DESCRIPTION AND TITLE (UX FIX) ---
-            const description = `Value Bet! Based on average disciplinary records, **${teamTitle}** is significantly more likely (${p.percentage.toFixed(1)}% conceptual chance) to receive the most cards.`;
+            const description = `Value Bet! Based on weighted disciplinary records, **${teamTitle}** is significantly more likely (${p.percentage.toFixed(1)}% conceptual chance) to receive the most cards.`;
             // --- END REVISION ---
 
             insights.push({
@@ -740,7 +771,7 @@ export class CardsAIService {
                 confidence,
                 odds: p.odds ? p.odds.toFixed(2) : undefined,
                 // --- REVISED SUPPORTING DATA (UX FIX) ---
-                supportingData: `EV: ${value.toFixed(4)} | Home Avg: ${homePattern.averageCardsShown}, Away Avg: ${awayPattern.averageCardsShown}`,
+                supportingData: `EV: ${value.toFixed(4)} | Wtd Avg H: ${homeWeightedAvg.toFixed(2)}, Wtd Avg A: ${awayWeightedAvg.toFixed(2)}`,
                 // --- END REVISION ---
                 aiEnhanced: true,
                 valueScore: value
