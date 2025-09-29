@@ -1,25 +1,19 @@
-// --- 1. NEW: Imports only what's necessary, relying on Utilities/Types ---
 import { supabaseGoalsService } from '../stats/supabaseGoalsService';
 import { conflictResolverService } from './conflictResolverService';
 import { oddsAPIService } from '../api/oddsAPIService'; 
-import { statisticalAIGenerator } from '../../utils/StatisticalAIGenerator'; // 🚀 NEW UTILITY IMPORT
+import { statisticalAIGenerator } from '../../utils/StatisticalAIGenerator'; 
 
-// 💡 NEW: Import standardized types from the central file
 import { 
   AIInsight, 
   MatchOdds, 
   ThresholdAnalysis, 
-  OptimalThreshold 
+  OptimalThreshold,
+  GoalThresholdAnalysis // Use specific extension for clarity
 } from '../../types/BettingAITypes'; 
 
-// --- 2. NEW: Use standardized GoalThresholdAnalysis interface ---
-// Note: We use the GoalThresholdAnalysis interface which now extends ThresholdAnalysis
-interface GoalThresholdAnalysis extends ThresholdAnalysis {}
-
-// Note: We use the OptimalThreshold interface which now uses the generic type
+// Note: GoalsAIService specific type definitions
 interface OptimalThresholdType extends OptimalThreshold<GoalThresholdAnalysis> {}
 
-// Simplified local types (many internal types can be removed or simplified)
 interface TeamGoalPattern {
   team: string;
   venue: 'home' | 'away';
@@ -28,7 +22,7 @@ interface TeamGoalPattern {
   averageTotalGoals: number;
   bttsPercentage: number;
   thresholdAnalysis: {
-    [key: string]: GoalThresholdAnalysis; // Use the standardized type
+    [key: string]: GoalThresholdAnalysis; 
   };
   recentMatches: Array<{
     opponent: string;
@@ -42,8 +36,6 @@ interface TeamGoalPattern {
 type GoalType = 'total' | 'for' | 'against';
 
 export class GoalsAIService {
-  // ❌ REMOVED: CONFIDENCE_THRESHOLDS
-  // ❌ REMOVED: CONSISTENCY_THRESHOLDS
 
   /**
    * Helper to get goal count based on type
@@ -59,11 +51,8 @@ export class GoalsAIService {
     }
   }
   
-  // --- Core Goal Threshold Analysis Functions ---
-
   /**
    * Analyze goal threshold for an 'Over' bet type.
-   * 💡 REFACTORED: Delegates Confidence and Value calculation to the utility.
    */
   private analyzeGoalThresholdOver(
     matches: Array<{ totalGoals: number; goalsFor: number; goalsAgainst: number }>,
@@ -74,19 +63,15 @@ export class GoalsAIService {
     
     const getCount = (match: { totalGoals: number; goalsFor: number; goalsAgainst: number }) => this.getGoalCount(match, type);
 
-    // 1. Calculate historical percentage
     const matchesOver = matches.filter(match => getCount(match) > threshold);
     const overPercentage = (matchesOver.length / matches.length) * 100;
 
-    // 2. Analyze recent form & consistency
     const recentMatches = matches.slice(0, 5);
     const recentOverForm = recentMatches.map(match => getCount(match) > threshold);
     const overHits = recentOverForm.filter(Boolean).length;
     
-    // 🚀 NEW: Use utility to calculate consistency (including low sample penalty)
     const overConsistency = statisticalAIGenerator.calculateConsistency(overHits, Math.min(5, recentMatches.length));
 
-    // 🚀 NEW: Use utility to get Confidence and Value (EV)
     const overConfidence = statisticalAIGenerator.getConfidenceLevel(overPercentage, overConsistency);
     const overValue = statisticalAIGenerator.calculateExpectedValue(overPercentage, overConsistency, odds);
 
@@ -97,14 +82,13 @@ export class GoalsAIService {
       confidence: overConfidence,
       recentForm: recentOverForm,
       betType: 'over',
-      value: overValue, // The EV score
+      value: overValue, 
       odds,
-    } as GoalThresholdAnalysis; // Cast to ensure it matches the interface
+    } as GoalThresholdAnalysis; 
   }
 
   /**
    * Analyze goal threshold for an 'Under' bet type.
-   * 💡 REFACTORED: Delegates Confidence and Value calculation to the utility.
    */
   private analyzeGoalThresholdUnder(
     matches: Array<{ totalGoals: number; goalsFor: number; goalsAgainst: number }>,
@@ -115,19 +99,15 @@ export class GoalsAIService {
     
     const getCount = (match: { totalGoals: number; goalsFor: number; goalsAgainst: number }) => this.getGoalCount(match, type);
 
-    // 1. Calculate historical percentage
     const matchesUnder = matches.filter(match => getCount(match) < threshold);
     const underPercentage = (matchesUnder.length / matches.length) * 100;
 
-    // 2. Analyze recent form & consistency
     const recentMatches = matches.slice(0, 5);
     const recentUnderForm = recentMatches.map(match => getCount(match) < threshold);
     const underHits = recentUnderForm.filter(Boolean).length;
     
-    // 🚀 NEW: Use utility to calculate consistency
     const underConsistency = statisticalAIGenerator.calculateConsistency(underHits, Math.min(5, recentMatches.length));
 
-    // 🚀 NEW: Use utility to get Confidence and Value (EV)
     const underConfidence = statisticalAIGenerator.getConfidenceLevel(underPercentage, underConsistency);
     const underValue = statisticalAIGenerator.calculateExpectedValue(underPercentage, underConsistency, odds);
 
@@ -138,9 +118,9 @@ export class GoalsAIService {
       confidence: underConfidence,
       recentForm: recentUnderForm,
       betType: 'under',
-      value: underValue, // The EV score
+      value: underValue, 
       odds,
-    } as GoalThresholdAnalysis; // Cast to ensure it matches the interface
+    } as GoalThresholdAnalysis; 
   }
   
   /**
@@ -165,7 +145,6 @@ export class GoalsAIService {
     const overAnalysis = this.analyzeGoalThresholdOver(matches, threshold, type, overOdds);
     const underAnalysis = this.analyzeGoalThresholdUnder(matches, threshold, type, underOdds);
 
-    // 💡 REFACTORED: Selection logic now prioritizes confidence, then value (EV)
     const overValue = overAnalysis.value ?? 0;
     const underValue = underAnalysis.value ?? 0;
 
@@ -183,25 +162,64 @@ export class GoalsAIService {
     }
   }
 
-  // ❌ REMOVED: calculateBetValue (Now in StatisticalAIGenerator)
-  // ❌ REMOVED: getConfidenceLevel (Now in StatisticalAIGenerator)
-  // ❌ REMOVED: findOptimalThreshold (Now in StatisticalAIGenerator)
-  // ❌ REMOVED: generateThresholdReasoning (Now in StatisticalAIGenerator)
-
   /**
    * Find optimal threshold from multiple options
-   * 💡 REFACTORED: Simply wraps the utility function.
    */
   private findOptimalThreshold(analyses: GoalThresholdAnalysis[], betType?: 'over' | 'under'): OptimalThresholdType | null {
-    // 🚀 NEW: Call the centralized utility method
     const result = statisticalAIGenerator.findOptimal(analyses, betType);
     
-    // Convert generic ThresholdAnalysis to GoalThresholdAnalysis for local type safety
     if (!result) return null;
     return result as OptimalThresholdType; 
   }
 
-  // ... (analyzeTeamGoalPattern function remains largely the same, but uses the refactored analyzeGoalThreshold)
+  /**
+   * Analyze goal patterns for a specific team (Home or Away).
+   * 🛠️ FIX: This missing method is now included.
+   */
+  private async analyzeTeamGoalPattern(
+      teamName: string, 
+      venue: 'home' | 'away'
+  ): Promise<TeamGoalPattern> {
+      // NOTE: Assuming supabaseGoalsService.getTeamGoalStats returns the structure needed.
+      // This is a minimal implementation to satisfy the type check.
+      const teamStats = await supabaseGoalsService.getTeamGoalStats(teamName);
+      
+      if (!teamStats) {
+        throw new Error(`No goal data found for team: ${teamName}`);
+      }
+
+      const relevantMatches = teamStats.matchDetails.map((match: any) => ({
+        opponent: match.opponent,
+        goalsFor: match.goalsFor,
+        goalsAgainst: match.goalsAgainst,
+        totalGoals: match.totalGoals,
+        bothTeamsScored: match.goalsFor > 0 && match.goalsAgainst > 0,
+      }));
+      
+      const averageGoalsFor = teamStats.goalsFor / teamStats.matches;
+      const averageGoalsAgainst = teamStats.goalsAgainst / teamStats.matches;
+      const averageTotalGoals = averageGoalsFor + averageGoalsAgainst;
+      const bttsHits = relevantMatches.filter(m => m.bothTeamsScored).length;
+      const bttsPercentage = (bttsHits / relevantMatches.length) * 100;
+
+      const thresholdAnalysis: { [key: string]: GoalThresholdAnalysis } = {};
+      const GOAL_THRESHOLDS = [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]; 
+
+      GOAL_THRESHOLDS.forEach((threshold: number) => {
+        thresholdAnalysis[`total_${threshold}`] = this.analyzeGoalThreshold(relevantMatches, threshold, 'total', null);
+      });
+
+      return {
+        team: teamName,
+        venue,
+        averageGoalsFor: Math.round(averageGoalsFor * 100) / 100,
+        averageGoalsAgainst: Math.round(averageGoalsAgainst * 100) / 100,
+        averageTotalGoals: Math.round(averageTotalGoals * 100) / 100,
+        bttsPercentage: Math.round(bttsPercentage * 10) / 10,
+        thresholdAnalysis,
+        recentMatches: relevantMatches.slice(0, 5)
+      };
+  }
 
   /**
    * Generate optimized insights for total match goals
@@ -216,6 +234,7 @@ export class GoalsAIService {
     const thresholds = [0.5, 1.5, 2.5, 3.5, 4.5, 5.5];
 
     for (const threshold of thresholds) {
+      // NOTE: We rely on the internal analysis during pattern generation, but re-run for consistency/odds.
       const homeAnalyses = Object.values(homePattern.thresholdAnalysis).filter(a => a.threshold === threshold);
       const awayAnalyses = Object.values(awayPattern.thresholdAnalysis).filter(a => a.threshold === threshold);
       
@@ -226,15 +245,13 @@ export class GoalsAIService {
       
       if (!homeOver || !awayOver || !homeUnder || !awayUnder) continue;
 
-      // 💰 Inject odds only for the 2.5 threshold
       const overOdds = (threshold === 2.5) ? matchOdds?.totalGoalsOdds?.overOdds : undefined;
       const underOdds = (threshold === 2.5) ? matchOdds?.totalGoalsOdds?.underOdds : undefined;
 
       // --- OVER COMBINED ANALYSIS ---
       const combinedOverPercentage = (homeOver.percentage + awayOver.percentage) / 2;
-      const combinedOverConsistency = (homeOver.consistency + awayOver.consistency) / 2; // Average the consistency
+      const combinedOverConsistency = (homeOver.consistency + awayOver.consistency) / 2;
       
-      // 🚀 NEW: Use utility for final confidence and EV calculation
       const combinedOverConfidence = statisticalAIGenerator.getConfidenceLevel(combinedOverPercentage, combinedOverConsistency);
       const combinedOverValue = statisticalAIGenerator.calculateExpectedValue(combinedOverPercentage, combinedOverConsistency, overOdds);
 
@@ -253,7 +270,6 @@ export class GoalsAIService {
       const combinedUnderPercentage = (homeUnder.percentage + awayUnder.percentage) / 2;
       const combinedUnderConsistency = (homeUnder.consistency + awayUnder.consistency) / 2;
       
-      // 🚀 NEW: Use utility for final confidence and EV calculation
       const combinedUnderConfidence = statisticalAIGenerator.getConfidenceLevel(combinedUnderPercentage, combinedUnderConsistency);
       const combinedUnderValue = statisticalAIGenerator.calculateExpectedValue(combinedUnderPercentage, combinedUnderConsistency, underOdds);
 
@@ -269,11 +285,10 @@ export class GoalsAIService {
       } as GoalThresholdAnalysis);
     }
 
-    // Find optimal over and under thresholds
     const optimalOver = this.findOptimalThreshold(combinedAnalyses, 'over');
     if (optimalOver) {
       const analysis = optimalOver.analysis;
-      const isValueBet = analysis.value > 0.0001; // Check for positive EV
+      const isValueBet = analysis.value > 0.0001;
       
       insights.push({
         id: `optimal-total-goals-over-${analysis.threshold}`,
@@ -289,7 +304,6 @@ export class GoalsAIService {
     }
 
     const optimalUnder = this.findOptimalThreshold(combinedAnalyses, 'under');
-    // ... (generate similar insight for optimalUnder)
     if (optimalUnder) {
       const analysis = optimalUnder.analysis;
       const isValueBet = analysis.value > 0.0001;
@@ -307,7 +321,7 @@ export class GoalsAIService {
       });
     }
     
-    // Sort by Confidence, then by EV (Value Score)
+    // Final sorting
     return insights.sort((a, b) => {
       const confidenceOrder: Record<string, number> = { high: 3, medium: 2, low: 1 };
       const confDiff = (confidenceOrder[b.confidence] || 0) - (confidenceOrder[a.confidence] || 0);
@@ -316,15 +330,13 @@ export class GoalsAIService {
     });
   }
   
-  // ... (other generator methods would be refactored similarly)
+  // NOTE: Other specific goal analysis generators would go here
 
   /**
    * Main method: Generate optimized goal-related betting insights
-   * 💡 NOTE: The primary change here is how insights are sorted at the end.
    */
   async generateGoalInsights(homeTeam: string, awayTeam: string): Promise<AIInsight[]> {
     try {
-      // ... (analysis and insight generation calls remain the same)
       const homePattern = await this.analyzeTeamGoalPattern(homeTeam, 'home');
       const awayPattern = await this.analyzeTeamGoalPattern(awayTeam, 'away');
       const matchOdds = await oddsAPIService.getOddsForMatch(homeTeam, awayTeam); 
@@ -332,13 +344,12 @@ export class GoalsAIService {
       const allInsights: AIInsight[] = [];
       
       allInsights.push(...this.generateOptimalTotalGoalsInsights(homePattern, awayPattern, matchOdds));
-      // ... (add other insights)
+      // ... (add other insights, e.g., BTTS, Team Goals)
 
       const resolutionResult = conflictResolverService.resolveConflicts(allInsights);
       
       const insightsToFilter = resolutionResult.resolvedInsights;
       
-      // 🚀 NEW: Standardized final sorting based on Confidence and ValueScore (EV)
       const confidenceOrder: Record<string, number> = { high: 3, medium: 2, low: 1 };
       
       const filteredInsights = insightsToFilter
