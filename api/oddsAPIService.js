@@ -1,5 +1,6 @@
 // api/oddsAPIService.js
-import { normalizeTeamName } from '../utils/teamUtils.js'; // adjust path if needed
+import { normalizeTeamName } from '../src/utils/teamUtils.ts';
+
 
 const API_KEY = process.env.ODDS_API_KEY;
 const BASE_URL = 'https://api.the-odds-api.com/v4';
