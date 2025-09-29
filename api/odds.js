@@ -1,7 +1,7 @@
 // api/odds.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 // 1. ADD THIS LINE: Import the value of the service you want to use
-import oddsAPIService from '../../src/services/api/oddsAPIService.ts'; 
+import { oddsAPIService } from '../../src/services/api/oddsAPIService.ts'; 
 // NOTE: Vercel/TypeScript handles the relative path with the .ts extension, or your bundler will resolve it.
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
