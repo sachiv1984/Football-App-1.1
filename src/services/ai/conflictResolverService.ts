@@ -614,18 +614,23 @@ export class ConflictResolverService {
   private resolveMostCardsThresholdConflict(conflicting: AIInsight[]): AIInsight | null {
     if (conflicting.length !== 2) return null;
 
-    const [most, team] = conflicting.sort((a, b) => b.valueScore - a.valueScore);
+    // Fix 1: Handle possibly undefined 'valueScore' during sorting
+    const [most, team] = conflicting.sort((a, b) => (b.valueScore ?? 0) - (a.valueScore ?? 0));
 
-    // If there is a large difference in value score, trust the higher value one.
-    if (Math.abs(most.valueScore - team.valueScore) > 500) {
+    // Ensure both have a value score before proceeding with difference check
+    const mostValue = most.valueScore ?? 0;
+    const teamValue = team.valueScore ?? 0;
+
+    // Fix 2: Handle possibly undefined 'valueScore' in the difference check
+    if (Math.abs(mostValue - teamValue) > 500) {
         return {
             ...most,
             description: `${most.description} [Kept due to significantly higher value score in logical conflict]`
         };
     }
     
-    // If the value scores are similar, prioritize the more specific bet (Team Card Threshold)
-    if (team.market.includes('cards over')) {
+    // Fix 3: Handle possibly undefined 'market' property before checking for inclusion
+    if (team.market?.includes('cards over')) {
         return {
             ...team,
             description: `${team.description} [Kept due to being the more specific bet in a tied logical conflict]`
@@ -635,6 +640,7 @@ export class ConflictResolverService {
     // Fallback: Remove both as the contradiction is high and scores are close
     return null; 
   }
+
 
   /**
    * HELPER METHODS
