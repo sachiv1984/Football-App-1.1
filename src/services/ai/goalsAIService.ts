@@ -174,7 +174,6 @@ export class GoalsAIService {
 
   /**
    * Analyze goal patterns for a specific team (Home or Away).
-   * 🛠️ FIX: This missing method is now included.
    */
   private async analyzeTeamGoalPattern(
       teamName: string, 
@@ -233,7 +232,6 @@ export class GoalsAIService {
     const thresholds = [0.5, 1.5, 2.5, 3.5, 4.5, 5.5];
 
     for (const threshold of thresholds) {
-      // NOTE: We rely on the internal analysis during pattern generation, but re-run for consistency/odds.
       const homeAnalyses = Object.values(homePattern.thresholdAnalysis).filter(a => a.threshold === threshold);
       const awayAnalyses = Object.values(awayPattern.thresholdAnalysis).filter(a => a.threshold === threshold);
       
@@ -352,13 +350,27 @@ export class GoalsAIService {
       const confidenceOrder: Record<string, number> = { high: 3, medium: 2, low: 1 };
       
       const filteredInsights = insightsToFilter
-        .filter(insight => insight.confidence !== 'low')
         .sort((a, b) => {
+            // 1. Sort by Confidence (High, Medium, Low)
             const confDiff = (confidenceOrder[b.confidence] || 0) - (confidenceOrder[a.confidence] || 0);
             if (confDiff !== 0) return confDiff;
+            // 2. Then sort by Value Score (EV)
             return (b.valueScore ?? 0) - (a.valueScore ?? 0);
         })
-        .slice(0, 6);
+        .filter(insight => {
+            // CRITICAL FILTER FIX: 
+            // - ALWAYS allow 'high' confidence insights through, even if odds are missing (ValueScore = 0).
+            if (insight.confidence === 'high') {
+                return true; 
+            }
+            // - Only allow 'medium' confidence if it has a positive value edge (odds were found and EV > 0).
+            if (insight.confidence === 'medium') {
+                return (insight.valueScore ?? 0) > 0;
+            }
+            // - Filter out 'low' confidence insights.
+            return false; // Automatically filters out 'low' confidence
+        })
+        .slice(0, 6); // Take the top 6 most confident/highest value insights
       
       console.log(`[GoalsAI] ✅ Final insights after standardization: ${filteredInsights.length}`);
       return filteredInsights;
