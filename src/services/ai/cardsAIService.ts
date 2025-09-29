@@ -6,6 +6,8 @@ import { oddsAPIService } from '../api/oddsAPIService';
 // Define the MatchOdds interface locally to match oddsAPIService
 interface MatchOdds {
   matchId: string;
+  totalGoalsOdds?: any; // Added for completeness, but not used here
+  bttsOdds?: any;      // Added for completeness, but not used here
   totalCardsOdds?: {
     market: string;
     overOdds: number;
@@ -27,8 +29,13 @@ interface MatchOdds {
     awayOdds: number;
     drawOdds: number;
   };
+  totalCornersOdds?: any; // Added for completeness, but not used here
+  homeCornersOdds?: any;  // Added for completeness, but not used here
+  awayCornersOdds?: any;  // Added for completeness, but not used here
+  mostCornersOdds?: any;  // Added for completeness, but not used here
   lastFetched: number;
 }
+
 
 // Local type definition for AI insights
 interface AIInsight {
@@ -41,6 +48,7 @@ interface AIInsight {
   supportingData?: string;
   source?: string;
   aiEnhanced?: boolean;
+  valueScore?: number; // Added for compatibility with conflictResolverService
 }
 
 interface CardThresholdAnalysis {
@@ -67,15 +75,7 @@ interface TeamCardPattern {
   averageCardsAgainst: number;
   averageTotalCards: number;
   thresholdAnalysis: {
-    over05: CardThresholdAnalysis;
-    over15: CardThresholdAnalysis;
-    over25: CardThresholdAnalysis;
-    over35: CardThresholdAnalysis;
-    over45: CardThresholdAnalysis;
-    over55: CardThresholdAnalysis;
-    over65?: CardThresholdAnalysis;
-    over75?: CardThresholdAnalysis;
-    over85?: CardThresholdAnalysis;
+    [key: string]: CardThresholdAnalysis; // Use string keys for flexibility
   };
   recentMatches: Array<{
     opponent: string;
@@ -99,6 +99,8 @@ export class CardsAIService {
     GOOD: 0.6,       // 3/5 recent matches
     POOR: 0.4        // 2/5 or less recent matches
   };
+
+  private readonly CARD_THRESHOLDS = [0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5];
 
   /**
    * Helper to get card count based on type
@@ -196,26 +198,31 @@ export class CardsAIService {
   
   /**
    * Analyze specific card threshold with enhanced value calculation.
+   * * 🎯 FIX 1: Add matchOdds argument to analyzeCardThreshold 
    */
   private analyzeCardThreshold(
     matches: Array<{ totalCards: number; cardsFor: number; cardsAgainst: number }>,
     threshold: number,
     type: CardType,
-    matchOdds: MatchOdds | null
+    matchOdds: MatchOdds | null // Added matchOdds
   ): CardThresholdAnalysis {
     
     // Get specific odds based on type and threshold
     let overOdds: number | undefined;
     let underOdds: number | undefined;
     
-    // Only integrate odds for specific thresholds to save API calls
+    // Total Match Cards: Use the common 4.5 line from the API
     if (type === 'total' && threshold === 4.5 && matchOdds?.totalCardsOdds) {
       overOdds = matchOdds.totalCardsOdds.overOdds;
       underOdds = matchOdds.totalCardsOdds.underOdds;
-    } else if (type === 'for' && matchOdds?.homeCardsOdds) {
+    } 
+    // Home Team Cards: Use the common 2.5 line from the API
+    else if (type === 'for' && threshold === 2.5 && matchOdds?.homeCardsOdds) {
       overOdds = matchOdds.homeCardsOdds.overOdds;
       underOdds = matchOdds.homeCardsOdds.underOdds;
-    } else if (type === 'against' && matchOdds?.awayCardsOdds) {
+    } 
+    // Away Team Cards: Use the common 2.5 line from the API
+    else if (type === 'against' && threshold === 2.5 && matchOdds?.awayCardsOdds) {
       overOdds = matchOdds.awayCardsOdds.overOdds;
       underOdds = matchOdds.awayCardsOdds.underOdds;
     }
@@ -241,7 +248,11 @@ export class CardsAIService {
   /**
    * Analyze card patterns for a specific team
    */
-  private async analyzeTeamCardPattern(teamName: string, venue: 'home' | 'away'): Promise<TeamCardPattern> {
+  private async analyzeTeamCardPattern(
+    teamName: string, 
+    venue: 'home' | 'away', 
+    matchOdds: MatchOdds | null // Passed from generateCardInsights
+  ): Promise<TeamCardPattern> {
     const teamStats = await supabaseCardsService.getTeamCardStats(teamName);
     
     if (!teamStats) {
@@ -254,18 +265,19 @@ export class CardsAIService {
     const averageCardsAgainst = teamStats.cardsAgainst / teamStats.matches;
     const averageTotalCards = averageCardsShown + averageCardsAgainst;
 
-    // Analyze each threshold with both over and under
-    const thresholdAnalysis = {
-      over05: this.analyzeCardThreshold(relevantMatches, 0.5, 'total', null),
-      over15: this.analyzeCardThreshold(relevantMatches, 1.5, 'total', null),
-      over25: this.analyzeCardThreshold(relevantMatches, 2.5, 'total', null),
-      over35: this.analyzeCardThreshold(relevantMatches, 3.5, 'total', null),
-      over45: this.analyzeCardThreshold(relevantMatches, 4.5, 'total', null),
-      over55: this.analyzeCardThreshold(relevantMatches, 5.5, 'total', null),
-      over65: this.analyzeCardThreshold(relevantMatches, 6.5, 'total', null),
-      over75: this.analyzeCardThreshold(relevantMatches, 7.5, 'total', null),
-      over85: this.analyzeCardThreshold(relevantMatches, 8.5, 'total', null)
-    };
+    const thresholdAnalysis: { [key: string]: CardThresholdAnalysis } = {};
+    
+    // Analyze each threshold for Total, For, and Against
+    this.CARD_THRESHOLDS.forEach(threshold => {
+      // Total Match Cards
+      thresholdAnalysis[`total_${threshold}`] = this.analyzeCardThreshold(relevantMatches, threshold, 'total', matchOdds);
+      
+      // Cards For (Team-specific cards shown)
+      thresholdAnalysis[`for_${threshold}`] = this.analyzeCardThreshold(relevantMatches, threshold, 'for', matchOdds);
+
+      // Cards Against (Team-specific cards received)
+      thresholdAnalysis[`against_${threshold}`] = this.analyzeCardThreshold(relevantMatches, threshold, 'against', matchOdds);
+    });
 
     return {
       team: teamName,
@@ -388,23 +400,23 @@ export class CardsAIService {
     const awayAnalyses = Object.values(awayPattern.thresholdAnalysis);
 
     const combinedAnalyses: CardThresholdAnalysis[] = [];
-    const thresholds = [0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5];
-
-    for (const threshold of thresholds) {
-      const homeOver = homeAnalyses.find(a => a.threshold === threshold && a.betType === 'over');
-      const awayOver = awayAnalyses.find(a => a.threshold === threshold && a.betType === 'over');
-      const homeUnder = homeAnalyses.find(a => a.threshold === threshold && a.betType === 'under');
-      const awayUnder = awayAnalyses.find(a => a.threshold === threshold && a.betType === 'under');
+    
+    for (const threshold of this.CARD_THRESHOLDS) {
+      const homeOver = homeAnalyses.find(a => a.threshold === threshold && a.betType === 'over' && a.betType === 'over');
+      const awayOver = awayAnalyses.find(a => a.threshold === threshold && a.betType === 'over' && a.betType === 'over');
+      const homeUnder = homeAnalyses.find(a => a.threshold === threshold && a.betType === 'under' && a.betType === 'under');
+      const awayUnder = awayAnalyses.find(a => a.threshold === threshold && a.betType === 'under' && a.betType === 'under');
       
       if (!homeOver || !awayOver || !homeUnder || !awayUnder) continue;
 
-      // Inject odds for the 4.5 threshold (most popular card market)
+      // Inject odds only for the 4.5 threshold (most popular total card market)
       const overOdds = (threshold === 4.5) ? matchOdds?.totalCardsOdds?.overOdds : undefined;
       const underOdds = (threshold === 4.5) ? matchOdds?.totalCardsOdds?.underOdds : undefined;
 
       // OVER COMBINED ANALYSIS
       const combinedOverPercentage = (homeOver.percentage + awayOver.percentage) / 2;
       const combinedOverConsistency = (homeOver.consistency + awayOver.consistency) / 2;
+      // Recalculate value with odds if available
       const combinedOverValue = this.calculateBetValue(combinedOverPercentage, combinedOverConsistency, threshold, 'over', overOdds);
 
       combinedAnalyses.push({
@@ -421,6 +433,7 @@ export class CardsAIService {
       // UNDER COMBINED ANALYSIS
       const combinedUnderPercentage = (homeUnder.percentage + awayUnder.percentage) / 2;
       const combinedUnderConsistency = (homeUnder.consistency + awayUnder.consistency) / 2;
+      // Recalculate value with odds if available
       const combinedUnderValue = this.calculateBetValue(combinedUnderPercentage, combinedUnderConsistency, threshold, 'under', underOdds);
 
       combinedAnalyses.push({
@@ -449,6 +462,7 @@ export class CardsAIService {
         odds: analysis.odds ? analysis.odds.toFixed(2) : undefined,
         supportingData: `Home avg: ${homePattern.averageTotalCards}, Away avg: ${awayPattern.averageTotalCards}`,
         aiEnhanced: true,
+        valueScore: analysis.value,
       });
     }
 
@@ -466,6 +480,7 @@ export class CardsAIService {
         odds: analysis.odds ? analysis.odds.toFixed(2) : undefined,
         supportingData: `Combined average: ${((homePattern.averageTotalCards + awayPattern.averageTotalCards) / 2).toFixed(1)} cards per game`,
         aiEnhanced: true,
+        valueScore: analysis.value,
       });
     }
 
@@ -477,6 +492,7 @@ export class CardsAIService {
 
   /**
    * Generate optimized insights for team-specific cards
+   * * 🎯 FIX 2: Correctly pull and inject team-specific odds for the 2.5 line.
    */
   private generateOptimalTeamCardsInsights(
     teamPattern: TeamCardPattern,
@@ -488,10 +504,27 @@ export class CardsAIService {
     const matches = teamPattern.recentMatches;
     const thresholds = [0.5, 1.5, 2.5, 3.5, 4.5]; // Limit thresholds for team-specific
     
+    // Determine which odds to use based on teamType (Home/Away)
+    const teamOdds = teamType === 'Home' ? matchOdds?.homeCardsOdds : matchOdds?.awayCardsOdds;
+
     const analyses: CardThresholdAnalysis[] = [];
     thresholds.forEach(threshold => {
-      analyses.push(this.analyzeCardThresholdOver(matches, threshold, 'for', undefined));
-      analyses.push(this.analyzeCardThresholdUnder(matches, threshold, 'for', undefined));
+      
+      let overOddsForValue: number | undefined;
+      let underOddsForValue: number | undefined;
+
+      // Only inject the odds if the threshold is 2.5 (the typical market line)
+      if (threshold === 2.5) {
+        overOddsForValue = teamOdds?.overOdds;
+        underOddsForValue = teamOdds?.underOdds;
+      }
+
+      // Re-run analysis, passing the specific odds
+      const overAnalysis = this.analyzeCardThresholdOver(matches, threshold, 'for', overOddsForValue);
+      const underAnalysis = this.analyzeCardThresholdUnder(matches, threshold, 'for', underOddsForValue);
+      
+      analyses.push(overAnalysis);
+      analyses.push(underAnalysis);
     });
     
     const optimal = this.findOptimalThreshold(analyses);
@@ -506,8 +539,10 @@ export class CardsAIService {
         description: `Optimal ${teamType.toLowerCase()} team bet: ${analysis.percentage.toFixed(1)}% hit rate (${recentHits}/5 recent). ${optimal.reasoning}`,
         market: `${teamType} Team Cards ${analysis.betType === 'over' ? 'Over' : 'Under'} ${analysis.threshold}`,
         confidence: analysis.confidence,
+        odds: analysis.odds ? analysis.odds.toFixed(2) : undefined,
         supportingData: `Recent form: [${matches.slice(0, 5).map(m => m.cardsFor).join(', ')}]. Average: ${teamPattern.averageCardsShown}/game`,
-        aiEnhanced: true
+        aiEnhanced: true,
+        valueScore: analysis.value,
       });
     }
     
@@ -533,11 +568,13 @@ export class CardsAIService {
     const awayMorePercentage = (awayMoreCards / awayPattern.recentMatches.length) * 100;
     
     // Calculate draw (equal cards) percentage
-    const drawCards = [...homePattern.recentMatches, ...awayPattern.recentMatches]
-      .filter(m => m.cardsFor === m.cardsAgainst).length;
-    const drawPercentage = (drawCards / (homePattern.recentMatches.length + awayPattern.recentMatches.length)) * 100;
+    const drawCards = homePattern.recentMatches.filter(m => m.cardsFor === m.cardsAgainst).length + 
+                      awayPattern.recentMatches.filter(m => m.cardsAgainst === m.cardsFor).length; // Check both home's for vs against, and away's for vs against.
     
-    const combinedPercentage = (homeMorePercentage + awayMorePercentage) / 2;
+    // Use the length of the shorter list of recent matches to ensure a conservative percentage.
+    const sampleSize = homePattern.recentMatches.length + awayPattern.recentMatches.length;
+
+    const drawPercentage = (drawCards / sampleSize) * 100;
     
     // Get odds if available
     const homeOdds = matchOdds?.mostCardsOdds?.homeOdds;
@@ -553,9 +590,9 @@ export class CardsAIService {
     
     // Calculate value for each bet
     const betsWithValue = bets.map(bet => {
-      const value = bet.odds 
-        ? this.calculateBetValue(bet.percentage, 0.6, 2.5, 'over', bet.odds)
-        : bet.percentage;
+      // Use a consistent consistency factor (0.6 for medium) for all most cards bets
+      // Use a default threshold (e.g., 2.5) for the card difficulty factor
+      const value = this.calculateBetValue(bet.percentage, 0.6, 2.5, 'over', bet.odds);
       return { ...bet, value };
     });
     
@@ -573,7 +610,8 @@ export class CardsAIService {
         confidence,
         odds: bestBet.odds ? bestBet.odds.toFixed(2) : undefined,
         supportingData: `Home avg cards: ${homePattern.averageCardsShown}, Away avg cards: ${awayPattern.averageCardsShown}`,
-        aiEnhanced: true
+        aiEnhanced: true,
+        valueScore: bestBet.value
       });
     }
     
@@ -587,12 +625,13 @@ export class CardsAIService {
     try {
       console.log(`[CardsAI] Generating optimized insights for ${homeTeam} vs ${awayTeam}`);
       
-      const homePattern = await this.analyzeTeamCardPattern(homeTeam, 'home');
-      const awayPattern = await this.analyzeTeamCardPattern(awayTeam, 'away');
-
       // Fetch odds data (efficiently via cache)
       const matchOdds = await oddsAPIService.getOddsForMatch(homeTeam, awayTeam); 
       
+      // Pass matchOdds down to team analysis
+      const homePattern = await this.analyzeTeamCardPattern(homeTeam, 'home', matchOdds);
+      const awayPattern = await this.analyzeTeamCardPattern(awayTeam, 'away', matchOdds);
+
       const allInsights: AIInsight[] = [];
       
       // Generate all types of insights
@@ -609,6 +648,7 @@ export class CardsAIService {
       
       const filteredInsights = insightsToFilter
         .filter(insight => insight.confidence !== 'low')
+        .sort((a, b) => (b.valueScore || 0) - (a.valueScore || 0)) // Sort by value score
         .slice(0, 6);
       
       console.log(`[CardsAI] ✅ Final insights after resolution: ${filteredInsights.length}`);
