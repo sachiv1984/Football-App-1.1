@@ -84,9 +84,9 @@ export default async function handler(req, res) {
   try {
     const sport = 'soccer_epl'; // English Premier League
     const regions = 'uk'; // UK bookmakers
-    const markets = 'totals,btts,h2h'; // Markets we need
+    const markets = 'totals'; // Only totals for now (goals over/under)
     
-    // Fetch odds from The Odds API
+    // Step 1: Fetch basic odds to find the event
     const oddsApiUrl = `https://api.the-odds-api.com/v4/sports/${sport}/odds/?apiKey=${apiKey}&regions=${regions}&markets=${markets}&oddsFormat=decimal`;
     
     console.log(`Fetching odds for ${home} vs ${away} from The Odds API`);
@@ -116,11 +116,12 @@ export default async function handler(req, res) {
     if (!match) {
       return res.status(404).json({ 
         error: `No match found for ${home} vs ${away}`,
-        hint: 'Match might not be available or scheduled. Check team names.'
+        hint: 'Match might not be available or scheduled. Check team names.',
+        availableMatches: data.slice(0, 5).map(g => `${g.home_team} vs ${g.away_team}`)
       });
     }
 
-    // Parse bookmaker data for different markets
+    // Parse bookmaker data for totals (goals)
     const result = {
       matchId,
       homeTeam: match.home_team,
@@ -129,39 +130,127 @@ export default async function handler(req, res) {
       lastFetched: new Date().toISOString()
     };
 
-    // Process markets
+    // Process totals market for goals
     if (match.bookmakers && match.bookmakers.length > 0) {
+      let bestGoalsOver = 0;
+      let bestGoalsUnder = 0;
+
       match.bookmakers.forEach(bookmaker => {
         bookmaker.markets.forEach(market => {
-          
-          // Total Goals (Over/Under 2.5)
-          if (market.key === 'totals' && market.outcomes) {
-            const outcome = market.outcomes.find(o => o.name === 'Over' && o.point === 2.5);
-            if (outcome) {
-              const bestOdds = findBestOdds(market.outcomes);
-              result.totalGoalsOdds = {
-                overOdds: bestOdds['Over'] || 0,
-                underOdds: bestOdds['Under'] || 0,
-                line: 2.5
-              };
-            }
-          }
-
-          // BTTS (Both Teams To Score)
-          if (market.key === 'btts') {
-            const bestOdds = findBestOdds(market.outcomes);
-            result.bttsOdds = {
-              yesOdds: bestOdds['Yes'] || 0,
-              noOdds: bestOdds['No'] || 0
-            };
+          if (market.key === 'totals') {
+            market.outcomes.forEach(outcome => {
+              // Looking for 2.5 goals line
+              if (outcome.point === 2.5) {
+                if (outcome.name === 'Over' && outcome.price > bestGoalsOver) {
+                  bestGoalsOver = outcome.price;
+                }
+                if (outcome.name === 'Under' && outcome.price > bestGoalsUnder) {
+                  bestGoalsUnder = outcome.price;
+                }
+              }
+            });
           }
         });
       });
+
+      if (bestGoalsOver > 0 && bestGoalsUnder > 0) {
+        result.totalGoalsOdds = {
+          overOdds: bestGoalsOver,
+          underOdds: bestGoalsUnder,
+          line: 2.5
+        };
+      }
     }
 
-    // Note: The Odds API doesn't provide cards and corners data for most bookmakers
-    // These markets are rarely available via API, mostly only on betting sites directly
-    // We'll leave them undefined for now
+    // Step 2: Now fetch additional markets (BTTS, corners, cards) using the event endpoint
+    const eventId = match.id;
+    const additionalMarkets = 'btts,alternate_totals_corners,alternate_totals_cards';
+    const eventOddsUrl = `https://api.the-odds-api.com/v4/sports/${sport}/events/${eventId}/odds?apiKey=${apiKey}&regions=${regions}&markets=${additionalMarkets}&oddsFormat=decimal`;
+    
+    console.log(`Fetching additional markets for event ${eventId}`);
+    
+    try {
+      const eventResponse = await fetch(eventOddsUrl);
+      
+      if (eventResponse.ok) {
+        const eventData = await eventResponse.json();
+        
+        // Process additional markets
+        if (eventData.bookmakers && eventData.bookmakers.length > 0) {
+          eventData.bookmakers.forEach(bookmaker => {
+            bookmaker.markets.forEach(market => {
+              
+              // BTTS (Both Teams To Score)
+              if (market.key === 'btts') {
+                const bestOdds = findBestOdds(market.outcomes);
+                if (bestOdds) {
+                  result.bttsOdds = {
+                    yesOdds: bestOdds['Yes'] || 0,
+                    noOdds: bestOdds['No'] || 0
+                  };
+                }
+              }
+
+              // Total Corners (looking for 9.5 line)
+              if (market.key === 'alternate_totals_corners') {
+                let bestCornersOver = 0;
+                let bestCornersUnder = 0;
+                
+                market.outcomes.forEach(outcome => {
+                  if (outcome.point === 9.5) {
+                    if (outcome.name === 'Over' && outcome.price > bestCornersOver) {
+                      bestCornersOver = outcome.price;
+                    }
+                    if (outcome.name === 'Under' && outcome.price > bestCornersUnder) {
+                      bestCornersUnder = outcome.price;
+                    }
+                  }
+                });
+
+                if (bestCornersOver > 0 && bestCornersUnder > 0) {
+                  result.totalCornersOdds = {
+                    overOdds: bestCornersOver,
+                    underOdds: bestCornersUnder,
+                    line: 9.5
+                  };
+                }
+              }
+
+              // Total Cards (looking for 4.5 line)
+              if (market.key === 'alternate_totals_cards') {
+                let bestCardsOver = 0;
+                let bestCardsUnder = 0;
+                
+                market.outcomes.forEach(outcome => {
+                  if (outcome.point === 4.5) {
+                    if (outcome.name === 'Over' && outcome.price > bestCardsOver) {
+                      bestCardsOver = outcome.price;
+                    }
+                    if (outcome.name === 'Under' && outcome.price > bestCardsUnder) {
+                      bestCardsUnder = outcome.price;
+                    }
+                  }
+                });
+
+                if (bestCardsOver > 0 && bestCardsUnder > 0) {
+                  result.totalCardsOdds = {
+                    overOdds: bestCardsOver,
+                    underOdds: bestCardsUnder,
+                    line: 4.5
+                  };
+                }
+              }
+            });
+          });
+        }
+      } else {
+        console.log('Additional markets not available for this event');
+      }
+    } catch (eventError) {
+      console.warn('Could not fetch additional markets:', eventError.message);
+      // Continue without additional markets
+    }
+
     console.log(`Successfully fetched odds for ${matchId}`);
 
     // Cache the result
