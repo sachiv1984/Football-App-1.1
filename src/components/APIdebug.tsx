@@ -82,8 +82,9 @@ const APIdebug = () => {
     try {
       data = JSON.parse(text);
     } catch (parseErr) {
-      setError(`Invalid JSON response: ${parseErr.message}`);
-      addLog(`❌ JSON Parse Error: ${parseErr.message}`, 'error');
+      const errorMessage = parseErr instanceof Error ? parseErr.message : 'Unknown parse error';
+      setError(`Invalid JSON response: ${errorMessage}`);
+      addLog(`❌ JSON Parse Error: ${errorMessage}`, 'error');
       addLog(`📄 Response: ${text.slice(0, 200)}`, 'error');
       setRawResponse({ error: 'Parse Error', text: text.slice(0, 500) });
       return;
