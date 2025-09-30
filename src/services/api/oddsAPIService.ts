@@ -102,7 +102,7 @@ export interface MatchOdds {
   bttsOdds?: { market: string; yesOdds: number; noOdds: number };
   totalCardsOdds?: { market: string; overOdds: number; underOdds: number };
   totalCornersOdds?: { market: string; overOdds: number; underOdds: number };
-  mostCardsOdds?: { market: string; homeOdds: number; awayOdds: number };
+  mostCardsOdds?: { market: string; homeOdds: number; awayOdds: number; drawOdds: number };
   lastFetched: number;
 }
 
@@ -174,7 +174,7 @@ export class OddsAPIService {
   }
 
   private async fetchOddsFromAPI(homeTeam: string, awayTeam: string) {
-    const markets = ['totals', 'btts', 'total_cards', 'total_corners'].join(',');
+    const markets = ['totals', 'btts', 'total_cards', 'total_corners', 'most_cards'].join(',');
     const url = `${BASE_URL}/sports/${SPORT_KEY}/odds?apiKey=${API_KEY}&regions=uk&markets=${markets}&oddsFormat=decimal`;
 
     console.log(`[OddsAPI] Fetching from API for ${homeTeam} vs ${awayTeam}...`);
@@ -258,6 +258,7 @@ export class OddsAPIService {
     const btts = bookmaker.markets.find(m => m.key === 'btts');
     const totalCards = bookmaker.markets.find(m => m.key === 'total_cards');
     const totalCorners = bookmaker.markets.find(m => m.key === 'total_corners');
+    const mostCards = bookmaker.markets.find(m => m.key === 'most_cards');
 
     const result = {
       totalGoalsOdds: totalGoals ? {
@@ -283,6 +284,13 @@ export class OddsAPIService {
         overOdds: totalCorners.outcomes.find(o => o.name === 'Over' && o.point === 9.5)?.price || 0,
         underOdds: totalCorners.outcomes.find(o => o.name === 'Under' && o.point === 9.5)?.price || 0,
       } : undefined,
+
+      mostCardsOdds: mostCards ? {
+        market: 'Most Cards',
+        homeOdds: mostCards.outcomes.find(o => o.name === 'Home')?.price || 0,
+        awayOdds: mostCards.outcomes.find(o => o.name === 'Away')?.price || 0,
+        drawOdds: mostCards.outcomes.find(o => o.name === 'Draw')?.price || 0,
+      } : undefined,
     };
 
     console.log('[OddsAPI] Extracted odds:', {
@@ -290,6 +298,7 @@ export class OddsAPIService {
       btts: !!result.bttsOdds,
       cards: !!result.totalCardsOdds,
       corners: !!result.totalCornersOdds,
+      mostCards: !!result.mostCardsOdds,
     });
 
     return result;
