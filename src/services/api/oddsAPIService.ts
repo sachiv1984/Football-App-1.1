@@ -192,6 +192,14 @@ export class OddsAPIService {
       const text = await res.text();
       console.log('[OddsAPI] Response received, length:', text.length);
       console.log('[OddsAPI] Response preview:', text.slice(0, 300));
+      console.log('[OddsAPI] Content-Type:', res.headers.get('content-type'));
+
+      // Check if response looks like HTML
+      if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+        console.error('[OddsAPI] ❌ Received HTML instead of JSON - API endpoint may be wrong');
+        console.error('[OddsAPI] Full response:', text.slice(0, 1000));
+        return null;
+      }
 
       // Safely parse JSON
       try {
