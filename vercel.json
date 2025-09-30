@@ -1,13 +1,5 @@
 {
   "rewrites": [
-    // 1. Exclude the API path from the front-end rewrite. 
-    // This is often sufficient to prevent routing conflicts.
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/$1" 
-    },
-    // 2. Route all other requests to the static index.html 
-    // (This ensures your client-side routing works)
     {
       "source": "/(.*)",
       "destination": "/index.html"
