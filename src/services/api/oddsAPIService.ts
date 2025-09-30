@@ -1,9 +1,7 @@
-// src/services/api/oddsAPIService.ts (FIXED: Self-contained module)
+// src/services/api/oddsAPIService.ts (FIXED: Enhanced error handling and logging)
 
 // =========================================================
 // 1. Team Normalization Utility (COPIED IN-LINE)
-//    This block replaces the external 'import { normalizeTeamName } from "../../utils/teamUtils";'
-//    and uses only the parts required for ID generation and API matching.
 // =========================================================
 const TEAM_NORMALIZATION_MAP: Record<string, string> = {
   // Manchester clubs
@@ -30,6 +28,7 @@ const TEAM_NORMALIZATION_MAP: Record<string, string> = {
   'Wolverhampton Wanderers FC': 'Wolverhampton Wanderers',
   // Leicester
   'Leicester': 'Leicester City',
+  'Leicester City FC': 'Leicester City',
   // Newcastle
   'Newcastle': 'Newcastle United',
   'Newcastle United FC': 'Newcastle United',
@@ -41,6 +40,7 @@ const TEAM_NORMALIZATION_MAP: Record<string, string> = {
   // West Ham
   'West Ham': 'West Ham United',
   'West Ham FC': 'West Ham United',
+  'West Ham United FC': 'West Ham United',
   // Palace
   'Crystal Palace FC': 'Crystal Palace',
   'Palace': 'Crystal Palace',
@@ -78,13 +78,11 @@ const TEAM_NORMALIZATION_MAP: Record<string, string> = {
   // Leeds
   'Leeds Utd': 'Leeds United',
   'Leeds United FC': 'Leeds United',
-  // European competition variations (optional but harmless)
-  'Atletico Madrid': 'Atletico Madrid',
-  'Real Madrid': 'Real Madrid',
-  'FC Barcelona': 'Barcelona',
-  'Bayern Munich': 'Bayern Munich',
-  'Paris Saint-Germain': 'Paris Saint-Germain',
-  'PSG': 'Paris Saint-Germain',
+  // Southampton
+  'Southampton FC': 'Southampton',
+  // Ipswich
+  'Ipswich': 'Ipswich Town',
+  'Ipswich Town FC': 'Ipswich Town',
 };
 
 // Normalize team name → always returns canonical version
@@ -95,7 +93,7 @@ const normalizeTeamName = (name: string): string => {
 };
 
 // =========================================================
-// 2. Original Service Interfaces and Exports
+// 2. Service Interfaces and Exports
 // =========================================================
 
 export interface MatchOdds {
@@ -103,6 +101,8 @@ export interface MatchOdds {
   totalGoalsOdds?: { market: string; overOdds: number; underOdds: number };
   bttsOdds?: { market: string; yesOdds: number; noOdds: number };
   totalCardsOdds?: { market: string; overOdds: number; underOdds: number };
+  totalCornersOdds?: { market: string; overOdds: number; underOdds: number };
+  mostCardsOdds?: { market: string; homeOdds: number; awayOdds: number };
   lastFetched: number;
 }
 
@@ -116,7 +116,7 @@ interface APIMatchData {
 }
 
 // Backend-safe API key
-const API_KEY = process.env.ODDS_API_KEY;
+const API_KEY = process.env.ODDS_API_KEY || process.env.VITE_ODDS_API_KEY;
 const BASE_URL = 'https://api.the-odds-api.com/v4';
 const CACHE_TIMEOUT = 10 * 60 * 1000; // 10 min
 const BOOKMAKER_KEY = 'draftkings';
@@ -126,30 +126,46 @@ export class OddsAPIService {
   private oddsCache: Map<string, MatchOdds> = new Map();
 
   constructor() {
-    if (!API_KEY) console.warn('[OddsAPI] ⚠️ ODDS_API_KEY not set in environment');
+    if (!API_KEY) {
+      console.warn('[OddsAPI] ⚠️ ODDS_API_KEY not set in environment');
+    } else {
+      console.log('[OddsAPI] ✅ API key configured');
+    }
   }
 
   // Uses the local normalizeTeamName function
   private generateMatchId(home: string, away: string) {
-    return `${normalizeTeamName(home).toLowerCase().replace(/\s+/g, '')}_vs_${normalizeTeamName(away).toLowerCase().replace(/\s+/g, '')}`;
+    const normalizedHome = normalizeTeamName(home).toLowerCase().replace(/\s+/g, '');
+    const normalizedAway = normalizeTeamName(away).toLowerCase().replace(/\s+/g, '');
+    return `${normalizedHome}_vs_${normalizedAway}`;
   }
 
   public async getOddsForMatch(homeTeam: string, awayTeam: string): Promise<MatchOdds | null> {
     const matchId = this.generateMatchId(homeTeam, awayTeam);
+    console.log(`[OddsAPI] Requesting odds for match ID: ${matchId}`);
+    
     const cached = this.oddsCache.get(matchId);
 
     if (cached && Date.now() - cached.lastFetched < CACHE_TIMEOUT) {
+      console.log(`[OddsAPI] ✅ Returning cached odds (age: ${Math.floor((Date.now() - cached.lastFetched) / 1000)}s)`);
       return cached;
     }
 
-    if (!API_KEY) return cached || null;
+    if (!API_KEY) {
+      console.warn('[OddsAPI] No API key - returning cached data or null');
+      return cached || null;
+    }
 
     try {
       const oddsData = await this.fetchOddsFromAPI(homeTeam, awayTeam);
-      if (!oddsData) return cached || null;
+      if (!oddsData) {
+        console.warn('[OddsAPI] No odds data returned from API');
+        return cached || null;
+      }
 
       const newOdds: MatchOdds = { ...oddsData, matchId, lastFetched: Date.now() };
       this.oddsCache.set(matchId, newOdds);
+      console.log('[OddsAPI] ✅ Odds fetched and cached successfully');
       return newOdds;
     } catch (err) {
       console.error('[OddsAPI] Fetch failed:', err);
@@ -158,39 +174,81 @@ export class OddsAPIService {
   }
 
   private async fetchOddsFromAPI(homeTeam: string, awayTeam: string) {
-    const markets = ['totals','btts','total_cards'].join(',');
+    const markets = ['totals', 'btts', 'total_cards', 'total_corners'].join(',');
     const url = `${BASE_URL}/sports/${SPORT_KEY}/odds?apiKey=${API_KEY}&regions=uk&markets=${markets}&oddsFormat=decimal`;
+
+    console.log(`[OddsAPI] Fetching from API for ${homeTeam} vs ${awayTeam}...`);
 
     let data: APIMatchData[] = [];
     try {
       const res = await fetch(url);
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error(`[OddsAPI] HTTP ${res.status}:`, errorText.slice(0, 200));
+        return null;
+      }
+
       const text = await res.text();
+      console.log('[OddsAPI] Response received, length:', text.length);
+      console.log('[OddsAPI] Response preview:', text.slice(0, 300));
 
       // Safely parse JSON
       try {
         data = JSON.parse(text);
-      } catch {
-        console.error('[OddsAPI] Invalid JSON response:', text.slice(0, 200));
+      } catch (parseErr) {
+        console.error('[OddsAPI] JSON parse error:', parseErr);
+        console.error('[OddsAPI] Invalid JSON response:', text.slice(0, 500));
         return null;
       }
 
-      if (!Array.isArray(data)) return null;
+      if (!Array.isArray(data)) {
+        console.error('[OddsAPI] Response is not an array:', typeof data);
+        return null;
+      }
+      
+      console.log(`[OddsAPI] Found ${data.length} matches in response`);
     } catch (err) {
       console.error('[OddsAPI] Network error:', err);
       return null;
     }
 
+    // Normalize input teams for comparison
+    const inputHome = normalizeTeamName(homeTeam);
+    const inputAway = normalizeTeamName(awayTeam);
+    console.log(`[OddsAPI] Looking for: ${inputHome} vs ${inputAway}`);
+
     const match = data.find(m => {
-      // Uses the local normalizeTeamName function
+      // Normalize both API teams
       const apiHome = normalizeTeamName(m.home_team);
       const apiAway = normalizeTeamName(m.away_team);
+      
+      console.log(`[OddsAPI] Checking: API(${apiHome} vs ${apiAway}) with Input(${inputHome} vs ${inputAway})`);
+      
       // Logic for matching home/away or away/home
-      return (apiHome === homeTeam && apiAway === awayTeam) || (apiHome === awayTeam && apiAway === homeTeam);
+      return (apiHome === inputHome && apiAway === inputAway) || 
+             (apiHome === inputAway && apiAway === inputHome);
     });
-    if (!match) return null;
+    
+    if (!match) {
+      console.error(`[OddsAPI] ❌ No match found for ${inputHome} vs ${inputAway}`);
+      console.error('[OddsAPI] Available matches:', data.slice(0, 5).map(m => 
+        `${m.home_team} vs ${m.away_team}`
+      ).join(', '));
+      return null;
+    }
+
+    console.log(`[OddsAPI] ✅ Match found: ${match.home_team} vs ${match.away_team}`);
+    console.log(`[OddsAPI] Bookmakers available: ${match.bookmakers.length}`);
 
     const bookmaker = match.bookmakers.find(b => b.key === BOOKMAKER_KEY) || match.bookmakers[0];
-    if (!bookmaker) return null;
+    if (!bookmaker) {
+      console.error('[OddsAPI] No bookmaker data found');
+      return null;
+    }
+
+    console.log(`[OddsAPI] Using bookmaker: ${bookmaker.title}`);
+    console.log(`[OddsAPI] Markets available: ${bookmaker.markets.map(m => m.key).join(', ')}`);
 
     return this.extractOdds(bookmaker);
   }
@@ -199,8 +257,9 @@ export class OddsAPIService {
     const totalGoals = bookmaker.markets.find(m => m.key === 'totals');
     const btts = bookmaker.markets.find(m => m.key === 'btts');
     const totalCards = bookmaker.markets.find(m => m.key === 'total_cards');
+    const totalCorners = bookmaker.markets.find(m => m.key === 'total_corners');
 
-    return {
+    const result = {
       totalGoalsOdds: totalGoals ? {
         market: 'Over/Under 2.5 Goals',
         overOdds: totalGoals.outcomes.find(o => o.name === 'Over' && o.point === 2.5)?.price || 0,
@@ -218,10 +277,28 @@ export class OddsAPIService {
         overOdds: totalCards.outcomes.find(o => o.name === 'Over' && o.point === 4.5)?.price || 0,
         underOdds: totalCards.outcomes.find(o => o.name === 'Under' && o.point === 4.5)?.price || 0,
       } : undefined,
+
+      totalCornersOdds: totalCorners ? {
+        market: 'Over/Under 9.5 Corners',
+        overOdds: totalCorners.outcomes.find(o => o.name === 'Over' && o.point === 9.5)?.price || 0,
+        underOdds: totalCorners.outcomes.find(o => o.name === 'Under' && o.point === 9.5)?.price || 0,
+      } : undefined,
     };
+
+    console.log('[OddsAPI] Extracted odds:', {
+      goals: !!result.totalGoalsOdds,
+      btts: !!result.bttsOdds,
+      cards: !!result.totalCardsOdds,
+      corners: !!result.totalCornersOdds,
+    });
+
+    return result;
   }
 
-  public clearCache() { this.oddsCache.clear(); }
+  public clearCache() { 
+    this.oddsCache.clear();
+    console.log('[OddsAPI] Cache cleared');
+  }
 }
 
 export const oddsAPIService = new OddsAPIService();
