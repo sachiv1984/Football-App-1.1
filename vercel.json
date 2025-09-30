@@ -1,7 +1,19 @@
 {
-  "rewrites": [
+  "builds": [
     {
-      "source": "/((?!api/).*)",
+      "src": "api/odds.cjs",
+      "use": "@vercel/node"
+    }
+  ],
+  "rewrites": [
+    // 1. Exclude the API path from the front-end rewrite
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1" 
+    },
+    // 2. Route all other requests to the static index.html
+    {
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ]
