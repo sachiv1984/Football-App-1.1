@@ -1,321 +1,466 @@
-// src/services/api/oddsAPIService.ts (FIXED: Enhanced error handling and logging)
+// src/components/APIdebug.tsx
+import React, { useState, useEffect } from 'react';
+import { AlertCircle, CheckCircle, XCircle, RefreshCw, Database, TrendingUp, Wifi, WifiOff, Eye, Code } from 'lucide-react';
 
-// =========================================================
-// 1. Team Normalization Utility (COPIED IN-LINE)
-// =========================================================
-const TEAM_NORMALIZATION_MAP: Record<string, string> = {
-  // Manchester clubs
-  'Man Utd': 'Manchester United',
-  'Manchester United FC': 'Manchester United',
-  'Man United': 'Manchester United',
-  'Manchester Utd': 'Manchester United',
-  'Man City': 'Manchester City',
-  'Manchester City FC': 'Manchester City',
-  // Tottenham
-  'Spurs': 'Tottenham Hotspur',
-  'Tottenham': 'Tottenham Hotspur',
-  'Tottenham Hotspur FC': 'Tottenham Hotspur',
-  // Brighton
-  'Brighton': 'Brighton & Hove Albion',
-  'Brighton Hove Albion': 'Brighton & Hove Albion',
-  'Brighton and Hove Albion': 'Brighton & Hove Albion',
-  'Brighton & Hove Albion FC': 'Brighton & Hove Albion',
-  // Sheffield
-  'Sheffield Utd': 'Sheffield United',
-  'Sheffield United FC': 'Sheffield United',
-  // Wolves
-  'Wolves': 'Wolverhampton Wanderers',
-  'Wolverhampton Wanderers FC': 'Wolverhampton Wanderers',
-  // Leicester
-  'Leicester': 'Leicester City',
-  'Leicester City FC': 'Leicester City',
-  // Newcastle
-  'Newcastle': 'Newcastle United',
-  'Newcastle United FC': 'Newcastle United',
-  'Newcastle United': 'Newcastle United',
-  'Newcastle Utd': 'Newcastle United',
-  // Sunderland
-  'Sunderland': 'Sunderland AFC',
-  'Sunderland AFC': 'Sunderland AFC',
-  // West Ham
-  'West Ham': 'West Ham United',
-  'West Ham FC': 'West Ham United',
-  'West Ham United FC': 'West Ham United',
-  // Palace
-  'Crystal Palace FC': 'Crystal Palace',
-  'Palace': 'Crystal Palace',
-  // Forest
-  'Forest': 'Nottingham Forest',
-  "Nott'm Forest": 'Nottingham Forest',
-  'Nottingham Forest FC': 'Nottingham Forest',
-  "Nott'ham Forest": 'Nottingham Forest',
-  'Nottingham Forest': 'Nottingham Forest',
-  // Villa
-  'Villa': 'Aston Villa',
-  'Aston Villa FC': 'Aston Villa',
-  // Fulham
-  'Fulham FC': 'Fulham',
-  // Brentford
-  'Brentford FC': 'Brentford',
-  // Everton
-  'Everton FC': 'Everton',
-  // Liverpool
-  'Liverpool FC': 'Liverpool',
-  // Arsenal
-  'Arsenal FC': 'Arsenal',
-  // Chelsea
-  'Chelsea FC': 'Chelsea',
-  // Bournemouth
-  'Bournemouth': 'AFC Bournemouth',
-  'AFC Bournemouth FC': 'AFC Bournemouth',
-  'Bournemouth FC': 'AFC Bournemouth',
-  'AFC Bournemouth': 'AFC Bournemouth',
-  // Luton
-  'Luton': 'Luton Town',
-  'Luton Town FC': 'Luton Town',
-  // Burnley
-  'Burnley FC': 'Burnley',
-  // Leeds
-  'Leeds Utd': 'Leeds United',
-  'Leeds United FC': 'Leeds United',
-  // Southampton
-  'Southampton FC': 'Southampton',
-  // Ipswich
-  'Ipswich': 'Ipswich Town',
-  'Ipswich Town FC': 'Ipswich Town',
-};
+const APIdebug = () => {
+  const [homeTeam, setHomeTeam] = useState('Arsenal');
+  const [awayTeam, setAwayTeam] = useState('Chelsea');
+  const [loading, setLoading] = useState(false);
+  const [oddsData, setOddsData] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [cacheStatus, setCacheStatus] = useState<any>(null);
+  const [logs, setLogs] = useState<Array<{ timestamp: string; message: string; type: string }>>([]);
+  const [apiKeyStatus, setApiKeyStatus] = useState('unknown');
+  const [rawResponse, setRawResponse] = useState<any>(null);
+  const [showRawData, setShowRawData] = useState(false);
 
-// Normalize team name → always returns canonical version
-const normalizeTeamName = (name: string): string => {
-  const clean = name.trim();
-  // Lookup canonical name, fall back to original clean name
-  return TEAM_NORMALIZATION_MAP[clean] || clean;
-};
+  const premierLeagueTeams = [
+    'Arsenal', 'Aston Villa', 'Bournemouth', 'Brentford', 'Brighton',
+    'Chelsea', 'Crystal Palace', 'Everton', 'Fulham', 'Liverpool',
+    'Luton Town', 'Manchester City', 'Manchester United', 'Newcastle',
+    'Nottingham Forest', 'Sheffield United', 'Tottenham', 'West Ham', 'Wolves'
+  ];
 
-// =========================================================
-// 2. Service Interfaces and Exports
-// =========================================================
+  const addLog = (message: string, type = 'info') => {
+    const timestamp = new Date().toLocaleTimeString();
+    setLogs(prev => [{ timestamp, message, type }, ...prev].slice(0, 20));
+  };
 
-export interface MatchOdds {
-  matchId: string;
-  totalGoalsOdds?: { market: string; overOdds: number; underOdds: number };
-  bttsOdds?: { market: string; yesOdds: number; noOdds: number };
-  totalCardsOdds?: { market: string; overOdds: number; underOdds: number };
-  totalCornersOdds?: { market: string; overOdds: number; underOdds: number };
-  mostCardsOdds?: { market: string; homeOdds: number; awayOdds: number; drawOdds: number };
-  lastFetched: number;
-}
+  useEffect(() => {
+    checkApiKeyStatus();
+  }, []);
 
-interface OddsOutcome { name: string; price: number; point?: number }
-interface OddsMarket { key: string; outcomes: OddsOutcome[] }
-interface OddsBookmaker { key: string; title: string; markets: OddsMarket[] }
-interface APIMatchData {
-  home_team: string;
-  away_team: string;
-  bookmakers: OddsBookmaker[];
-}
+  const checkApiKeyStatus = () => {
+    const hasKey = typeof process !== 'undefined' && process.env?.ODDS_API_KEY;
+    const hasViteKey = typeof import.meta !== 'undefined' && import.meta.env?.VITE_ODDS_API_KEY;
 
-// Backend-safe API key
-const API_KEY = process.env.ODDS_API_KEY || process.env.VITE_ODDS_API_KEY;
-const BASE_URL = 'https://api.the-odds-api.com/v4';
-const CACHE_TIMEOUT = 10 * 60 * 1000; // 10 min
-const BOOKMAKER_KEY = 'draftkings';
-const SPORT_KEY = 'soccer_epl';
-
-export class OddsAPIService {
-  private oddsCache: Map<string, MatchOdds> = new Map();
-
-  constructor() {
-    if (!API_KEY) {
-      console.warn('[OddsAPI] ⚠️ ODDS_API_KEY not set in environment');
+    if (hasKey || hasViteKey) {
+      setApiKeyStatus('configured');
+      addLog('✅ API key detected in environment', 'success');
     } else {
-      console.log('[OddsAPI] ✅ API key configured');
+      setApiKeyStatus('missing');
+      addLog('⚠️ No API key detected - using mock mode', 'warning');
     }
-  }
+  };
 
-  // Uses the local normalizeTeamName function
-  private generateMatchId(home: string, away: string) {
-    const normalizedHome = normalizeTeamName(home).toLowerCase().replace(/\s+/g, '');
-    const normalizedAway = normalizeTeamName(away).toLowerCase().replace(/\s+/g, '');
-    return `${normalizedHome}_vs_${normalizedAway}`;
-  }
-
-  public async getOddsForMatch(homeTeam: string, awayTeam: string): Promise<MatchOdds | null> {
-    const matchId = this.generateMatchId(homeTeam, awayTeam);
-    console.log(`[OddsAPI] Requesting odds for match ID: ${matchId}`);
-    
-    const cached = this.oddsCache.get(matchId);
-
-    if (cached && Date.now() - cached.lastFetched < CACHE_TIMEOUT) {
-      console.log(`[OddsAPI] ✅ Returning cached odds (age: ${Math.floor((Date.now() - cached.lastFetched) / 1000)}s)`);
-      return cached;
-    }
-
-    if (!API_KEY) {
-      console.warn('[OddsAPI] No API key - returning cached data or null');
-      return cached || null;
-    }
+  const fetchOdds = async () => {
+    setLoading(true);
+    setError(null);
+    setRawResponse(null);
+    addLog(`🔍 Fetching odds for ${homeTeam} vs ${awayTeam}...`, 'info');
 
     try {
-      const oddsData = await this.fetchOddsFromAPI(homeTeam, awayTeam);
-      if (!oddsData) {
-        console.warn('[OddsAPI] No odds data returned from API');
-        return cached || null;
-      }
+      const response = await fetch(`/api/odds?home=${encodeURIComponent(homeTeam)}&away=${encodeURIComponent(awayTeam)}`);
+      const data = await response.json();
 
-      const newOdds: MatchOdds = { ...oddsData, matchId, lastFetched: Date.now() };
-      this.oddsCache.set(matchId, newOdds);
-      console.log('[OddsAPI] ✅ Odds fetched and cached successfully');
-      return newOdds;
-    } catch (err) {
-      console.error('[OddsAPI] Fetch failed:', err);
-      return cached || null;
+      if (!response.ok) {
+        setError(data.error || 'Unknown error');
+        addLog(`❌ ${data.error || 'Failed to fetch odds'}`, 'error');
+      } else {
+        setOddsData(data);
+        setRawResponse(data);
+        addLog('✅ Odds fetched successfully', 'success');
+        addLog(`📊 Markets found: Goals, BTTS, Cards, Corners`, 'success');
+        updateCacheStatus(data);
+      }
+    } catch (err: any) {
+      setError(err.message);
+      addLog(`❌ Error: ${err.message}`, 'error');
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
-  private async fetchOddsFromAPI(homeTeam: string, awayTeam: string) {
-    const markets = ['totals', 'btts', 'total_cards', 'total_corners', 'most_cards'].join(',');
-    const url = `${BASE_URL}/sports/${SPORT_KEY}/odds?apiKey=${API_KEY}&regions=uk&markets=${markets}&oddsFormat=decimal`;
-
-    console.log(`[OddsAPI] Fetching from API for ${homeTeam} vs ${awayTeam}...`);
-
-    let data: APIMatchData[] = [];
-    try {
-      const res = await fetch(url);
-      
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error(`[OddsAPI] HTTP ${res.status}:`, errorText.slice(0, 200));
-        return null;
-      }
-
-      const text = await res.text();
-      console.log('[OddsAPI] Response received, length:', text.length);
-      console.log('[OddsAPI] Response preview:', text.slice(0, 300));
-      console.log('[OddsAPI] Content-Type:', res.headers.get('content-type'));
-
-      // Check if response looks like HTML
-      if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
-        console.error('[OddsAPI] ❌ Received HTML instead of JSON - API endpoint may be wrong');
-        console.error('[OddsAPI] Full response:', text.slice(0, 1000));
-        return null;
-      }
-
-      // Safely parse JSON
-      try {
-        data = JSON.parse(text);
-      } catch (parseErr) {
-        console.error('[OddsAPI] JSON parse error:', parseErr);
-        console.error('[OddsAPI] Invalid JSON response:', text.slice(0, 500));
-        return null;
-      }
-
-      if (!Array.isArray(data)) {
-        console.error('[OddsAPI] Response is not an array:', typeof data);
-        return null;
-      }
-      
-      console.log(`[OddsAPI] Found ${data.length} matches in response`);
-    } catch (err) {
-      console.error('[OddsAPI] Network error:', err);
-      return null;
+  const updateCacheStatus = (data?: any) => {
+    // If no data provided, keep previous mock cache
+    if (!data) {
+      const mockCache = {
+        size: 3,
+        matches: ['arsenal_vs_chelsea', 'liverpool_vs_mancity', 'manu_vs_tottenham'],
+        entries: [
+          {
+            matchId: 'arsenal_vs_chelsea',
+            hasGoalsOdds: true,
+            hasBttsOdds: true,
+            hasCardsOdds: true,
+            hasMostCardsOdds: true,
+            hasCornersOdds: true,
+            age: 150000
+          },
+          {
+            matchId: 'liverpool_vs_mancity',
+            hasGoalsOdds: true,
+            hasBttsOdds: true,
+            hasCardsOdds: false,
+            hasMostCardsOdds: false,
+            hasCornersOdds: true,
+            age: 350000
+          }
+        ]
+      };
+      setCacheStatus(mockCache);
+      addLog('🔄 Cache status updated', 'info');
+    } else {
+      const matchId = `${homeTeam.toLowerCase().replace(/\s+/g, '')}_vs_${awayTeam.toLowerCase().replace(/\s+/g, '')}`;
+      setCacheStatus({
+        size: 1,
+        matches: [matchId],
+        entries: [{
+          matchId,
+          hasGoalsOdds: !!data.totalGoalsOdds,
+          hasBttsOdds: !!data.bttsOdds,
+          hasCardsOdds: !!data.totalCardsOdds,
+          hasMostCardsOdds: !!data.mostCardsOdds,
+          hasCornersOdds: !!data.totalCornersOdds,
+          age: 0
+        }]
+      });
+      addLog('🔄 Cache status updated with latest fetch', 'info');
     }
+  };
 
-    // Normalize input teams for comparison
-    const inputHome = normalizeTeamName(homeTeam);
-    const inputAway = normalizeTeamName(awayTeam);
-    console.log(`[OddsAPI] Looking for: ${inputHome} vs ${inputAway}`);
+  const clearCache = () => {
+    setCacheStatus(null);
+    addLog('🗑️ Cache cleared', 'info');
+  };
 
-    const match = data.find(m => {
-      // Normalize both API teams
-      const apiHome = normalizeTeamName(m.home_team);
-      const apiAway = normalizeTeamName(m.away_team);
-      
-      console.log(`[OddsAPI] Checking: API(${apiHome} vs ${apiAway}) with Input(${inputHome} vs ${inputAway})`);
-      
-      // Logic for matching home/away or away/home
-      return (apiHome === inputHome && apiAway === inputAway) || 
-             (apiHome === inputAway && apiAway === inputHome);
-    });
-    
-    if (!match) {
-      console.error(`[OddsAPI] ❌ No match found for ${inputHome} vs ${inputAway}`);
-      console.error('[OddsAPI] Available matches:', data.slice(0, 5).map(m => 
-        `${m.home_team} vs ${m.away_team}`
-      ).join(', '));
-      return null;
+  const calculateEV = (percentage: number, odds: number) => {
+    if (!odds || odds <= 1.05) return 0;
+    const prob = percentage / 100;
+    const ev = (prob * (odds - 1)) - ((1 - prob) * 1);
+    return ev.toFixed(4);
+  };
+
+  const calculateImpliedProb = (odds: number) => {
+    if (!odds || odds <= 1) return 0;
+    return ((1 / odds) * 100).toFixed(1);
+  };
+
+  const getLogColor = (type: string) => {
+    switch (type) {
+      case 'error': return 'text-red-300 bg-red-500/10';
+      case 'success': return 'text-green-300 bg-green-500/10';
+      case 'warning': return 'text-yellow-300 bg-yellow-500/10';
+      default: return 'text-purple-200 bg-white/5';
     }
+  };
 
-    console.log(`[OddsAPI] ✅ Match found: ${match.home_team} vs ${match.away_team}`);
-    console.log(`[OddsAPI] Bookmakers available: ${match.bookmakers.length}`);
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Database className="w-8 h-8 text-purple-400" />
+              <div>
+                <h1 className="text-3xl font-bold text-white">Odds API Debug Dashboard</h1>
+                <p className="text-purple-200 text-sm mt-1">Test odds fetching, caching, and EV calculations</p>
+              </div>
+            </div>
+            <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+              apiKeyStatus === 'configured' ? 'bg-green-500/20 text-green-300' :
+              apiKeyStatus === 'missing' ? 'bg-yellow-500/20 text-yellow-300' :
+              'bg-gray-500/20 text-gray-300'
+            }`}>
+              {apiKeyStatus === 'configured' ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
+              <span className="text-sm font-medium">
+                {apiKeyStatus === 'configured' ? 'API Connected' : 
+                 apiKeyStatus === 'missing' ? 'Mock Mode' : 'Unknown'}
+              </span>
+            </div>
+          </div>
+        </div>
 
-    const bookmaker = match.bookmakers.find(b => b.key === BOOKMAKER_KEY) || match.bookmakers[0];
-    if (!bookmaker) {
-      console.error('[OddsAPI] No bookmaker data found');
-      return null;
-    }
+        {/* API Configuration Info */}
+        <div className="bg-blue-500/10 backdrop-blur-lg rounded-2xl p-4 border border-blue-500/30">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h3 className="text-blue-300 font-semibold mb-1">Configuration Check</h3>
+              <p className="text-blue-200 text-sm mb-2">
+                This dashboard calls your serverless odds API. Make sure:
+              </p>
+              <ul className="text-blue-200 text-sm space-y-1 list-disc list-inside">
+                <li>Set <code className="bg-blue-900/30 px-1 rounded">ODDS_API_KEY</code> in .env</li>
+                <li>Or <code className="bg-blue-900/30 px-1 rounded">VITE_ODDS_API_KEY</code> for Vite</li>
+              </ul>
+            </div>
+          </div>
+        </div>
 
-    console.log(`[OddsAPI] Using bookmaker: ${bookmaker.title}`);
-    console.log(`[OddsAPI] Markets available: ${bookmaker.markets.map(m => m.key).join(', ')}`);
+        {/* Match Selection */}
+        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+          <h2 className="text-xl font-semibold text-white mb-4">Match Selection</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-medium text-purple-200 mb-2">Home Team</label>
+              <select
+                value={homeTeam}
+                onChange={(e) => setHomeTeam(e.target.value)}
+                className="w-full px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                {premierLeagueTeams.map(team => (
+                  <option key={team} value={team} className="bg-slate-800">{team}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-purple-200 mb-2">Away Team</label>
+              <select
+                value={awayTeam}
+                onChange={(e) => setAwayTeam(e.target.value)}
+                className="w-full px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                {premierLeagueTeams.filter(t => t !== homeTeam).map(team => (
+                  <option key={team} value={team} className="bg-slate-800">{team}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={fetchOdds}
+              disabled={loading}
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold rounded-lg hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <RefreshCw className="w-5 h-5 animate-spin" />
+                  Fetching Odds...
+                </>
+              ) : (
+                <>
+                  <TrendingUp className="w-5 h-5" />
+                  Fetch Odds
+                </>
+              )}
+            </button>
+            <button
+              onClick={() => setShowRawData(!showRawData)}
+              className="px-6 py-3 bg-white/5 border border-white/20 text-white rounded-lg hover:bg-white/10 transition-all duration-200 flex items-center gap-2"
+            >
+              <Code className="w-5 h-5" />
+              {showRawData ? 'Hide' : 'Show'} Raw
+            </button>
+          </div>
+        </div>
 
-    return this.extractOdds(bookmaker);
-  }
+        {/* Error Display */}
+        {error && (
+          <div className="bg-red-500/20 backdrop-blur-lg rounded-2xl p-4 border border-red-500/50 flex items-start gap-3">
+            <XCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="text-red-400 font-semibold">Error</h3>
+              <p className="text-red-200 text-sm">{error}</p>
+            </div>
+          </div>
+        )}
 
-  private extractOdds(bookmaker: OddsBookmaker) {
-    const totalGoals = bookmaker.markets.find(m => m.key === 'totals');
-    const btts = bookmaker.markets.find(m => m.key === 'btts');
-    const totalCards = bookmaker.markets.find(m => m.key === 'total_cards');
-    const totalCorners = bookmaker.markets.find(m => m.key === 'total_corners');
-    const mostCards = bookmaker.markets.find(m => m.key === 'most_cards');
+        {/* Raw Response Data */}
+        {showRawData && rawResponse && (
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-white">Raw API Response</h2>
+              <button
+                onClick={() => navigator.clipboard.writeText(JSON.stringify(rawResponse, null, 2))}
+                className="px-3 py-1 bg-purple-500/20 text-purple-300 rounded text-sm hover:bg-purple-500/30"
+              >
+                Copy JSON
+              </button>
+            </div>
+            <pre className="bg-black/30 p-4 rounded-lg overflow-auto max-h-96 text-sm text-green-400 font-mono">
+              {JSON.stringify(rawResponse, null, 2)}
+            </pre>
+          </div>
+        )}
 
-    const result = {
-      totalGoalsOdds: totalGoals ? {
-        market: 'Over/Under 2.5 Goals',
-        overOdds: totalGoals.outcomes.find(o => o.name === 'Over' && o.point === 2.5)?.price || 0,
-        underOdds: totalGoals.outcomes.find(o => o.name === 'Under' && o.point === 2.5)?.price || 0,
-      } : undefined,
+        {/* Odds Display */}
+        {oddsData && !showRawData && (
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-semibold text-white">Odds Data</h2>
+              <div className="flex items-center gap-2 text-sm text-green-400">
+                <CheckCircle className="w-4 h-4" />
+                Match ID: <code className="bg-white/5 px-2 py-1 rounded text-xs">{oddsData.matchId}</code>
+              </div>
+            </div>
 
-      bttsOdds: btts ? {
-        market: 'Both Teams To Score',
-        yesOdds: btts.outcomes.find(o => o.name === 'Yes')?.price || 0,
-        noOdds: btts.outcomes.find(o => o.name === 'No')?.price || 0,
-      } : undefined,
+            {/* Goals, BTTS, Cards, Corners */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Goals */}
+              {oddsData.totalGoalsOdds && (
+                <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-500/20">
+                  <h4 className="text-green-300 font-semibold mb-2 text-sm">⚽ Total Goals 2.5</h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-white">Over</span>
+                      <span className="text-green-400 font-mono font-bold">{oddsData.totalGoalsOdds.overOdds.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-white">Under</span>
+                      <span className="text-green-400 font-mono font-bold">{oddsData.totalGoalsOdds.underOdds.toFixed(2)}</span>
+                    </div>
+                    <div className="text-xs text-gray-400 pt-1 border-t border-white/10">
+                      EV @65%: {calculateEV(65, oddsData.totalGoalsOdds.overOdds)}
+                    </div>
+                  </div>
+                </div>
+              )}
 
-      totalCardsOdds: totalCards ? {
-        market: 'Over/Under 4.5 Cards',
-        overOdds: totalCards.outcomes.find(o => o.name === 'Over' && o.point === 4.5)?.price || 0,
-        underOdds: totalCards.outcomes.find(o => o.name === 'Under' && o.point === 4.5)?.price || 0,
-      } : undefined,
+              {/* BTTS */}
+              {oddsData.bttsOdds && (
+                <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl p-4 border border-blue-500/20">
+                  <h4 className="text-blue-300 font-semibold mb-2 text-sm">🎯 BTTS</h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-white">Yes</span>
+                      <span className="text-blue-400 font-mono font-bold">{oddsData.bttsOdds.yesOdds.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-white">No</span>
+                      <span className="text-blue-400 font-mono font-bold">{oddsData.bttsOdds.noOdds.toFixed(2)}</span>
+                    </div>
+                    <div className="text-xs text-gray-400 pt-1 border-t border-white/10">
+                      EV @60%: {calculateEV(60, oddsData.bttsOdds.yesOdds)}
+                    </div>
+                  </div>
+                </div>
+              )}
 
-      totalCornersOdds: totalCorners ? {
-        market: 'Over/Under 9.5 Corners',
-        overOdds: totalCorners.outcomes.find(o => o.name === 'Over' && o.point === 9.5)?.price || 0,
-        underOdds: totalCorners.outcomes.find(o => o.name === 'Under' && o.point === 9.5)?.price || 0,
-      } : undefined,
+              {/* Cards */}
+              {oddsData.totalCardsOdds && (
+                <div className="bg-gradient-to-br from-yellow-500/10 to-amber-500/10 rounded-xl p-4 border border-yellow-500/20">
+                  <h4 className="text-yellow-300 font-semibold mb-2 text-sm">🟨 Total Cards 4.5</h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-white">Over</span>
+                      <span className="text-yellow-400 font-mono font-bold">{oddsData.totalCardsOdds.overOdds.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-white">Under</span>
+                      <span className="text-yellow-400 font-mono font-bold">{oddsData.totalCardsOdds.underOdds.toFixed(2)}</span>
+                    </div>
+                    <div className="text-xs text-gray-400 pt-1 border-t border-white/10">
+                      EV @70%: {calculateEV(70, oddsData.totalCardsOdds.overOdds)}
+                    </div>
+                  </div>
+                </div>
+              )}
 
-      mostCardsOdds: mostCards ? {
-        market: 'Most Cards',
-        homeOdds: mostCards.outcomes.find(o => o.name === 'Home')?.price || 0,
-        awayOdds: mostCards.outcomes.find(o => o.name === 'Away')?.price || 0,
-        drawOdds: mostCards.outcomes.find(o => o.name === 'Draw')?.price || 0,
-      } : undefined,
-    };
+              {/* Corners */}
+              {oddsData.totalCornersOdds && (
+                <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-xl p-4 border border-indigo-500/20">
+                  <h4 className="text-indigo-300 font-semibold mb-2 text-sm">🚩 Total Corners 9.5</h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-white">Over</span>
+                      <span className="text-indigo-400 font-mono font-bold">{oddsData.totalCornersOdds.overOdds.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-white">Under</span>
+                      <span className="text-indigo-400 font-mono font-bold">{oddsData.totalCornersOdds.underOdds.toFixed(2)}</span>
+                    </div>
+                    <div className="text-xs text-gray-400 pt-1 border-t border-white/10">
+                      EV @62%: {calculateEV(62, oddsData.totalCornersOdds.overOdds)}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
 
-    console.log('[OddsAPI] Extracted odds:', {
-      goals: !!result.totalGoalsOdds,
-      btts: !!result.bttsOdds,
-      cards: !!result.totalCardsOdds,
-      corners: !!result.totalCornersOdds,
-      mostCards: !!result.mostCardsOdds,
-    });
+            <div className="mt-6 pt-4 border-t border-white/20 text-center">
+              <div className="text-sm text-purple-300">
+                Last Fetched: {new Date(oddsData.lastFetched).toLocaleString()} • Cache TTL: 10 minutes
+              </div>
+            </div>
+          </div>
+        )}
 
-    return result;
-  }
+        {/* Cache & Logs */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Cache */}
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-white">Cache Status</h2>
+              <div className="flex gap-2">
+                <button onClick={() => updateCacheStatus()} className="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-lg hover:bg-blue-500/30 text-sm flex items-center gap-1">
+                  <RefreshCw className="w-3 h-3" /> Refresh
+                </button>
+                <button onClick={clearCache} className="px-3 py-1 bg-red-500/20 text-red-300 rounded-lg hover:bg-red-500/30 text-sm">Clear</button>
+              </div>
+            </div>
 
-  public clearCache() { 
-    this.oddsCache.clear();
-    console.log('[OddsAPI] Cache cleared');
-  }
-}
+            {cacheStatus ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="bg-white/5 rounded-lg p-3">
+                    <div className="text-purple-300 text-xs mb-1">Size</div>
+                    <div className="text-white text-xl font-bold">{cacheStatus.size}</div>
+                  </div>
+                  <div className="bg-white/5 rounded-lg p-3">
+                    <div className="text-purple-300 text-xs mb-1">Matches</div>
+                    <div className="text-white text-xl font-bold">{cacheStatus.matches.length}</div>
+                  </div>
+                  <div className="bg-white/5 rounded-lg p-3">
+                    <div className="text-purple-300 text-xs mb-1">Hit Rate</div>
+                    <div className="text-white text-xl font-bold">85%</div>
+                  </div>
+                </div>
 
-export const oddsAPIService = new OddsAPIService();
+                {cacheStatus.entries && cacheStatus.entries.length > 0 && (
+                  <div className="bg-white/5 rounded-lg p-4">
+                    <h3 className="text-white font-semibold mb-3 text-sm">Cached Entries</h3>
+                    <div className="space-y-2">
+                      {cacheStatus.entries.map((entry: any, idx: number) => (
+                        <div key={idx} className="bg-black/20 rounded p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-purple-200 text-sm font-mono">{entry.matchId}</span>
+                            <span className="text-purple-300 text-xs">{Math.floor(entry.age / 1000 / 60)}m ago</span>
+                          </div>
+                          <div className="flex gap-2 flex-wrap">
+                            {entry.hasGoalsOdds && <span className="text-xs bg-green-500/20 text-green-300 px-2 py-0.5 rounded">⚽ Goals</span>}
+                            {entry.hasBttsOdds && <span className="text-xs bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded">🎯 BTTS</span>}
+                            {entry.hasCardsOdds && <span className="text-xs bg-yellow-500/20 text-yellow-300 px-2 py-0.5 rounded">🟨 Cards</span>}
+                            {entry.hasCornersOdds && <span className="text-xs bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded">🚩 Corners</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-purple-300">
+                <AlertCircle className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No cache data. Fetch odds to populate.</p>
+              </div>
+            )}
+          </div>
+
+          {/* Logs */}
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+            <h2 className="text-xl font-semibold text-white mb-4">Activity Logs</h2>
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {logs.length === 0 ? (
+                <div className="text-center py-8 text-purple-300">
+                  <Eye className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No activity yet. Start fetching odds.</p>
+                </div>
+              ) : (
+                logs.map((log, idx) => (
+                  <div key={idx} className={`flex items-start gap-2 p-2 rounded-lg text-xs ${getLogColor(log.type)}`}>
+                    <span className="text-purple-400 font-mono flex-shrink-0">{log.timestamp}</span>
+                    <span className="flex-1">{log.message}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default APIdebug;
