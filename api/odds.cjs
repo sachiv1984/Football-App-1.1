@@ -1,54 +1,45 @@
-// api/odds.cjs (Complete handler with enhanced error handling)
-
-// You must use the synchronous require() call in a CJS file.
-function getOddsAPIService() {
-  // Reference the COMPILED JavaScript output file (.js)
-  const module = require('../../src/services/api/oddsAPIService.js');
-  
-  // Return the named export 'oddsAPIService' from the module object
-  return module.oddsAPIService;
-}
+// api/odds.cjs (TEST VERSION - REMOVES require() FOR DEBUGGING)
 
 // Use module.exports for the Vercel handler export
 module.exports = async function handler(req, res) { 
-  console.log('[API Handler] Request received:', req.method, req.url);
-  console.log('[API Handler] Query params:', req.query);
+  console.log('[API Test Handler] Request received:', req.method, req.url);
+  console.log('[API Test Handler] Query params:', req.query);
   
   try {
     const { home, away } = req.query;
     
     if (!home || !away) {
-      console.error('[API Handler] Missing parameters - home:', home, 'away:', away);
+      console.error('[API Test Handler] Missing parameters');
       return res.status(400).json({ 
         error: 'Missing home or away team',
         received: { home, away }
       });
     }
 
-    console.log(`[API Handler] Fetching odds for ${home} vs ${away}`);
+    // --- MOCK LOGIC: If this code executes, the Vercel 404/require error is solved. ---
 
-    // 1. Get the service object
-    const oddsAPIService = getOddsAPIService();
-    console.log('[API Handler] Service loaded successfully');
+    const matchId = `${String(home).toLowerCase().replace(/\s+/g, '')}_vs_${String(away).toLowerCase().replace(/\s+/g, '')}`;
     
-    // 2. Use the service object
-    const odds = await oddsAPIService.getOddsForMatch(String(home), String(away));
-    
-    if (!odds) {
-      console.warn('[API Handler] No odds found for match');
-      return res.status(404).json({ 
-        error: 'No odds found',
-        match: `${home} vs ${away}`,
-        suggestion: 'Check team names match Premier League teams exactly'
-      });
-    }
+    console.log(`[API Test Handler] Returning mock odds for ${home} vs ${away}`);
 
-    console.log('[API Handler] ✅ Odds found, returning data');
-    res.status(200).json(odds);
+    const mockOdds = {
+      matchId: matchId,
+      homeTeam: String(home),
+      awayTeam: String(away),
+      lastFetched: new Date().toISOString(),
+      // Mock data structured to pass your APIdebug.tsx checks
+      totalGoalsOdds: { overOdds: 1.85, underOdds: 1.95 },
+      bttsOdds: { yesOdds: 1.70, noOdds: 2.10 },
+      status: "MOCK_SUCCESS_ROUTE_CONFIRMED"
+    };
+
+    // --- END MOCK LOGIC ---
+
+    console.log('[API Test Handler] ✅ Mock data returned');
+    res.status(200).json(mockOdds);
     
   } catch (err) {
-    console.error('[API Handler] Unexpected error:', err);
-    console.error('[API Handler] Error stack:', err.stack);
+    console.error('[API Test Handler] Unexpected error:', err);
     
     res.status(500).json({ 
       error: err.message || 'Internal server error',
