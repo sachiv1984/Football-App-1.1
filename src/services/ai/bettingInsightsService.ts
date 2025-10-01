@@ -1,7 +1,5 @@
 // src/services/stats/bettingInsightsService.ts
 
-// src/services/ai/bettingInsightsService.ts
-
 import { supabaseCardsService } from '../stats/supabaseCardsService'; 
 import { supabaseCornersService } from '../stats/supabaseCornersService';
 import { supabaseFoulsService } from '../stats/supabaseFoulsService';
