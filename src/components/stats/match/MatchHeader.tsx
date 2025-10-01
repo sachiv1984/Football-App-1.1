@@ -1,5 +1,5 @@
 // src/components/match/MatchHeader/MatchHeader.tsx
-import React, { useState } from 'react'; // <-- ADDED useState
+import React, { useState } from 'react';
 import type { Fixture } from '../../../types';
 
 interface MatchHeaderProps {
@@ -173,31 +173,42 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({ fixture, className = '' }) =>
 
   // Date logic
   const getDateDisplay = (matchDateTime: string) => {
+    // 1. Create the date object
     const matchDate = new Date(matchDateTime);
+
+    // 2. Define today/tomorrow using the current local time's midnight
     const today = new Date();
-    const tomorrow = new Date();
+    const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
 
+    // 3. Create date-only objects for comparison (midnight of the *local* day)
+    // NOTE: This comparison is based on the user's local day, which is generally 
+    // preferred for "Today/Tomorrow" display.
     const matchDateOnly = new Date(matchDate.getFullYear(), matchDate.getMonth(), matchDate.getDate());
     const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const tomorrowOnly = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate());
 
-    const time = matchDate.toLocaleTimeString('en-GB', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    });
+    // --- TIMEZONE FIX: Use UTC methods to display the time ---
+    const time = `${String(matchDate.getUTCHours()).padStart(2, '0')}:${String(matchDate.getUTCMinutes()).padStart(2, '0')}`;
+    // --- END FIX ---
+    
 
     if (matchDateOnly.getTime() === todayOnly.getTime()) {
       return { date: 'Today', time };
     } else if (matchDateOnly.getTime() === tomorrowOnly.getTime()) {
       return { date: 'Tomorrow', time };
     } else {
-      const date = matchDate.toLocaleDateString('en-GB', {
-        weekday: 'short',
-        day: 'numeric',
-        month: 'short'
-      });
+      // For the full date display, use UTC methods for consistency with the time.
+      const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      
+      const weekday = weekdays[matchDate.getUTCDay()];
+      const day = matchDate.getUTCDate();
+      const month = months[matchDate.getUTCMonth()];
+      
+      // Formats as: 'ShortWeekday, DD Month' (e.g., 'Tue, 24 Oct')
+      const date = `${weekday}, ${day} ${month}`;
+
       return { date, time };
     }
   };
