@@ -11,7 +11,6 @@ interface BaseMatchDetail {
   date?: string;
 }
 
-// NOTE: Renamed to GoalsDetail to avoid conflict with BaseMatchDetail usage in generic functions
 interface GoalsDetail extends BaseMatchDetail {
   totalGoals: number;
   bothTeamsScored: boolean; // Used in detectBTTSPattern
@@ -46,7 +45,7 @@ export enum BettingMarket {
 }
 
 /**
- * NEW: Defines the comparison type for a threshold bet (Over/Under)
+ * Defines the comparison type for a threshold bet (Over/Under)
  */
 export enum Comparison {
     OVER = 'Over',
@@ -63,7 +62,7 @@ export interface BettingInsight {
   streakLength?: number;              // If isStreak, how many consecutive matches
   threshold: number;                  // The line being analyzed (e.g., 1.5)
   averageValue: number;               // Average stat value in period
-  comparison: Comparison | 'binary';  // NEW: Added for filtering/redundancy check
+  comparison: Comparison | 'binary';  // Added for filtering/redundancy check
   recentMatches: Array<{
     opponent: string;
     value: number;                    // Actual stat value
@@ -127,7 +126,8 @@ const MARKET_CONFIGS = {
 };
 
 /**
- * NEW: Configuration for generic analysis loop
+ * Configuration type for generic analysis loop
+ * Note: The service object is defined to require a getStatistics method signature.
  */
 interface MarketAnalysisConfig<T> {
   market: BettingMarket;
@@ -142,36 +142,44 @@ export class BettingInsightsService {
   private readonly STREAK_THRESHOLD = 7;
 
   /**
-   * NEW: Consolidated market analysis configurations for the generic loop
+   * Consolidated market analysis configurations for the generic loop.
+   * FIX: The 'service' property is explicitly defined to contain a 'getStatistics'
+   * method, which calls the original service methods (e.g., getCardStatistics)
+   * to satisfy the MarketAnalysisConfig interface.
    */
   private readonly MARKET_ANALYSIS_CONFIGS: MarketAnalysisConfig<any>[] = [
     {
       market: BettingMarket.CARDS,
-      service: supabaseCardsService,
+      // FIX: Alias the specific method to the generic 'getStatistics'
+      service: { getStatistics: () => supabaseCardsService.getCardStatistics() },
       valueExtractor: (m: CardsMatchDetail) => m.cardsFor,
       label: 'cards'
     },
     {
       market: BettingMarket.CORNERS,
-      service: supabaseCornersService,
+      // FIX: Alias the specific method to the generic 'getStatistics'
+      service: { getStatistics: () => supabaseCornersService.getCornerStatistics() },
       valueExtractor: (m: CornersMatchDetail) => m.cornersFor,
       label: 'corners'
     },
     {
       market: BettingMarket.FOULS,
-      service: supabaseFoulsService,
+      // FIX: Alias the specific method to the generic 'getStatistics'
+      service: { getStatistics: () => supabaseFoulsService.getFoulStatistics() },
       valueExtractor: (m: FoulsMatchDetail) => m.foulsCommittedFor,
       label: 'fouls'
     },
     {
       market: BettingMarket.GOALS,
-      service: supabaseGoalsService,
+      // FIX: Alias the specific method to the generic 'getStatistics'
+      service: { getStatistics: () => supabaseGoalsService.getGoalStatistics() },
       valueExtractor: (m: GoalsDetail) => m.totalGoals,
       label: 'goals'
     },
     {
       market: BettingMarket.SHOTS_ON_TARGET,
-      service: supabaseShootingService,
+      // FIX: Alias the specific method to the generic 'getStatistics'
+      service: { getStatistics: () => supabaseShootingService.getShootingStatistics() },
       valueExtractor: (m: ShotsMatchDetail) => m.shotsOnTargetFor,
       label: 'shots'
     }
@@ -179,7 +187,7 @@ export class BettingInsightsService {
 
   /**
    * UPDATED: Helper function to filter out redundant patterns (Max Specificity Principle).
-   * Now handles both OVER (keep highest threshold) and UNDER (keep lowest threshold).
+   * Handles both OVER (keep highest threshold) and UNDER (keep lowest threshold).
    */
   private filterRedundantInsights(insights: BettingInsight[]): BettingInsight[] {
     // Key: 'TeamName_Market_Comparison(OVER/UNDER/binary)'
@@ -212,10 +220,8 @@ export class BettingInsightsService {
           if (shouldReplace) {
             mostSpecificInsights.set(key, insight);
           }
-          // Note: If thresholds are equal, we don't care which one we keep
-        } else {
-            // Binary markets (BTTS Yes/No) are already unique by the key
         }
+        // Binary markets (BTTS Yes/No) are already unique by the key
       }
     }
 
@@ -230,7 +236,7 @@ export class BettingInsightsService {
     
     const allInsights: BettingInsight[] = [];
     
-    // NEW: Use generic analysis for all standard threshold markets
+    // Use generic analysis for all standard threshold markets
     const marketAnalyses = this.MARKET_ANALYSIS_CONFIGS.map(config => this.analyzeGenericMarket(config));
     
     // Handle the special BTTS market separately
@@ -276,7 +282,7 @@ export class BettingInsightsService {
   }
 
   /**
-   * NEW: Generic method to analyze standard threshold markets
+   * Generic method to analyze standard threshold markets
    */
   private async analyzeGenericMarket<T extends BaseMatchDetail>(config: MarketAnalysisConfig<T>): Promise<BettingInsight[]> {
     console.log(`[BettingInsights] 📊 Analyzing ${config.label} market...`);
@@ -323,20 +329,16 @@ export class BettingInsightsService {
   }
   
   /**
-   * NEW: Dedicated method for BTTS analysis
-   * RENAMED: analyzeGoalsMarket now is only responsible for the BTTS aspect.
+   * Dedicated method for BTTS analysis (Yes/No).
    */
   private async analyzeBTTSMarket(): Promise<BettingInsight[]> {
     console.log('[BettingInsights] 📊 Analyzing Both Teams to Score market...');
     const insights: BettingInsight[] = [];
-    // Assumes getGoalStatistics() returns Map<string, { matches: number, matchDetails: GoalsDetail[] }>
+    // The getGoalStatistics method returns the data needed for BTTS analysis
     const allStats = await supabaseGoalsService.getGoalStatistics();
 
     for (const [teamName, stats] of allStats.entries()) {
       if (stats.matches < this.ROLLING_WINDOW) continue;
-      
-      // Since BTTS is a property of the Goals market data, we fetch it here.
-      // We look for patterns for both "Yes" and "No".
       
       // 1. BTTS - YES (Condition: bothTeamsScored is true)
       const yesPattern = this.detectBTTSPattern(
@@ -357,15 +359,11 @@ export class BettingInsightsService {
       if (noPattern) insights.push(noPattern);
     }
 
-    // NOTE: The GOALS threshold analysis (e.g., Over 1.5 Goals) is now handled by analyzeGenericMarket
-
     return insights;
   }
   
-  // Removed analyzeCardsMarket, analyzeCornersMarket, analyzeFoulsMarket, analyzeGoalsMarket, analyzeShotsMarket
-
   /**
-   * UPDATED: Core pattern detection logic
+   * Core pattern detection logic
    * Now accepts a Comparison type to handle OVER vs UNDER.
    */
   private detectPattern(
@@ -375,23 +373,24 @@ export class BettingInsightsService {
     market: BettingMarket,
     outcome: string,
     matchDetails: Array<{ opponent: string; date?: string }>,
-    comparison: Comparison // NEW: Added comparison type
+    comparison: Comparison
   ): BettingInsight | null {
     
-    // NEW: Define the hit condition
+    // Define the hit condition
     const isHit = (value: number) => {
+      // OVER is v > threshold, UNDER is v < threshold
       return comparison === Comparison.OVER ? value > threshold : value < threshold;
     };
 
     // Check rolling 5 matches (most recent)
     const rolling = values.slice(0, this.ROLLING_WINDOW);
-    const rollingHits = rolling.filter(isHit).length; // Use isHit
+    const rollingHits = rolling.filter(isHit).length;
     const rollingHitRate = (rollingHits / rolling.length) * 100;
 
     // Check for streaks (7+ consecutive matches)
     let streakLength = 0;
     for (const value of values) {
-      if (isHit(value)) { // Use isHit
+      if (isHit(value)) {
         streakLength++;
       } else {
         break; // Streak broken
@@ -408,7 +407,7 @@ export class BettingInsightsService {
         outcome,
         matchDetails.slice(0, this.ROLLING_WINDOW),
         false,
-        comparison, // Pass comparison
+        comparison,
         streakLength >= this.STREAK_THRESHOLD ? streakLength : undefined
       );
     }
@@ -422,7 +421,7 @@ export class BettingInsightsService {
         outcome,
         matchDetails.slice(0, streakLength),
         true,
-        comparison, // Pass comparison
+        comparison,
         streakLength
       );
     }
@@ -431,11 +430,10 @@ export class BettingInsightsService {
   }
 
   /**
-   * UPDATED: Detect Both Teams to Score patterns
-   * Now detects both YES and NO patterns.
+   * Detect Both Teams to Score patterns (Yes/No)
    */
   private detectBTTSPattern(
-    matchDetails: GoalsDetail[], // Ensure this is GoalsDetail
+    matchDetails: GoalsDetail[],
     teamName: string,
     targetHit: boolean, // true for YES, false for NO
     outcomeLabel: string
@@ -472,7 +470,7 @@ export class BettingInsightsService {
         streakLength: streakLength >= this.STREAK_THRESHOLD ? streakLength : undefined,
         threshold: 0.5, // Arbitrary threshold for binary market
         averageValue: 1, // BTTS is binary, average is 1 if it hits
-        comparison: 'binary', // NEW: Indicate this is a binary market
+        comparison: 'binary', // Indicate this is a binary market
         recentMatches: analyzedMatches.map(m => ({
           opponent: m.opponent,
           value: m.bothTeamsScored ? 1 : 0, // 1 for Yes, 0 for No
@@ -496,7 +494,7 @@ export class BettingInsightsService {
     outcome: string,
     matchDetails: Array<{ opponent: string; date?: string }>,
     isStreak: boolean,
-    comparison: Comparison, // NEW: Added comparison
+    comparison: Comparison,
     streakLength?: number
   ): BettingInsight {
     const avgValue = values.reduce((sum, v) => sum + v, 0) / values.length;
@@ -515,7 +513,7 @@ export class BettingInsightsService {
       isStreak,
       streakLength,
       threshold,
-      comparison, // NEW: Include comparison type
+      comparison, // Include comparison type
       averageValue: Math.round(avgValue * 100) / 100,
       recentMatches: values.map((value, idx) => ({
         opponent: matchDetails[idx]?.opponent || 'Unknown',
