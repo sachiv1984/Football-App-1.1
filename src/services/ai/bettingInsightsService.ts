@@ -1,19 +1,12 @@
 // src/services/stats/bettingInsightsService.ts
 
-// NOTE ON TS2307 ERRORS: 
-// The following imports are causing "Cannot find module" errors (TS2307). 
-// These cannot be fixed here. You must ensure the files:
-// - './supabaseCardsService.ts'
-// - './supabaseCornersService.ts'
-// - './supabaseFoulsService.ts'
-// - './supabaseGoalsService.ts'
-// - './supabaseShootingService.ts'
-// exist at the expected path and export the named services.
-import { supabaseCardsService } from './stats/supabaseCardsService';
-import { supabaseCornersService } from './stats/supabaseCornersService';
-import { supabaseFoulsService } from './stats/supabaseFoulsService';
-import { supabaseGoalsService } from './stats/supabaseGoalsService';
-import { supabaseShootingService } from './stats/supabaseShootingService';
+// src/services/ai/bettingInsightsService.ts
+
+import { supabaseCardsService } from '../stats/supabaseCardsService'; 
+import { supabaseCornersService } from '../stats/supabaseCornersService';
+import { supabaseFoulsService } from '../stats/supabaseFoulsService';
+import { supabaseGoalsService } from '../stats/supabaseGoalsService';
+import { supabaseShootingService } from '../stats/supabaseShootingService';
 
 // ----------------------------------------------------------------------
 // Interfaces to fix TS7006 (Implicit 'any' errors)
