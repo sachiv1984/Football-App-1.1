@@ -1,4 +1,4 @@
-m// src/services/stats/bettingInsightsService.ts
+// src/services/stats/bettingInsightsService.ts
 
 import { supabaseCardsService } from '../stats/supabaseCardsService';
 import { supabaseCornersService } from '../stats/supabaseCornersService';
