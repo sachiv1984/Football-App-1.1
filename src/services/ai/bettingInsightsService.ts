@@ -9,11 +9,11 @@
 // - './supabaseGoalsService.ts'
 // - './supabaseShootingService.ts'
 // exist at the expected path and export the named services.
-import { supabaseCardsService } from './supabaseCardsService';
-import { supabaseCornersService } from './supabaseCornersService';
-import { supabaseFoulsService } from './supabaseFoulsService';
-import { supabaseGoalsService } from './supabaseGoalsService';
-import { supabaseShootingService } from './supabaseShootingService';
+import { supabaseCardsService } from './stats/supabaseCardsService';
+import { supabaseCornersService } from './stats/supabaseCornersService';
+import { supabaseFoulsService } from './stats/supabaseFoulsService';
+import { supabaseGoalsService } from './stats/supabaseGoalsService';
+import { supabaseShootingService } from './stats/supabaseShootingService';
 
 // ----------------------------------------------------------------------
 // Interfaces to fix TS7006 (Implicit 'any' errors)
