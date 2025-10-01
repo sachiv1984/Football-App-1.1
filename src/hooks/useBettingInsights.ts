@@ -5,7 +5,7 @@ import {
   BettingInsight, 
   InsightsResponse,
   BettingMarket 
-} from '../services/stats/bettingInsightsService';
+} from '../services/ai/bettingInsightsService';
 
 export interface UseBettingInsightsOptions {
   teamName?: string;              // Filter by specific team
