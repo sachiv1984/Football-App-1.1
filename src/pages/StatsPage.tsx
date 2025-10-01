@@ -8,8 +8,9 @@ import ModernStatsTable from '../components/stats/StatsTable/ModernStatsTable';
 import FBrefScraperVercel from '../components/FBrefScraper';
 import AIInsightCard from '../components/insights/AIInsightCard/AIInsightCard';
 import MatchBettingPatterns from '../components/insights/BettingPatterns/MatchBettingPatterns';
-import { useFixtureNavigation } from '../hooks/useFixtures';
-import { useFixtures } from '../hooks/useFixtures';
+// --- FIX 1: Combined/corrected import for useFixtures hooks ---
+import { useFixtures, useFixtureNavigation } from '../hooks/useFixtures';
+// -------------------------------------------------------------
 import { useGameWeekFixtures } from '../hooks/useGameWeekFixtures';
 import { useAIBettingInsights, AIInsight } from '../hooks/useAIBettingInsights';
 import { useBettingInsights } from '../hooks/useBettingInsights';
@@ -359,11 +360,13 @@ const StatsPage: React.FC = () => {
                       </div>
 
                       {/* Patterns Grid */}
-                      <BettingInsightsDashboard 
+                      {/* --- FIX 2: Renamed component to the correct imported name --- */}
+                      <MatchBettingPatterns 
                         insights={matchPatterns}
                         homeTeam={currentFixture.homeTeam.name}
                         awayTeam={currentFixture.awayTeam.name}
                       />
+                      {/* ----------------------------------------------------------------- */}
 
                       {/* Responsible Gambling Notice */}
                       <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
