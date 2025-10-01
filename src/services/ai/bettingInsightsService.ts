@@ -136,6 +136,16 @@ interface MarketAnalysisConfig<T> {
   label: string;
 }
 
+// ----------------------------------------------------------------------
+// FIX: Define a highly specific Union Type for the configuration array
+// This replaces the permissive `MarketAnalysisConfig<any>[]` for better type safety.
+type AllMarketConfigs = 
+    | MarketAnalysisConfig<CardsMatchDetail>
+    | MarketAnalysisConfig<CornersMatchDetail>
+    | MarketAnalysisConfig<FoulsMatchDetail>
+    | MarketAnalysisConfig<GoalsDetail>
+    | MarketAnalysisConfig<ShotsMatchDetail>;
+// ----------------------------------------------------------------------
 
 export class BettingInsightsService {
   private readonly ROLLING_WINDOW = 5;
@@ -143,11 +153,9 @@ export class BettingInsightsService {
 
   /**
    * Consolidated market analysis configurations for the generic loop.
-   * FIX: The 'service' property is explicitly defined to contain a 'getStatistics'
-   * method, which calls the original service methods (e.g., getCardStatistics)
-   * to satisfy the MarketAnalysisConfig interface.
+   * IMPROVEMENT: The array is now typed using the specific union type.
    */
-  private readonly MARKET_ANALYSIS_CONFIGS: MarketAnalysisConfig<any>[] = [
+  private readonly MARKET_ANALYSIS_CONFIGS: AllMarketConfigs[] = [ // Changed type here
     {
       market: BettingMarket.CARDS,
       // FIX: Alias the specific method to the generic 'getStatistics'
@@ -286,6 +294,7 @@ export class BettingInsightsService {
    */
   private async analyzeGenericMarket<T extends BaseMatchDetail>(config: MarketAnalysisConfig<T>): Promise<BettingInsight[]> {
     console.log(`[BettingInsights] 📊 Analyzing ${config.label} market...`);
+    // NOTE: TypeScript infers T correctly based on the union type definition in MARKET_ANALYSIS_CONFIGS
     const insights: BettingInsight[] = [];
     const allStats = await config.service.getStatistics();
     const marketConfig = MARKET_CONFIGS[config.market];
@@ -564,3 +573,4 @@ export class BettingInsightsService {
 }
 
 export const bettingInsightsService = new BettingInsightsService();
+
