@@ -1,5 +1,6 @@
 // src/hooks/useFixtures.ts
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom'; // <-- ADDED: Needed for navigation hook
 import { FeaturedFixtureWithImportance } from '../types';
 import { fbrefFixtureService } from '../services/fixtures/fbrefFixtureService';
 
@@ -64,5 +65,24 @@ export const useFixtures = (limit = 8) => {
     refetch,
     switchLeague,
     getCurrentLeague
+  };
+};
+
+// --- NEW EXPORT: Fixes TS2305 error in StatsPage.tsx ---
+export const useFixtureNavigation = () => {
+  const navigate = useNavigate();
+
+  const goBack = useCallback(() => {
+    navigate(-1);
+  }, [navigate]);
+
+  const goHome = useCallback(() => {
+    // Navigate to the main fixture list or dashboard
+    navigate('/'); 
+  }, [navigate]);
+
+  return {
+    goBack,
+    goHome,
   };
 };
