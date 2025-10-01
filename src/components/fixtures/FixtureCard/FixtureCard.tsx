@@ -138,8 +138,17 @@ const FixtureCard: React.FC<FixtureCardProps> = ({
     const homeShort = homeTeam.shortName;
     const awayShort = awayTeam.shortName;
 
+    // --- START OF TIMEZONE FIX ---
     const matchDate = new Date(dateTime);
-    const formattedTime = matchDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+    
+    // Use UTC methods to get the hours and minutes exactly as they were provided
+    // in the UTC string, ignoring the user's local timezone offset (like +1 hour BST).
+    const hours = matchDate.getUTCHours();
+    const minutes = matchDate.getUTCMinutes();
+    
+    // Format the time string and ensure zero-padding (e.g., 5:0 => 05:00)
+    const formattedTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    // --- END OF TIMEZONE FIX ---
 
     const getResponsiveSizes = () => {
       if (useGameWeekMode) return {
