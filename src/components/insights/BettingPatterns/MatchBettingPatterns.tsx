@@ -1,7 +1,29 @@
 // src/components/insights/BettingPatterns/MatchBettingPatterns.tsx
 import React from 'react';
 import { TrendingUp, Target } from 'lucide-react';
-import { BettingInsight } from '../../../services/stats/bettingInsightsService';
+// import { BettingInsight } from '../../../services/ai/bettingInsightsService'; // REMOVED: Replaced with local interface definition
+
+// --- TYPE DEFINITIONS TO FIX TS2307 ERROR ---
+interface RecentMatch {
+  opponent: string;
+  value: number;
+  hit: boolean;
+  date: string;
+}
+
+export interface BettingInsight {
+  team: string;
+  market: string; 
+  outcome: string;
+  hitRate: number;
+  matchesAnalyzed: number;
+  isStreak: boolean;
+  streakLength?: number; 
+  threshold: number;
+  averageValue: number;
+  recentMatches: RecentMatch[];
+}
+// -------------------------------------------
 
 interface MatchBettingPatternsProps {
   insights: BettingInsight[];
@@ -128,7 +150,8 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
                 <div className="pt-2 border-t border-gray-100">
                   <p className="text-xs text-gray-500 uppercase mb-2">Last 3 Matches</p>
                   <div className="space-y-1">
-                    {insight.recentMatches.slice(0, 3).map((match, matchIdx) => (
+                    {/* --- FIX APPLIED HERE for TS7006 errors --- */}
+                    {insight.recentMatches.slice(0, 3).map((match: RecentMatch, matchIdx: number) => (
                       <div
                         key={matchIdx}
                         className="flex items-center justify-between p-2 bg-gray-50 rounded text-sm"
