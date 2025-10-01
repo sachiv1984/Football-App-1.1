@@ -188,14 +188,15 @@ export class BettingInsightsService {
 
   /**
    * Helper function to filter out redundant patterns (Max Specificity Principle).
+   * * FIX: Made BTTS key more robust by using explicit 'YES'/'NO' instead of the full outcome string.
    */
   private filterRedundantInsights(insights: BettingInsight[]): BettingInsight[] {
-    // Key: 'TeamName_Market_Comparison(OVER/UNDER/binary)'
+    // Key: 'TeamName_Market_Comparison(OVER/UNDER/YES/NO)'
     const mostSpecificInsights = new Map<string, BettingInsight>();
 
     for (const insight of insights) {
       const comparisonType = insight.comparison === 'binary' 
-        ? insight.outcome // Use the full outcome for binary (BTTS Yes/No)
+        ? insight.outcome.includes('Yes') ? 'YES' : 'NO' // R-FIX: Use 'YES'/'NO' for robustness
         : insight.comparison;
       
       const key = `${insight.team}_${insight.market}_${comparisonType}`;
@@ -235,11 +236,10 @@ export class BettingInsightsService {
     
     const allInsights: BettingInsight[] = [];
     
-    // 🛑 FINAL FIX: Use `as unknown as MarketAnalysisConfig<BaseMatchDetail>` 
-    // to bypass the strict compiler check on the union type and allow T to be inferred 
-    // correctly within the generic function call for each iteration.
+    // FIX: Using `as any` to bypass the strict compiler check on the union type 
+    // and allow T to be inferred correctly within the generic function call for each iteration.
     const marketAnalyses = this.MARKET_ANALYSIS_CONFIGS.map(
-      config => this.analyzeGenericMarket(config as unknown as MarketAnalysisConfig<BaseMatchDetail>)
+      config => this.analyzeGenericMarket(config as any)
     );
     
     // Handle the special BTTS market separately
@@ -291,16 +291,12 @@ export class BettingInsightsService {
     console.log(`[BettingInsights] 📊 Analyzing ${config.label} market...`);
     const insights: BettingInsight[] = [];
     
-    // The specific type T is correctly inferred by the calling function's assertion
     const allStats = await config.service.getStatistics();
     const marketConfig = MARKET_CONFIGS[config.market];
 
     for (const [teamName, stats] of allStats.entries()) {
       if (stats.matches < this.ROLLING_WINDOW) continue;
 
-      // Note: The original syntax error 'Cannot find name 'm'' was an environmental
-      // issue from the previous output's context, not a code issue, as 'm' is
-      // correctly defined as the parameter in the valueExtractor lambda here:
       const values = stats.matchDetails.map(config.valueExtractor); 
       
       for (const threshold of marketConfig.thresholds) {
@@ -371,6 +367,7 @@ export class BettingInsightsService {
   
   /**
    * Core pattern detection logic
+   * * FIX: Logic updated to prioritize a streak (7+ matches) over the rolling 5-match window.
    */
   private detectPattern(
     values: number[],
@@ -388,11 +385,6 @@ export class BettingInsightsService {
       return comparison === Comparison.OVER ? value > threshold : value < threshold;
     };
 
-    // Check rolling 5 matches (most recent)
-    const rolling = values.slice(0, this.ROLLING_WINDOW);
-    const rollingHits = rolling.filter(isHit).length;
-    const rollingHitRate = (rollingHits / rolling.length) * 100;
-
     // Check for streaks (7+ consecutive matches)
     let streakLength = 0;
     for (const value of values) {
@@ -403,21 +395,7 @@ export class BettingInsightsService {
       }
     }
     
-    // Only return if 100% hit rate in rolling window OR 7+ streak
-    if (rollingHitRate === 100) {
-      return this.buildInsight(
-        rolling,
-        threshold,
-        teamName,
-        market,
-        outcome,
-        matchDetails.slice(0, this.ROLLING_WINDOW),
-        false,
-        comparison,
-        streakLength >= this.STREAK_THRESHOLD ? streakLength : undefined
-      );
-    }
-
+    // 1. PRIORITIZE: Return the insight if a 7+ streak is found
     if (streakLength >= this.STREAK_THRESHOLD) {
       return this.buildInsight(
         values.slice(0, streakLength),
@@ -429,6 +407,25 @@ export class BettingInsightsService {
         true,
         comparison,
         streakLength
+      );
+    }
+
+    // 2. FALLBACK: Check rolling 5 matches (most recent) for 100% hit rate
+    const rolling = values.slice(0, this.ROLLING_WINDOW);
+    const rollingHits = rolling.filter(isHit).length;
+    const rollingHitRate = (rollingHits / rolling.length) * 100;
+
+    if (rollingHitRate === 100) {
+      return this.buildInsight(
+        rolling,
+        threshold,
+        teamName,
+        market,
+        outcome,
+        matchDetails.slice(0, this.ROLLING_WINDOW),
+        false, // Not an official STREAK_THRESHOLD streak
+        comparison,
+        undefined
       );
     }
 
@@ -447,10 +444,6 @@ export class BettingInsightsService {
     
     const isHit = (m: GoalsDetail) => m.bothTeamsScored === targetHit;
 
-    const rolling = matchDetails.slice(0, this.ROLLING_WINDOW);
-    const rollingHits = rolling.filter(isHit).length;
-    const rollingHitRate = (rollingHits / rolling.length) * 100;
-
     // Check for streaks
     let streakLength = 0;
     for (const match of matchDetails) {
@@ -461,10 +454,18 @@ export class BettingInsightsService {
       }
     }
 
-    if (rollingHitRate === 100 || streakLength >= this.STREAK_THRESHOLD) {
-      const analyzedMatches = streakLength >= this.STREAK_THRESHOLD 
-        ? matchDetails.slice(0, streakLength)
-        : rolling;
+    // Check rolling 5 matches (most recent)
+    const rolling = matchDetails.slice(0, this.ROLLING_WINDOW);
+    const rollingHits = rolling.filter(isHit).length;
+    const rollingHitRate = (rollingHits / rolling.length) * 100;
+
+    // Prioritize streak, then check rolling window
+    if (streakLength >= this.STREAK_THRESHOLD || rollingHitRate === 100) {
+      const isStreak = streakLength >= this.STREAK_THRESHOLD;
+      
+      const analyzedMatches = isStreak 
+        ? matchDetails.slice(0, streakLength) // Use streak window
+        : rolling; // Use rolling window
 
       return {
         team: teamName,
@@ -472,8 +473,8 @@ export class BettingInsightsService {
         outcome: outcomeLabel,
         hitRate: 100,
         matchesAnalyzed: analyzedMatches.length,
-        isStreak: streakLength >= this.STREAK_THRESHOLD,
-        streakLength: streakLength >= this.STREAK_THRESHOLD ? streakLength : undefined,
+        isStreak: isStreak,
+        streakLength: isStreak ? streakLength : undefined,
         threshold: 0.5, // Arbitrary threshold for binary market
         averageValue: 1, // BTTS is binary, average is 1 if it hits
         comparison: 'binary', // Indicate this is a binary market
