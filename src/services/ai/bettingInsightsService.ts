@@ -1,4 +1,4 @@
-// src/services/stats/bettingInsightsService.ts
+m// src/services/stats/bettingInsightsService.ts
 
 import { supabaseCardsService } from '../stats/supabaseCardsService';
 import { supabaseCornersService } from '../stats/supabaseCornersService';
@@ -127,7 +127,6 @@ const MARKET_CONFIGS = {
 
 /**
  * Configuration type for generic analysis loop
- * Note: The service object is defined to require a getStatistics method signature.
  */
 interface MarketAnalysisConfig<T> {
   market: BettingMarket;
@@ -136,16 +135,17 @@ interface MarketAnalysisConfig<T> {
   label: string;
 }
 
-// ----------------------------------------------------------------------
-// FIX: Define a highly specific Union Type for the configuration array
-// This replaces the permissive `MarketAnalysisConfig<any>[]` for better type safety.
+/**
+ * FIX: Define a highly specific Union Type for the configuration array
+ * This provides strong type safety for the configuration data structure.
+ */
 type AllMarketConfigs = 
     | MarketAnalysisConfig<CardsMatchDetail>
     | MarketAnalysisConfig<CornersMatchDetail>
     | MarketAnalysisConfig<FoulsMatchDetail>
     | MarketAnalysisConfig<GoalsDetail>
     | MarketAnalysisConfig<ShotsMatchDetail>;
-// ----------------------------------------------------------------------
+
 
 export class BettingInsightsService {
   private readonly ROLLING_WINDOW = 5;
@@ -153,9 +153,9 @@ export class BettingInsightsService {
 
   /**
    * Consolidated market analysis configurations for the generic loop.
-   * IMPROVEMENT: The array is now typed using the specific union type.
+   * Uses the strongly-typed union type `AllMarketConfigs[]`.
    */
-  private readonly MARKET_ANALYSIS_CONFIGS: AllMarketConfigs[] = [ // Changed type here
+  private readonly MARKET_ANALYSIS_CONFIGS: AllMarketConfigs[] = [
     {
       market: BettingMarket.CARDS,
       // FIX: Alias the specific method to the generic 'getStatistics'
@@ -194,8 +194,7 @@ export class BettingInsightsService {
   ];
 
   /**
-   * UPDATED: Helper function to filter out redundant patterns (Max Specificity Principle).
-   * Handles both OVER (keep highest threshold) and UNDER (keep lowest threshold).
+   * Helper function to filter out redundant patterns (Max Specificity Principle).
    */
   private filterRedundantInsights(insights: BettingInsight[]): BettingInsight[] {
     // Key: 'TeamName_Market_Comparison(OVER/UNDER/binary)'
@@ -244,8 +243,12 @@ export class BettingInsightsService {
     
     const allInsights: BettingInsight[] = [];
     
-    // Use generic analysis for all standard threshold markets
-    const marketAnalyses = this.MARKET_ANALYSIS_CONFIGS.map(config => this.analyzeGenericMarket(config));
+    // FIX APPLIED: Use a type assertion when calling the generic function.
+    // This resolves the TS2345 error by telling the compiler that each 'config' 
+    // satisfies the generic constraint T extends BaseMatchDetail.
+    const marketAnalyses = this.MARKET_ANALYSIS_CONFIGS.map(
+      config => this.analyzeGenericMarket(config as MarketAnalysisConfig<BaseMatchDetail>)
+    );
     
     // Handle the special BTTS market separately
     marketAnalyses.push(this.analyzeBTTSMarket()); 
@@ -294,8 +297,8 @@ export class BettingInsightsService {
    */
   private async analyzeGenericMarket<T extends BaseMatchDetail>(config: MarketAnalysisConfig<T>): Promise<BettingInsight[]> {
     console.log(`[BettingInsights] 📊 Analyzing ${config.label} market...`);
-    // NOTE: TypeScript infers T correctly based on the union type definition in MARKET_ANALYSIS_CONFIGS
     const insights: BettingInsight[] = [];
+    // The specific type T is correctly inferred by the calling function's assertion
     const allStats = await config.service.getStatistics();
     const marketConfig = MARKET_CONFIGS[config.market];
 
@@ -373,7 +376,6 @@ export class BettingInsightsService {
   
   /**
    * Core pattern detection logic
-   * Now accepts a Comparison type to handle OVER vs UNDER.
    */
   private detectPattern(
     values: number[],
@@ -573,4 +575,3 @@ export class BettingInsightsService {
 }
 
 export const bettingInsightsService = new BettingInsightsService();
-
