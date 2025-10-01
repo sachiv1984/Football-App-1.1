@@ -1,9 +1,51 @@
 // src/services/stats/bettingInsightsService.ts
+
+// NOTE ON TS2307 ERRORS: 
+// The following imports are causing "Cannot find module" errors (TS2307). 
+// These cannot be fixed here. You must ensure the files:
+// - './supabaseCardsService.ts'
+// - './supabaseCornersService.ts'
+// - './supabaseFoulsService.ts'
+// - './supabaseGoalsService.ts'
+// - './supabaseShootingService.ts'
+// exist at the expected path and export the named services.
 import { supabaseCardsService } from './supabaseCardsService';
 import { supabaseCornersService } from './supabaseCornersService';
 import { supabaseFoulsService } from './supabaseFoulsService';
 import { supabaseGoalsService } from './supabaseGoalsService';
 import { supabaseShootingService } from './supabaseShootingService';
+
+// ----------------------------------------------------------------------
+// Interfaces to fix TS7006 (Implicit 'any' errors)
+// These types represent the structure of a single match detail record 
+// retrieved from the respective Supabase service.
+// ----------------------------------------------------------------------
+
+interface BaseMatchDetail {
+  opponent: string;
+  date?: string;
+}
+
+interface CardsMatchDetail extends BaseMatchDetail {
+  cardsFor: number;
+}
+
+interface CornersMatchDetail extends BaseMatchDetail {
+  cornersFor: number;
+}
+
+interface FoulsMatchDetail extends BaseMatchDetail {
+  foulsCommittedFor: number;
+}
+
+interface GoalsMatchDetail extends BaseMatchDetail {
+  totalGoals: number;
+  bothTeamsScored: boolean; // Used in detectBTTSPattern
+}
+
+interface ShotsMatchDetail extends BaseMatchDetail {
+  shotsOnTargetFor: number;
+}
 
 /**
  * Betting market categories mapped to available data
@@ -156,6 +198,7 @@ export class BettingInsightsService {
   private async analyzeCardsMarket(): Promise<BettingInsight[]> {
     console.log('[BettingInsights] 📊 Analyzing cards market...');
     const insights: BettingInsight[] = [];
+    // Assumes getCardStatistics() returns Map<string, { matches: number, matchDetails: CardsMatchDetail[] }>
     const allStats = await supabaseCardsService.getCardStatistics();
 
     for (const [teamName, stats] of allStats.entries()) {
@@ -165,7 +208,8 @@ export class BettingInsightsService {
       
       for (const threshold of config.thresholds) {
         const pattern = this.detectPattern(
-          stats.matchDetails.map(m => m.cardsFor),
+          // FIX TS7006: Added type to parameter 'm'
+          stats.matchDetails.map((m: CardsMatchDetail) => m.cardsFor),
           threshold,
           teamName,
           BettingMarket.CARDS,
@@ -189,6 +233,7 @@ export class BettingInsightsService {
   private async analyzeCornersMarket(): Promise<BettingInsight[]> {
     console.log('[BettingInsights] 📊 Analyzing corners market...');
     const insights: BettingInsight[] = [];
+    // Assumes getCornerStatistics() returns Map<string, { matches: number, matchDetails: CornersMatchDetail[] }>
     const allStats = await supabaseCornersService.getCornerStatistics();
 
     for (const [teamName, stats] of allStats.entries()) {
@@ -198,7 +243,8 @@ export class BettingInsightsService {
       
       for (const threshold of config.thresholds) {
         const pattern = this.detectPattern(
-          stats.matchDetails.map(m => m.cornersFor),
+          // FIX TS7006: Added type to parameter 'm'
+          stats.matchDetails.map((m: CornersMatchDetail) => m.cornersFor),
           threshold,
           teamName,
           BettingMarket.CORNERS,
@@ -222,6 +268,7 @@ export class BettingInsightsService {
   private async analyzeFoulsMarket(): Promise<BettingInsight[]> {
     console.log('[BettingInsights] 📊 Analyzing fouls market...');
     const insights: BettingInsight[] = [];
+    // Assumes getFoulStatistics() returns Map<string, { matches: number, matchDetails: FoulsMatchDetail[] }>
     const allStats = await supabaseFoulsService.getFoulStatistics();
 
     for (const [teamName, stats] of allStats.entries()) {
@@ -231,7 +278,8 @@ export class BettingInsightsService {
       
       for (const threshold of config.thresholds) {
         const pattern = this.detectPattern(
-          stats.matchDetails.map(m => m.foulsCommittedFor),
+          // FIX TS7006: Added type to parameter 'm'
+          stats.matchDetails.map((m: FoulsMatchDetail) => m.foulsCommittedFor),
           threshold,
           teamName,
           BettingMarket.FOULS,
@@ -255,6 +303,7 @@ export class BettingInsightsService {
   private async analyzeGoalsMarket(): Promise<BettingInsight[]> {
     console.log('[BettingInsights] 📊 Analyzing goals market...');
     const insights: BettingInsight[] = [];
+    // Assumes getGoalStatistics() returns Map<string, { matches: number, matchDetails: GoalsMatchDetail[] }>
     const allStats = await supabaseGoalsService.getGoalStatistics();
 
     for (const [teamName, stats] of allStats.entries()) {
@@ -265,7 +314,8 @@ export class BettingInsightsService {
       // Match goals (total goals in the match)
       for (const threshold of config.thresholds) {
         const pattern = this.detectPattern(
-          stats.matchDetails.map(m => m.totalGoals),
+          // FIX TS7006: Added type to parameter 'm'
+          stats.matchDetails.map((m: GoalsMatchDetail) => m.totalGoals),
           threshold,
           teamName,
           BettingMarket.GOALS,
@@ -295,6 +345,7 @@ export class BettingInsightsService {
   private async analyzeShotsMarket(): Promise<BettingInsight[]> {
     console.log('[BettingInsights] 📊 Analyzing shots market...');
     const insights: BettingInsight[] = [];
+    // Assumes getShootingStatistics() returns Map<string, { matches: number, matchDetails: ShotsMatchDetail[] }>
     const allStats = await supabaseShootingService.getShootingStatistics();
 
     for (const [teamName, stats] of allStats.entries()) {
@@ -304,7 +355,8 @@ export class BettingInsightsService {
       
       for (const threshold of config.thresholds) {
         const pattern = this.detectPattern(
-          stats.matchDetails.map(m => m.shotsOnTargetFor),
+          // FIX TS7006: Added type to parameter 'm'
+          stats.matchDetails.map((m: ShotsMatchDetail) => m.shotsOnTargetFor),
           threshold,
           teamName,
           BettingMarket.SHOTS_ON_TARGET,
