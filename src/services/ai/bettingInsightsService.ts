@@ -1,6 +1,6 @@
 // src/services/stats/bettingInsightsService.ts
 
-import { supabaseCardsService } from '../stats/supabaseCardsService'; 
+import { supabaseCardsService } from '../stats/supabaseCardsService';
 import { supabaseCornersService } from '../stats/supabaseCornersService';
 import { supabaseFoulsService } from '../stats/supabaseFoulsService';
 import { supabaseGoalsService } from '../stats/supabaseGoalsService';
@@ -9,6 +9,12 @@ import { supabaseShootingService } from '../stats/supabaseShootingService';
 interface BaseMatchDetail {
   opponent: string;
   date?: string;
+}
+
+// NOTE: Renamed to GoalsDetail to avoid conflict with BaseMatchDetail usage in generic functions
+interface GoalsDetail extends BaseMatchDetail {
+  totalGoals: number;
+  bothTeamsScored: boolean; // Used in detectBTTSPattern
 }
 
 interface CardsMatchDetail extends BaseMatchDetail {
@@ -21,11 +27,6 @@ interface CornersMatchDetail extends BaseMatchDetail {
 
 interface FoulsMatchDetail extends BaseMatchDetail {
   foulsCommittedFor: number;
-}
-
-interface GoalsMatchDetail extends BaseMatchDetail {
-  totalGoals: number;
-  bothTeamsScored: boolean; // Used in detectBTTSPattern
 }
 
 interface ShotsMatchDetail extends BaseMatchDetail {
@@ -44,6 +45,14 @@ export enum BettingMarket {
   BOTH_TEAMS_TO_SCORE = 'both_teams_to_score'
 }
 
+/**
+ * NEW: Defines the comparison type for a threshold bet (Over/Under)
+ */
+export enum Comparison {
+    OVER = 'Over',
+    UNDER = 'Under'
+}
+
 export interface BettingInsight {
   team: string;
   market: BettingMarket;
@@ -54,6 +63,7 @@ export interface BettingInsight {
   streakLength?: number;              // If isStreak, how many consecutive matches
   threshold: number;                  // The line being analyzed (e.g., 1.5)
   averageValue: number;               // Average stat value in period
+  comparison: Comparison | 'binary';  // NEW: Added for filtering/redundancy check
   recentMatches: Array<{
     opponent: string;
     value: number;                    // Actual stat value
@@ -116,40 +126,96 @@ const MARKET_CONFIGS = {
   }
 };
 
+/**
+ * NEW: Configuration for generic analysis loop
+ */
+interface MarketAnalysisConfig<T> {
+  market: BettingMarket;
+  service: { getStatistics: () => Promise<Map<string, { matches: number, matchDetails: T[] }>> };
+  valueExtractor: (detail: T) => number;
+  label: string;
+}
+
+
 export class BettingInsightsService {
   private readonly ROLLING_WINDOW = 5;
   private readonly STREAK_THRESHOLD = 7;
 
   /**
-   * Helper function to filter out redundant patterns (e.g., Over 0.5 when Over 1.5 exists)
-   * This implements the Principle of Max Specificity.
+   * NEW: Consolidated market analysis configurations for the generic loop
+   */
+  private readonly MARKET_ANALYSIS_CONFIGS: MarketAnalysisConfig<any>[] = [
+    {
+      market: BettingMarket.CARDS,
+      service: supabaseCardsService,
+      valueExtractor: (m: CardsMatchDetail) => m.cardsFor,
+      label: 'cards'
+    },
+    {
+      market: BettingMarket.CORNERS,
+      service: supabaseCornersService,
+      valueExtractor: (m: CornersMatchDetail) => m.cornersFor,
+      label: 'corners'
+    },
+    {
+      market: BettingMarket.FOULS,
+      service: supabaseFoulsService,
+      valueExtractor: (m: FoulsMatchDetail) => m.foulsCommittedFor,
+      label: 'fouls'
+    },
+    {
+      market: BettingMarket.GOALS,
+      service: supabaseGoalsService,
+      valueExtractor: (m: GoalsDetail) => m.totalGoals,
+      label: 'goals'
+    },
+    {
+      market: BettingMarket.SHOTS_ON_TARGET,
+      service: supabaseShootingService,
+      valueExtractor: (m: ShotsMatchDetail) => m.shotsOnTargetFor,
+      label: 'shots'
+    }
+  ];
+
+  /**
+   * UPDATED: Helper function to filter out redundant patterns (Max Specificity Principle).
+   * Now handles both OVER (keep highest threshold) and UNDER (keep lowest threshold).
    */
   private filterRedundantInsights(insights: BettingInsight[]): BettingInsight[] {
-    const mostSpecificInsights = new Map<string, BettingInsight>(); // Key: 'TeamName_Market'
+    // Key: 'TeamName_Market_Comparison(OVER/UNDER/binary)'
+    const mostSpecificInsights = new Map<string, BettingInsight>();
 
     for (const insight of insights) {
-      // Use team and market (excluding BTTS, which is special) as the key
-      if (insight.market === BettingMarket.BOTH_TEAMS_TO_SCORE) {
-        // BTTS is a binary market and should be kept as-is
-        const bttsKey = `${insight.team}_${insight.market}_${insight.outcome}`;
-        if (!mostSpecificInsights.has(bttsKey)) {
-          mostSpecificInsights.set(bttsKey, insight);
-        }
-        continue;
-      }
+      const comparisonType = insight.comparison === 'binary' 
+        ? insight.outcome // Use the full outcome for binary (BTTS Yes/No)
+        : insight.comparison;
       
-      const key = `${insight.team}_${insight.market}`;
+      const key = `${insight.team}_${insight.market}_${comparisonType}`;
       const existingInsight = mostSpecificInsights.get(key);
 
       if (!existingInsight) {
-        // First pattern for this team/market combination
+        // First pattern for this team/market/comparison combination
         mostSpecificInsights.set(key, insight);
       } else {
-        // Keep the one with the highest threshold (most specific)
-        if (insight.threshold > existingInsight.threshold) {
-          mostSpecificInsights.set(key, insight);
+        // Only run logic for threshold markets (OVER/UNDER)
+        if (insight.comparison !== 'binary') {
+          let shouldReplace = false;
+
+          if (insight.comparison === Comparison.OVER) {
+            // Keep the one with the highest threshold (most specific OVER bet)
+            shouldReplace = insight.threshold > existingInsight.threshold;
+          } else if (insight.comparison === Comparison.UNDER) {
+            // Keep the one with the lowest threshold (most specific UNDER bet)
+            shouldReplace = insight.threshold < existingInsight.threshold;
+          }
+          
+          if (shouldReplace) {
+            mostSpecificInsights.set(key, insight);
+          }
+          // Note: If thresholds are equal, we don't care which one we keep
+        } else {
+            // Binary markets (BTTS Yes/No) are already unique by the key
         }
-        // If thresholds are equal, we don't care which one we keep
       }
     }
 
@@ -164,24 +230,16 @@ export class BettingInsightsService {
     
     const allInsights: BettingInsight[] = [];
     
-    // Analyze each market
-    const cardsInsights = await this.analyzeCardsMarket();
-    const cornersInsights = await this.analyzeCornersMarket();
-    const foulsInsights = await this.analyzeFoulsMarket();
-    const goalsInsights = await this.analyzeGoalsMarket();
-    const shotsInsights = await this.analyzeShotsMarket();
+    // NEW: Use generic analysis for all standard threshold markets
+    const marketAnalyses = this.MARKET_ANALYSIS_CONFIGS.map(config => this.analyzeGenericMarket(config));
     
-    allInsights.push(
-      ...cardsInsights,
-      ...cornersInsights,
-      ...foulsInsights,
-      ...goalsInsights,
-      ...shotsInsights
-    );
+    // Handle the special BTTS market separately
+    marketAnalyses.push(this.analyzeBTTSMarket()); 
 
-    // --- APPLY THE FIX HERE ---
+    const results = await Promise.all(marketAnalyses);
+    allInsights.push(...results.flat()); // Flatten the array of arrays
+    
     const finalInsights = this.filterRedundantInsights(allInsights);
-    // --------------------------
 
     // Count unique teams
     const uniqueTeams = new Set(finalInsights.map(i => i.team));
@@ -218,185 +276,97 @@ export class BettingInsightsService {
   }
 
   /**
-   * Analyze cards market for all teams
+   * NEW: Generic method to analyze standard threshold markets
    */
-  private async analyzeCardsMarket(): Promise<BettingInsight[]> {
-    console.log('[BettingInsights] 📊 Analyzing cards market...');
+  private async analyzeGenericMarket<T extends BaseMatchDetail>(config: MarketAnalysisConfig<T>): Promise<BettingInsight[]> {
+    console.log(`[BettingInsights] 📊 Analyzing ${config.label} market...`);
     const insights: BettingInsight[] = [];
-    // Assumes getCardStatistics() returns Map<string, { matches: number, matchDetails: CardsMatchDetail[] }>
-    const allStats = await supabaseCardsService.getCardStatistics();
+    const allStats = await config.service.getStatistics();
+    const marketConfig = MARKET_CONFIGS[config.market];
 
     for (const [teamName, stats] of allStats.entries()) {
       if (stats.matches < this.ROLLING_WINDOW) continue;
 
-      const config = MARKET_CONFIGS[BettingMarket.CARDS];
+      const values = stats.matchDetails.map(config.valueExtractor);
       
-      for (const threshold of config.thresholds) {
-        const pattern = this.detectPattern(
-          stats.matchDetails.map((m: CardsMatchDetail) => m.cardsFor),
+      for (const threshold of marketConfig.thresholds) {
+        const baseOutcome = `${threshold} ${marketConfig.label}`;
+        
+        // 1. Detect OVER pattern
+        const overPattern = this.detectPattern(
+          values,
           threshold,
           teamName,
-          BettingMarket.CARDS,
-          `Over ${threshold} ${config.label}`,
-          stats.matchDetails
+          config.market,
+          `${Comparison.OVER} ${baseOutcome}`,
+          stats.matchDetails,
+          Comparison.OVER
         );
-
-        if (pattern) {
-          insights.push(pattern);
-        }
+        if (overPattern) insights.push(overPattern);
+        
+        // 2. Detect UNDER pattern
+        const underPattern = this.detectPattern(
+          values,
+          threshold,
+          teamName,
+          config.market,
+          `${Comparison.UNDER} ${baseOutcome}`,
+          stats.matchDetails,
+          Comparison.UNDER
+        );
+        if (underPattern) insights.push(underPattern);
       }
     }
 
-    console.log(`[BettingInsights] Found ${insights.length} cards patterns`);
+    console.log(`[BettingInsights] Found ${insights.length} ${config.label} patterns`);
     return insights;
   }
-
+  
   /**
-   * Analyze corners market for all teams
+   * NEW: Dedicated method for BTTS analysis
+   * RENAMED: analyzeGoalsMarket now is only responsible for the BTTS aspect.
    */
-  private async analyzeCornersMarket(): Promise<BettingInsight[]> {
-    console.log('[BettingInsights] 📊 Analyzing corners market...');
+  private async analyzeBTTSMarket(): Promise<BettingInsight[]> {
+    console.log('[BettingInsights] 📊 Analyzing Both Teams to Score market...');
     const insights: BettingInsight[] = [];
-    // Assumes getCornerStatistics() returns Map<string, { matches: number, matchDetails: CornersMatchDetail[] }>
-    const allStats = await supabaseCornersService.getCornerStatistics();
-
-    for (const [teamName, stats] of allStats.entries()) {
-      if (stats.matches < this.ROLLING_WINDOW) continue;
-
-      const config = MARKET_CONFIGS[BettingMarket.CORNERS];
-      
-      for (const threshold of config.thresholds) {
-        const pattern = this.detectPattern(
-          stats.matchDetails.map((m: CornersMatchDetail) => m.cornersFor),
-          threshold,
-          teamName,
-          BettingMarket.CORNERS,
-          `Over ${threshold} ${config.label}`,
-          stats.matchDetails
-        );
-
-        if (pattern) {
-          insights.push(pattern);
-        }
-      }
-    }
-
-    console.log(`[BettingInsights] Found ${insights.length} corners patterns`);
-    return insights;
-  }
-
-  /**
-   * Analyze fouls market for all teams
-   */
-  private async analyzeFoulsMarket(): Promise<BettingInsight[]> {
-    console.log('[BettingInsights] 📊 Analyzing fouls market...');
-    const insights: BettingInsight[] = [];
-    // Assumes getFoulStatistics() returns Map<string, { matches: number, matchDetails: FoulsMatchDetail[] }>
-    const allStats = await supabaseFoulsService.getFoulStatistics();
-
-    for (const [teamName, stats] of allStats.entries()) {
-      if (stats.matches < this.ROLLING_WINDOW) continue;
-
-      const config = MARKET_CONFIGS[BettingMarket.FOULS];
-      
-      for (const threshold of config.thresholds) {
-        const pattern = this.detectPattern(
-          stats.matchDetails.map((m: FoulsMatchDetail) => m.foulsCommittedFor),
-          threshold,
-          teamName,
-          BettingMarket.FOULS,
-          `Over ${threshold} ${config.label}`,
-          stats.matchDetails
-        );
-
-        if (pattern) {
-          insights.push(pattern);
-        }
-      }
-    }
-
-    console.log(`[BettingInsights] Found ${insights.length} fouls patterns`);
-    return insights;
-  }
-
-  /**
-   * Analyze goals market for all teams
-   */
-  private async analyzeGoalsMarket(): Promise<BettingInsight[]> {
-    console.log('[BettingInsights] 📊 Analyzing goals market...');
-    const insights: BettingInsight[] = [];
-    // Assumes getGoalStatistics() returns Map<string, { matches: number, matchDetails: GoalsMatchDetail[] }>
+    // Assumes getGoalStatistics() returns Map<string, { matches: number, matchDetails: GoalsDetail[] }>
     const allStats = await supabaseGoalsService.getGoalStatistics();
 
     for (const [teamName, stats] of allStats.entries()) {
       if (stats.matches < this.ROLLING_WINDOW) continue;
-
-      const config = MARKET_CONFIGS[BettingMarket.GOALS];
       
-      // Match goals (total goals in the match)
-      for (const threshold of config.thresholds) {
-        const pattern = this.detectPattern(
-          stats.matchDetails.map((m: GoalsMatchDetail) => m.totalGoals),
-          threshold,
-          teamName,
-          BettingMarket.GOALS,
-          `Over ${threshold} ${config.label}`,
-          stats.matchDetails
-        );
-
-        if (pattern) {
-          insights.push(pattern);
-        }
-      }
-
-      // Both Teams to Score
-      const bttsPattern = this.detectBTTSPattern(stats.matchDetails, teamName);
-      if (bttsPattern) {
-        insights.push(bttsPattern);
-      }
+      // Since BTTS is a property of the Goals market data, we fetch it here.
+      // We look for patterns for both "Yes" and "No".
+      
+      // 1. BTTS - YES (Condition: bothTeamsScored is true)
+      const yesPattern = this.detectBTTSPattern(
+        stats.matchDetails, 
+        teamName, 
+        true, 
+        'Both Teams to Score - Yes'
+      );
+      if (yesPattern) insights.push(yesPattern);
+      
+      // 2. BTTS - NO (Condition: bothTeamsScored is false)
+      const noPattern = this.detectBTTSPattern(
+        stats.matchDetails, 
+        teamName, 
+        false, 
+        'Both Teams to Score - No'
+      );
+      if (noPattern) insights.push(noPattern);
     }
 
-    console.log(`[BettingInsights] Found ${insights.length} goals patterns`);
+    // NOTE: The GOALS threshold analysis (e.g., Over 1.5 Goals) is now handled by analyzeGenericMarket
+
     return insights;
   }
+  
+  // Removed analyzeCardsMarket, analyzeCornersMarket, analyzeFoulsMarket, analyzeGoalsMarket, analyzeShotsMarket
 
   /**
-   * Analyze shots on target market for all teams
-   */
-  private async analyzeShotsMarket(): Promise<BettingInsight[]> {
-    console.log('[BettingInsights] 📊 Analyzing shots market...');
-    const insights: BettingInsight[] = [];
-    // Assumes getShootingStatistics() returns Map<string, { matches: number, matchDetails: ShotsMatchDetail[] }>
-    const allStats = await supabaseShootingService.getShootingStatistics();
-
-    for (const [teamName, stats] of allStats.entries()) {
-      if (stats.matches < this.ROLLING_WINDOW) continue;
-
-      const config = MARKET_CONFIGS[BettingMarket.SHOTS_ON_TARGET];
-      
-      for (const threshold of config.thresholds) {
-        const pattern = this.detectPattern(
-          stats.matchDetails.map((m: ShotsMatchDetail) => m.shotsOnTargetFor),
-          threshold,
-          teamName,
-          BettingMarket.SHOTS_ON_TARGET,
-          `Over ${threshold} ${config.label}`,
-          stats.matchDetails
-        );
-
-        if (pattern) {
-          insights.push(pattern);
-        }
-      }
-    }
-
-    console.log(`[BettingInsights] Found ${insights.length} shots patterns`);
-    return insights;
-  }
-
-  /**
-   * Core pattern detection logic
-   * Returns insight only if hit rate is 100% in rolling window OR 7+ streak
+   * UPDATED: Core pattern detection logic
+   * Now accepts a Comparison type to handle OVER vs UNDER.
    */
   private detectPattern(
     values: number[],
@@ -404,23 +374,30 @@ export class BettingInsightsService {
     teamName: string,
     market: BettingMarket,
     outcome: string,
-    matchDetails: Array<{ opponent: string; date?: string }>
+    matchDetails: Array<{ opponent: string; date?: string }>,
+    comparison: Comparison // NEW: Added comparison type
   ): BettingInsight | null {
+    
+    // NEW: Define the hit condition
+    const isHit = (value: number) => {
+      return comparison === Comparison.OVER ? value > threshold : value < threshold;
+    };
+
     // Check rolling 5 matches (most recent)
     const rolling = values.slice(0, this.ROLLING_WINDOW);
-    const rollingHits = rolling.filter(v => v > threshold).length;
+    const rollingHits = rolling.filter(isHit).length; // Use isHit
     const rollingHitRate = (rollingHits / rolling.length) * 100;
 
     // Check for streaks (7+ consecutive matches)
     let streakLength = 0;
     for (const value of values) {
-      if (value > threshold) {
+      if (isHit(value)) { // Use isHit
         streakLength++;
       } else {
         break; // Streak broken
       }
     }
-
+    
     // Only return if 100% hit rate in rolling window OR 7+ streak
     if (rollingHitRate === 100) {
       return this.buildInsight(
@@ -431,6 +408,7 @@ export class BettingInsightsService {
         outcome,
         matchDetails.slice(0, this.ROLLING_WINDOW),
         false,
+        comparison, // Pass comparison
         streakLength >= this.STREAK_THRESHOLD ? streakLength : undefined
       );
     }
@@ -444,6 +422,7 @@ export class BettingInsightsService {
         outcome,
         matchDetails.slice(0, streakLength),
         true,
+        comparison, // Pass comparison
         streakLength
       );
     }
@@ -452,20 +431,26 @@ export class BettingInsightsService {
   }
 
   /**
-   * Detect Both Teams to Score patterns
+   * UPDATED: Detect Both Teams to Score patterns
+   * Now detects both YES and NO patterns.
    */
   private detectBTTSPattern(
-    matchDetails: Array<{ bothTeamsScored: boolean; opponent: string; date?: string }>,
-    teamName: string
+    matchDetails: GoalsDetail[], // Ensure this is GoalsDetail
+    teamName: string,
+    targetHit: boolean, // true for YES, false for NO
+    outcomeLabel: string
   ): BettingInsight | null {
+    
+    const isHit = (m: GoalsDetail) => m.bothTeamsScored === targetHit;
+
     const rolling = matchDetails.slice(0, this.ROLLING_WINDOW);
-    const rollingHits = rolling.filter(m => m.bothTeamsScored).length;
+    const rollingHits = rolling.filter(isHit).length;
     const rollingHitRate = (rollingHits / rolling.length) * 100;
 
     // Check for streaks
     let streakLength = 0;
     for (const match of matchDetails) {
-      if (match.bothTeamsScored) {
+      if (isHit(match)) {
         streakLength++;
       } else {
         break;
@@ -480,17 +465,18 @@ export class BettingInsightsService {
       return {
         team: teamName,
         market: BettingMarket.BOTH_TEAMS_TO_SCORE,
-        outcome: 'Both Teams to Score - Yes',
+        outcome: outcomeLabel,
         hitRate: 100,
         matchesAnalyzed: analyzedMatches.length,
         isStreak: streakLength >= this.STREAK_THRESHOLD,
         streakLength: streakLength >= this.STREAK_THRESHOLD ? streakLength : undefined,
-        threshold: 0.5,
-        averageValue: 1, // BTTS is binary
+        threshold: 0.5, // Arbitrary threshold for binary market
+        averageValue: 1, // BTTS is binary, average is 1 if it hits
+        comparison: 'binary', // NEW: Indicate this is a binary market
         recentMatches: analyzedMatches.map(m => ({
           opponent: m.opponent,
-          value: m.bothTeamsScored ? 1 : 0,
-          hit: m.bothTeamsScored,
+          value: m.bothTeamsScored ? 1 : 0, // 1 for Yes, 0 for No
+          hit: isHit(m), // Use the specific hit condition
           date: m.date
         }))
       };
@@ -510,9 +496,15 @@ export class BettingInsightsService {
     outcome: string,
     matchDetails: Array<{ opponent: string; date?: string }>,
     isStreak: boolean,
+    comparison: Comparison, // NEW: Added comparison
     streakLength?: number
   ): BettingInsight {
     const avgValue = values.reduce((sum, v) => sum + v, 0) / values.length;
+    
+    // Condition for hit check (used in recentMatches mapping)
+    const isHit = (value: number) => {
+        return comparison === Comparison.OVER ? value > threshold : value < threshold;
+    };
 
     return {
       team: teamName,
@@ -523,11 +515,12 @@ export class BettingInsightsService {
       isStreak,
       streakLength,
       threshold,
+      comparison, // NEW: Include comparison type
       averageValue: Math.round(avgValue * 100) / 100,
       recentMatches: values.map((value, idx) => ({
         opponent: matchDetails[idx]?.opponent || 'Unknown',
         value,
-        hit: value > threshold,
+        hit: isHit(value), // Use the comparison-aware hit check
         date: matchDetails[idx]?.date
       }))
     };
