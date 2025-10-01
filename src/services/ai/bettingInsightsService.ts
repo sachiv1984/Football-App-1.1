@@ -6,12 +6,6 @@ import { supabaseFoulsService } from '../stats/supabaseFoulsService';
 import { supabaseGoalsService } from '../stats/supabaseGoalsService';
 import { supabaseShootingService } from '../stats/supabaseShootingService';
 
-// ----------------------------------------------------------------------
-// Interfaces to fix TS7006 (Implicit 'any' errors)
-// These types represent the structure of a single match detail record 
-// retrieved from the respective Supabase service.
-// ----------------------------------------------------------------------
-
 interface BaseMatchDetail {
   opponent: string;
   date?: string;
@@ -127,6 +121,42 @@ export class BettingInsightsService {
   private readonly STREAK_THRESHOLD = 7;
 
   /**
+   * Helper function to filter out redundant patterns (e.g., Over 0.5 when Over 1.5 exists)
+   * This implements the Principle of Max Specificity.
+   */
+  private filterRedundantInsights(insights: BettingInsight[]): BettingInsight[] {
+    const mostSpecificInsights = new Map<string, BettingInsight>(); // Key: 'TeamName_Market'
+
+    for (const insight of insights) {
+      // Use team and market (excluding BTTS, which is special) as the key
+      if (insight.market === BettingMarket.BOTH_TEAMS_TO_SCORE) {
+        // BTTS is a binary market and should be kept as-is
+        const bttsKey = `${insight.team}_${insight.market}_${insight.outcome}`;
+        if (!mostSpecificInsights.has(bttsKey)) {
+          mostSpecificInsights.set(bttsKey, insight);
+        }
+        continue;
+      }
+      
+      const key = `${insight.team}_${insight.market}`;
+      const existingInsight = mostSpecificInsights.get(key);
+
+      if (!existingInsight) {
+        // First pattern for this team/market combination
+        mostSpecificInsights.set(key, insight);
+      } else {
+        // Keep the one with the highest threshold (most specific)
+        if (insight.threshold > existingInsight.threshold) {
+          mostSpecificInsights.set(key, insight);
+        }
+        // If thresholds are equal, we don't care which one we keep
+      }
+    }
+
+    return Array.from(mostSpecificInsights.values());
+  }
+
+  /**
    * Main method: Get all betting insights for all teams
    */
   async getAllInsights(): Promise<InsightsResponse> {
@@ -149,19 +179,23 @@ export class BettingInsightsService {
       ...shotsInsights
     );
 
+    // --- APPLY THE FIX HERE ---
+    const finalInsights = this.filterRedundantInsights(allInsights);
+    // --------------------------
+
     // Count unique teams
-    const uniqueTeams = new Set(allInsights.map(i => i.team));
+    const uniqueTeams = new Set(finalInsights.map(i => i.team));
 
     console.log('[BettingInsights] ✅ Analysis complete:', {
-      totalInsights: allInsights.length,
+      totalInsights: finalInsights.length,
       teamsAnalyzed: uniqueTeams.size
     });
 
     return {
-      insights: allInsights,
+      insights: finalInsights, // Return the filtered insights
       timestamp: new Date().toISOString(),
       teamsAnalyzed: uniqueTeams.size,
-      totalPatterns: allInsights.length
+      totalPatterns: finalInsights.length
     };
   }
 
@@ -199,7 +233,6 @@ export class BettingInsightsService {
       
       for (const threshold of config.thresholds) {
         const pattern = this.detectPattern(
-          // FIX TS7006: Added type to parameter 'm'
           stats.matchDetails.map((m: CardsMatchDetail) => m.cardsFor),
           threshold,
           teamName,
@@ -234,7 +267,6 @@ export class BettingInsightsService {
       
       for (const threshold of config.thresholds) {
         const pattern = this.detectPattern(
-          // FIX TS7006: Added type to parameter 'm'
           stats.matchDetails.map((m: CornersMatchDetail) => m.cornersFor),
           threshold,
           teamName,
@@ -269,7 +301,6 @@ export class BettingInsightsService {
       
       for (const threshold of config.thresholds) {
         const pattern = this.detectPattern(
-          // FIX TS7006: Added type to parameter 'm'
           stats.matchDetails.map((m: FoulsMatchDetail) => m.foulsCommittedFor),
           threshold,
           teamName,
@@ -305,7 +336,6 @@ export class BettingInsightsService {
       // Match goals (total goals in the match)
       for (const threshold of config.thresholds) {
         const pattern = this.detectPattern(
-          // FIX TS7006: Added type to parameter 'm'
           stats.matchDetails.map((m: GoalsMatchDetail) => m.totalGoals),
           threshold,
           teamName,
@@ -346,7 +376,6 @@ export class BettingInsightsService {
       
       for (const threshold of config.thresholds) {
         const pattern = this.detectPattern(
-          // FIX TS7006: Added type to parameter 'm'
           stats.matchDetails.map((m: ShotsMatchDetail) => m.shotsOnTargetFor),
           threshold,
           teamName,
