@@ -13,7 +13,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const LEAGUES = {
-  'soccer_epl': 'Premier League',
+  'EPL': 'Premier League',
 };
 
 // Initialize Supabase
