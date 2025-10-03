@@ -308,7 +308,8 @@ const StatsTeamLogo: React.FC<{ team: Team, size?: 'sm' | 'md' }> = ({ team, siz
 
 // --- Team Header - Now can access getStatCategoryTitle ---
 const renderTeamHeader = (homeTeam: Team, awayTeam: Team, activeTab: StatCategory) => (
-  <div className={`grid grid-cols-3 ${SPACING.gridGap} items-center`}>
+  // ✅ CHANGE 1: Added border-b and pb-4 to cleanly separate the header from the stats below.
+  <div className={`grid grid-cols-3 ${SPACING.gridGap} items-center border-b border-gray-100 pb-4 mb-4`}>
     {/* Home Team */}
     <div className="flex items-center justify-center">
       <div className="flex flex-col items-center space-y-2 sm:space-y-3">
@@ -410,8 +411,6 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
     const { homeResults, awayResults, homeStats, awayStats } = recentForm;
 
-    // ✅ IMPROVEMENT/FIX: Refactored to use a data map and added boolean defaults 
-    // for TypeScript safety and clarity.
     const formStatMap = [
       { key: 'matchesPlayed', label: 'Matches Played', isMatchesPlayed: true },
       { key: 'won', label: 'Won', isMatchesPlayed: false }, 
@@ -421,13 +420,16 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
     const formStats = formStatMap.map(item => ({
       label: item.label,
-      home: homeStats[item.key as keyof typeof homeStats], // Cast key to satisfy TS
-      away: awayStats[item.key as keyof typeof awayStats], // Cast key to satisfy TS
+      home: homeStats[item.key as keyof typeof homeStats], 
+      away: awayStats[item.key as keyof typeof awayStats], 
       isMatchesPlayed: item.isMatchesPlayed,
     }));
 
+    // ✅ CHANGE 2: Removed SPACING.sectionSpacing from the top div, 
+    // and applied smaller spacing directly inside.
     return (
-      <div className={SPACING.sectionSpacing}>
+      <div className="space-y-4 sm:space-y-6"> 
+        
         {/* Form Row */}
         <div className={`grid grid-cols-[1fr_auto_1fr] ${SPACING.gridGap} items-center`}>
           {/* Home Team Form */}
@@ -469,7 +471,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
           </div>
         </div>
 
-        {/* Stats Rows */}
+        {/* Stats Rows (uses itemSpacing from the general section) */}
         <div className={SPACING.itemSpacing}>
           {formStats.map((row) => (
             <StatRow
@@ -576,7 +578,7 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
       {/* Content */}
       <div className={SPACING.contentPaddingClass}>
-        <div className="mb-6 sm:mb-8">{renderTeamHeader(homeTeam, awayTeam, activeTab)}</div>
+        <div className="mb-0">{renderTeamHeader(homeTeam, awayTeam, activeTab)}</div>
         {activeTab === 'form' ? (
           renderFormContent()
         ) : (
