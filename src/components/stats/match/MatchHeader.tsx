@@ -7,6 +7,11 @@ interface MatchHeaderProps {
   className?: string;
 }
 
+// --- Consistent Spacing Mirroring ModernStatsTable ---
+const SPACING = {
+  contentPaddingClass: "p-4 sm:p-6" 
+};
+
 // Add this enhanced logo component:
 const EnhancedTeamLogo: React.FC<{
   team: { name: string; logo?: string; shortName?: string };
@@ -55,16 +60,13 @@ const EnhancedTeamLogo: React.FC<{
   );
 };
 
-// ❌ REMOVED: This component is now redundant as we show the score under the logos.
-// We will repurpose this block's name space for a simple score divider (if needed) 
-// or just remove its use from the main JSX.
+// Simplified component for the center area status (VS or Full Time)
 const EnhancedScoreDivider: React.FC<{
   homeScore: number | undefined;
   awayScore: number | undefined;
   isFinished: boolean;
-}> = ({ homeScore, awayScore, isFinished }) => {
+}> = ({ isFinished }) => {
   if (isFinished) {
-    // If finished, show the divider with final status
     return (
       <div className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wider">
         Full Time
@@ -72,7 +74,6 @@ const EnhancedScoreDivider: React.FC<{
     );
   }
 
-  // If not finished, show the "VS" as originally intended
   return (
     <div className="text-xl lg:text-2xl font-semibold text-neutral-500 mb-3">
       VS
@@ -151,34 +152,24 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({ fixture, className = '' }) =>
     status
   } = fixture;
 
-  // Date logic
+  // Date logic (UNCHANGED)
   const getDateDisplay = (matchDateTime: string) => {
-    // 1. Create the date object
     const matchDate = new Date(matchDateTime);
-
-    // 2. Define today/tomorrow using the current local time's midnight
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
 
-    // 3. Create date-only objects for comparison (midnight of the *local* day)
-    // NOTE: This comparison is based on the user's local day, which is generally 
-    // preferred for "Today/Tomorrow" display.
     const matchDateOnly = new Date(matchDate.getFullYear(), matchDate.getMonth(), matchDate.getDate());
     const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const tomorrowOnly = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate());
 
-    // --- TIMEZONE FIX: Use UTC methods to display the time ---
     const time = `${String(matchDate.getUTCHours()).padStart(2, '0')}:${String(matchDate.getUTCMinutes()).padStart(2, '0')}`;
-    // --- END FIX ---
     
-
     if (matchDateOnly.getTime() === todayOnly.getTime()) {
       return { date: 'Today', time };
     } else if (matchDateOnly.getTime() === tomorrowOnly.getTime()) {
       return { date: 'Tomorrow', time };
     } else {
-      // For the full date display, use UTC methods for consistency with the time.
       const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
       const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       
@@ -186,7 +177,6 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({ fixture, className = '' }) =>
       const day = matchDate.getUTCDate();
       const month = months[matchDate.getUTCMonth()];
       
-      // Formats as: 'ShortWeekday, DD Month' (e.g., 'Tue, 24 Oct')
       const date = `${weekday}, ${day} ${month}`;
 
       return { date, time };
@@ -197,7 +187,7 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({ fixture, className = '' }) =>
   const isFinished = ['finished', 'live'].includes(status ?? '');
   const isLive = status === 'live';
 
-  // --- Score Styling Logic for Uniformity ---
+  // --- Score Styling Logic ---
   const isHomeWin = (homeScore ?? 0) > (awayScore ?? 0);
   const isAwayWin = (awayScore ?? 0) > (homeScore ?? 0);
 
@@ -209,9 +199,14 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({ fixture, className = '' }) =>
 
 
   return (
-    <div className={`bg-white border-b shadow-card ${className}`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="py-6 lg:py-8">
+    // ✅ UNIFICATION: Apply the same card styling as ModernStatsTable.
+    <div className={`
+      bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden 
+      ${className}
+    `}>
+      {/* ✅ UNIFICATION: Use consistent padding from the stats table */}
+      <div className={`${SPACING.contentPaddingClass}`}> 
+        <div className="py-2 lg:py-4"> 
           {/* Main Match Info */}
           <div className="flex items-center justify-between">
             {/* Home Team */}
@@ -224,7 +219,6 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({ fixture, className = '' }) =>
                 {homeTeam.shortName || homeTeam.name}
               </h2>
               
-              {/* ✅ FIX: Moved score display here and applied conditional styling */}
               {isFinished && (
                 <div className={`mt-2 text-3xl lg:text-4xl font-black transition-colors duration-200 ${getScoreStyle(isHomeWin, isFinished)}`}>
                   {homeScore}
@@ -241,7 +235,6 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({ fixture, className = '' }) =>
                 isLive={isLive} 
               />
 
-              {/* ✅ FIX: Replaced redundant EnhancedScoreDisplay with the simplified divider */}
               <EnhancedScoreDivider
                 homeScore={homeScore} 
                 awayScore={awayScore} 
@@ -260,7 +253,6 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({ fixture, className = '' }) =>
                 {awayTeam.shortName || awayTeam.name}
               </h2>
               
-              {/* ✅ FIX: Moved score display here and applied conditional styling */}
               {isFinished && (
                 <div className={`mt-2 text-3xl lg:text-4xl font-black transition-colors duration-200 ${getScoreStyle(isAwayWin, isFinished)}`}>
                   {awayScore}
