@@ -13,9 +13,6 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
 const LEAGUES = {
   'soccer_epl': 'Premier League',
-  'soccer_england_championship': 'Championship',
-  'soccer_england_league1': 'League One',
-  'soccer_england_league2': 'League Two'
 };
 
 // Initialize Supabase
