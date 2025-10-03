@@ -42,8 +42,8 @@ const SPACING = {
 
 // --- Shared utility ---
 /**
- * ✅ IMPROVEMENT 1: Simplified formatting logic. 
- * Forces integers for Matches Played, Form stats, and Percentages.
+ * Simplified formatting logic to determine rounding based on stat type.
+ * Forces integers for Matches Played, Form stats (W/D/L count), and Percentages.
  */
 const formatValue = (
   value: number, 
@@ -51,7 +51,7 @@ const formatValue = (
   isMatchesPlayed?: boolean, 
   isFormStat?: boolean
 ): string => {
-  // Integers are required for matches played, form stats (W/D/L count), and all percentages.
+  // Integers are required for matches played, form stats, and all percentages.
   const requiresInteger = isMatchesPlayed || isFormStat || unit === '%';
   
   if (requiresInteger) {
@@ -410,18 +410,19 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
 
     const { homeResults, awayResults, homeStats, awayStats } = recentForm;
 
-    // ✅ IMPROVEMENT 3: Refactored to use a data map for maintainability
+    // ✅ IMPROVEMENT/FIX: Refactored to use a data map and added boolean defaults 
+    // for TypeScript safety and clarity.
     const formStatMap = [
       { key: 'matchesPlayed', label: 'Matches Played', isMatchesPlayed: true },
-      { key: 'won', label: 'Won' },
-      { key: 'drawn', label: 'Drawn' },
-      { key: 'lost', label: 'Lost' },
+      { key: 'won', label: 'Won', isMatchesPlayed: false }, 
+      { key: 'drawn', label: 'Drawn', isMatchesPlayed: false }, 
+      { key: 'lost', label: 'Lost', isMatchesPlayed: false }, 
     ] as const;
 
     const formStats = formStatMap.map(item => ({
       label: item.label,
-      home: homeStats[item.key],
-      away: awayStats[item.key],
+      home: homeStats[item.key as keyof typeof homeStats], // Cast key to satisfy TS
+      away: awayStats[item.key as keyof typeof awayStats], // Cast key to satisfy TS
       isMatchesPlayed: item.isMatchesPlayed,
     }));
 
