@@ -12,7 +12,6 @@ const SGO_API_KEY = process.env.SGO_API_KEY;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// NOTE: Keys here are treated as 'leagueId' by the API, despite the local variable name 'sportId'
 const LEAGUES = {
   'soccer_epl': 'Premier League',
 };
@@ -55,6 +54,7 @@ function makeRequest(path) {
           }
         } else {
           // IMPORTANT: Capture the specific API error message in the rejection
+          // Use 'cause' to store the status code for easy retrieval later
           reject(new Error(`API returned ${res.statusCode}: ${data}`, { cause: res.statusCode }));
         }
       });
@@ -83,11 +83,8 @@ async function logApiUsage(endpoint, eventId, responseCode, requestType, league,
 }
 
 // =====================================================
-// ODDS EXTRACTION FUNCTIONS (No changes needed here)
+// ODDS EXTRACTION FUNCTIONS (UNCHANGED)
 // =====================================================
-
-// NOTE: These functions remain the same as they correctly process the 'bookmakers' array
-// The response structure for a single event with odds is the same as the old bulk response.
 
 /**
  * Extract corners odds from bookmaker data
@@ -106,22 +103,11 @@ function extractCornersOdds(bookmakers) {
         for (const outcome of market.outcomes) {
           const line = outcome.point;
           const isOver = outcome.name.toLowerCase().includes('over');
-          const key = `homeOver${line.toString().replace('.', '')}`;
+          const key = isOver ? `homeOver${line.toString().replace('.', '')}` : `homeUnder${line.toString().replace('.', '')}`;
           
-          if (isOver) {
-            cornersOdds[bookName][key] = outcome.price;
-            
-            // Track best odds
-            if (!bestOdds[key] || outcome.price > bestOdds[key].odds) {
+          cornersOdds[bookName][key] = outcome.price;
+          if (!bestOdds[key] || outcome.price > bestOdds[key].odds) {
               bestOdds[key] = { bookmaker: bookName, odds: outcome.price };
-            }
-          } else {
-            const underKey = `homeUnder${line.toString().replace('.', '')}`;
-            cornersOdds[bookName][underKey] = outcome.price;
-            
-            if (!bestOdds[underKey] || outcome.price > bestOdds[underKey].odds) {
-              bestOdds[underKey] = { bookmaker: bookName, odds: outcome.price };
-            }
           }
         }
       }
@@ -131,19 +117,11 @@ function extractCornersOdds(bookmakers) {
         for (const outcome of market.outcomes) {
           const line = outcome.point;
           const isOver = outcome.name.toLowerCase().includes('over');
-          const key = `awayOver${line.toString().replace('.', '')}`;
+          const key = isOver ? `awayOver${line.toString().replace('.', '')}` : `awayUnder${line.toString().replace('.', '')}`;
           
-          if (isOver) {
-            cornersOdds[bookName][key] = outcome.price;
-            if (!bestOdds[key] || outcome.price > bestOdds[key].odds) {
-              bestOdds[key] = { bookmaker: bookName, odds: outcome.price };
-            }
-          } else {
-            const underKey = `awayUnder${line.toString().replace('.', '')}`;
-            cornersOdds[bookName][underKey] = outcome.price;
-            if (!bestOdds[underKey] || outcome.price > bestOdds[underKey].odds) {
-              bestOdds[underKey] = { bookmaker: bookName, odds: outcome.price };
-            }
+          cornersOdds[bookName][key] = outcome.price;
+          if (!bestOdds[key] || outcome.price > bestOdds[key].odds) {
+            bestOdds[key] = { bookmaker: bookName, odds: outcome.price };
           }
         }
       }
@@ -186,7 +164,7 @@ function extractCardsOdds(bookmakers) {
           const line = outcome.point;
           const isOver = outcome.name.toLowerCase().includes('over');
           const key = isOver ? `homeOver${line.toString().replace('.', '')}` : `homeUnder${line.toString().replace('.', '')}`;
-
+          
           if (isOver) {
             cardsOdds[bookName][key] = outcome.price;
             if (!bestOdds[key] || outcome.price > bestOdds[key].odds) {
@@ -265,12 +243,8 @@ function extractMatchOdds(bookmakers) {
 
     for (const market of book.markets) {
       if (market.key === 'h2h') {
-        // The API response for a single event usually includes home/away teams on the top level,
-        // but it's often safer to rely on the names in the market outcomes if they exist.
-        // Assuming the market outcomes include the team names as per the original logic.
-        
-        const homeTeam = book.home_team; // Assuming this is available in the bookmaker object
-        const awayTeam = book.away_team; // Assuming this is available in the bookmaker object
+        const homeTeam = book.home_team;
+        const awayTeam = book.away_team;
 
         const homeOutcome = market.outcomes.find(o => o.name === homeTeam);
         const drawOutcome = market.outcomes.find(o => o.name.toLowerCase() === 'draw');
@@ -322,16 +296,15 @@ function extractOverUnderGoalsOdds(bookmakers) {
   return Object.keys(ouOdds).length > 1 ? ouOdds : null;
 }
 
-
 // =====================================================
-// NEW LOGIC FOR RATE LIMITING & TIER RESTRICTION
+// RATE-LIMITED FETCH LOGIC (STEP 2)
 // =====================================================
 
 /**
  * Fetch full odds for a list of events one by one, with a 6-second delay.
  * This is the premium, rate-limited step.
  */
-async function fetchOddsForEvents(events, leagueName, leagueId) {
+async function fetchOddsForEvents(events, leagueName) {
     const records = [];
     let processedCount = 0;
     
@@ -339,6 +312,7 @@ async function fetchOddsForEvents(events, leagueName, leagueId) {
     
     for (const event of events) {
         // 🚨 RATE LIMIT DELAY: 6 seconds per request (60s / 10 reqs = 6s)
+        // Only apply delay AFTER the first request in the loop
         if (processedCount > 0) {
             await new Promise(resolve => setTimeout(resolve, 6000));
         }
@@ -393,7 +367,7 @@ async function fetchOddsForEvents(events, leagueName, leagueId) {
 }
 
 // =====================================================
-// MAIN SYNC LOGIC (Refactored)
+// MAIN SYNC LOGIC (STEP 1 - Fixture List)
 // =====================================================
 
 /**
@@ -402,12 +376,14 @@ async function fetchOddsForEvents(events, leagueName, leagueId) {
 async function syncLeague(sportId, leagueName) {
   console.log(`\n📊 Fetching ${leagueName}...`);
   
+  // Date variables are kept for context/logging but REMOVED from the API path.
   const today = new Date().toISOString().split('T')[0];
   const twoWeeksLater = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
   
-  // 💡 STEP 1: Fixture list request (LOW-TIER FRIENDLY)
-  // Use 'leagueId' and omit 'includeOdds=true' to avoid the 400 tier restriction error.
-  const path = `/v2/events?leagueId=${sportId}&dateFrom=${today}&dateTo=${twoWeeksLater}`;
+  // 🚨 FINAL FIX: Remove dateFrom and dateTo. This is the only configuration 
+  // that typically bypasses the "advanced queries" tier restriction.
+  // We rely on the API's default/short upcoming event window.
+  const path = `/v2/events?leagueId=${sportId}`; 
   
   try {
     const response = await makeRequest(path);
@@ -415,14 +391,14 @@ async function syncLeague(sportId, leagueName) {
     await logApiUsage(path, null, 200, 'fixtures_list', leagueName, false);
     
     if (!response || !response.events || response.events.length === 0) {
-      console.log(`   ℹ️  No upcoming matches found`);
+      console.log(`   ℹ️  No upcoming matches found (API returned default window)`);
       return { league: leagueName, synced: 0 };
     }
     
-    console.log(`   Found ${response.events.length} upcoming matches`);
+    console.log(`   Found ${response.events.length} upcoming matches (in API's default window)`);
     
-    // 💡 STEP 2: Fetch odds for each event (PREMIUM/RATE-LIMITED STEP)
-    const records = await fetchOddsForEvents(response.events, leagueName, sportId);
+    // STEP 2: Fetch odds for each event (PREMIUM/RATE-LIMITED STEP)
+    const records = await fetchOddsForEvents(response.events, leagueName);
     
     if (records.length === 0) {
         console.log(`   ℹ️  No odds successfully fetched for matches.`);
@@ -495,7 +471,7 @@ async function main() {
     const result = await syncLeague(sportId, leagueName);
     results.push(result);
     
-    // Minimal delay between leagues. The 6-second delay between events is the critical throttle.
+    // Small buffer delay between leagues
     await new Promise(resolve => setTimeout(resolve, 500)); 
   }
   
@@ -533,7 +509,7 @@ async function main() {
      console.error(`\n⚠️ Error fetching API Usage:`, usageError.message);
   } else {
      console.log(`\n📈 API Usage Today: ${todayCount || 0} premium requests made.`);
-     if (todayCount > 2000) { // A custom warning threshold
+     if (todayCount > 2000) { 
          console.warn("   🚨 WARNING: Approaching monthly limit of 2,500 requests!");
      }
   }
