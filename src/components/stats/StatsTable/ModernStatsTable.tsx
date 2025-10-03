@@ -42,16 +42,24 @@ const SPACING = {
 
 // --- Shared utility ---
 /**
- * Modified to include 'isFormStat' to force whole numbers for the Form section.
+ * ✅ IMPROVEMENT 1: Simplified formatting logic. 
+ * Forces integers for Matches Played, Form stats, and Percentages.
  */
-const formatValue = (value: number, unit?: string, isMatchesPlayed?: boolean, isFormStat?: boolean): string => {
-  if (isMatchesPlayed) return Math.round(value).toString();
-  if (unit === '%') return `${Math.round(value)}%`;
-
-  // ✅ NEW LOGIC: If it's a form stat (Won, Drawn, Lost), round it to a whole number.
-  if (isFormStat) return Math.round(value).toString(); 
-
-  // Default for all other calculated stats (Goals For, Shots, etc.)
+const formatValue = (
+  value: number, 
+  unit?: string, 
+  isMatchesPlayed?: boolean, 
+  isFormStat?: boolean
+): string => {
+  // Integers are required for matches played, form stats (W/D/L count), and all percentages.
+  const requiresInteger = isMatchesPlayed || isFormStat || unit === '%';
+  
+  if (requiresInteger) {
+    // If the unit is %, append the symbol after rounding.
+    return unit === '%' ? `${Math.round(value)}%` : Math.round(value).toString();
+  }
+  
+  // Default for all averages (Goals For, Shots on Target, Fouls Committed)
   return value.toFixed(2);
 };
 
@@ -239,7 +247,7 @@ const StatRow: React.FC<StatRowProps> = ({
 
   const formatDisplayValue = (value: number | string) =>
     typeof value === 'number' 
-      ? formatValue(value, unit, isMatchesPlayed, statType === 'form' && !isMatchesPlayed) // ✅ Added isFormStat check
+      ? formatValue(value, unit, isMatchesPlayed, statType === 'form' && !isMatchesPlayed)
       : value;
 
   return (
@@ -401,12 +409,21 @@ const ModernStatsTable: React.FC<ModernStatsTableProps> = ({
       );
 
     const { homeResults, awayResults, homeStats, awayStats } = recentForm;
-    const formStats = [
-      { label: 'Matches Played', home: homeStats.matchesPlayed, away: awayStats.matchesPlayed, isMatchesPlayed: true },
-      { label: 'Won', home: homeStats.won, away: awayStats.won },
-      { label: 'Drawn', home: homeStats.drawn, away: awayStats.drawn },
-      { label: 'Lost', home: homeStats.lost, away: awayStats.lost },
-    ];
+
+    // ✅ IMPROVEMENT 3: Refactored to use a data map for maintainability
+    const formStatMap = [
+      { key: 'matchesPlayed', label: 'Matches Played', isMatchesPlayed: true },
+      { key: 'won', label: 'Won' },
+      { key: 'drawn', label: 'Drawn' },
+      { key: 'lost', label: 'Lost' },
+    ] as const;
+
+    const formStats = formStatMap.map(item => ({
+      label: item.label,
+      home: homeStats[item.key],
+      away: awayStats[item.key],
+      isMatchesPlayed: item.isMatchesPlayed,
+    }));
 
     return (
       <div className={SPACING.sectionSpacing}>
