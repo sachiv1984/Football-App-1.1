@@ -55,51 +55,31 @@ const EnhancedTeamLogo: React.FC<{
   );
 };
 
-// Enhanced score display component (UNCHANGED)
-const EnhancedScoreDisplay: React.FC<{
+// ❌ REMOVED: This component is now redundant as we show the score under the logos.
+// We will repurpose this block's name space for a simple score divider (if needed) 
+// or just remove its use from the main JSX.
+const EnhancedScoreDivider: React.FC<{
   homeScore: number | undefined;
   awayScore: number | undefined;
   isFinished: boolean;
 }> = ({ homeScore, awayScore, isFinished }) => {
-  if (!isFinished || homeScore === undefined || awayScore === undefined) {
+  if (isFinished) {
+    // If finished, show the divider with final status
     return (
-      <div className="text-xl lg:text-2xl font-semibold text-neutral-500 mb-3">
-        VS
+      <div className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wider">
+        Full Time
       </div>
     );
   }
 
-  const isHomeWin = homeScore > awayScore;
-  const isAwayWin = awayScore > homeScore;
-  const isDraw = homeScore === awayScore;
-
-  const getScoreStyle = (isWinner: boolean, isLoser: boolean) => {
-    if (isWinner) return "text-green-600"; // Winner contrast
-    if (isLoser) return "text-gray-500";   // Loser contrast
-    return "text-neutral-800";             // Draw
-  };
-
+  // If not finished, show the "VS" as originally intended
   return (
-    <div className="mb-3 bg-gradient-to-r from-gray-50 via-white to-gray-50 rounded-xl p-4 shadow-inner border border-gray-200">
-      <div className="flex items-center justify-center gap-4">
-        <div className={`text-4xl lg:text-5xl font-black transition-colors duration-200 ${getScoreStyle(isHomeWin, isAwayWin)}`}>
-          {homeScore}
-        </div>
-        <div className="text-2xl lg:text-3xl text-gray-400 font-light">
-          −
-        </div>
-        <div className={`text-4xl lg:text-5xl font-black transition-colors duration-200 ${getScoreStyle(isAwayWin, isHomeWin)}`}>
-          {awayScore}
-        </div>
-      </div>
-      {!isDraw && (
-        <div className="text-center mt-2 text-xs lg:text-sm text-gray-600 font-medium">
-          {isHomeWin ? "Home Win" : "Away Win"}
-        </div>
-      )}
+    <div className="text-xl lg:text-2xl font-semibold text-neutral-500 mb-3">
+      VS
     </div>
   );
 };
+
 
 // Enhanced Date/Time + Venue component (UNCHANGED)
 const EnhancedMatchDateTime: React.FC<{
@@ -217,6 +197,17 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({ fixture, className = '' }) =>
   const isFinished = ['finished', 'live'].includes(status ?? '');
   const isLive = status === 'live';
 
+  // --- Score Styling Logic for Uniformity ---
+  const isHomeWin = (homeScore ?? 0) > (awayScore ?? 0);
+  const isAwayWin = (awayScore ?? 0) > (homeScore ?? 0);
+
+  const getScoreStyle = (isWinner: boolean, isFinished: boolean) => {
+    if (!isFinished) return "text-neutral-800";
+    if (isWinner) return "text-green-600"; 
+    return "text-gray-500";             // Loser or Draw
+  };
+
+
   return (
     <div className={`bg-white border-b shadow-card ${className}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -225,7 +216,6 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({ fixture, className = '' }) =>
           <div className="flex items-center justify-between">
             {/* Home Team */}
             <div className="flex-1 flex flex-col items-center text-center">
-              {/* Replaced old logo logic with EnhancedTeamLogo */}
               <div className="mb-3">
                 <EnhancedTeamLogo team={homeTeam} size="lg" />
               </div>
@@ -233,14 +223,16 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({ fixture, className = '' }) =>
               <h2 className="text-lg lg:text-xl font-semibold text-neutral-800 text-center max-w-[120px] lg:max-w-[150px] leading-tight">
                 {homeTeam.shortName || homeTeam.name}
               </h2>
+              
+              {/* ✅ FIX: Moved score display here and applied conditional styling */}
               {isFinished && (
-                <div className="mt-2 text-3xl lg:text-4xl font-bold text-neutral-800">
+                <div className={`mt-2 text-3xl lg:text-4xl font-black transition-colors duration-200 ${getScoreStyle(isHomeWin, isFinished)}`}>
                   {homeScore}
                 </div>
               )}
             </div>
 
-            {/* Center - Enhanced Date/Time + Score + Venue */}
+            {/* Center - Date/Time + Score Divider + Venue */}
             <div className="flex-shrink-0 px-6 lg:px-8 text-center min-w-[200px] lg:min-w-[250px]">
               <EnhancedMatchDateTime 
                 date={date} 
@@ -249,16 +241,17 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({ fixture, className = '' }) =>
                 isLive={isLive} 
               />
 
-              <EnhancedScoreDisplay 
+              {/* ✅ FIX: Replaced redundant EnhancedScoreDisplay with the simplified divider */}
+              <EnhancedScoreDivider
                 homeScore={homeScore} 
                 awayScore={awayScore} 
                 isFinished={isFinished} 
               />
+              
             </div>
 
             {/* Away Team */}
             <div className="flex-1 flex flex-col items-center text-center">
-              {/* Replaced old logo logic with EnhancedTeamLogo */}
               <div className="mb-3">
                 <EnhancedTeamLogo team={awayTeam} size="lg" />
               </div>
@@ -266,8 +259,10 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({ fixture, className = '' }) =>
               <h2 className="text-lg lg:text-xl font-semibold text-neutral-800 text-center max-w-[120px] lg:max-w-[150px] leading-tight">
                 {awayTeam.shortName || awayTeam.name}
               </h2>
+              
+              {/* ✅ FIX: Moved score display here and applied conditional styling */}
               {isFinished && (
-                <div className="mt-2 text-3xl lg:text-4xl font-bold text-neutral-800">
+                <div className={`mt-2 text-3xl lg:text-4xl font-black transition-colors duration-200 ${getScoreStyle(isAwayWin, isFinished)}`}>
                   {awayScore}
                 </div>
               )}
