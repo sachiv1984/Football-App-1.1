@@ -12,6 +12,7 @@ const SGO_API_KEY = process.env.SGO_API_KEY;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+// NOTE: Ensure 'EPL' is the exact LeagueID required by the API.
 const LEAGUES = {
   'EPL': 'Premier League',
 };
@@ -297,12 +298,11 @@ function extractOverUnderGoalsOdds(bookmakers) {
 }
 
 // =====================================================
-// RATE-LIMITED FETCH LOGIC (STEP 2)
+// RATE-LIMITED FETCH LOGIC (STEP 2: PREMIUM)
 // =====================================================
 
 /**
  * Fetch full odds for a list of events one by one, with a 6-second delay.
- * This is the premium, rate-limited step.
  */
 async function fetchOddsForEvents(events, leagueName) {
     const records = [];
@@ -312,7 +312,6 @@ async function fetchOddsForEvents(events, leagueName) {
     
     for (const event of events) {
         // 🚨 RATE LIMIT DELAY: 6 seconds per request (60s / 10 reqs = 6s)
-        // Only apply delay AFTER the first request in the loop
         if (processedCount > 0) {
             await new Promise(resolve => setTimeout(resolve, 6000));
         }
@@ -367,7 +366,7 @@ async function fetchOddsForEvents(events, leagueName) {
 }
 
 // =====================================================
-// MAIN SYNC LOGIC (STEP 1 - Fixture List)
+// MAIN SYNC LOGIC (STEP 1: FIXTURE LIST - SGO DOCUMENTED PATH)
 // =====================================================
 
 /**
@@ -376,7 +375,7 @@ async function fetchOddsForEvents(events, leagueName) {
 async function syncLeague(leagueId, leagueName) {
   console.log(`\n📊 Fetching ${leagueName}...`);
   
-  // Use the correct endpoint format for basic tier
+  // 💡 CRITICAL FIX: Use the documented PATH PARAMETER structure for V2 events list
   const path = `/v2/leagues/${leagueId}/events`;
   
   try {
@@ -459,9 +458,9 @@ async function main() {
   
   const results = [];
   
-  // Sync each league
-  for (const [sportId, leagueName] of Object.entries(LEAGUES)) {
-    const result = await syncLeague(sportId, leagueName);
+  // Sync each league. Renamed the iteration variable to leagueId for clarity.
+  for (const [leagueId, leagueName] of Object.entries(LEAGUES)) {
+    const result = await syncLeague(leagueId, leagueName);
     results.push(result);
     
     // Small buffer delay between leagues
