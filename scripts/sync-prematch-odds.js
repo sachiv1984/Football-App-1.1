@@ -320,7 +320,7 @@ async function syncLeague(sportId, leagueName) {
   const today = new Date().toISOString().split('T')[0];
   const twoWeeksLater = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
   
-  const path = `/v2/events?sportId=${sportId}&dateFrom=${today}&dateTo=${twoWeeksLater}&includeOdds=true`;
+  const path = `/v2/events?leagueId=${sportId}&dateFrom=${today}&dateTo=${twoWeeksLater}&includeOdds=true`;
   
   try {
     const response = await makeRequest(path);
