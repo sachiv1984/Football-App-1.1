@@ -41,9 +41,17 @@ const SPACING = {
 };
 
 // --- Shared utility ---
-const formatValue = (value: number, unit?: string, isMatchesPlayed?: boolean): string => {
-  if (isMatchesPlayed) return value.toString();
-  if (unit === '%') return `${value}%`;
+/**
+ * Modified to include 'isFormStat' to force whole numbers for the Form section.
+ */
+const formatValue = (value: number, unit?: string, isMatchesPlayed?: boolean, isFormStat?: boolean): string => {
+  if (isMatchesPlayed) return Math.round(value).toString();
+  if (unit === '%') return `${Math.round(value)}%`;
+
+  // ✅ NEW LOGIC: If it's a form stat (Won, Drawn, Lost), round it to a whole number.
+  if (isFormStat) return Math.round(value).toString(); 
+
+  // Default for all other calculated stats (Goals For, Shots, etc.)
   return value.toFixed(2);
 };
 
@@ -230,7 +238,9 @@ const StatRow: React.FC<StatRowProps> = ({
   };
 
   const formatDisplayValue = (value: number | string) =>
-    typeof value === 'number' ? formatValue(value, unit, isMatchesPlayed) : value;
+    typeof value === 'number' 
+      ? formatValue(value, unit, isMatchesPlayed, statType === 'form' && !isMatchesPlayed) // ✅ Added isFormStat check
+      : value;
 
   return (
     <div className={`grid grid-cols-[minmax(0,1fr)_minmax(120px,2fr)_minmax(0,1fr)] ${SPACING.gridGap} items-center py-2 group hover:bg-gray-50 rounded-lg transition-all duration-150 px-2 hover:translate-x-1`}>
