@@ -65,6 +65,8 @@ interface TeamStatsData {
   foulsWon: { homeValue: number; awayValue: number };
   foulsAgainst: { homeValue: number; awayValue: number };
   foulsLost: { homeValue: number; awayValue: number };
+  /** 🔥 ADDED: Total Fouls calculation (Fouls Committed + Fouls Against) 🔥 */
+  totalFouls: { homeValue: number; awayValue: number }; 
   over85TeamFoulsCommitted: { homeValue: number; awayValue: number };
   over95TeamFoulsCommitted: { homeValue: number; awayValue: number };
   over105TeamFoulsCommitted: { homeValue: number; awayValue: number };
@@ -358,6 +360,11 @@ export class FBrefStatsService {
           homeValue: this.calculateAverage(homeFouls.foulsLost, homeFouls.matches), 
           awayValue: this.calculateAverage(awayFouls.foulsLost, awayFouls.matches)
         },
+        /** 🔥 ADDED: Calculation for totalFouls 🔥 */
+        totalFouls: {
+          homeValue: this.calculateAverage(homeFouls.foulsCommitted + homeFouls.foulsAgainst, homeFouls.matches), 
+          awayValue: this.calculateAverage(awayFouls.foulsCommitted + awayFouls.foulsAgainst, awayFouls.matches)
+        },
         over85TeamFoulsCommitted: { 
           homeValue: supabaseFoulsService.calculateOverPercentage(homeFouls.matchDetails, 8.5), 
           awayValue: supabaseFoulsService.calculateOverPercentage(awayFouls.matchDetails, 8.5)
@@ -381,6 +388,8 @@ export class FBrefStatsService {
       throw error;
     }
   }
+
+  // ... (rest of the methods are unchanged)
 
   /**
    * Individual breakdown methods (for debugging/future use)
