@@ -373,31 +373,24 @@ async function fetchOddsForEvents(events, leagueName) {
 /**
  * Fetch and store odds for a specific league
  */
-async function syncLeague(sportId, leagueName) {
+async function syncLeague(leagueId, leagueName) {
   console.log(`\n📊 Fetching ${leagueName}...`);
   
-  // Date variables are kept for context/logging but REMOVED from the API path.
-  const today = new Date().toISOString().split('T')[0];
-  const twoWeeksLater = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-  
-  // 🚨 FINAL FIX: Remove dateFrom and dateTo. This is the only configuration 
-  // that typically bypasses the "advanced queries" tier restriction.
-  // We rely on the API's default/short upcoming event window.
-  const path = `/v2/events?leagueId=${sportId}`; 
+  // Use the correct endpoint format for basic tier
+  const path = `/v2/leagues/${leagueId}/events`;
   
   try {
     const response = await makeRequest(path);
-    // Logging this initial request as a successful list fetch
     await logApiUsage(path, null, 200, 'fixtures_list', leagueName, false);
     
     if (!response || !response.events || response.events.length === 0) {
-      console.log(`   ℹ️  No upcoming matches found (API returned default window)`);
+      console.log(`   ℹ️  No upcoming matches found`);
       return { league: leagueName, synced: 0 };
     }
     
-    console.log(`   Found ${response.events.length} upcoming matches (in API's default window)`);
+    console.log(`   Found ${response.events.length} upcoming matches`);
     
-    // STEP 2: Fetch odds for each event (PREMIUM/RATE-LIMITED STEP)
+    // STEP 2: Fetch odds for each event
     const records = await fetchOddsForEvents(response.events, leagueName);
     
     if (records.length === 0) {
