@@ -1,0 +1,163 @@
+name: Sync Pre-Match Odds & Results
+
+on:
+  schedule:
+    # Sync odds: Monday & Thursday at 10am UTC (catch new fixtures)
+    - cron: '0 10 * * 1,4'
+    
+    # Sync results: Daily at 2am UTC (after matches complete)
+    - cron: '0 2 * * *'
+  
+  # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      sync_type:
+        description: 'What to sync'
+        required: true
+        type: choice
+        options:
+          - 'both'
+          - 'odds'
+          - 'results'
+        default: 'both'
+
+jobs:
+  check-usage:
+    runs-on: ubuntu-latest
+    outputs:
+      can_proceed: ${{ steps.usage_check.outputs.can_proceed }}
+      usage_count: ${{ steps.usage_check.outputs.usage_count }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install dependencies
+        run: |
+          npm install @supabase/supabase-js
+      
+      - name: Check API usage
+        id: usage_check
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          node -e "
+          const { createClient } = require('@supabase/supabase-js');
+          const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+          
+          (async () => {
+            const today = new Date().toISOString().split('T')[0];
+            const { data, error } = await supabase
+              .from('api_usage_log')
+              .select('*', { count: 'exact' })
+              .gte('timestamp', today)
+              .eq('cached', false);
+            
+            const usageCount = data?.length || 0;
+            const canProceed = usageCount < 75; // Safety buffer
+            
+            console.log(\`📊 Today's API usage: \${usageCount}/83\`);
+            console.log(\`✅ Can proceed: \${canProceed}\`);
+            
+            const fs = require('fs');
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, \`can_proceed=\${canProceed}\n\`);
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, \`usage_count=\${usageCount}\n\`);
+          })();
+          "
+
+  sync-odds:
+    needs: check-usage
+    runs-on: ubuntu-latest
+    if: |
+      needs.check-usage.outputs.can_proceed == 'true' && 
+      (github.event.schedule == '0 10 * * 1,4' || 
+       github.event_name == 'workflow_dispatch' && 
+       (github.event.inputs.sync_type == 'both' || github.event.inputs.sync_type == 'odds'))
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install dependencies
+        run: |
+          npm install @supabase/supabase-js
+      
+      - name: Sync pre-match odds
+        env:
+          SGO_API_KEY: ${{ secrets.SGO_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: node scripts/sync-prematch-odds.js
+      
+      - name: Create summary
+        if: always()
+        run: |
+          echo "## 📊 Pre-Match Odds Sync" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ✅ Complete" >> $GITHUB_STEP_SUMMARY
+          echo "**Timestamp:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "**Today's API Usage:** ${{ needs.check-usage.outputs.usage_count }}/83" >> $GITHUB_STEP_SUMMARY
+
+  sync-results:
+    needs: check-usage
+    runs-on: ubuntu-latest
+    if: |
+      needs.check-usage.outputs.can_proceed == 'true' && 
+      (github.event.schedule == '0 2 * * *' || 
+       github.event_name == 'workflow_dispatch' && 
+       (github.event.inputs.sync_type == 'both' || github.event.inputs.sync_type == 'results'))
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install dependencies
+        run: |
+          npm install @supabase/supabase-js
+      
+      - name: Sync match results
+        env:
+          SGO_API_KEY: ${{ secrets.SGO_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: node scripts/sync-results.js
+      
+      - name: Create summary
+        if: always()
+        run: |
+          echo "## 📈 Match Results Sync" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ✅ Complete" >> $GITHUB_STEP_SUMMARY
+          echo "**Timestamp:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "**Today's API Usage:** ${{ needs.check-usage.outputs.usage_count }}/83" >> $GITHUB_STEP_SUMMARY
+
+  usage-exceeded:
+    needs: check-usage
+    runs-on: ubuntu-latest
+    if: needs.check-usage.outputs.can_proceed == 'false'
+    
+    steps:
+      - name: Usage limit warning
+        run: |
+          echo "## ⚠️ API Usage Limit Warning" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Today's usage:** ${{ needs.check-usage.outputs.usage_count }}/83 requests" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Skipping sync to avoid exceeding daily limit." >> $GITHUB_STEP_SUMMARY
+          echo "Next scheduled sync will run tomorrow." >> $GITHUB_STEP_SUMMARY
