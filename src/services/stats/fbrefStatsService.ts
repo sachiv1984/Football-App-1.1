@@ -1,4 +1,4 @@
-// src/services/stats/fbrefStatsService.ts - CLEANED VERSION
+// src/services/stats/fbrefStatsService.ts - REVISED VERSION
 import { fbrefFixtureService, type TeamSeasonStats } from '../fixtures/fbrefFixtureService';
 import { supabaseCornersService, type DetailedCornerStats } from './supabaseCornersService';
 import { supabaseCardsService, type DetailedCardStats } from './supabaseCardsService';
@@ -65,8 +65,7 @@ interface TeamStatsData {
   foulsWon: { homeValue: number; awayValue: number };
   foulsAgainst: { homeValue: number; awayValue: number };
   foulsLost: { homeValue: number; awayValue: number };
-  /** 🔥 ADDED: Total Fouls calculation (Fouls Committed + Fouls Against) 🔥 */
-  totalFouls: { homeValue: number; awayValue: number }; 
+  totalFouls: { homeValue: number; awayValue: number }; // Retained
   over85TeamFoulsCommitted: { homeValue: number; awayValue: number };
   over95TeamFoulsCommitted: { homeValue: number; awayValue: number };
   over105TeamFoulsCommitted: { homeValue: number; awayValue: number };
@@ -360,10 +359,10 @@ export class FBrefStatsService {
           homeValue: this.calculateAverage(homeFouls.foulsLost, homeFouls.matches), 
           awayValue: this.calculateAverage(awayFouls.foulsLost, awayFouls.matches)
         },
-        /** 🔥 ADDED: Calculation for totalFouls 🔥 */
+        /** ✅ CORRECTED: Total Fouls calculation (Fouls Committed + Fouls Won) ✅ */
         totalFouls: {
-          homeValue: this.calculateAverage(homeFouls.foulsCommitted + homeFouls.foulsAgainst, homeFouls.matches), 
-          awayValue: this.calculateAverage(awayFouls.foulsCommitted + awayFouls.foulsAgainst, awayFouls.matches)
+          homeValue: this.calculateAverage(homeFouls.foulsCommitted + homeFouls.foulsWon, homeFouls.matches), 
+          awayValue: this.calculateAverage(awayFouls.foulsCommitted + awayFouls.foulsWon, awayFouls.matches)
         },
         over85TeamFoulsCommitted: { 
           homeValue: supabaseFoulsService.calculateOverPercentage(homeFouls.matchDetails, 8.5), 
@@ -388,8 +387,6 @@ export class FBrefStatsService {
       throw error;
     }
   }
-
-  // ... (rest of the methods are unchanged)
 
   /**
    * Individual breakdown methods (for debugging/future use)
