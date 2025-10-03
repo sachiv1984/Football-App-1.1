@@ -1,6 +1,6 @@
 // scripts/sync-prematch-odds.js
-const https = require('https');
-const { createClient } = require('@supabase/supabase-js');
+import https from 'https';
+import { createClient } from '@supabase/supabase-js'
 
 // =====================================================
 // CONFIGURATION
