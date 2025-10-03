@@ -1,15 +1,15 @@
 // scripts/sync-prematch-odds.js
 import https from 'https';
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js';
 
 // =====================================================
 // CONFIGURATION
 // =====================================================
 
-const SGO_BASE_URL = 'https://api.sportsgameodds.com';
+const SGO_BASE_URL = 'api.sportsgameodds.com';
 const SGO_API_KEY = process.env.SGO_API_KEY;
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const LEAGUES = {
   'soccer_epl': 'Premier League',
