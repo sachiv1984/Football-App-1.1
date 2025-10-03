@@ -60,6 +60,8 @@
     "deploy": "gh-pages -d dist",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,md}\"",
     "type-check": "tsc --noEmit",
+    "sync-odds": "node scripts/sync-prematch-odds.js",
+    "sync-results": "node scripts/sync-results.js",
     "scrape:fixtures": "ts-node scripts/scrapeFixtures.ts",
     "test-data": "node test-update.js"
   }
