@@ -47,29 +47,30 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          node -e "
-          const { createClient } = require('@supabase/supabase-js');
+          cat > check-usage-temp.mjs << 'EOF'
+          import { createClient } from '@supabase/supabase-js';
           const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
           
-          (async () => {
-            const today = new Date().toISOString().split('T')[0];
-            const { data, error } = await supabase
-              .from('api_usage_log')
-              .select('*', { count: 'exact' })
-              .gte('timestamp', today)
-              .eq('cached', false);
-            
-            const usageCount = data?.length || 0;
-            const canProceed = usageCount < 75; // Safety buffer
-            
-            console.log(\`📊 Today's API usage: \${usageCount}/83\`);
-            console.log(\`✅ Can proceed: \${canProceed}\`);
-            
-            const fs = require('fs');
-            fs.appendFileSync(process.env.GITHUB_OUTPUT, \`can_proceed=\${canProceed}\n\`);
-            fs.appendFileSync(process.env.GITHUB_OUTPUT, \`usage_count=\${usageCount}\n\`);
-          })();
-          "
+          const today = new Date().toISOString().split('T')[0];
+          const { data, error } = await supabase
+            .from('api_usage_log')
+            .select('*', { count: 'exact' })
+            .gte('timestamp', today)
+            .eq('cached', false);
+          
+          const usageCount = data?.length || 0;
+          const canProceed = usageCount < 75;
+          
+          console.log(`📊 Today's API usage: ${usageCount}/83`);
+          console.log(`✅ Can proceed: ${canProceed}`);
+          
+          const fs = await import('fs');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `can_proceed=${canProceed}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `usage_count=${usageCount}\n`);
+          EOF
+          
+          node check-usage-temp.mjs
+          rm check-usage-temp.mjs
 
   sync-odds:
     needs: check-usage
