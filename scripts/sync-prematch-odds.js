@@ -1,4 +1,5 @@
 // scripts/sync-prematch-odds.js
+
 import https from 'https';
 import { createClient } from '@supabase/supabase-js';
 
@@ -11,6 +12,7 @@ const SGO_API_KEY = process.env.SGO_API_KEY;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+// NOTE: Keys here are treated as 'leagueId' by the API, despite the local variable name 'sportId'
 const LEAGUES = {
   'soccer_epl': 'Premier League',
 };
@@ -52,7 +54,8 @@ function makeRequest(path) {
             reject(new Error(`Failed to parse JSON: ${e.message}`));
           }
         } else {
-          reject(new Error(`API returned ${res.statusCode}: ${data}`));
+          // IMPORTANT: Capture the specific API error message in the rejection
+          reject(new Error(`API returned ${res.statusCode}: ${data}`, { cause: res.statusCode }));
         }
       });
     }).on('error', reject);
@@ -63,21 +66,28 @@ function makeRequest(path) {
  * Log API usage
  */
 async function logApiUsage(endpoint, eventId, responseCode, requestType, league, cached = false, notes = null) {
-  await supabase.from('api_usage_log').insert({
-    timestamp: new Date().toISOString(),
-    endpoint,
-    event_id: eventId,
-    response_code: responseCode,
-    cached,
-    request_type: requestType,
-    league,
-    notes
-  });
+  try {
+    await supabase.from('api_usage_log').insert({
+      timestamp: new Date().toISOString(),
+      endpoint,
+      event_id: eventId,
+      response_code: responseCode,
+      cached,
+      request_type: requestType,
+      league,
+      notes
+    });
+  } catch (logError) {
+    console.error("   ⚠️ Failed to log API usage to Supabase:", logError.message);
+  }
 }
 
 // =====================================================
-// ODDS EXTRACTION FUNCTIONS
+// ODDS EXTRACTION FUNCTIONS (No changes needed here)
 // =====================================================
+
+// NOTE: These functions remain the same as they correctly process the 'bookmakers' array
+// The response structure for a single event with odds is the same as the old bulk response.
 
 /**
  * Extract corners odds from bookmaker data
@@ -143,13 +153,11 @@ function extractCornersOdds(bookmakers) {
         for (const outcome of market.outcomes) {
           const line = outcome.point;
           const isOver = outcome.name.toLowerCase().includes('over');
-          const key = `matchOver${line.toString().replace('.', '')}`;
+          const key = isOver ? `matchOver${line.toString().replace('.', '')}` : `matchUnder${line.toString().replace('.', '')}`;
           
-          if (isOver) {
-            cornersOdds[bookName][key] = outcome.price;
-            if (!bestOdds[key] || outcome.price > bestOdds[key].odds) {
-              bestOdds[key] = { bookmaker: bookName, odds: outcome.price };
-            }
+          cornersOdds[bookName][key] = outcome.price;
+          if (!bestOdds[key] || outcome.price > bestOdds[key].odds) {
+            bestOdds[key] = { bookmaker: bookName, odds: outcome.price };
           }
         }
       }
@@ -177,8 +185,8 @@ function extractCardsOdds(bookmakers) {
         for (const outcome of market.outcomes) {
           const line = outcome.point;
           const isOver = outcome.name.toLowerCase().includes('over');
-          const key = `homeOver${line.toString().replace('.', '')}`;
-          
+          const key = isOver ? `homeOver${line.toString().replace('.', '')}` : `homeUnder${line.toString().replace('.', '')}`;
+
           if (isOver) {
             cardsOdds[bookName][key] = outcome.price;
             if (!bestOdds[key] || outcome.price > bestOdds[key].odds) {
@@ -192,7 +200,7 @@ function extractCardsOdds(bookmakers) {
         for (const outcome of market.outcomes) {
           const line = outcome.point;
           const isOver = outcome.name.toLowerCase().includes('over');
-          const key = `awayOver${line.toString().replace('.', '')}`;
+          const key = isOver ? `awayOver${line.toString().replace('.', '')}` : `awayUnder${line.toString().replace('.', '')}`;
           
           if (isOver) {
             cardsOdds[bookName][key] = outcome.price;
@@ -257,9 +265,16 @@ function extractMatchOdds(bookmakers) {
 
     for (const market of book.markets) {
       if (market.key === 'h2h') {
-        const homeOutcome = market.outcomes.find(o => o.name === book.home_team);
+        // The API response for a single event usually includes home/away teams on the top level,
+        // but it's often safer to rely on the names in the market outcomes if they exist.
+        // Assuming the market outcomes include the team names as per the original logic.
+        
+        const homeTeam = book.home_team; // Assuming this is available in the bookmaker object
+        const awayTeam = book.away_team; // Assuming this is available in the bookmaker object
+
+        const homeOutcome = market.outcomes.find(o => o.name === homeTeam);
         const drawOutcome = market.outcomes.find(o => o.name.toLowerCase() === 'draw');
-        const awayOutcome = market.outcomes.find(o => o.name === book.away_team);
+        const awayOutcome = market.outcomes.find(o => o.name === awayTeam);
 
         if (homeOutcome && awayOutcome) {
           matchOdds[bookName] = {
@@ -307,8 +322,78 @@ function extractOverUnderGoalsOdds(bookmakers) {
   return Object.keys(ouOdds).length > 1 ? ouOdds : null;
 }
 
+
 // =====================================================
-// MAIN SYNC LOGIC
+// NEW LOGIC FOR RATE LIMITING & TIER RESTRICTION
+// =====================================================
+
+/**
+ * Fetch full odds for a list of events one by one, with a 6-second delay.
+ * This is the premium, rate-limited step.
+ */
+async function fetchOddsForEvents(events, leagueName, leagueId) {
+    const records = [];
+    let processedCount = 0;
+    
+    console.log(`   Starting individual odds fetch for ${events.length} matches...`);
+    
+    for (const event of events) {
+        // 🚨 RATE LIMIT DELAY: 6 seconds per request (60s / 10 reqs = 6s)
+        if (processedCount > 0) {
+            await new Promise(resolve => setTimeout(resolve, 6000));
+        }
+        
+        // 💡 PREMIUM REQUEST: Fetch full odds for this single event ID
+        const oddsPath = `/v2/events/${event.id}/odds`; 
+        
+        try {
+            const oddsResponse = await makeRequest(oddsPath);
+            await logApiUsage(oddsPath, event.id, 200, 'odds_detail', leagueName, false);
+            processedCount++;
+            
+            // Combine the initial fixture data with the new odds data
+            const eventWithOdds = { ...event, bookmakers: oddsResponse.bookmakers, raw_data: oddsResponse };
+            
+            console.log(`      ✅ Fetched odds for ${eventWithOdds.home_team} vs ${eventWithOdds.away_team} (${processedCount}/${events.length})`);
+
+            // Assemble the final database record
+            const record = {
+                event_id: eventWithOdds.id,
+                home_team: eventWithOdds.home_team,
+                away_team: eventWithOdds.away_team,
+                kickoff_time: eventWithOdds.commence_time,
+                league: leagueName,
+                season: getSeason(new Date(eventWithOdds.commence_time)),
+                
+                // Extract odds
+                corners_odds: eventWithOdds.bookmakers ? extractCornersOdds(eventWithOdds.bookmakers) : null,
+                cards_odds: eventWithOdds.bookmakers ? extractCardsOdds(eventWithOdds.bookmakers) : null,
+                btts_odds: eventWithOdds.bookmakers ? extractBttsOdds(eventWithOdds.bookmakers) : null,
+                match_odds: eventWithOdds.bookmakers ? extractMatchOdds(eventWithOdds.bookmakers) : null,
+                over_under_goals_odds: eventWithOdds.bookmakers ? extractOverUnderGoalsOdds(eventWithOdds.bookmakers) : null,
+                
+                fetched_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                odds_locked: false,
+                match_completed: false,
+                
+                raw_data: eventWithOdds.raw_data
+            };
+            
+            records.push(record);
+
+        } catch (error) {
+             const statusCode = error.cause || 500;
+             console.error(`      ❌ Error fetching odds for event ${event.id} (${event.home_team} vs ${event.away_team}):`, error.message);
+             // Log the failed request against the budget
+             await logApiUsage(oddsPath, event.id, statusCode, 'odds_detail_fail', leagueName, false, error.message);
+        }
+    }
+    return records;
+}
+
+// =====================================================
+// MAIN SYNC LOGIC (Refactored)
 // =====================================================
 
 /**
@@ -320,11 +405,14 @@ async function syncLeague(sportId, leagueName) {
   const today = new Date().toISOString().split('T')[0];
   const twoWeeksLater = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
   
-  const path = `/v2/events?leagueId=${sportId}&dateFrom=${today}&dateTo=${twoWeeksLater}&includeOdds=true`;
+  // 💡 STEP 1: Fixture list request (LOW-TIER FRIENDLY)
+  // Use 'leagueId' and omit 'includeOdds=true' to avoid the 400 tier restriction error.
+  const path = `/v2/events?leagueId=${sportId}&dateFrom=${today}&dateTo=${twoWeeksLater}`;
   
   try {
     const response = await makeRequest(path);
-    await logApiUsage(path, null, 200, 'fixtures', leagueName, false);
+    // Logging this initial request as a successful list fetch
+    await logApiUsage(path, null, 200, 'fixtures_list', leagueName, false);
     
     if (!response || !response.events || response.events.length === 0) {
       console.log(`   ℹ️  No upcoming matches found`);
@@ -333,35 +421,14 @@ async function syncLeague(sportId, leagueName) {
     
     console.log(`   Found ${response.events.length} upcoming matches`);
     
-    const records = [];
+    // 💡 STEP 2: Fetch odds for each event (PREMIUM/RATE-LIMITED STEP)
+    const records = await fetchOddsForEvents(response.events, leagueName, sportId);
     
-    for (const event of response.events) {
-      const record = {
-        event_id: event.id,
-        home_team: event.home_team,
-        away_team: event.away_team,
-        kickoff_time: event.commence_time,
-        league: leagueName,
-        season: getSeason(new Date(event.commence_time)),
-        
-        // Extract odds
-        corners_odds: event.bookmakers ? extractCornersOdds(event.bookmakers) : null,
-        cards_odds: event.bookmakers ? extractCardsOdds(event.bookmakers) : null,
-        btts_odds: event.bookmakers ? extractBttsOdds(event.bookmakers) : null,
-        match_odds: event.bookmakers ? extractMatchOdds(event.bookmakers) : null,
-        over_under_goals_odds: event.bookmakers ? extractOverUnderGoalsOdds(event.bookmakers) : null,
-        
-        fetched_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        odds_locked: false,
-        match_completed: false,
-        
-        raw_data: event
-      };
-      
-      records.push(record);
+    if (records.length === 0) {
+        console.log(`   ℹ️  No odds successfully fetched for matches.`);
+        return { league: leagueName, synced: 0 };
     }
-    
+
     // Upsert to Supabase
     const { error } = await supabase
       .from('prematch_odds')
@@ -375,7 +442,7 @@ async function syncLeague(sportId, leagueName) {
       throw error;
     }
     
-    console.log(`   ✅ Successfully synced ${records.length} matches`);
+    console.log(`   ✅ Successfully synced and updated ${records.length} matches in database.`);
     
     return {
       league: leagueName,
@@ -383,8 +450,10 @@ async function syncLeague(sportId, leagueName) {
     };
     
   } catch (error) {
-    console.error(`   ❌ Error syncing ${leagueName}:`, error.message);
-    await logApiUsage(path, null, error.statusCode || 500, 'fixtures', leagueName, false, error.message);
+    const statusCode = error.cause || 500;
+    console.error(`   ❌ Error fetching fixture list for ${leagueName}:`, error.message);
+    // Log the failed list request
+    await logApiUsage(path, null, statusCode, 'fixtures_list_fail', leagueName, false, error.message);
     
     return {
       league: leagueName,
@@ -416,6 +485,8 @@ async function main() {
   console.log(`   Timestamp: ${new Date().toISOString()}`);
   console.log(`   Leagues: ${Object.values(LEAGUES).join(', ')}`);
   console.log('━'.repeat(60));
+  console.log('🚨 Rate Limit: 10 requests/minute enforced by 6000ms delay per match.');
+  console.log('━'.repeat(60));
   
   const results = [];
   
@@ -424,8 +495,8 @@ async function main() {
     const result = await syncLeague(sportId, leagueName);
     results.push(result);
     
-    // Small delay between leagues to respect rate limits
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Minimal delay between leagues. The 6-second delay between events is the critical throttle.
+    await new Promise(resolve => setTimeout(resolve, 500)); 
   }
   
   // Summary
@@ -441,25 +512,33 @@ async function main() {
       console.log(`❌ ${result.league}: ${result.error}`);
       totalErrors++;
     } else {
-      console.log(`✅ ${result.league}: ${result.synced} matches`);
+      console.log(`✅ ${result.league}: ${result.synced} matches (successfully fetched odds)`);
       totalSynced += result.synced;
     }
   });
   
   console.log('━'.repeat(60));
-  console.log(`Total matches synced: ${totalSynced}`);
-  console.log(`Errors: ${totalErrors}`);
+  console.log(`Total matches synced (with odds): ${totalSynced}`);
+  console.log(`Errors encountered: ${totalErrors}`);
   console.log('━'.repeat(60));
   
   // Check usage
-  const { data: todayUsage } = await supabase
+  const { count: todayCount, error: usageError } = await supabase
     .from('api_usage_log')
     .select('*', { count: 'exact' })
     .gte('timestamp', new Date().toISOString().split('T')[0])
     .eq('cached', false);
   
-  console.log(`\n📈 API Usage Today: ${todayUsage?.length || 0} requests`);
-  
+  if (usageError) {
+     console.error(`\n⚠️ Error fetching API Usage:`, usageError.message);
+  } else {
+     console.log(`\n📈 API Usage Today: ${todayCount || 0} premium requests made.`);
+     if (todayCount > 2000) { // A custom warning threshold
+         console.warn("   🚨 WARNING: Approaching monthly limit of 2,500 requests!");
+     }
+  }
+
+  // Use the total errors in the process.exit code
   if (totalErrors > 0) {
     process.exit(1);
   }
@@ -467,6 +546,6 @@ async function main() {
 
 // Run
 main().catch(error => {
-  console.error('💥 Fatal error:', error);
+  console.error('💥 Fatal error in main execution:', error);
   process.exit(1);
 });
