@@ -2,7 +2,7 @@ import {
   BettingInsight, 
   BettingMarket, 
   Comparison 
-} from '../stats/ai/bettingInsightsService'; // FIX: Corrected import path to '../stats/ai/bettingInsightsService'
+} from './bettingInsightsService'; // FIX: Corrected import path to '../stats/ai/bettingInsightsService'
 
 import { supabaseCardsService } from '../stats/supabaseCardsService';
 import { supabaseCornersService } from '../stats/supabaseCornersService';
