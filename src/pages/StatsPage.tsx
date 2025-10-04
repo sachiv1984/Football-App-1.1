@@ -14,7 +14,7 @@ import { RefreshCw, AlertCircle, TrendingUp, Target } from 'lucide-react';
 import type { Fixture } from '../types';
 
 // Import the service and type for enriching insights (THE CRITICAL FIX)
-import { matchContextService, MatchContextInsight } from '../services/stats/ai/matchContextService';
+import { matchContextService, MatchContextInsight } from '../services/ai/matchContextService';
 import { BettingInsight } from '../services/ai/bettingInsightsService';
 
 const StatsPage: React.FC = () => {
