@@ -2,7 +2,7 @@ import {
   BettingInsight, 
   BettingMarket, 
   Comparison 
-} from './bettingInsightsService'; // FIX: Corrected import path to '../stats/ai/bettingInsightsService'
+} from './bettingInsightsService';
 
 import { supabaseCardsService } from '../stats/supabaseCardsService';
 import { supabaseCornersService } from '../stats/supabaseCornersService';
@@ -94,6 +94,7 @@ export class MatchContextService {
             ? 'shotsOnTargetAgainst' 
             : 'shotsAgainst';
           
+          // @ts-ignore - Assuming the underlying match detail structure contains these fields
           const totalAgainst = oppStats.matchDetails.reduce(
             (sum, m) => sum + (m[field] || 0), 0
           );
@@ -191,8 +192,8 @@ export class MatchContextService {
     confidenceScore: number
   ): string {
     const venue = isHome ? 'home' : 'away';
-    let base = `${teamName}'s pattern: ${outcome} (${patternAvg} avg)`;
-    const oppText = `vs opposition allowing ${oppAllowsAvg} (Threshold: ${threshold})`;
+    let base = `${teamName}'s pattern: ${outcome} (${Math.round(patternAvg * 10) / 10} avg)`;
+    const oppText = `vs opposition allowing ${Math.round(oppAllowsAvg * 10) / 10} (Threshold: ${threshold})`;
     const confidenceText = `Confidence Score: ${confidenceScore}/100.`;
 
     switch (strength) {
@@ -201,9 +202,9 @@ export class MatchContextService {
       case 'Good':
         return `🔵 **Recommended**: ${base}. A **Good Matchup** because the opposition allows above the threshold, suggesting their defense is vulnerable to this market. ${confidenceText}`;
       case 'Fair':
-        return `🟡 **Fair Selection**: ${base}. The opposition's concession rate (${oppAllowsAvg}) is near the threshold. The success of this bet relies mainly on ${teamName}'s strong current form. ${confidenceText}`;
+        return `🟡 **Fair Selection**: ${base}. The opposition's concession rate (${Math.round(oppAllowsAvg * 10) / 10}) is near the threshold. The success of this bet relies mainly on ${teamName}'s strong current form. ${confidenceText}`;
       case 'Poor':
-        return `🛑 **CAUTION ADVISED**: ${base}. The opposition is defensively strong, allowing only ${oppAllowsAvg}, which is **below** the ${threshold} threshold. This is a difficult ${venue} matchup despite recent form. ${confidenceText}`;
+        return `🛑 **CAUTION ADVISED**: ${base}. The opposition is defensively strong, allowing only ${Math.round(oppAllowsAvg * 10) / 10}, which is **below** the ${threshold} threshold. This is a difficult ${venue} matchup despite recent form. ${confidenceText}`;
     }
   }
 
@@ -231,30 +232,43 @@ export class MatchContextService {
       const oppositionAllows = oppStats?.average ?? 0;
       const oppositionMatches = oppStats?.matches ?? 0;
 
-      // 2. Evaluate Match Strength
-      const strengthOfMatch = this.evaluateMatchStrength(
-        insight.averageValue,
-        insight.threshold,
-        oppositionAllows
-      );
+      // Only apply match context to OVER/OR_MORE bets, as UNDER bets are about weakness, not strength
+      // For simplicity, we skip BTTS for now as it needs complex defensive BTTS calculation
+      const shouldApplyContext = 
+        insight.market !== BettingMarket.BOTH_TEAMS_TO_SCORE &&
+        (insight.comparison === Comparison.OVER || insight.comparison === Comparison.OR_MORE);
 
-      // 3. Generate Recommendation
-      const recommendation = this.generateRecommendation(
-        insight.team,
-        insight.outcome,
-        strengthOfMatch,
-        insight.averageValue,
-        oppositionAllows,
-        insight.threshold,
-        isHome,
-        insight.context?.confidence?.score ?? 0 // Accessing confidence safely
-      );
+      let strengthOfMatch: MatchContext['strengthOfMatch'] = 'Fair';
+      let recommendation: string = `No specific match context generated for ${insight.market} ${insight.comparison} pattern.`;
+      let roundedOppositionAllows = 0;
+
+      if (shouldApplyContext) {
+        // 2. Evaluate Match Strength
+        strengthOfMatch = this.evaluateMatchStrength(
+          insight.averageValue,
+          insight.threshold,
+          oppositionAllows
+        );
+
+        // 3. Generate Recommendation
+        recommendation = this.generateRecommendation(
+          insight.team,
+          insight.outcome,
+          strengthOfMatch,
+          insight.averageValue,
+          oppositionAllows,
+          insight.threshold,
+          isHome,
+          insight.context?.confidence?.score ?? 0
+        );
+        roundedOppositionAllows = Math.round(oppositionAllows * 10) / 10;
+      }
 
       // 4. Build Enriched Insight
       enrichedInsights.push({
         ...insight,
         matchContext: {
-          oppositionAllows: Math.round(oppositionAllows * 10) / 10, // Round for clean display
+          oppositionAllows: roundedOppositionAllows,
           oppositionMatches,
           isHome,
           strengthOfMatch,
