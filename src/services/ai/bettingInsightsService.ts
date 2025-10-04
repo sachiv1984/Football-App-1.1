@@ -1,3 +1,5 @@
+// src/services/stats/bettingInsightsService.ts
+
 import { supabaseCardsService } from '../stats/supabaseCardsService';
 import { supabaseCornersService } from '../stats/supabaseCornersService';
 import { supabaseFoulsService } from '../stats/supabaseFoulsService';
@@ -18,19 +20,24 @@ interface GoalsDetail extends BaseMatchDetail {
 
 interface CardsMatchDetail extends BaseMatchDetail {
   cardsFor: number;
+  cardsAgainst?: number; // Added for defensive stats
 }
 
 interface CornersMatchDetail extends BaseMatchDetail {
   cornersFor: number;
+  cornersAgainst?: number; // Added for defensive stats
 }
 
 interface FoulsMatchDetail extends BaseMatchDetail {
   foulsCommittedFor: number;
+  foulsCommittedAgainst?: number; // Added for defensive stats
 }
 
 interface ShotsMatchDetail extends BaseMatchDetail {
   shotsOnTargetFor: number;
   shotsFor: number;
+  shotsOnTargetAgainst?: number; // Added for defensive stats
+  shotsAgainst?: number; // Added for defensive stats
 }
 
 /**
@@ -616,6 +623,7 @@ export class BettingInsightsService {
       : undefined;
 
     // --- B. Confidence Score Calculation ---
+    // Ensure we only pass non-optional data to the scoring function
     const confidence = this.calculateConfidence(
       averageValue,
       threshold,
@@ -645,7 +653,7 @@ export class BettingInsightsService {
     homeHitRate: number,
     awayHitRate: number,
     comparison: Comparison
-  ): Context['confidence'] {
+  ): NonNullable<Context['confidence']> { // **This ensures the return is not optional**
     let score = 0;
     const factors: string[] = [];
 
@@ -685,7 +693,8 @@ export class BettingInsightsService {
     
     // Normalize margin score: max points when margin is >= 0.5 * threshold
     const targetMarginRatio = 0.5; // 50% above threshold to get max points
-    const marginRatio = (margin / threshold);
+    // Ensure threshold is not zero to prevent division by zero
+    const marginRatio = threshold > 0 ? (margin / threshold) : margin; 
     const marginScore = Math.min(Math.max(marginRatio / targetMarginRatio, 0), 1) * 25;
     score += marginScore;
     
@@ -695,7 +704,7 @@ export class BettingInsightsService {
 
     const finalScore = Math.round(score);
 
-    let level: Context['confidence']['level'] = 'Low';
+    let level: NonNullable<Context['confidence']>['level'] = 'Low';
     if (finalScore >= 85) level = 'Very High';
     else if (finalScore >= 70) level = 'High';
     else if (finalScore >= 55) level = 'Medium';
