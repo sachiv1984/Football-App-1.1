@@ -103,7 +103,6 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
   const getMatchStrengthStyle = (strength: string) => {
     switch (strength) {
       case 'Excellent':
-        // Updated bg to a slightly darker shade for contrast with the quote block
         return { bg: 'bg-emerald-50 border-emerald-400', text: 'text-emerald-800', icon: <Zap className="w-4 h-4 text-emerald-600" />, border: 'border-emerald-600', hoverBg: 'bg-emerald-100' };
       case 'Good':
         return { bg: 'bg-blue-50 border-blue-400', text: 'text-blue-800', icon: <Award className="w-4 h-4 text-blue-600" />, border: 'border-blue-600', hoverBg: 'bg-blue-100' };
@@ -195,8 +194,8 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
                     )}
                   </div>
                   
-                  {/* Market and Streak Badges */}
-                  <div className="flex items-center gap-2 flex-wrap mt-2">
+                  {/* Market and Streak Badges - Vertical space added here */}
+                  <div className="flex items-center gap-2 flex-wrap mt-3"> 
                     <span className={`px-2 py-1 rounded text-xs font-semibold border ${getMarketColor(insight.market)}`}>
                       {getMarketLabel(insight.market)}
                     </span>
@@ -244,7 +243,8 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
                       <p className="text-2xl font-bold text-green-800">{insight.hitRate}%</p>
                     </div>
                     <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-center">
-                      <p className="text-xs text-gray-500 uppercase mb-1">Average Value</p>
+                      {/* Label simplified for brevity/scannability */}
+                      <p className="text-xs text-gray-500 uppercase mb-1">Average</p> 
                       <p className="text-2xl font-bold text-gray-900">{insight.averageValue}</p>
                       {marginRatio > 0.05 && (
                         <p className="text-xs text-green-600 font-medium mt-0.5">
@@ -263,14 +263,14 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
                         {homeAwaySupport.home.matches > 0 && (
                           <div className={`p-2 rounded border ${
                             // HIGHLIGHT if the upcoming match is Home
-                            upcomingVenueIsHome ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-gray-50'
+                            upcomingVenueIsHome ? 'border-blue-500 bg-blue-50 border-2' : 'border-gray-200 bg-gray-50'
                           }`}>
                             <div className="flex items-center gap-1 mb-1">
-                              {/* Icon color matches highlight */}
                               <Home className={`w-3 h-3 ${upcomingVenueIsHome ? 'text-blue-600' : 'text-gray-500'}`} />
                               <span className="text-xs font-bold text-gray-700">HOME ({homeAwaySupport.home.matches}m)</span>
                             </div>
-                            <p className="text-lg font-bold text-gray-900">{homeAwaySupport.home.hitRate}%</p>
+                            {/* Hit Rate made larger for dominance */}
+                            <p className="text-xl font-bold text-gray-900">{homeAwaySupport.home.hitRate}%</p> 
                             <p className="text-xs text-gray-600">Avg: {homeAwaySupport.home.average}</p>
                           </div>
                         )}
@@ -278,20 +278,20 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
                         {homeAwaySupport.away.matches > 0 && (
                           <div className={`p-2 rounded border ${
                             // HIGHLIGHT if the upcoming match is Away
-                            upcomingVenueIsHome === false ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-gray-50'
+                            upcomingVenueIsHome === false ? 'border-blue-500 bg-blue-50 border-2' : 'border-gray-200 bg-gray-50'
                           }`}>
                             <div className="flex items-center gap-1 mb-1">
-                              {/* Icon color matches highlight */}
                               <Plane className={`w-3 h-3 ${upcomingVenueIsHome === false ? 'text-blue-600' : 'text-gray-500'}`} />
                               <span className="text-xs font-bold text-gray-700">AWAY ({homeAwaySupport.away.matches}m)</span>
                             </div>
-                            <p className="text-lg font-bold text-gray-900">{homeAwaySupport.away.hitRate}%</p>
+                            {/* Hit Rate made larger for dominance */}
+                            <p className="text-xl font-bold text-gray-900">{homeAwaySupport.away.hitRate}%</p>
                             <p className="text-xs text-gray-600">Avg: {homeAwaySupport.away.average}</p>
                           </div>
                         )}
                       </div>
                       
-                      {/* Venue Dependency Warning - uses showDependencyWarning and correct venueData */}
+                      {/* Venue Dependency Warning */}
                       {showDependencyWarning && venueData && (
                         <p className="text-xs text-yellow-700 mt-2 flex items-start gap-1 p-2 bg-yellow-50 rounded">
                           <Info className="w-3 h-3 mt-0.5 flex-shrink-0" />
@@ -329,13 +329,12 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
                             <div className={`w-1.5 h-1.5 rounded-full ${
                               match.hit ? 'bg-green-500' : 'bg-red-500'
                             }`}></div>
-                            <span className="text-gray-700 font-medium">vs **{match.opponent}**</span>
+                            {/* FIX: Removed markdown asterisks from opponent name */}
+                            <span className="text-gray-700 font-medium">vs {match.opponent}</span>
                             {match.isHome !== undefined && (
                               match.isHome ? (
-                                // FIXED: Removed the invalid `title` prop
                                 <Home className="w-3 h-3 text-gray-400" />
                               ) : (
-                                // FIXED: Removed the invalid `title` prop
                                 <Plane className="w-3 h-3 text-gray-400" />
                               )
                             )}
