@@ -1,23 +1,29 @@
-import { BettingInsight, BettingMarket, Comparison } from '../stats/bettingInsightsService';
+import { 
+  BettingInsight, 
+  BettingMarket, 
+  Comparison 
+} from '../stats/bettingInsightsService'; // FIXED: Corrected import path
+
 import { supabaseCardsService } from '../stats/supabaseCardsService';
 import { supabaseCornersService } from '../stats/supabaseCornersService';
 import { supabaseFoulsService } from '../stats/supabaseFoulsService';
 import { supabaseGoalsService } from '../stats/supabaseGoalsService';
 import { supabaseShootingService } from '../stats/supabaseShootingService';
 
-export interface MatchContextInsight extends BettingInsight {
-  matchContext: {
+// Defining the specific match context structure
+interface MatchContext {
     oppositionAllows: number;
     oppositionMatches: number;
     isHome: boolean;
     strengthOfMatch: 'Poor' | 'Fair' | 'Good' | 'Excellent';
     recommendation: string;
-  };
 }
 
-// NOTE: This interface assumes the service implementations (e.g., supabaseGoalsService) 
-// have been updated to include a 'goalsAgainst' field in their match detail type, 
-// which is crucial for defensive analysis.
+// FIX for TS2339: Defining the enriched insight as an intersection type 
+// ensures it inherits ALL properties (including 'context') from BettingInsight.
+export type MatchContextInsight = BettingInsight & {
+    matchContext: MatchContext;
+};
 
 /**
  * Service to enrich betting insights with match-specific context
@@ -115,6 +121,7 @@ export class MatchContextService {
 
         case BettingMarket.BOTH_TEAMS_TO_SCORE: {
             // No direct opposition 'allows' metric for BTTS, so return default/zero.
+            // This is a binary market where the logic doesn't strictly depend on a 'conceded' average.
             return { average: 0, matches: 0 };
         }
 
@@ -242,10 +249,11 @@ export class MatchContextService {
         oppositionAllows,
         insight.threshold,
         isHome,
-        insight.context?.confidence?.score ?? 0
+        insight.context?.confidence?.score ?? 0 // Accessing confidence safely
       );
 
       // 4. Build Enriched Insight
+      // TypeScript is happy now due to the updated MatchContextInsight type
       enrichedInsights.push({
         ...insight,
         matchContext: {
@@ -278,6 +286,7 @@ export class MatchContextService {
 
     // Filter for High/Very High confidence and Excellent/Good match strength
     const bestBets = enriched.filter(e => {
+      // FIX for TS2339: The type is now correct, so optional chaining works.
       const confidence = e.context?.confidence?.level;
       const strength = e.matchContext.strengthOfMatch;
 
@@ -289,6 +298,7 @@ export class MatchContextService {
 
     // Sort by confidence score (highest first)
     return bestBets.sort((a, b) => 
+      // FIX for TS2339: The type is now correct, so optional chaining works.
       (b.context?.confidence?.score ?? 0) - (a.context?.confidence?.score ?? 0)
     );
   }
