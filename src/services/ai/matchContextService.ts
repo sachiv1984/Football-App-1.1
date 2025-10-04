@@ -95,3 +95,5 @@ export class MatchContextService {
             matches: oppStats.matches
           };
         }
+
+        case BettingMarket.GOALS: {
