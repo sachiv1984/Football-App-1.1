@@ -246,7 +246,85 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
                     <div className="pt-2 border-t border-gray-100">
                       <p className="text-xs text-gray-500 uppercase mb-2">Confidence Factors</p>
                       <div className="space-y-1">
-                        {confidence.factors.slice(0, 3).map((factor, i) => (// src/components/insights/BettingPatterns/MatchBettingPatterns.tsx
+                        {confidence.factors.slice(0, 3).map((factor, i) => (
+                          <div key={i} className="flex items-start gap-1.5">
+                            <span className="text-green-500 mt-0.5">✓</span>
+                            <span className="text-xs text-gray-700">{factor}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Recent Matches Preview */}
+                  <div className="pt-2 border-t border-gray-100">
+                    <p className="text-xs text-gray-500 uppercase mb-2">Last 3 Matches</p>
+                    <div className="space-y-1">
+                      {insight.recentMatches.slice(0, 3).map((match: RecentMatch, matchIdx: number) => (
+                        <div
+                          key={matchIdx}
+                          className="flex items-center justify-between p-2 bg-gray-50 rounded text-sm"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className={`w-1.5 h-1.5 rounded-full ${
+                              match.hit ? 'bg-green-500' : 'bg-red-500'
+                            }`}></div>
+                            <span className="text-gray-700 font-medium">vs {match.opponent}</span>
+                            {match.isHome !== undefined && (
+                              match.isHome ? (
+                                <Home className="w-3 h-3 text-gray-400" />
+                              ) : (
+                                <Plane className="w-3 h-3 text-gray-400" />
+                              )
+                            )}
+                          </div>
+                          <span className="text-gray-900 font-bold">{match.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-8">
+      {/* Home Team Patterns */}
+      <TeamInsightsSection 
+        teamName={homeTeam}
+        teamInsights={homeTeamInsights}
+        colorClass="bg-green-500"
+        isHome={true}
+      />
+
+      {/* Away Team Patterns */}
+      <TeamInsightsSection 
+        teamName={awayTeam}
+        teamInsights={awayTeamInsights}
+        colorClass="bg-orange-500"
+        isHome={false}
+      />
+
+      {/* If no patterns for either team */}
+      {insights.length === 0 && (
+        <div className="text-center py-8">
+          <Target className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+          <p className="text-gray-600 font-medium">No patterns detected</p>
+          <p className="text-sm text-gray-500 mt-1">
+            No 100% hit rate patterns found for either team
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default MatchBettingPatterns;// src/components/insights/BettingPatterns/MatchBettingPatterns.tsx
 import React from 'react';
 import { TrendingUp, Target } from 'lucide-react';
 
