@@ -738,7 +738,7 @@
     "awayteam": "Tottenham",
     "homescore": null,
     "awayscore": null,
-    "status": "scheduled",
+    "status": "finished",
     "venue": "Elland Road",
     "matchweek": 7,
     "matchurl": "https://fbref.com/en/matches/2025-10-04"
@@ -750,7 +750,7 @@
     "awayteam": "West Ham",
     "homescore": null,
     "awayscore": null,
-    "status": "scheduled",
+    "status": "finished",
     "venue": "Emirates Stadium",
     "matchweek": 7,
     "matchurl": "https://fbref.com/en/matches/2025-10-04"
@@ -762,7 +762,7 @@
     "awayteam": "Sunderland",
     "homescore": null,
     "awayscore": null,
-    "status": "scheduled",
+    "status": "finished",
     "venue": "Old Trafford",
     "matchweek": 7,
     "matchurl": "https://fbref.com/en/matches/2025-10-04"
@@ -774,7 +774,7 @@
     "awayteam": "Liverpool",
     "homescore": null,
     "awayscore": null,
-    "status": "scheduled",
+    "status": "finished",
     "venue": "Stamford Bridge",
     "matchweek": 7,
     "matchurl": "https://fbref.com/en/matches/2025-10-04"
