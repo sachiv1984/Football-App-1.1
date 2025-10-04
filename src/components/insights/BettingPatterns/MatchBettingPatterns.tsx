@@ -140,7 +140,7 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
       <div className="space-y-4">
         <div className="flex items-center gap-2 pt-6 border-t border-gray-200">
           <div className={`w-3 h-3 rounded-full ${colorClass}`}></div>
-          <h3 className="text-xl font-bold text-gray-900">{teamName} Patterns}</h3>
+          <h3 className="text-xl font-bold text-gray-900">{teamName} Patterns</h3>
           {isHome ? (
             <Home className="w-5 h-5 text-gray-500" />
           ) : (
