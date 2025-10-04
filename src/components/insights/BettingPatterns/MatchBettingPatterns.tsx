@@ -2,7 +2,6 @@ import React from 'react';
 import { TrendingUp, Target, Home, Plane, Award, Info, Zap } from 'lucide-react';
 
 // --- INTERFACE DEFINITIONS ---
-// (Kept interfaces intact for context)
 
 interface RecentMatch {
   opponent: string;
@@ -333,9 +332,11 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
                             <span className="text-gray-700 font-medium">vs **{match.opponent}**</span>
                             {match.isHome !== undefined && (
                               match.isHome ? (
-                                <Home className="w-3 h-3 text-gray-400" title="Home Match" />
+                                // FIXED: Removed the invalid `title` prop
+                                <Home className="w-3 h-3 text-gray-400" />
                               ) : (
-                                <Plane className="w-3 h-3 text-gray-400" title="Away Match" />
+                                // FIXED: Removed the invalid `title` prop
+                                <Plane className="w-3 h-3 text-gray-400" />
                               )
                             )}
                           </div>
