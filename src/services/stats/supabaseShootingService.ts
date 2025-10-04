@@ -30,6 +30,7 @@ export interface DetailedShootingStats {
     shotsOnTargetAgainst: number;  // Shots on target opponent took
     date?: string;
     matchweek?: number;
+    isHome?: boolean;              // NEW: Track if match was at home
   }>;
 }
 
@@ -145,7 +146,7 @@ export class SupabaseShootingService {
       const totalShotsOnTarget = matches.reduce((sum, match) => sum + match.team_shots_on_target, 0);
       const totalShotsOnTargetAgainst = matches.reduce((sum, match) => sum + match.opp_shots_on_target, 0);
 
-      // Create detailed match data
+      // Create detailed match data with isHome field
       const matchDetails = matches.map(match => ({
         opponent: match.opponent,
         totalShots: match.team_shots + match.opp_shots,
@@ -154,7 +155,8 @@ export class SupabaseShootingService {
         shotsOnTargetFor: match.team_shots_on_target,
         shotsOnTargetAgainst: match.opp_shots_on_target,
         date: match.match_date,
-        matchweek: match.matchweek
+        matchweek: match.matchweek,
+        isHome: match.venue === 'home' // NEW: Convert venue to boolean
       }));
 
       teamStats.set(teamName, {
@@ -171,7 +173,7 @@ export class SupabaseShootingService {
       // Debug: show shooting data for first match
       if (matches.length > 0) {
         const firstMatch = matches[0];
-        console.log(`[SupabaseShooting] ${teamName} vs ${firstMatch.opponent}: ${firstMatch.team_shots} shots (${firstMatch.team_shots_on_target} on target)`);
+        console.log(`[SupabaseShooting] ${teamName} vs ${firstMatch.opponent} (${firstMatch.venue}): ${firstMatch.team_shots} shots (${firstMatch.team_shots_on_target} on target)`);
       }
     });
 
@@ -282,6 +284,7 @@ export class SupabaseShootingService {
       shotsOnTargetFor: number;
       shotsOnTargetAgainst: number;
       date?: string;
+      isHome?: boolean;
     }>;
   } | null> {
     const shootingData = await this.getTeamShootingStats(teamName);
@@ -310,7 +313,8 @@ export class SupabaseShootingService {
         shotsAgainst: match.shotsAgainst,
         shotsOnTargetFor: match.shotsOnTargetFor,
         shotsOnTargetAgainst: match.shotsOnTargetAgainst,
-        date: match.date
+        date: match.date,
+        isHome: match.isHome
       }))
     };
   }
