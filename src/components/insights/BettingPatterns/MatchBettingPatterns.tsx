@@ -140,7 +140,7 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
       <div className="space-y-4">
         <div className="flex items-center gap-2 pt-6 border-t border-gray-200">
           <div className={`w-3 h-3 rounded-full ${colorClass}`}></div>
-          <h3 className="text-xl font-bold text-gray-900">{teamName} Patterns</h3>
+          <h3 className="text-xl font-bold text-gray-900">{teamName} Patterns}</h3>
           {isHome ? (
             <Home className="w-5 h-5 text-gray-500" />
           ) : (
@@ -154,19 +154,20 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
             const homeAwaySupport = insight.context?.homeAwaySupport;
             const matchContext = insight.matchContext;
             
-            // --- VENUE FIX START ---
-            // 1. Determine the venue of the UPCOMING match for this insight
-            // We use matchContext.isHome which was set by MatchContextService
+            // --- VENUE FIX: Determine the correct venue data based on the upcoming match context ---
             const upcomingVenueIsHome = matchContext?.isHome; 
             
-            // 2. Select the historical venue data that corresponds to the upcoming match venue
+            // Select the historical venue data that corresponds to the upcoming match venue
             const venueData = upcomingVenueIsHome ? homeAwaySupport?.home : homeAwaySupport?.away;
             
-            // 3. Determine if the selected venue's performance is perfect
+            // Determine if the selected venue's performance is perfect
             const isVenuePerfect = venueData && venueData.hitRate === 100;
+
+            // Dependency warning check: Hit rate at the upcoming venue is worse than the overall hit rate
+            const showDependencyWarning = venueData && 
+                                          venueData.hitRate < insight.hitRate; 
             // --- VENUE FIX END ---
             
-            // The logic for marginRatio is kept even if threshold isn't displayed
             const marginRatio = (insight.averageValue - insight.threshold) / insight.threshold; 
             
             const strengthStyle = matchContext ? getMatchStrengthStyle(matchContext.strengthOfMatch) : null;
@@ -282,8 +283,8 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
                         )}
                       </div>
                       
-                      {/* Venue Dependency Warning */}
-                      {venueData && !isVenuePerfect && (
+                      {/* Venue Dependency Warning - uses showDependencyWarning and correct venueData */}
+                      {showDependencyWarning && venueData && (
                         <p className="text-xs text-yellow-600 mt-2 flex items-start gap-1">
                           <Info className="w-3 h-3 mt-0.5 flex-shrink-0" />
                           <span>Venue hit rate ({venueData.hitRate}%) is lower than overall, showing a venue dependency.</span>
