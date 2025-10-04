@@ -2,6 +2,7 @@ import React from 'react';
 import { TrendingUp, Target, Home, Plane, Award, Info, Zap } from 'lucide-react';
 
 // --- INTERFACE DEFINITIONS ---
+// (Kept interfaces intact for context)
 
 interface RecentMatch {
   opponent: string;
@@ -103,15 +104,16 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
   const getMatchStrengthStyle = (strength: string) => {
     switch (strength) {
       case 'Excellent':
-        return { bg: 'bg-emerald-50 border-emerald-400', text: 'text-emerald-800', icon: <Zap className="w-4 h-4 text-emerald-600" /> };
+        // Updated bg to a slightly darker shade for contrast with the quote block
+        return { bg: 'bg-emerald-50 border-emerald-400', text: 'text-emerald-800', icon: <Zap className="w-4 h-4 text-emerald-600" />, border: 'border-emerald-600', hoverBg: 'bg-emerald-100' };
       case 'Good':
-        return { bg: 'bg-blue-50 border-blue-400', text: 'text-blue-800', icon: <Award className="w-4 h-4 text-blue-600" /> };
+        return { bg: 'bg-blue-50 border-blue-400', text: 'text-blue-800', icon: <Award className="w-4 h-4 text-blue-600" />, border: 'border-blue-600', hoverBg: 'bg-blue-100' };
       case 'Fair':
-        return { bg: 'bg-yellow-50 border-yellow-400', text: 'text-yellow-800', icon: <Info className="w-4 h-4 text-yellow-600" /> };
+        return { bg: 'bg-yellow-50 border-yellow-400', text: 'text-yellow-800', icon: <Info className="w-4 h-4 text-yellow-600" />, border: 'border-yellow-600', hoverBg: 'bg-yellow-100' };
       case 'Poor':
-        return { bg: 'bg-red-50 border-red-400', text: 'text-red-800', icon: <Info className="w-4 h-4 text-red-600" /> };
+        return { bg: 'bg-red-50 border-red-400', text: 'text-red-800', icon: <Info className="w-4 h-4 text-red-600" />, border: 'border-red-600', hoverBg: 'bg-red-100' };
       default:
-        return { bg: 'bg-gray-50 border-gray-400', text: 'text-gray-800', icon: <Info className="w-4 h-4 text-gray-600" /> };
+        return { bg: 'bg-gray-50 border-gray-400', text: 'text-gray-800', icon: <Info className="w-4 h-4 text-gray-600" />, border: 'border-gray-600', hoverBg: 'bg-gray-100' };
     }
   };
 
@@ -160,9 +162,6 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
             // Select the historical venue data that corresponds to the upcoming match venue
             const venueData = upcomingVenueIsHome ? homeAwaySupport?.home : homeAwaySupport?.away;
             
-            // Determine if the selected venue's performance is perfect
-            const isVenuePerfect = venueData && venueData.hitRate === 100;
-
             // Dependency warning check: Hit rate at the upcoming venue is worse than the overall hit rate
             const showDependencyWarning = venueData && 
                                           venueData.hitRate < insight.hitRate; 
@@ -175,53 +174,62 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
             return (
               <div 
                 key={idx}
-                className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden"
+                className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden transition-shadow duration-200 hover:shadow-xl"
               >
-                {/* Card Header (Outcome & Confidence) */}
-                <div className={`p-4 border-b ${
+                {/* Card Header (Outcome & Confidence) - VISUAL IMPROVEMENT 1 */}
+                <div className={`p-4 border-b relative ${
                   insight.isStreak 
                     ? 'bg-gradient-to-r from-purple-50 to-purple-100' 
                     : 'bg-gray-50'
                 }`}>
-                  <div className="flex items-start justify-between mb-2">
-                    <p className="text-xl font-extrabold text-gray-900">{insight.outcome}</p>
+                  <div className="flex items-start justify-between">
+                    {/* Outcome is the main visual focus */}
+                    <p className="text-2xl font-extrabold text-gray-900 leading-tight">
+                        {insight.outcome}
+                    </p>
+                    
+                    {/* Confidence as a distinct badge */}
                     {confidence && (
-                      <div className={`px-3 py-1 rounded-full text-sm font-bold border ${getConfidenceColor(confidence.level)}`}>
-                        {confidence.level} ({confidence.score}/100)
+                      <div className={`px-3 py-1 rounded-full text-xs font-bold border shadow-sm flex-shrink-0 ${getConfidenceColor(confidence.level)}`}>
+                        {confidence.level}
                       </div>
                     )}
                   </div>
                   
-                  <div className="flex items-center gap-2 flex-wrap">
+                  {/* Market and Streak Badges */}
+                  <div className="flex items-center gap-2 flex-wrap mt-2">
                     <span className={`px-2 py-1 rounded text-xs font-semibold border ${getMarketColor(insight.market)}`}>
                       {getMarketLabel(insight.market)}
                     </span>
                     {insight.isStreak && insight.streakLength && (
                       <span className="px-2 py-1 rounded bg-purple-100 text-purple-800 text-xs font-semibold flex items-center gap-1">
                         <TrendingUp className="w-3 h-3" />
-                        {insight.streakLength} Match Streak
+                        **{insight.streakLength}** Match Streak
                       </span>
                     )}
                   </div>
                 </div>
 
-                {/* Match Context & Recommendation - Threshold Removed */}
+                {/* Match Context & Recommendation - VISUAL IMPROVEMENT 2 (Quote Block) */}
                 {matchContext && (
                     <div className={`p-4 border-b border-dashed ${strengthStyle?.bg}`}>
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center gap-2 mb-3">
                             {strengthStyle?.icon}
                             <span className={`text-md font-bold uppercase ${strengthStyle?.text}`}>
                                 Matchup Strength: {matchContext.strengthOfMatch}
                             </span>
                             {matchContext.strengthOfMatch === 'Poor' && <span className="text-red-600 font-bold">🛑</span>}
                         </div>
-                        <p className="text-sm text-gray-700 italic">
-                            {matchContext.recommendation.split(':').slice(1).join(':').trim()}
-                        </p>
-                        {/* Only showing Opponent Allows here */}
-                        <div className="mt-2 text-xs font-medium text-gray-600 flex justify-between">
+                        
+                        {/* Recommendation Highlighted */}
+                        <div className={`p-3 rounded-lg border-l-4 ${strengthStyle?.hoverBg} ${strengthStyle?.text} ${strengthStyle?.border}`}>
+                            <p className="text-sm font-semibold italic">
+                                "{matchContext.recommendation.split(':').slice(1).join(':').trim()}"
+                            </p>
+                        </div>
+
+                        <div className="mt-3 text-xs font-medium text-gray-600 flex justify-between">
                             <span>Opponent Allows: **{matchContext.oppositionAllows}**</span>
-                            {/* Threshold display removed from here */}
                         </div>
                     </div>
                 )}
@@ -230,25 +238,24 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
                 {/* Card Body - Core Stats */}
                 <div className="p-4 space-y-4">
                   
-                  {/* Stats Grid - Threshold column removed and layout changed to grid-cols-2 */}
+                  {/* Stats Grid */}
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-center">
                       <p className="text-xs text-green-600 font-medium uppercase mb-1">Hit Rate</p>
-                      <p className="text-xl font-bold text-green-800">{insight.hitRate}%</p>
+                      <p className="text-2xl font-bold text-green-800">{insight.hitRate}%</p>
                     </div>
-                    {/* Threshold column removed from here */}
                     <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-center">
-                      <p className="text-xs text-gray-500 uppercase mb-1">Average</p>
-                      <p className="text-xl font-bold text-gray-900">{insight.averageValue}</p>
+                      <p className="text-xs text-gray-500 uppercase mb-1">Average Value</p>
+                      <p className="text-2xl font-bold text-gray-900">{insight.averageValue}</p>
                       {marginRatio > 0.05 && (
                         <p className="text-xs text-green-600 font-medium mt-0.5">
-                          +{Math.round(marginRatio * 100)}% above
+                          +{Math.round(marginRatio * 100)}% above Threshold
                         </p>
                       )}
                     </div>
                   </div>
 
-                  {/* Home/Away Performance */}
+                  {/* Home/Away Performance - VISUAL IMPROVEMENT 3 (Stronger Highlight) */}
                   {homeAwaySupport && (homeAwaySupport.home.matches > 0 || homeAwaySupport.away.matches > 0) && (
                     <div className="pt-2 border-t border-gray-100">
                       <p className="text-xs text-gray-500 uppercase mb-2 font-semibold">Venue Consistency</p>
@@ -260,7 +267,8 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
                             upcomingVenueIsHome ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-gray-50'
                           }`}>
                             <div className="flex items-center gap-1 mb-1">
-                              <Home className="w-3 h-3 text-gray-600" />
+                              {/* Icon color matches highlight */}
+                              <Home className={`w-3 h-3 ${upcomingVenueIsHome ? 'text-blue-600' : 'text-gray-500'}`} />
                               <span className="text-xs font-bold text-gray-700">HOME ({homeAwaySupport.home.matches}m)</span>
                             </div>
                             <p className="text-lg font-bold text-gray-900">{homeAwaySupport.home.hitRate}%</p>
@@ -274,7 +282,8 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
                             upcomingVenueIsHome === false ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-gray-50'
                           }`}>
                             <div className="flex items-center gap-1 mb-1">
-                              <Plane className="w-3 h-3 text-gray-600" />
+                              {/* Icon color matches highlight */}
+                              <Plane className={`w-3 h-3 ${upcomingVenueIsHome === false ? 'text-blue-600' : 'text-gray-500'}`} />
                               <span className="text-xs font-bold text-gray-700">AWAY ({homeAwaySupport.away.matches}m)</span>
                             </div>
                             <p className="text-lg font-bold text-gray-900">{homeAwaySupport.away.hitRate}%</p>
@@ -285,9 +294,9 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
                       
                       {/* Venue Dependency Warning - uses showDependencyWarning and correct venueData */}
                       {showDependencyWarning && venueData && (
-                        <p className="text-xs text-yellow-600 mt-2 flex items-start gap-1">
+                        <p className="text-xs text-yellow-700 mt-2 flex items-start gap-1 p-2 bg-yellow-50 rounded">
                           <Info className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                          <span>Venue hit rate ({venueData.hitRate}%) is lower than overall, showing a venue dependency.</span>
+                          <span>**VENUE DEPENDENCY:** Hit rate at this venue ({venueData.hitRate}%) is lower than overall ({insight.hitRate}%).</span>
                         </p>
                       )}
                     </div>
@@ -315,18 +324,18 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
                       {insight.recentMatches.slice(0, 5).map((match: RecentMatch, matchIdx: number) => (
                         <div
                           key={matchIdx}
-                          className={`flex items-center justify-between p-2 rounded text-sm ${match.hit ? 'bg-green-50' : 'bg-red-50'}`}
+                          className={`flex items-center justify-between p-2 rounded text-sm transition-colors ${match.hit ? 'bg-green-50 hover:bg-green-100' : 'bg-red-50 hover:bg-red-100'}`}
                         >
                           <div className="flex items-center gap-2">
                             <div className={`w-1.5 h-1.5 rounded-full ${
                               match.hit ? 'bg-green-500' : 'bg-red-500'
                             }`}></div>
-                            <span className="text-gray-700 font-medium">vs {match.opponent}</span>
+                            <span className="text-gray-700 font-medium">vs **{match.opponent}**</span>
                             {match.isHome !== undefined && (
                               match.isHome ? (
-                                <Home className="w-3 h-3 text-gray-400" />
+                                <Home className="w-3 h-3 text-gray-400" title="Home Match" />
                               ) : (
-                                <Plane className="w-3 h-3 text-gray-400" />
+                                <Plane className="w-3 h-3 text-gray-400" title="Away Match" />
                               )
                             )}
                           </div>
@@ -345,7 +354,7 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
   };
 
   return (
-    <div className="space-y-8 p-6 bg-gray-50 rounded-lg shadow-inner">
+    <div className="space-y-8 p-6 bg-gray-50 rounded-xl shadow-2xl">
       <h2 className="text-3xl font-extrabold text-gray-800 border-b pb-3 mb-6">
         Match Betting Patterns Analysis
       </h2>
@@ -354,7 +363,7 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
       <TeamInsightsSection 
         teamName={homeTeam}
         teamInsights={homeTeamInsights}
-        colorClass="bg-green-500"
+        colorClass="bg-green-600"
         isHome={true}
       />
       
@@ -364,17 +373,17 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
       <TeamInsightsSection 
         teamName={awayTeam}
         teamInsights={awayTeamInsights}
-        colorClass="bg-orange-500"
+        colorClass="bg-orange-600"
         isHome={false}
       />
 
       {/* If no patterns for either team */}
       {insights.length === 0 && (
-        <div className="text-center py-12 bg-white rounded-lg border border-dashed border-gray-300">
+        <div className="text-center py-12 bg-white rounded-xl border border-dashed border-gray-300 shadow-inner">
           <Target className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <p className="text-xl text-gray-600 font-semibold">No Strong Patterns Detected</p>
+          <p className="text-xl text-gray-600 font-bold">No High-Confidence Patterns Detected</p>
           <p className="text-md text-gray-500 mt-2">
-            Neither **{homeTeam}** nor **{awayTeam}** have a 100% hit rate pattern in their recent form (rolling 5 or streak 7+).
+            Neither **{homeTeam}** nor **{awayTeam}** currently show a strong, **100% hit rate** pattern in recent form.
           </p>
         </div>
       )}
