@@ -25,6 +25,7 @@ export interface DetailedGoalStats {
     bothTeamsScored: boolean;    // Did both teams score?
     date?: string;
     matchweek?: number;
+    isHome?: boolean;            // NEW: Track if match was at home
   }>;
 }
 
@@ -134,7 +135,7 @@ export class SupabaseGoalsService {
       const totalGoalsFor = matches.reduce((sum, match) => sum + match.goals_for, 0);
       const totalGoalsAgainst = matches.reduce((sum, match) => sum + match.goals_against, 0);
 
-      // Create detailed match data
+      // Create detailed match data with isHome field
       const matchDetails = matches.map(match => ({
         opponent: match.opponent,
         totalGoals: match.goals_for + match.goals_against,
@@ -142,7 +143,8 @@ export class SupabaseGoalsService {
         goalsAgainst: match.goals_against,
         bothTeamsScored: match.goals_for > 0 && match.goals_against > 0,
         date: match.match_date,
-        matchweek: match.matchweek
+        matchweek: match.matchweek,
+        isHome: match.venue === 'home' // NEW: Convert venue to boolean
       }));
 
       teamStats.set(teamName, {
@@ -157,7 +159,7 @@ export class SupabaseGoalsService {
       // Debug: show goal data for first match
       if (matches.length > 0) {
         const firstMatch = matches[0];
-        console.log(`[SupabaseGoals] ${teamName} vs ${firstMatch.opponent}: ${firstMatch.goals_for}-${firstMatch.goals_against}`);
+        console.log(`[SupabaseGoals] ${teamName} vs ${firstMatch.opponent} (${firstMatch.venue}): ${firstMatch.goals_for}-${firstMatch.goals_against}`);
       }
     });
 
@@ -277,6 +279,7 @@ export class SupabaseGoalsService {
       goalsAgainst: number;
       bothTeamsScored: boolean;
       date?: string;
+      isHome?: boolean;
     }>;
   } | null> {
     const goalData = await this.getTeamGoalStats(teamName);
@@ -302,7 +305,8 @@ export class SupabaseGoalsService {
         goalsFor: match.goalsFor,
         goalsAgainst: match.goalsAgainst,
         bothTeamsScored: match.bothTeamsScored,
-        date: match.date
+        date: match.date,
+        isHome: match.isHome
       }))
     };
   }
