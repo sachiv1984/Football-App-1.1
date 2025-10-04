@@ -28,6 +28,7 @@ export interface DetailedCardStats {
     cardsAgainst: number;    // Cards opponent received
     date?: string;
     matchweek?: number;
+    isHome?: boolean;        // NEW: Track if match was at home
   }>;
 }
 
@@ -169,7 +170,7 @@ export class SupabaseCardsService {
         return sum + matchCards;
       }, 0);
 
-      // Create detailed match data
+      // Create detailed match data with isHome field
       const matchDetails = matches.map(match => {
         const teamCards = this.calculateCards(
           match.team_yellow_cards,
@@ -188,7 +189,8 @@ export class SupabaseCardsService {
           cardsFor: teamCards,
           cardsAgainst: oppCards,
           date: match.match_date,
-          matchweek: match.matchweek
+          matchweek: match.matchweek,
+          isHome: match.venue === 'home' // NEW: Convert venue to boolean
         };
       });
 
@@ -209,7 +211,7 @@ export class SupabaseCardsService {
           firstMatch.team_red_cards,
           firstMatch.team_second_yellow_cards
         );
-        console.log(`[SupabaseCards] ${teamName} vs ${firstMatch.opponent}: Y:${firstMatch.team_yellow_cards} R:${firstMatch.team_red_cards} 2Y:${firstMatch.team_second_yellow_cards} = ${teamCards} cards`);
+        console.log(`[SupabaseCards] ${teamName} vs ${firstMatch.opponent} (${firstMatch.venue}): Y:${firstMatch.team_yellow_cards} R:${firstMatch.team_red_cards} 2Y:${firstMatch.team_second_yellow_cards} = ${teamCards} cards`);
       }
     });
 
@@ -316,6 +318,7 @@ export class SupabaseCardsService {
       cardsFor: number;
       cardsAgainst: number;
       date?: string;
+      isHome?: boolean;
     }>;
   } | null> {
     const cardData = await this.getTeamCardStats(teamName);
