@@ -14,7 +14,7 @@ interface RecentMatch {
 interface MatchContext {
   oppositionAllows: number;
   oppositionMatches: number;
-  isHome: boolean;
+  isHome: boolean; // Venue of the upcoming match
   strengthOfMatch: 'Poor' | 'Fair' | 'Good' | 'Excellent';
   recommendation: string;
 }
@@ -127,7 +127,7 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
     teamName, 
     teamInsights, 
     colorClass,
-    isHome
+    isHome // This indicates if the team is the Home (true) or Away (false) team in the fixture
   }: { 
     teamName: string; 
     teamInsights: BettingInsight[];
@@ -153,8 +153,19 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
             const confidence = insight.context?.confidence;
             const homeAwaySupport = insight.context?.homeAwaySupport;
             const matchContext = insight.matchContext;
-            const venueData = isHome ? homeAwaySupport?.home : homeAwaySupport?.away;
+            
+            // --- VENUE FIX START ---
+            // 1. Determine the venue of the UPCOMING match for this insight
+            // We use matchContext.isHome which was set by MatchContextService
+            const upcomingVenueIsHome = matchContext?.isHome; 
+            
+            // 2. Select the historical venue data that corresponds to the upcoming match venue
+            const venueData = upcomingVenueIsHome ? homeAwaySupport?.home : homeAwaySupport?.away;
+            
+            // 3. Determine if the selected venue's performance is perfect
             const isVenuePerfect = venueData && venueData.hitRate === 100;
+            // --- VENUE FIX END ---
+            
             // The logic for marginRatio is kept even if threshold isn't displayed
             const marginRatio = (insight.averageValue - insight.threshold) / insight.threshold; 
             
@@ -241,9 +252,11 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
                     <div className="pt-2 border-t border-gray-100">
                       <p className="text-xs text-gray-500 uppercase mb-2 font-semibold">Venue Consistency</p>
                       <div className="grid grid-cols-2 gap-2">
+                        {/* HOME Box */}
                         {homeAwaySupport.home.matches > 0 && (
                           <div className={`p-2 rounded border ${
-                            isHome ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-gray-50'
+                            // HIGHLIGHT if the upcoming match is Home
+                            upcomingVenueIsHome ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-gray-50'
                           }`}>
                             <div className="flex items-center gap-1 mb-1">
                               <Home className="w-3 h-3 text-gray-600" />
@@ -253,9 +266,11 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
                             <p className="text-xs text-gray-600">Avg: {homeAwaySupport.home.average}</p>
                           </div>
                         )}
+                        {/* AWAY Box */}
                         {homeAwaySupport.away.matches > 0 && (
                           <div className={`p-2 rounded border ${
-                            !isHome ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-gray-50'
+                            // HIGHLIGHT if the upcoming match is Away
+                            upcomingVenueIsHome === false ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-gray-50'
                           }`}>
                             <div className="flex items-center gap-1 mb-1">
                               <Plane className="w-3 h-3 text-gray-600" />
@@ -266,6 +281,8 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
                           </div>
                         )}
                       </div>
+                      
+                      {/* Venue Dependency Warning */}
                       {venueData && !isVenuePerfect && (
                         <p className="text-xs text-yellow-600 mt-2 flex items-start gap-1">
                           <Info className="w-3 h-3 mt-0.5 flex-shrink-0" />
