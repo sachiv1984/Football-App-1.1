@@ -13,7 +13,7 @@ interface BaseMatchDetail {
 
 interface GoalsDetail extends BaseMatchDetail {
   totalGoals: number;
-  bothTeamsScored: boolean; // Used in detectBTTSPattern
+  bothTeamsScored: boolean;
 }
 
 interface CardsMatchDetail extends BaseMatchDetail {
@@ -30,6 +30,7 @@ interface FoulsMatchDetail extends BaseMatchDetail {
 
 interface ShotsMatchDetail extends BaseMatchDetail {
   shotsOnTargetFor: number;
+  shotsFor: number; // Added for total shots market
 }
 
 /**
@@ -41,32 +42,34 @@ export enum BettingMarket {
   FOULS = 'fouls',
   GOALS = 'goals',
   SHOTS_ON_TARGET = 'shots_on_target',
+  TOTAL_SHOTS = 'total_shots', // NEW: Total shots market
   BOTH_TEAMS_TO_SCORE = 'both_teams_to_score'
 }
 
 /**
- * Defines the comparison type for a threshold bet (Over/Under)
+ * Defines the comparison type for a threshold bet
  */
 export enum Comparison {
     OVER = 'Over',
-    UNDER = 'Under'
+    UNDER = 'Under',
+    OR_MORE = 'Or More' // NEW: For whole number markets (3+ shots)
 }
 
 export interface BettingInsight {
   team: string;
   market: BettingMarket;
-  outcome: string;                    // e.g., "Over 1.5 Team Cards"
-  hitRate: number;                    // 100 for rolling basis
-  matchesAnalyzed: number;            // Rolling window size (5 or streak length)
-  isStreak: boolean;                  // True if 7+ matches
-  streakLength?: number;              // If isStreak, how many consecutive matches
-  threshold: number;                  // The line being analyzed (e.g., 1.5)
-  averageValue: number;               // Average stat value in period
-  comparison: Comparison | 'binary';  // Added for filtering/redundancy check
+  outcome: string;
+  hitRate: number;
+  matchesAnalyzed: number;
+  isStreak: boolean;
+  streakLength?: number;
+  threshold: number;
+  averageValue: number;
+  comparison: Comparison | 'binary';
   recentMatches: Array<{
     opponent: string;
-    value: number;                    // Actual stat value
-    hit: boolean;                     // Did it hit the threshold?
+    value: number;
+    hit: boolean;
     date?: string;
   }>;
   context?: {
@@ -114,12 +117,19 @@ const MARKET_CONFIGS = {
     label: 'Match Goals'
   },
   [BettingMarket.SHOTS_ON_TARGET]: {
-    thresholds: [2.5, 3.5, 4.5, 5.5],
+    thresholds: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13], // UPDATED: Whole numbers only
     minValue: 0,
-    label: 'Team Shots on Target'
+    label: 'Team Shots on Target',
+    useOrMore: true // NEW: Flag for "or more" logic
+  },
+  [BettingMarket.TOTAL_SHOTS]: {
+    thresholds: [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25], // NEW
+    minValue: 0,
+    label: 'Team Total Shots',
+    useOrMore: true // NEW: Flag for "or more" logic
   },
   [BettingMarket.BOTH_TEAMS_TO_SCORE]: {
-    thresholds: [0.5], // Binary: BTTS yes/no
+    thresholds: [0.5],
     minValue: 0,
     label: 'Both Teams to Score'
   }
@@ -182,39 +192,48 @@ export class BettingInsightsService {
       market: BettingMarket.SHOTS_ON_TARGET,
       service: { getStatistics: () => supabaseShootingService.getShootingStatistics() },
       valueExtractor: (m: ShotsMatchDetail) => m.shotsOnTargetFor,
-      label: 'shots'
+      label: 'shots on target'
+    },
+    // NEW: Total shots market
+    {
+      market: BettingMarket.TOTAL_SHOTS,
+      service: { getStatistics: () => supabaseShootingService.getShootingStatistics() },
+      valueExtractor: (m: ShotsMatchDetail) => m.shotsFor,
+      label: 'total shots'
     }
   ];
 
   /**
    * Helper function to filter out redundant patterns (Max Specificity Principle).
-   * * FIX: Made BTTS key more robust by using explicit 'YES'/'NO' instead of the full outcome string.
    */
   private filterRedundantInsights(insights: BettingInsight[]): BettingInsight[] {
-    // Key: 'TeamName_Market_Comparison(OVER/UNDER/YES/NO)'
     const mostSpecificInsights = new Map<string, BettingInsight>();
 
     for (const insight of insights) {
       const comparisonType = insight.comparison === 'binary' 
-        ? insight.outcome.includes('Yes') ? 'YES' : 'NO' // R-FIX: Use 'YES'/'NO' for robustness
+        ? insight.outcome.includes('Yes') ? 'YES' : 'NO'
         : insight.comparison;
       
       const key = `${insight.team}_${insight.market}_${comparisonType}`;
       const existingInsight = mostSpecificInsights.get(key);
 
       if (!existingInsight) {
-        // First pattern for this team/market/comparison combination
         mostSpecificInsights.set(key, insight);
       } else {
-        // Only run logic for threshold markets (OVER/UNDER)
-        if (insight.comparison !== 'binary') {
+        // For OR_MORE comparisons, keep the highest threshold
+        if (insight.comparison === Comparison.OR_MORE) {
+          const shouldReplace = insight.threshold > existingInsight.threshold;
+          if (shouldReplace) {
+            mostSpecificInsights.set(key, insight);
+          }
+        } 
+        // For OVER/UNDER comparisons (unchanged logic)
+        else if (insight.comparison !== 'binary') {
           let shouldReplace = false;
 
           if (insight.comparison === Comparison.OVER) {
-            // Keep the one with the highest threshold (most specific OVER bet)
             shouldReplace = insight.threshold > existingInsight.threshold;
           } else if (insight.comparison === Comparison.UNDER) {
-            // Keep the one with the lowest threshold (most specific UNDER bet)
             shouldReplace = insight.threshold < existingInsight.threshold;
           }
           
@@ -236,13 +255,10 @@ export class BettingInsightsService {
     
     const allInsights: BettingInsight[] = [];
     
-    // FIX: Using `as any` to bypass the strict compiler check on the union type 
-    // and allow T to be inferred correctly within the generic function call for each iteration.
     const marketAnalyses = this.MARKET_ANALYSIS_CONFIGS.map(
       config => this.analyzeGenericMarket(config as any)
     );
     
-    // Handle the special BTTS market separately
     marketAnalyses.push(this.analyzeBTTSMarket()); 
 
     const results = await Promise.all(marketAnalyses);
@@ -250,7 +266,6 @@ export class BettingInsightsService {
     
     const finalInsights = this.filterRedundantInsights(allInsights);
 
-    // Count unique teams
     const uniqueTeams = new Set(finalInsights.map(i => i.team));
 
     console.log('[BettingInsights] ✅ Analysis complete:', {
@@ -286,6 +301,7 @@ export class BettingInsightsService {
 
   /**
    * Generic method to analyze standard threshold markets
+   * UPDATED: Handles both OVER/UNDER markets and OR_MORE markets
    */
   private async analyzeGenericMarket<T extends BaseMatchDetail>(config: MarketAnalysisConfig<T>): Promise<BettingInsight[]> {
     console.log(`[BettingInsights] 📊 Analyzing ${config.label} market...`);
@@ -300,31 +316,45 @@ export class BettingInsightsService {
       const values = stats.matchDetails.map(config.valueExtractor); 
       
       for (const threshold of marketConfig.thresholds) {
-        const baseOutcome = `${threshold} ${marketConfig.label}`;
-        
-        // 1. Detect OVER pattern
-        const overPattern = this.detectPattern(
-          values,
-          threshold,
-          teamName,
-          config.market,
-          `${Comparison.OVER} ${baseOutcome}`,
-          stats.matchDetails,
-          Comparison.OVER
-        );
-        if (overPattern) insights.push(overPattern);
-        
-        // 2. Detect UNDER pattern
-        const underPattern = this.detectPattern(
-          values,
-          threshold,
-          teamName,
-          config.market,
-          `${Comparison.UNDER} ${baseOutcome}`,
-          stats.matchDetails,
-          Comparison.UNDER
-        );
-        if (underPattern) insights.push(underPattern);
+        // Check if this market uses "or more" logic (whole numbers)
+        if (marketConfig.useOrMore) {
+          // Only analyze "X or more" patterns (no UNDER for whole number markets)
+          const orMorePattern = this.detectPattern(
+            values,
+            threshold,
+            teamName,
+            config.market,
+            `${threshold}+ ${marketConfig.label}`,
+            stats.matchDetails,
+            Comparison.OR_MORE
+          );
+          if (orMorePattern) insights.push(orMorePattern);
+        } else {
+          // Traditional OVER/UNDER analysis for decimal thresholds
+          const baseOutcome = `${threshold} ${marketConfig.label}`;
+          
+          const overPattern = this.detectPattern(
+            values,
+            threshold,
+            teamName,
+            config.market,
+            `${Comparison.OVER} ${baseOutcome}`,
+            stats.matchDetails,
+            Comparison.OVER
+          );
+          if (overPattern) insights.push(overPattern);
+          
+          const underPattern = this.detectPattern(
+            values,
+            threshold,
+            teamName,
+            config.market,
+            `${Comparison.UNDER} ${baseOutcome}`,
+            stats.matchDetails,
+            Comparison.UNDER
+          );
+          if (underPattern) insights.push(underPattern);
+        }
       }
     }
 
@@ -343,7 +373,6 @@ export class BettingInsightsService {
     for (const [teamName, stats] of allStats.entries()) {
       if (stats.matches < this.ROLLING_WINDOW) continue;
       
-      // 1. BTTS - YES (Condition: bothTeamsScored is true)
       const yesPattern = this.detectBTTSPattern(
         stats.matchDetails, 
         teamName, 
@@ -352,7 +381,6 @@ export class BettingInsightsService {
       );
       if (yesPattern) insights.push(yesPattern);
       
-      // 2. BTTS - NO (Condition: bothTeamsScored is false)
       const noPattern = this.detectBTTSPattern(
         stats.matchDetails, 
         teamName, 
@@ -367,7 +395,7 @@ export class BettingInsightsService {
   
   /**
    * Core pattern detection logic
-   * * FIX: Logic updated to prioritize a streak (7+ matches) over the rolling 5-match window.
+   * UPDATED: Handles OVER, UNDER, and OR_MORE comparisons
    */
   private detectPattern(
     values: number[],
@@ -379,10 +407,17 @@ export class BettingInsightsService {
     comparison: Comparison
   ): BettingInsight | null {
     
-    // Define the hit condition
+    // Define the hit condition based on comparison type
     const isHit = (value: number) => {
-      // OVER is v > threshold, UNDER is v < threshold
-      return comparison === Comparison.OVER ? value > threshold : value < threshold;
+      if (comparison === Comparison.OVER) {
+        return value > threshold;
+      } else if (comparison === Comparison.UNDER) {
+        return value < threshold;
+      } else if (comparison === Comparison.OR_MORE) {
+        // For "X or more" bets, value must be >= threshold
+        return value >= threshold;
+      }
+      return false;
     };
 
     // Check for streaks (7+ consecutive matches)
@@ -391,7 +426,7 @@ export class BettingInsightsService {
       if (isHit(value)) {
         streakLength++;
       } else {
-        break; // Streak broken
+        break;
       }
     }
     
@@ -423,7 +458,7 @@ export class BettingInsightsService {
         market,
         outcome,
         matchDetails.slice(0, this.ROLLING_WINDOW),
-        false, // Not an official STREAK_THRESHOLD streak
+        false,
         comparison,
         undefined
       );
@@ -438,13 +473,12 @@ export class BettingInsightsService {
   private detectBTTSPattern(
     matchDetails: GoalsDetail[],
     teamName: string,
-    targetHit: boolean, // true for YES, false for NO
+    targetHit: boolean,
     outcomeLabel: string
   ): BettingInsight | null {
     
     const isHit = (m: GoalsDetail) => m.bothTeamsScored === targetHit;
 
-    // Check for streaks
     let streakLength = 0;
     for (const match of matchDetails) {
       if (isHit(match)) {
@@ -454,18 +488,16 @@ export class BettingInsightsService {
       }
     }
 
-    // Check rolling 5 matches (most recent)
     const rolling = matchDetails.slice(0, this.ROLLING_WINDOW);
     const rollingHits = rolling.filter(isHit).length;
     const rollingHitRate = (rollingHits / rolling.length) * 100;
 
-    // Prioritize streak, then check rolling window
     if (streakLength >= this.STREAK_THRESHOLD || rollingHitRate === 100) {
       const isStreak = streakLength >= this.STREAK_THRESHOLD;
       
       const analyzedMatches = isStreak 
-        ? matchDetails.slice(0, streakLength) // Use streak window
-        : rolling; // Use rolling window
+        ? matchDetails.slice(0, streakLength)
+        : rolling;
 
       return {
         team: teamName,
@@ -475,13 +507,13 @@ export class BettingInsightsService {
         matchesAnalyzed: analyzedMatches.length,
         isStreak: isStreak,
         streakLength: isStreak ? streakLength : undefined,
-        threshold: 0.5, // Arbitrary threshold for binary market
-        averageValue: 1, // BTTS is binary, average is 1 if it hits
-        comparison: 'binary', // Indicate this is a binary market
+        threshold: 0.5,
+        averageValue: 1,
+        comparison: 'binary',
         recentMatches: analyzedMatches.map(m => ({
           opponent: m.opponent,
-          value: m.bothTeamsScored ? 1 : 0, // 1 for Yes, 0 for No
-          hit: isHit(m), // Use the specific hit condition
+          value: m.bothTeamsScored ? 1 : 0,
+          hit: isHit(m),
           date: m.date
         }))
       };
@@ -492,6 +524,7 @@ export class BettingInsightsService {
 
   /**
    * Build insight object with all relevant data
+   * UPDATED: Handles OR_MORE comparison
    */
   private buildInsight(
     values: number[],
@@ -506,9 +539,15 @@ export class BettingInsightsService {
   ): BettingInsight {
     const avgValue = values.reduce((sum, v) => sum + v, 0) / values.length;
     
-    // Condition for hit check (used in recentMatches mapping)
     const isHit = (value: number) => {
-        return comparison === Comparison.OVER ? value > threshold : value < threshold;
+      if (comparison === Comparison.OVER) {
+        return value > threshold;
+      } else if (comparison === Comparison.UNDER) {
+        return value < threshold;
+      } else if (comparison === Comparison.OR_MORE) {
+        return value >= threshold;
+      }
+      return false;
     };
 
     return {
@@ -520,12 +559,12 @@ export class BettingInsightsService {
       isStreak,
       streakLength,
       threshold,
-      comparison, // Include comparison type
+      comparison,
       averageValue: Math.round(avgValue * 100) / 100,
       recentMatches: values.map((value, idx) => ({
         opponent: matchDetails[idx]?.opponent || 'Unknown',
         value,
-        hit: isHit(value), // Use the comparison-aware hit check
+        hit: isHit(value),
         date: matchDetails[idx]?.date
       }))
     };
