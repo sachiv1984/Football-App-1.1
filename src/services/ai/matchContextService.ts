@@ -2,7 +2,7 @@ import {
   BettingInsight, 
   BettingMarket, 
   Comparison 
-} from '../stats/bettingInsightsService'; // FIXED: Corrected import path
+} from '../stats/ai/bettingInsightsService'; // FIX: Corrected import path to '../stats/ai/bettingInsightsService'
 
 import { supabaseCardsService } from '../stats/supabaseCardsService';
 import { supabaseCornersService } from '../stats/supabaseCornersService';
@@ -19,8 +19,7 @@ interface MatchContext {
     recommendation: string;
 }
 
-// FIX for TS2339: Defining the enriched insight as an intersection type 
-// ensures it inherits ALL properties (including 'context') from BettingInsight.
+// Defining the enriched insight as an intersection type 
 export type MatchContextInsight = BettingInsight & {
     matchContext: MatchContext;
 };
@@ -121,7 +120,6 @@ export class MatchContextService {
 
         case BettingMarket.BOTH_TEAMS_TO_SCORE: {
             // No direct opposition 'allows' metric for BTTS, so return default/zero.
-            // This is a binary market where the logic doesn't strictly depend on a 'conceded' average.
             return { average: 0, matches: 0 };
         }
 
@@ -253,7 +251,6 @@ export class MatchContextService {
       );
 
       // 4. Build Enriched Insight
-      // TypeScript is happy now due to the updated MatchContextInsight type
       enrichedInsights.push({
         ...insight,
         matchContext: {
@@ -286,7 +283,7 @@ export class MatchContextService {
 
     // Filter for High/Very High confidence and Excellent/Good match strength
     const bestBets = enriched.filter(e => {
-      // FIX for TS2339: The type is now correct, so optional chaining works.
+      // Accessing confidence safely
       const confidence = e.context?.confidence?.level;
       const strength = e.matchContext.strengthOfMatch;
 
@@ -298,7 +295,7 @@ export class MatchContextService {
 
     // Sort by confidence score (highest first)
     return bestBets.sort((a, b) => 
-      // FIX for TS2339: The type is now correct, so optional chaining works.
+      // Accessing confidence safely
       (b.context?.confidence?.score ?? 0) - (a.context?.confidence?.score ?? 0)
     );
   }
