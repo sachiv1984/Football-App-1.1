@@ -30,6 +30,7 @@ export interface DetailedFoulStats {
     foulsWonAgainst: number;      // Fouls opponent won
     date?: string;
     matchweek?: number;
+    isHome?: boolean;             // NEW: Track if match was at home
   }>;
 }
 
@@ -142,7 +143,7 @@ export class SupabaseFoulsService {
       const totalFoulsAgainst = matches.reduce((sum, match) => sum + match.opp_fouls, 0);
       const totalFoulsLost = matches.reduce((sum, match) => sum + match.opp_fouled, 0);
 
-      // Create detailed match data
+      // Create detailed match data with isHome field
       const matchDetails = matches.map(match => ({
         opponent: match.opponent,
         totalFouls: match.team_fouls + match.opp_fouls,
@@ -151,7 +152,8 @@ export class SupabaseFoulsService {
         foulsCommittedAgainst: match.opp_fouls,
         foulsWonAgainst: match.opp_fouled,
         date: match.match_date,
-        matchweek: match.matchweek
+        matchweek: match.matchweek,
+        isHome: match.venue === 'home' // NEW: Convert venue to boolean
       }));
 
       teamStats.set(teamName, {
@@ -272,6 +274,7 @@ export class SupabaseFoulsService {
       foulsCommittedAgainst: number;
       foulsWonAgainst: number;
       date?: string;
+      isHome?: boolean;
     }>;
   } | null> {
     const foulData = await this.getTeamFoulStats(teamName);
