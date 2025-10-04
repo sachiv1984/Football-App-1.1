@@ -27,7 +27,7 @@ export interface BettingInsight {
   matchesAnalyzed: number;
   isStreak: boolean;
   streakLength?: number; 
-  threshold: number;
+  threshold: number; // This property is kept in the data interface but no longer displayed
   averageValue: number;
   comparison?: string;
   recentMatches: RecentMatch[];
@@ -155,7 +155,8 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
             const matchContext = insight.matchContext;
             const venueData = isHome ? homeAwaySupport?.home : homeAwaySupport?.away;
             const isVenuePerfect = venueData && venueData.hitRate === 100;
-            const marginRatio = (insight.averageValue - insight.threshold) / insight.threshold;
+            // The logic for marginRatio is kept even if threshold isn't displayed
+            const marginRatio = (insight.averageValue - insight.threshold) / insight.threshold; 
             
             const strengthStyle = matchContext ? getMatchStrengthStyle(matchContext.strengthOfMatch) : null;
 
@@ -192,7 +193,7 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
                   </div>
                 </div>
 
-                {/* Match Context & Recommendation */}
+                {/* Match Context & Recommendation - Threshold Removed */}
                 {matchContext && (
                     <div className={`p-4 border-b border-dashed ${strengthStyle?.bg}`}>
                         <div className="flex items-center gap-2 mb-2">
@@ -205,9 +206,10 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
                         <p className="text-sm text-gray-700 italic">
                             {matchContext.recommendation.split(':').slice(1).join(':').trim()}
                         </p>
+                        {/* Only showing Opponent Allows here */}
                         <div className="mt-2 text-xs font-medium text-gray-600 flex justify-between">
                             <span>Opponent Allows: **{matchContext.oppositionAllows}**</span>
-                            <span>Threshold: **{insight.threshold}**</span>
+                            {/* Threshold display removed from here */}
                         </div>
                     </div>
                 )}
@@ -216,16 +218,13 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
                 {/* Card Body - Core Stats */}
                 <div className="p-4 space-y-4">
                   
-                  {/* Stats Grid */}
-                  <div className="grid grid-cols-3 gap-3">
+                  {/* Stats Grid - Threshold column removed and layout changed to grid-cols-2 */}
+                  <div className="grid grid-cols-2 gap-3">
                     <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-center">
                       <p className="text-xs text-green-600 font-medium uppercase mb-1">Hit Rate</p>
                       <p className="text-xl font-bold text-green-800">{insight.hitRate}%</p>
                     </div>
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-center">
-                      <p className="text-xs text-gray-500 uppercase mb-1">Threshold</p>
-                      <p className="text-xl font-bold text-gray-900">{insight.threshold}</p>
-                    </div>
+                    {/* Threshold column removed from here */}
                     <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-center">
                       <p className="text-xs text-gray-500 uppercase mb-1">Average</p>
                       <p className="text-xl font-bold text-gray-900">{insight.averageValue}</p>
