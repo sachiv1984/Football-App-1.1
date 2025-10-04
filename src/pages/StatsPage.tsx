@@ -1,5 +1,4 @@
-// src/pages/StatsPage.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import Header from '../components/common/Header/Header';
 import Footer from '../components/common/Footer/Footer';
@@ -14,20 +13,27 @@ import { designTokens } from '../styles/designTokens';
 import { RefreshCw, AlertCircle, TrendingUp, Target } from 'lucide-react';
 import type { Fixture } from '../types';
 
+// Import the service and type for enriching insights (THE CRITICAL FIX)
+import { matchContextService, MatchContextInsight } from '../services/stats/ai/matchContextService';
+import { BettingInsight } from '../services/ai/bettingInsightsService';
+
 const StatsPage: React.FC = () => {
   const { matchId } = useParams<{ matchId: string }>();
   const { goBack, goHome } = useFixtureNavigation();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [currentFixture, setCurrentFixture] = useState<Fixture | null>(null);
   const [showDebugger, setShowDebugger] = useState(false);
+  
+  // NEW: State for the final, enriched patterns
+  const [enrichedMatchPatterns, setEnrichedMatchPatterns] = useState<MatchContextInsight[]>([]);
 
   // Get fixtures from both sources to find the matching one
   const { featuredFixtures } = useFixtures();
   const { fixtures: gameWeekFixtures } = useGameWeekFixtures();
 
-  // Betting Patterns Hook
+  // Betting Patterns Hook (fetches ALL patterns)
   const {
-    insights: bettingPatterns,
+    insights: allBettingPatterns, // Renamed to clarify it's the full list
     loading: patternsLoading,
     error: patternsError,
     refresh: refreshPatterns,
@@ -36,22 +42,9 @@ const StatsPage: React.FC = () => {
     sortByStreak: true
   });
 
-  // Filter patterns for current match teams
-  const matchPatterns = React.useMemo(() => {
-    if (!currentFixture) return [];
-    
-    const homeTeam = currentFixture.homeTeam.name.toLowerCase();
-    const awayTeam = currentFixture.awayTeam.name.toLowerCase();
-    
-    return bettingPatterns.filter(pattern => 
-      pattern.team.toLowerCase() === homeTeam || 
-      pattern.team.toLowerCase() === awayTeam
-    );
-  }, [bettingPatterns, currentFixture]);
-
   const handleToggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
-  // Find the fixture that matches the matchId
+  // Find the fixture that matches the matchId (unchanged logic)
   useEffect(() => {
     if (!matchId) return;
 
@@ -78,6 +71,47 @@ const StatsPage: React.FC = () => {
 
     setCurrentFixture(foundFixture || null);
   }, [matchId, featuredFixtures, gameWeekFixtures]);
+
+  // CRITICAL FIX: Effect to filter patterns by match teams AND enrich them asynchronously
+  useEffect(() => {
+    // Only proceed if we have a fixture, the patterns have loaded, and there's no error
+    if (!currentFixture || patternsLoading || patternsError) {
+        setEnrichedMatchPatterns([]);
+        return;
+    }
+
+    const homeTeamName = currentFixture.homeTeam.name;
+    const awayTeamName = currentFixture.awayTeam.name;
+    
+    // 1. Filter the base insights by team (the original useMemo logic)
+    const homeInsights: BettingInsight[] = allBettingPatterns.filter(pattern => 
+        pattern.team.toLowerCase() === homeTeamName.toLowerCase()
+    );
+    const awayInsights: BettingInsight[] = allBettingPatterns.filter(pattern => 
+        pattern.team.toLowerCase() === awayTeamName.toLowerCase()
+    );
+
+    // 2. Define the asynchronous enrichment function
+    const enrichAndSet = async () => {
+        try {
+            const enriched = await matchContextService.enrichMatchInsights(
+                homeTeamName,
+                awayTeamName,
+                homeInsights,
+                awayInsights
+            );
+            setEnrichedMatchPatterns(enriched);
+        } catch (error) {
+            console.error("Failed to enrich match insights with context:", error);
+            // Fallback to empty array on failure
+            setEnrichedMatchPatterns([]); 
+        }
+    };
+
+    enrichAndSet();
+    
+  }, [allBettingPatterns, currentFixture, patternsLoading, patternsError]);
+
 
   // Loading state while we find the fixture
   if (!currentFixture) {
@@ -122,6 +156,14 @@ const StatsPage: React.FC = () => {
       </div>
     );
   }
+
+  // Calculate pattern counts based on the enriched array
+  const homePatternsCount = enrichedMatchPatterns.filter(p => 
+    p.team.toLowerCase() === currentFixture.homeTeam.name.toLowerCase()
+  ).length;
+  const awayPatternsCount = enrichedMatchPatterns.filter(p => 
+    p.team.toLowerCase() === currentFixture.awayTeam.name.toLowerCase()
+  ).length;
 
   return (
     <div
@@ -266,7 +308,7 @@ const StatsPage: React.FC = () => {
                 </div>
               )}
 
-              {!patternsLoading && !patternsError && matchPatterns.length > 0 && (
+              {!patternsLoading && !patternsError && enrichedMatchPatterns.length > 0 && (
                 <>
                   {/* Stats Overview */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -275,7 +317,7 @@ const StatsPage: React.FC = () => {
                         <Target className="w-4 h-4 text-blue-600" />
                         <p className="text-xs text-blue-600 font-medium uppercase">Total Patterns</p>
                       </div>
-                      <p className="text-2xl font-bold text-blue-900">{matchPatterns.length}</p>
+                      <p className="text-2xl font-bold text-blue-900">{enrichedMatchPatterns.length}</p>
                     </div>
                     
                     <div className="bg-purple-50 rounded-lg p-4">
@@ -284,7 +326,7 @@ const StatsPage: React.FC = () => {
                         <p className="text-xs text-purple-600 font-medium uppercase">Streaks (7+)</p>
                       </div>
                       <p className="text-2xl font-bold text-purple-900">
-                        {matchPatterns.filter(p => p.isStreak).length}
+                        {enrichedMatchPatterns.filter(p => p.isStreak).length}
                       </p>
                     </div>
 
@@ -296,9 +338,7 @@ const StatsPage: React.FC = () => {
                         </p>
                       </div>
                       <p className="text-2xl font-bold text-green-900">
-                        {matchPatterns.filter(p => 
-                          p.team.toLowerCase() === currentFixture.homeTeam.name.toLowerCase()
-                        ).length}
+                        {homePatternsCount}
                       </p>
                     </div>
 
@@ -310,16 +350,14 @@ const StatsPage: React.FC = () => {
                         </p>
                       </div>
                       <p className="text-2xl font-bold text-orange-900">
-                        {matchPatterns.filter(p => 
-                          p.team.toLowerCase() === currentFixture.awayTeam.name.toLowerCase()
-                        ).length}
+                        {awayPatternsCount}
                       </p>
                     </div>
                   </div>
 
                   {/* Patterns Display */}
                   <MatchBettingPatterns 
-                    insights={matchPatterns}
+                    insights={enrichedMatchPatterns} // <-- Passing the enriched data
                     homeTeam={currentFixture.homeTeam.name}
                     awayTeam={currentFixture.awayTeam.name}
                   />
@@ -346,7 +384,7 @@ const StatsPage: React.FC = () => {
                 </>
               )}
 
-              {!patternsLoading && !patternsError && matchPatterns.length === 0 && (
+              {!patternsLoading && !patternsError && enrichedMatchPatterns.length === 0 && (
                 <div className="flex items-center justify-center py-12">
                   <div className="text-center max-w-md">
                     <TrendingUp className="w-12 h-12 text-gray-400 mx-auto mb-4" />
