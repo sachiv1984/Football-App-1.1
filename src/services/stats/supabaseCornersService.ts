@@ -24,6 +24,7 @@ export interface DetailedCornerStats {
     cornersAgainst: number;
     date?: string;
     matchweek?: number;
+    isHome?: boolean;        // NEW: Track if match was at home
   }>;
 }
 
@@ -133,14 +134,15 @@ export class SupabaseCornersService {
       const totalCorners = matches.reduce((sum, match) => sum + match.team_corner_kicks, 0);
       const totalCornersAgainst = matches.reduce((sum, match) => sum + match.opp_corner_kicks, 0);
 
-      // Create detailed match data
+      // Create detailed match data with isHome field
       const matchDetails = matches.map(match => ({
         opponent: match.opponent,
         totalCorners: match.team_corner_kicks + match.opp_corner_kicks,
         cornersFor: match.team_corner_kicks,
         cornersAgainst: match.opp_corner_kicks,
         date: match.match_date,
-        matchweek: match.matchweek
+        matchweek: match.matchweek,
+        isHome: match.venue === 'home' // NEW: Convert venue to boolean
       }));
 
       teamStats.set(teamName, {
@@ -155,7 +157,7 @@ export class SupabaseCornersService {
       // Debug: show corner data for first match
       if (matches.length > 0) {
         const firstMatch = matches[0];
-        console.log(`[SupabaseCorners] ${teamName} vs ${firstMatch.opponent}: ${firstMatch.team_corner_kicks} corners`);
+        console.log(`[SupabaseCorners] ${teamName} vs ${firstMatch.opponent} (${firstMatch.venue}): ${firstMatch.team_corner_kicks} corners`);
       }
     });
 
@@ -263,6 +265,7 @@ export class SupabaseCornersService {
       cornersFor: number;
       cornersAgainst: number;
       date?: string;
+      isHome?: boolean;
     }>;
   } | null> {
     const cornerData = await this.getTeamCornerStats(teamName);
