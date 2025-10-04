@@ -95,7 +95,14 @@ export interface InsightsResponse {
 /**
  * Configuration for betting markets and their thresholds
  */
-const MARKET_CONFIGS = {
+interface MarketConfig {
+  thresholds: number[];
+  minValue: number;
+  label: string;
+  useOrMore?: boolean; // Optional flag for "or more" logic
+}
+
+const MARKET_CONFIGS: Record<BettingMarket, MarketConfig> = {
   [BettingMarket.CARDS]: {
     thresholds: [0.5, 1.5, 2.5, 3.5],
     minValue: 0,
