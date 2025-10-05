@@ -54,12 +54,14 @@ export class MatchContextService {
           const oppStats = stats.get(opponent);
           if (!oppStats) return null;
           
-          // Calculate average cards CONCEDED (cardsAgainst) - assuming data is available
-          const totalCardsAgainst = oppStats.matchDetails.reduce(
-            (sum, m) => sum + (m.cardsAgainst || 0), 0
+          // FIX APPLIED HERE: 
+          // For a "Team Cards Over" bet, the opposition's weakness is the 
+          // number of cards the opposition ITSELF receives (m.cardsFor).
+          const totalCardsAllowed = oppStats.matchDetails.reduce(
+            (sum, m) => sum + (m.cardsFor || 0), 0
           );
           return {
-            average: totalCardsAgainst / oppStats.matches,
+            average: totalCardsAllowed / oppStats.matches,
             matches: oppStats.matches
           };
         }
