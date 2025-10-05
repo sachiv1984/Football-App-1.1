@@ -12,6 +12,33 @@ interface MatchBettingPatternsProps {
   awayTeam: string;
 }
 
+// *** FIX: Utility function to parse the recommendation text and handle **bold** syntax ***
+const renderRecommendationText = (text: string) => {
+  const parts: React.ReactNode[] = [];
+  // Regex to split the text by the bold markdown syntax (**...**)
+  const regex = /(\*\*.*?\*\*)/g;
+  let lastIndex = 0;
+  
+  text.replace(regex, (match, p1, offset) => {
+    // Add plain text before the bold part
+    parts.push(text.substring(lastIndex, offset));
+    
+    // Add the bold text, stripping the asterisks
+    parts.push(
+      <strong key={offset} className="font-extrabold text-blue-900">
+        {p1.replace(/\*\*/g, '')}
+      </strong>
+    );
+    lastIndex = offset + match.length;
+    return match;
+  });
+  
+  // Add remaining plain text
+  parts.push(text.substring(lastIndex));
+  
+  return parts;
+};
+
 const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
   insights,
   homeTeam,
@@ -48,11 +75,16 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
       case 'Very High':
         return 'bg-emerald-50 text-emerald-800 border-emerald-300';
       case 'High':
+      case 'Excellent': // If we want to map "Excellent" descriptor color to High confidence
         return 'bg-green-50 text-green-800 border-green-300';
       case 'Medium':
+      case 'Good':
         return 'bg-blue-50 text-blue-800 border-blue-300';
       case 'Low':
+      case 'Fair':
         return 'bg-yellow-50 text-yellow-800 border-yellow-300';
+      case 'Poor':
+        return 'bg-red-50 text-red-800 border-red-300';
       default:
         return 'bg-gray-50 text-gray-800 border-gray-300';
     }
@@ -124,6 +156,23 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
             const marginRatio = (insight.averageValue - insight.threshold) / insight.threshold; 
             const strengthStyle = matchContext ? getMatchStrengthStyle(matchContext.strengthOfMatch) : null;
 
+            // *** FIX: Extract the core recommendation part (after the initial header and before the confidence text) ***
+            let recommendationBody: React.ReactNode = null;
+            if (matchContext) {
+                // Remove the confidence score text from the end
+                const recommendation = matchContext.recommendation;
+                const bodyWithHeader = recommendation.includes('Confidence Score:') 
+                    ? recommendation.substring(0, recommendation.lastIndexOf('Confidence Score:')).trim()
+                    : recommendation;
+                
+                // Now, safely split off the initial header (e.g., "✅ **STRONG SELECTION**:")
+                const bodyParts = bodyWithHeader.split(':');
+                const mainBody = bodyParts.slice(1).join(':').trim(); // Take everything after the first colon
+                
+                recommendationBody = renderRecommendationText(mainBody);
+            }
+            // *********************************************************************************************************
+
             return (
               <div 
                 key={idx}
@@ -170,7 +219,12 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
                         </div>
                         <div className={`p-3 rounded-lg border-l-4 ${strengthStyle?.hoverBg} ${strengthStyle?.text} ${strengthStyle?.border}`}>
                             <p className="text-sm font-semibold italic">
-                                "{matchContext.recommendation.split(':').slice(1).join(':').trim()}"
+                                {/* FIX: Render the main body of the recommendation with bolding */}
+                                {recommendationBody}
+                            </p>
+                            {/* Display Confidence Score text separately below the main body */}
+                            <p className="text-xs font-bold mt-2 pt-2 border-t border-dashed border-gray-200">
+                                Confidence Score: {confidence?.score ?? 0}/100
                             </p>
                         </div>
                         <div className="mt-3 text-xs font-medium text-gray-600 flex justify-between">
