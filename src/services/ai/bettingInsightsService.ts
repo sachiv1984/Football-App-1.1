@@ -1,4 +1,4 @@
-// src/services/stats/bettingInsightsService.ts
+// src/services/ai/bettingInsightsService.ts
 
 import { supabaseCardsService } from '../stats/supabaseCardsService';
 import { supabaseCornersService } from '../stats/supabaseCornersService';
@@ -181,7 +181,8 @@ export class BettingInsightsService {
     },
     {
       market: BettingMarket.CORNERS,
-      service: { getStatistics: () => supabaseCornersService.getCornersStatistics() },
+      // FIX 2: Corrected typo from getCornersStatistics to getCornerStatistics
+      service: { getStatistics: () => supabaseCornersService.getCornerStatistics() },
       valueExtractor: (m: CornersMatchDetail) => m.cornersFor,
       label: 'corners'
     },
