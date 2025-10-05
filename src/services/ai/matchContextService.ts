@@ -339,7 +339,7 @@ export class MatchContextService {
 
   /**
    * Generates a text recommendation based on the context and match strength.
-   * NOW INCLUDES VENUE-AWARE CONTEXT
+   * NOW INCLUDES VENUE-AWARE CONTEXT AND DOMINANCE OVERRIDE MESSAGING
    */
   private generateRecommendation(
     teamName: string,
@@ -350,7 +350,9 @@ export class MatchContextService {
     threshold: number,
     isHome: boolean,
     confidenceScore: number,
-    venueSpecific: boolean
+    venueSpecific: boolean,
+    dominanceOverride: boolean,
+    dominanceRatio?: number
   ): string {
     const displayTeamName = getDisplayTeamName(teamName);
     const isUnderBet = outcome.startsWith('Under');
@@ -363,6 +365,19 @@ export class MatchContextService {
     
     let base = `${displayTeamName}'s pattern: ${outcome} (${Math.round(patternAvg * 10) / 10} avg)`;
     const confidenceText = `Confidence Score: ${confidenceScore}/100.`;
+
+    // 🎯 DOMINANCE OVERRIDE MESSAGING (OVER bets only)
+    if (dominanceOverride && !isUnderBet && dominanceRatio) {
+      const dominancePercent = Math.round((dominanceRatio - 1) * 100);
+      
+      if (strength === 'Good') {
+        return `🔵 **Recommended**: ${base}. Despite facing a defensively strong opponent${venueNote} (${Math.round(oppAllowsAvg * 10) / 10} avg below threshold), ${displayTeamName}'s exceptional form is **${dominancePercent}% above the ${threshold} threshold**. Their elite quality in this market suggests they can transcend the matchup difficulty. ${confidenceText}`;
+      }
+      
+      if (strength === 'Fair') {
+        return `🟡 **Fair Selection**: ${base}. While the opposition is defensively solid${venueNote} (${Math.round(oppAllowsAvg * 10) / 10} avg), ${displayTeamName}'s strong form (${dominancePercent}% above the ${threshold} threshold) provides a cushion against the tough matchup. Proceed with measured confidence. ${confidenceText}`;
+      }
+    }
 
     if (isUnderBet) {
         // Text for UNDER Bets
