@@ -21,7 +21,16 @@ interface MatchContext {
     isHome: boolean;
     strengthOfMatch: 'Poor' | 'Fair' | 'Good' | 'Excellent';
     recommendation: string;
-    venueSpecific: boolean; // NEW: Indicates if venue-specific stats were used
+    venueSpecific: boolean;
+    // NEW: BTTS-specific fields
+    bttsContext?: {
+      homeScoreProbability: number;
+      awayScoreProbability: number;
+      homeGoalsFor: number;
+      awayGoalsAgainst: number;
+      awayGoalsFor: number;
+      homeGoalsAgainst: number;
+    };
 }
 
 // Defining the enriched insight as an intersection type 
