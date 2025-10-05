@@ -147,7 +147,7 @@ export class MatchContextService {
     threshold: number,
     oppAllowsAvg: number,
     confidenceScore: number,
-    comparison: Comparison // ADDED: Comparison type to determine logic
+    comparison: Comparison
   ): 'Poor' | 'Fair' | 'Good' | 'Excellent' {
     
     const isOverBet = comparison === Comparison.OVER || comparison === Comparison.OR_MORE;
@@ -306,24 +306,27 @@ export class MatchContextService {
       const oppositionAllows = oppStats?.average ?? 0;
       const oppositionMatches = oppStats?.matches ?? 0;
 
-      // CORRECTED: Allow all main comparison types (OVER, OR_MORE, UNDER) to generate context
+      // Filter out BTTS and any other market that might use the "binary" comparison type
+      // The explicit check for !== 'binary' resolves the TS2345 error.
       const shouldApplyContext = 
-        insight.market !== BettingMarket.BOTH_TEAMS_TO_SCORE; 
+        insight.market !== BettingMarket.BOTH_TEAMS_TO_SCORE && 
+        insight.comparison !== 'binary'; // <-- FIX: Explicitly exclude 'binary' to satisfy TS
 
       let strengthOfMatch: MatchContext['strengthOfMatch'] = 'Fair';
-      // The default message is retained, but will rarely be used now
       let recommendation: string = `No specific match context generated for ${insight.market} ${insight.comparison} pattern.`;
       let roundedOppositionAllows = 0;
       const confidenceScore = insight.context?.confidence?.score ?? 0;
 
       if (shouldApplyContext) {
-        // 2. Evaluate Match Strength (Pass comparison type)
+        // 2. Evaluate Match Strength
+        // We use a type assertion 'as Comparison' because the 'shouldApplyContext' check
+        // guarantees that the comparison is not 'binary', but TypeScript needs explicit assurance.
         strengthOfMatch = this.evaluateMatchStrength(
           insight.averageValue,
           insight.threshold,
           oppositionAllows,
           confidenceScore,
-          insight.comparison // PASSING COMPARISON TYPE
+          insight.comparison as Comparison // <-- FIX: Type Assertion to resolve TS error
         );
 
         // 3. Generate Recommendation
