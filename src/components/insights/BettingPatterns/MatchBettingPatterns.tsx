@@ -114,12 +114,8 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
         <div className="grid gap-6 lg:grid-cols-2">
           {teamInsights.map((insight, idx) => {
             
-            // FIX 5: Access 'confidence' safely via context (no more 'as any')
             const confidence = insight.context?.confidence; 
-
-            // FIX 6: Access 'homeAwaySupport' safely via context 
             const homeAwaySupport = insight.context?.homeAwaySupport;
-            
             const matchContext = hasMatchContext(insight) ? insight.matchContext : undefined;
             
             const upcomingVenueIsHome = matchContext?.isHome; 
@@ -215,7 +211,6 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
                               <span className="text-xs font-bold text-gray-700">HOME ({homeAwaySupport.home.matches}m)</span>
                             </div>
                             <p className="text-xl font-bold text-gray-900">{homeAwaySupport.home.hitRate}%</p> 
-                            {/* This now works because 'average' is in the service file */}
                             <p className="text-xs text-gray-600">Avg: {homeAwaySupport.home.average}</p>
                           </div>
                         )}
@@ -228,7 +223,6 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
                               <span className="text-xs font-bold text-gray-700">AWAY ({homeAwaySupport.away.matches}m)</span>
                             </div>
                             <p className="text-xl font-bold text-gray-900">{homeAwaySupport.away.hitRate}%</p>
-                            {/* This now works because 'average' is in the service file */}
                             <p className="text-xs text-gray-600">Avg: {homeAwaySupport.away.average}</p>
                           </div>
                         )}
@@ -271,13 +265,18 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
                               match.hit ? 'bg-green-500' : 'bg-red-500'
                             }`}></div>
                             <span className="text-gray-700 font-medium">vs {match.opponent}</span>
+                            
+                            {/* NEW: Conditional Home/Away Icon */}
                             {match.isHome !== undefined && (
-                              match.isHome ? (
-                                <Home className="w-3 h-3 text-gray-400" />
-                              ) : (
-                                <Plane className="w-3 h-3 text-gray-400" />
-                              )
+                              <div title={match.isHome ? "Home Game" : "Away Game"}>
+                                {match.isHome ? (
+                                  <Home className="w-3 h-3 text-gray-400" />
+                                ) : (
+                                  <Plane className="w-3 h-3 text-gray-400" />
+                                )}
+                              </div>
                             )}
+                            {/* END NEW */}
                           </div>
                           <span className="text-gray-900 font-bold">{match.value}</span>
                         </div>
