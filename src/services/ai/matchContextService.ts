@@ -227,6 +227,8 @@ export class MatchContextService {
   /**
    * Evaluates the strength of the matchup based on the pattern and opposition stats.
    * Handles both OVER/OR_MORE (offensive strength vs defensive weakness) and UNDER (defensive strength).
+   * 
+   * NEW: Includes dominance override for OVER bets where team quality transcends tough matchups
    */
   private evaluateMatchStrength(
     patternAvg: number,
@@ -234,21 +236,30 @@ export class MatchContextService {
     oppAllowsAvg: number,
     confidenceScore: number,
     comparison: Comparison
-  ): 'Poor' | 'Fair' | 'Good' | 'Excellent' {
+  ): { 
+    strength: 'Poor' | 'Fair' | 'Good' | 'Excellent';
+    dominanceOverride: boolean;
+    dominanceRatio?: number;
+  } {
     
     const isOverBet = comparison === Comparison.OVER || comparison === Comparison.OR_MORE;
     
     let strength: 'Poor' | 'Fair' | 'Good' | 'Excellent' = 'Poor';
+    let dominanceOverride = false;
+    let dominanceRatio: number | undefined;
 
     // --- Logic for OVER/OR_MORE Bets (Looking for high values) ---
     if (isOverBet) {
       // Must meet or exceed threshold
-      if (patternAvg < threshold) return 'Poor'; 
+      if (patternAvg < threshold) return { strength: 'Poor', dominanceOverride: false }; 
 
       const teamMargin = patternAvg - threshold;
       const oppMargin = oppAllowsAvg - threshold;
       const teamMarginRatio = teamMargin / threshold;
       const oppMarginRatio = oppMargin / threshold;
+
+      // Calculate dominance ratio for potential override
+      dominanceRatio = patternAvg / threshold;
 
       // Excellent: Team significantly exceeds AND Opposition significantly allows more than threshold
       if (teamMarginRatio >= 0.15 && oppMarginRatio >= 0.15) {
@@ -265,6 +276,19 @@ export class MatchContextService {
       // Poor: Opposition allows less than the threshold (i.e., this is a tough matchup)
       else if (oppAllowsAvg < threshold) {
         strength = 'Poor';
+        
+        // 🎯 DOMINANCE OVERRIDE: Elite team quality can transcend tough matchups
+        if (dominanceRatio >= 1.8 && teamMarginRatio >= 0.25) {
+          // Exceptional dominance: Team is 80%+ above threshold with 25%+ margin
+          strength = 'Good';
+          dominanceOverride = true;
+          console.log(`[MatchContext] Dominance override: Poor → Good (ratio: ${dominanceRatio.toFixed(2)})`);
+        } else if (dominanceRatio >= 1.5) {
+          // Strong dominance: Team is 50%+ above threshold
+          strength = 'Fair';
+          dominanceOverride = true;
+          console.log(`[MatchContext] Dominance override: Poor → Fair (ratio: ${dominanceRatio.toFixed(2)})`);
+        }
       } else {
           strength = 'Fair';
       }
@@ -273,7 +297,7 @@ export class MatchContextService {
     // --- Logic for UNDER Bets (Looking for low values) ---
     else { // Comparison.UNDER
       // Must meet or come under the threshold.
-      if (patternAvg > threshold) return 'Poor'; 
+      if (patternAvg > threshold) return { strength: 'Poor', dominanceOverride: false }; 
 
       const teamMargin = threshold - patternAvg; // Distance BELOW the threshold
       const oppMargin = threshold - oppAllowsAvg; // Distance BELOW the threshold
@@ -295,6 +319,7 @@ export class MatchContextService {
       // Poor: Opposition allows MORE than the threshold (i.e., this is a difficult matchup)
       else if (oppAllowsAvg > threshold) {
         strength = 'Poor';
+        // NOTE: No dominance override for UNDER bets - one bad performance breaks the bet
       } else {
           strength = 'Fair';
       }
@@ -303,12 +328,13 @@ export class MatchContextService {
     // --- Logic Gate for Confidence Score ---
     // Override high match strength if the calculated Confidence Score is low
     if (confidenceScore < 60 && (strength === 'Good' || strength === 'Excellent')) {
-        return 'Fair'; 
+        return { strength: 'Fair', dominanceOverride, dominanceRatio }; 
     }
     if (confidenceScore < 40 && strength !== 'Poor') {
-        return 'Poor'; 
+        return { strength: 'Poor', dominanceOverride: false, dominanceRatio }; 
     }
-    return strength;
+    
+    return { strength, dominanceOverride, dominanceRatio };
   }
 
   /**
