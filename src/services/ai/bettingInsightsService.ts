@@ -73,6 +73,12 @@ interface Confidence {
     factors: string[];
 }
 
+// Define the reusable type for HomeAwaySupport for cleaner signature
+type HomeAwaySupport = {
+    home: { hitRate: number; matches: number; average: number };
+    away: { hitRate: number; matches: number; average: number };
+};
+
 export interface BettingInsight {
   team: string;
   market: BettingMarket;
@@ -92,10 +98,7 @@ export interface BettingInsight {
     isHome?: boolean;
   }>;
   context?: {
-    homeAwaySupport?: {
-      home: { hitRate: number; matches: number; average: number };
-      away: { hitRate: number; matches: number; average: number };
-    };
+    homeAwaySupport?: HomeAwaySupport; // Using the clean type here
     headToHeadSupport?: {
       opponent: string;
       hitRate: number;
@@ -567,7 +570,7 @@ export class BettingInsightsService {
     values: number[],
     threshold: number,
     comparison: Comparison | 'binary',
-    homeAwaySupport?: BettingInsight['context']['homeAwaySupport']
+    homeAwaySupport?: HomeAwaySupport // FIX: Using the explicit HomeAwaySupport type
   ): Confidence {
     const avgValue = values.reduce((sum, v) => sum + v, 0) / values.length;
     
@@ -606,7 +609,7 @@ export class BettingInsightsService {
 
     // 3. Bonus for Home/Away Support (20 points max)
     let homeAwayBonus = 0;
-    if (homeAwaySupport) {
+    if (homeAwaySupport) { // No optional chaining needed here, as the parameter is optional
         const { home, away } = homeAwaySupport;
         if (home.matches > 0 && away.matches > 0 && home.hitRate === 100 && away.hitRate === 100) {
             homeAwayBonus = 20;
@@ -690,7 +693,7 @@ export class BettingInsightsService {
     const avgHome = homeValues.length > 0 ? homeValues.reduce((s, v) => s + v, 0) / homeValues.length : 0;
     const avgAway = awayValues.length > 0 ? awayValues.reduce((s, v) => s + v, 0) / awayValues.length : 0;
     
-    const homeAwaySupport = (totalHome > 0 || totalAway > 0) ? {
+    const homeAwaySupport: HomeAwaySupport | undefined = (totalHome > 0 || totalAway > 0) ? {
       home: { 
         hitRate: totalHome > 0 ? Math.round((homeHits / totalHome) * 100) : 0, 
         matches: totalHome,
