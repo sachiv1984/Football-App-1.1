@@ -87,8 +87,16 @@ export class SupabaseGoalsService {
         uniqueTeams: new Set(data.map(d => d.team_name)).size
       });
 
-      // Log sample data for debugging
-      console.log('[SupabaseGoals] 📊 Sample goal data:', data.slice(0, 2));
+      // --- CRITICAL DEBUG LOG: Inspect the raw venue field ---
+      const debugTeamName = 'Manchester United'; // Change this team name if needed
+      const sample = data.filter(d => d.team_name === debugTeamName).slice(0, 5);
+      console.log(`[SupabaseGoals] 🟥 RAW VENUE DATA DEBUG (${debugTeamName} - Top 5):`);
+      console.log(sample.map(d => ({
+          opponent: d.opponent,
+          rawVenue: d.venue, // <-- This MUST be 'home' or 'away'
+          date: d.match_date
+      })));
+      // --- END CRITICAL DEBUG LOG ---
 
       return data.map(row => ({
         id: row.id,
@@ -144,7 +152,7 @@ export class SupabaseGoalsService {
         bothTeamsScored: match.goals_for > 0 && match.goals_against > 0,
         date: match.match_date,
         matchweek: match.matchweek,
-        isHome: match.venue === 'home' // NEW: Convert venue to boolean
+        isHome: match.venue === 'home' // Correct conversion logic
       }));
 
       teamStats.set(teamName, {
