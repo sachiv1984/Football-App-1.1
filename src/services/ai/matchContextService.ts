@@ -1,8 +1,8 @@
-// src/services/ai/matchContextService.ts (FULL CODE)
+// src/services/ai/matchContextService.ts
 
-// FIX: We now import the single source of truth for BettingInsight
+// FIX 4: Import the single source of truth for BettingInsight
 import { 
-  BettingInsight, // Now contains 'average' and 'confidence?'
+  BettingInsight, 
   BettingMarket, 
   Comparison 
 } from './bettingInsightsService';
@@ -23,7 +23,7 @@ interface MatchContext {
 }
 
 // Defining the enriched insight as an intersection type 
-// NOTE: This is correct now that BettingInsight is fully defined in its source file.
+// BettingInsight now includes all context fields required by MatchContextService
 export type MatchContextInsight = BettingInsight & {
     matchContext: MatchContext;
 };
