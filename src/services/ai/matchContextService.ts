@@ -13,6 +13,10 @@ import { supabaseFoulsService } from '../stats/supabaseFoulsService';
 import { supabaseGoalsService } from '../stats/supabaseGoalsService';
 import { supabaseShootingService } from '../stats/supabaseShootingService';
 
+// FIX: Import the team utilities for display name
+import { getDisplayTeamName } from '../../utils/teamUtils';
+
+
 // Defining the specific match context structure
 interface MatchContext {
     oppositionAllows: number;
@@ -140,11 +144,13 @@ export class MatchContextService {
   /**
    * Evaluates the strength of the matchup based on the pattern and opposition stats.
    * This logic applies to OVER/OR_MORE patterns (offensive strength vs defensive weakness).
+   * FIX: Now takes confidenceScore to cap the strength descriptor.
    */
   private evaluateMatchStrength(
     patternAvg: number,
     threshold: number,
-    oppAllowsAvg: number
+    oppAllowsAvg: number,
+    confidenceScore: number // FIX: Added confidence score
   ): 'Poor' | 'Fair' | 'Good' | 'Excellent' {
     
     // We only evaluate strength for patterns that met or exceeded the threshold.
@@ -158,35 +164,48 @@ export class MatchContextService {
     const teamMarginRatio = teamMargin / threshold;
     const oppMarginRatio = oppMargin / threshold;
 
+    let strength: 'Poor' | 'Fair' | 'Good' | 'Excellent' = 'Poor';
 
     // Excellent: Team significantly exceeds AND Opposition significantly allows more than threshold
     if (teamMarginRatio >= 0.15 && oppMarginRatio >= 0.15) {
-      return 'Excellent';
+      strength = 'Excellent';
+    }
+    // Good: Team comfortably exceeds AND Opposition allows above threshold
+    else if (teamMarginRatio >= 0.10 && oppMarginRatio >= 0.05) {
+      strength = 'Good';
+    }
+    // Fair: Team meets or slightly exceeds, AND Opposition allows at least the threshold
+    else if (teamMargin > 0 && oppAllowsAvg >= threshold) {
+      strength = 'Fair';
+    }
+    // Poor: Opposition allows less than the threshold (i.e., this is a tough matchup)
+    else if (oppAllowsAvg < threshold) {
+      strength = 'Poor';
+    } else {
+        strength = 'Fair';
     }
     
-    // Good: Team comfortably exceeds AND Opposition allows above threshold
-    if (teamMarginRatio >= 0.10 && oppMarginRatio >= 0.05) {
-      return 'Good';
+    // --- FIX: Logic Gate for Confidence Score ---
+    // Override high match strength if the calculated Confidence Score is low, 
+    // indicating the pattern itself is fragile (e.g., average is too close to the line).
+    if (confidenceScore < 60 && (strength === 'Good' || strength === 'Excellent')) {
+        return 'Fair'; // Demote to Fair if pattern confidence is Medium/Low
     }
-
-    // Fair: Team meets or slightly exceeds, AND Opposition allows at least the threshold
-    if (teamMargin > 0 && oppAllowsAvg >= threshold) {
-      return 'Fair';
+    if (confidenceScore < 40 && strength !== 'Poor') {
+        return 'Poor'; // Demote anything non-Poor to Poor if confidence is Low
     }
+    // --------------------------------------------
 
-    // Poor: Opposition allows less than the threshold (i.e., this is a tough matchup)
-    if (oppAllowsAvg < threshold) {
-      return 'Poor';
-    }
-
-    return 'Fair';
+    return strength;
   }
 
   /**
    * Generates a text recommendation based on the context and match strength.
+   * FIX: Uses getDisplayTeamName for the team name in the text.
+   * FIX: Adjusts the recommendation text based on the gated strength.
    */
   private generateRecommendation(
-    teamName: string,
+    teamName: string, // Canonical Team Name
     outcome: string,
     strength: 'Poor' | 'Fair' | 'Good' | 'Excellent',
     patternAvg: number,
@@ -195,20 +214,29 @@ export class MatchContextService {
     isHome: boolean,
     confidenceScore: number
   ): string {
+    // FIX: Use the utility to get the display/abbreviated name
+    const displayTeamName = getDisplayTeamName(teamName);
+
     const venue = isHome ? 'home' : 'away';
-    let base = `${teamName}'s pattern: ${outcome} (${Math.round(patternAvg * 10) / 10} avg)`;
-    const oppText = `vs opposition allowing ${Math.round(oppAllowsAvg * 10) / 10} (Threshold: ${threshold})`;
+    let base = `${displayTeamName}'s pattern: ${outcome} (${Math.round(patternAvg * 10) / 10} avg)`;
     const confidenceText = `Confidence Score: ${confidenceScore}/100.`;
+    
+    // Text elements based on opposition's weakness/strength
+    const oppWeaknessText = `as the opposition concedes significantly more than the ${threshold} threshold.`;
+    const oppAboveThresholdText = `because the opposition allows above the threshold, suggesting their defense is vulnerable to this market.`;
+    const oppNearThresholdText = `The opposition's concession rate (${Math.round(oppAllowsAvg * 10) / 10}) is near the threshold. The success of this bet relies mainly on ${displayTeamName}'s strong current form.`;
+    const oppStrengthText = `The opposition is defensively strong, allowing only ${Math.round(oppAllowsAvg * 10) / 10}, which is **below** the ${threshold} threshold. This is a difficult ${venue} matchup despite recent form.`;
+
 
     switch (strength) {
       case 'Excellent':
-        return `✅ **STRONG SELECTION**: ${base}. An **Excellent Matchup** as the opposition concedes significantly more than the ${threshold} threshold. This is a high-confidence, high-value opportunity. ${confidenceText}`;
+        return `✅ **STRONG SELECTION**: ${base}. An **Excellent Matchup** ${oppWeaknessText} This is a high-confidence, high-value opportunity. ${confidenceText}`;
       case 'Good':
-        return `🔵 **Recommended**: ${base}. A **Good Matchup** because the opposition allows above the threshold, suggesting their defense is vulnerable to this market. ${confidenceText}`;
+        return `🔵 **Recommended**: ${base}. A **Good Matchup** ${oppAboveThresholdText} ${confidenceText}`;
       case 'Fair':
-        return `🟡 **Fair Selection**: ${base}. The opposition's concession rate (${Math.round(oppAllowsAvg * 10) / 10}) is near the threshold. The success of this bet relies mainly on ${teamName}'s strong current form. ${confidenceText}`;
+        return `🟡 **Fair Selection**: ${base}. ${oppNearThresholdText} ${confidenceText}`;
       case 'Poor':
-        return `🛑 **CAUTION ADVISED**: ${base}. The opposition is defensively strong, allowing only ${Math.round(oppAllowsAvg * 10) / 10}, which is **below** the ${threshold} threshold. This is a difficult ${venue} matchup despite recent form. ${confidenceText}`;
+        return `🛑 **CAUTION ADVISED**: ${base}. ${oppStrengthText} ${confidenceText}`;
     }
   }
 
@@ -245,18 +273,18 @@ export class MatchContextService {
       let strengthOfMatch: MatchContext['strengthOfMatch'] = 'Fair';
       let recommendation: string = `No specific match context generated for ${insight.market} ${insight.comparison} pattern.`;
       let roundedOppositionAllows = 0;
+      const confidenceScore = insight.context?.confidence?.score ?? 0; // Get the score here
 
       if (shouldApplyContext) {
-        // 2. Evaluate Match Strength
+        // 2. Evaluate Match Strength (Pass confidence score)
         strengthOfMatch = this.evaluateMatchStrength(
           insight.averageValue,
           insight.threshold,
-          oppositionAllows
+          oppositionAllows,
+          confidenceScore // FIX: Passing confidence score to gate descriptor
         );
 
         // 3. Generate Recommendation
-        const confidenceScore = insight.context?.confidence?.score ?? 0;
-
         recommendation = this.generateRecommendation(
           insight.team,
           insight.outcome,
