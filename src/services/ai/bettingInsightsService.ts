@@ -75,8 +75,9 @@ export interface BettingInsight {
   }>;
   context?: {
     homeAwaySupport?: {
-      home: { hitRate: number; matches: number };
-      away: { hitRate: number; matches: number };
+      // FIX: Added 'average' property to resolve TS2339 error in MatchBettingPatterns.tsx
+      home: { hitRate: number; matches: number; average: number };
+      away: { hitRate: number; matches: number; average: number };
     };
     headToHeadSupport?: {
       opponent: string;
@@ -180,7 +181,7 @@ export class BettingInsightsService {
     },
     {
       market: BettingMarket.CORNERS,
-      service: { getStatistics: () => supabaseCornersService.getCornerStatistics() },
+      service: { getStatistics: () => supabaseCornersService.getCornersStatistics() },
       valueExtractor: (m: CornersMatchDetail) => m.cornersFor,
       label: 'corners'
     },
@@ -532,7 +533,7 @@ export class BettingInsightsService {
 
   /**
    * Build insight object with all relevant data
-   * UPDATED: Handles OR_MORE comparison
+   * UPDATED: Handles OR_MORE comparison and includes basic home/away context data
    */
   private buildInsight(
     values: number[],
@@ -540,7 +541,7 @@ export class BettingInsightsService {
     teamName: string,
     market: BettingMarket,
     outcome: string,
-    matchDetails: Array<{ opponent: string; date?: string }>,
+    matchDetails: Array<{ opponent: string; date?: string; isHome?: boolean }>,
     isStreak: boolean,
     comparison: Comparison,
     streakLength?: number
@@ -557,6 +558,33 @@ export class BettingInsightsService {
       }
       return false;
     };
+    
+    // Calculate Home/Away Support (using simple hit rate/matches logic for this example)
+    const homeMatches = matchDetails.filter(d => d.isHome !== undefined);
+    const homeHits = homeMatches.filter((d, idx) => d.isHome && isHit(values[idx]!)).length;
+    const awayHits = homeMatches.filter((d, idx) => !d.isHome && isHit(values[idx]!)).length;
+    const totalHome = homeMatches.filter(d => d.isHome).length;
+    const totalAway = homeMatches.filter(d => !d.isHome).length;
+    
+    // Simple average calculation for context purposes
+    const homeValues = homeMatches.filter(d => d.isHome).map((d, idx) => values[idx]!);
+    const awayValues = homeMatches.filter(d => !d.isHome).map((d, idx) => values[idx]!);
+    const avgHome = homeValues.length > 0 ? homeValues.reduce((s, v) => s + v, 0) / homeValues.length : 0;
+    const avgAway = awayValues.length > 0 ? awayValues.reduce((s, v) => s + v, 0) / awayValues.length : 0;
+    
+    const homeAwaySupport = (totalHome > 0 || totalAway > 0) ? {
+      home: { 
+        hitRate: totalHome > 0 ? Math.round((homeHits / totalHome) * 100) : 0, 
+        matches: totalHome,
+        average: Math.round(avgHome * 100) / 100
+      },
+      away: { 
+        hitRate: totalAway > 0 ? Math.round((awayHits / totalAway) * 100) : 0, 
+        matches: totalAway,
+        average: Math.round(avgAway * 100) / 100
+      }
+    } : undefined;
+
 
     return {
       team: teamName,
@@ -574,7 +602,10 @@ export class BettingInsightsService {
         value,
         hit: isHit(value),
         date: matchDetails[idx]?.date
-      }))
+      })),
+      context: {
+          homeAwaySupport: homeAwaySupport
+      }
     };
   }
 
