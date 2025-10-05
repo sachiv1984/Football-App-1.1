@@ -12,7 +12,7 @@ import { supabaseFoulsService } from '../stats/supabaseFoulsService';
 import { supabaseGoalsService } from '../stats/supabaseGoalsService';
 import { supabaseShootingService } from '../stats/supabaseShootingService';
 
-import { getDisplayTeamName } from '../../utils/teamUtils';
+import { getDisplayTeamName, normalizeTeamName } from '../../utils/teamUtils';
 
 // Defining the specific match context structure
 interface MatchContext {
