@@ -1,9 +1,9 @@
 // src/components/insights/BettingPatterns/MatchBettingPatterns.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import { TrendingUp, Target, Home, Plane, Award, Info, Zap } from 'lucide-react';
 
 // Import the correct types from the service
-import { BettingInsight } from '../../../services/ai/bettingInsightsService';
+import { BettingInsight, HomeAwaySupport } from '../../../services/ai/bettingInsightsService';
 import { MatchContextInsight } from '../../../services/ai/matchContextService';
 
 interface MatchBettingPatternsProps {
@@ -131,6 +131,9 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
   }) => {
     if (teamInsights.length === 0) return null;
 
+    // FIX: State for venue consistency toggle (applied per TeamInsightsSection)
+    const [venueView, setVenueView] = useState<'sample' | 'overall'>('sample');
+
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-2 pt-6 border-t border-gray-200">
@@ -147,12 +150,23 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
           {teamInsights.map((insight, idx) => {
             
             const confidence = insight.context?.confidence; 
-            const homeAwaySupport = insight.context?.homeAwaySupport;
+            
+            // FIX: Access the NEW home/away properties
+            const homeAwaySupportForSample = insight.context?.homeAwaySupportForSample;
+            const homeAwaySupportOverall = insight.context?.homeAwaySupportOverall;
+
+            // FIX: Select the currently displayed data based on the toggle state
+            const selectedHomeAwaySplit = venueView === 'sample' 
+                ? homeAwaySupportForSample 
+                : homeAwaySupportOverall;
+
             const matchContext = hasMatchContext(insight) ? insight.matchContext : undefined;
             
+            // The logic below still uses the SAMPLE split for decision-making (as it should)
             const upcomingVenueIsHome = matchContext?.isHome; 
-            const venueData = upcomingVenueIsHome ? homeAwaySupport?.home : homeAwaySupport?.away;
-            const showDependencyWarning = venueData && venueData.hitRate < insight.hitRate; 
+            const venueDataForSample = upcomingVenueIsHome ? homeAwaySupportForSample?.home : homeAwaySupportForSample?.away;
+            const showDependencyWarning = venueDataForSample && venueDataForSample.hitRate < insight.hitRate; 
+            
             const marginRatio = (insight.averageValue - insight.threshold) / insight.threshold; 
             const strengthStyle = matchContext ? getMatchStrengthStyle(matchContext.strengthOfMatch) : null;
 
@@ -251,40 +265,73 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
                     </div>
                   </div>
 
-                  {/* Home/Away Performance */}
-                  {homeAwaySupport && (homeAwaySupport.home.matches > 0 || homeAwaySupport.away.matches > 0) && (
+                  {/* Home/Away Performance Toggle Section */}
+                  {(homeAwaySupportForSample || homeAwaySupportOverall) && (
                     <div className="pt-2 border-t border-gray-100">
-                      <p className="text-xs text-gray-500 uppercase mb-2 font-semibold">Venue Consistency</p>
-                      <div className="grid grid-cols-2 gap-2">
-                        {homeAwaySupport.home.matches > 0 && (
-                          <div className={`p-2 rounded border ${
-                            upcomingVenueIsHome ? 'border-blue-500 bg-blue-50 border-2' : 'border-gray-200 bg-gray-50'
-                          }`}>
-                            <div className="flex items-center gap-1 mb-1">
-                              <Home className={`w-3 h-3 ${upcomingVenueIsHome ? 'text-blue-600' : 'text-gray-500'}`} />
-                              <span className="text-xs font-bold text-gray-700">HOME ({homeAwaySupport.home.matches}m)</span>
-                            </div>
-                            <p className="text-xl font-bold text-gray-900">{homeAwaySupport.home.hitRate}%</p> 
-                            <p className="text-xs text-gray-600">Avg: {homeAwaySupport.home.average}</p>
-                          </div>
-                        )}
-                        {homeAwaySupport.away.matches > 0 && (
-                          <div className={`p-2 rounded border ${
-                            upcomingVenueIsHome === false ? 'border-blue-500 bg-blue-50 border-2' : 'border-gray-200 bg-gray-50'
-                          }`}>
-                            <div className="flex items-center gap-1 mb-1">
-                              <Plane className={`w-3 h-3 ${upcomingVenueIsHome === false ? 'text-blue-600' : 'text-gray-500'}`} />
-                              <span className="text-xs font-bold text-gray-700">AWAY ({homeAwaySupport.away.matches}m)</span>
-                            </div>
-                            <p className="text-xl font-bold text-gray-900">{homeAwaySupport.away.hitRate}%</p>
-                            <p className="text-xs text-gray-600">Avg: {homeAwaySupport.away.average}</p>
-                          </div>
-                        )}
+                      
+                      {/* Toggle UI */}
+                      <div className="flex justify-start mb-3 bg-gray-100 rounded-lg p-1">
+                          <button
+                              onClick={() => setVenueView('sample')}
+                              className={`px-3 py-1 text-xs font-bold rounded-md transition-colors w-1/2 ${
+                                  venueView === 'sample' 
+                                      ? 'bg-white text-blue-700 shadow-md' 
+                                      : 'text-gray-600 hover:bg-gray-200'
+                              }`}
+                          >
+                              Pattern Sample ({homeAwaySupportForSample?.home.matches ?? 0 + homeAwaySupportForSample?.away.matches ?? 0}m)
+                          </button>
+                          <button
+                              onClick={() => setVenueView('overall')}
+                              className={`px-3 py-1 text-xs font-bold rounded-md transition-colors w-1/2 ${
+                                  venueView === 'overall' 
+                                      ? 'bg-white text-blue-700 shadow-md' 
+                                      : 'text-gray-600 hover:bg-gray-200'
+                              }`}
+                          >
+                              Overall Season ({homeAwaySupportOverall?.home.matches ?? 0 + homeAwaySupportOverall?.away.matches ?? 0}m)
+                          </button>
                       </div>
-                      {showDependencyWarning && venueData && (
+
+                      <p className="text-xs text-gray-500 uppercase mb-2 font-semibold flex items-center gap-1">
+                          VENUE CONSISTENCY 
+                          {venueView === 'overall' && <span className="text-blue-500">(Overall Season)</span>}
+                      </p>
+                      
+                      {selectedHomeAwaySplit && (
+                        <div className="grid grid-cols-2 gap-2">
+                          {selectedHomeAwaySplit.home.matches > 0 && (
+                            <div className={`p-2 rounded border ${
+                              upcomingVenueIsHome ? 'border-blue-500 bg-blue-50 border-2' : 'border-gray-200 bg-gray-50'
+                            }`}>
+                              <div className="flex items-center gap-1 mb-1">
+                                <Home className={`w-3 h-3 ${upcomingVenueIsHome ? 'text-blue-600' : 'text-gray-500'}`} />
+                                <span className="text-xs font-bold text-gray-700">HOME ({selectedHomeAwaySplit.home.matches}m)</span>
+                              </div>
+                              <p className="text-xl font-bold text-gray-900">{selectedHomeAwaySplit.home.hitRate}%</p> 
+                              <p className="text-xs text-gray-600">Avg: {selectedHomeAwaySplit.home.average}</p>
+                            </div>
+                          )}
+                          {selectedHomeAwaySplit.away.matches > 0 && (
+                            <div className={`p-2 rounded border ${
+                              upcomingVenueIsHome === false ? 'border-blue-500 bg-blue-50 border-2' : 'border-gray-200 bg-gray-50'
+                            }`}>
+                              <div className="flex items-center gap-1 mb-1">
+                                <Plane className={`w-3 h-3 ${upcomingVenueIsHome === false ? 'text-blue-600' : 'text-gray-500'}`} />
+                                <span className="text-xs font-bold text-gray-700">AWAY ({selectedHomeAwaySplit.away.matches}m)</span>
+                              </div>
+                              <p className="text-xl font-bold text-gray-900">{selectedHomeAwaySplit.away.hitRate}%</p>
+                              <p className="text-xs text-gray-600">Avg: {selectedHomeAwaySplit.away.average}</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+                      {/* Dependency Warning (Only show for SAMPLE view, as it relates to pattern confidence) */}
+                      {venueView === 'sample' && showDependencyWarning && venueDataForSample && (
                         <p className="text-xs text-yellow-700 mt-2 flex items-start gap-1 p-2 bg-yellow-50 rounded">
                           <Info className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                          <span>VENUE DEPENDENCY: Hit rate at this venue ({venueData.hitRate}%) is lower than overall ({insight.hitRate}%).</span>
+                          <span>VENUE DEPENDENCY: Hit rate at this venue ({venueDataForSample.hitRate}%) is lower than overall ({insight.hitRate}%).</span>
                         </p>
                       )}
                     </div>
@@ -320,7 +367,7 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
                             }`}></div>
                             <span className="text-gray-700 font-medium">vs {match.opponent}</span>
                             
-                            {/* NEW: Conditional Home/Away Icon */}
+                            {/* Home/Away Icon */}
                             {match.isHome !== undefined && (
                               <div title={match.isHome ? "Home Game" : "Away Game"}>
                                 {match.isHome ? (
@@ -330,7 +377,6 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
                                 )}
                               </div>
                             )}
-                            {/* END NEW */}
                           </div>
                           <span className="text-gray-900 font-bold">{match.value}</span>
                         </div>
