@@ -1,200 +1,779 @@
 // src/services/ai/bettingInsightsService.ts
 
-// Defining core types (assuming these exist in the actual file)
+// NOTE: These are your original, real data service imports. They remain untouched.
+import { supabaseCardsService } from '../stats/supabaseCardsService';
+import { supabaseCornersService } from '../stats/supabaseCornersService';
+import { supabaseFoulsService } from '../stats/supabaseFoulsService';
+import { supabaseGoalsService } from '../stats/supabaseGoalsService';
+import { supabaseShootingService } from '../stats/supabaseShootingService';
+
+// ----------------------------------------------------------------------
+// Interfaces and Enums (Taken from your original code)
+// ----------------------------------------------------------------------
+
+interface BaseMatchDetail {
+  opponent: string;
+  date?: string;
+  isHome?: boolean; // Track home/away context
+}
+
+interface GoalsDetail extends BaseMatchDetail {
+  totalGoals: number;
+  bothTeamsScored: boolean;
+  goalsAgainst?: number; // Added for context service
+}
+
+interface CardsMatchDetail extends BaseMatchDetail {
+  cardsFor: number;
+  cardsAgainst?: number; // Added for context service
+}
+
+interface CornersMatchDetail extends BaseMatchDetail {
+  cornersFor: number;
+  cornersAgainst?: number; // Added for context service
+}
+
+interface FoulsMatchDetail extends BaseMatchDetail {
+  foulsCommittedFor: number;
+  foulsCommittedAgainst?: number; // Added for context service
+}
+
+interface ShotsMatchDetail extends BaseMatchDetail {
+  shotsOnTargetFor: number;
+  shotsFor: number;
+  shotsOnTargetAgainst?: number; // Added for context service
+  shotsAgainst?: number; // Added for context service
+}
+
+/**
+ * Betting market categories mapped to available data
+ */
 export enum BettingMarket {
-    CARDS = 'cards',
-    CORNERS = 'corners',
-    FOULS = 'fouls',
-    GOALS = 'goals',
-    SHOTS_ON_TARGET = 'shots_on_target',
-    TOTAL_SHOTS = 'total_shots',
-    BOTH_TEAMS_TO_SCORE = 'both_teams_to_score',
+  CARDS = 'cards',
+  CORNERS = 'corners',
+  FOULS = 'fouls',
+  GOALS = 'goals',
+  SHOTS_ON_TARGET = 'shots_on_target',
+  TOTAL_SHOTS = 'total_shots',
+  BOTH_TEAMS_TO_SCORE = 'both_teams_to_score'
 }
+
+/**
+ * Defines the comparison type for a threshold bet
+ */
 export enum Comparison {
-    OVER = 'over',
-    UNDER = 'under',
-    OR_MORE = 'or_more',
-    EXACTLY = 'exactly',
-    YES = 'yes',
-    NO = 'no',
+    OVER = 'Over',
+    UNDER = 'Under',
+    OR_MORE = 'Or More'
 }
-export interface Confidence {
+
+interface Confidence {
     level: 'Low' | 'Medium' | 'High' | 'Very High';
     score: number;
     factors: string[];
 }
-export interface BettingInsightContext {
-    homeAwaySupport?: {
-        home: { hitRate: number; matches: number; average: number; };
-        away: { hitRate: number; matches: number; average: number; };
-    };
-    headToHeadSupport?: { opponent: string; hitRate: number; matches: number; };
-    confidence?: Confidence;
-}
+
 export interface BettingInsight {
-    team: string;
-    market: BettingMarket;
-    comparison: Comparison;
-    threshold: number;
-    outcome: string; // e.g., "Over 3.5 Team Corners"
-    hitRate: number;
-    averageValue: number;
-    isStreak: boolean;
-    streakLength?: number;
-    matchesAnalyzed: number;
-    recentMatches: { opponent: string; value: number; hit: boolean; isHome: boolean; }[];
-    context?: BettingInsightContext; // The context field
+  team: string;
+  market: BettingMarket;
+  outcome: string;
+  hitRate: number;
+  matchesAnalyzed: number;
+  isStreak: boolean;
+  streakLength?: number;
+  threshold: number;
+  averageValue: number;
+  comparison: Comparison | 'binary';
+  recentMatches: Array<{
+    opponent: string;
+    value: number;
+    hit: boolean;
+    date?: string;
+    isHome?: boolean;
+  }>;
+  context?: {
+    homeAwaySupport?: {
+      home: { hitRate: number; matches: number; average: number };
+      away: { hitRate: number; matches: number; average: number };
+    };
+    headToHeadSupport?: {
+      opponent: string;
+      hitRate: number;
+      matches: number;
+    };
+    confidence?: Confidence;
+  };
 }
+
 export interface InsightsResponse {
-    insights: BettingInsight[];
-    totalPatterns: number;
-    teamsAnalyzed: number;
+  insights: BettingInsight[];
+  timestamp: string;
+  teamsAnalyzed: number;
+  totalPatterns: number;
 }
-// END: Assuming core types
 
-// FIX: Importing team utils for display name in recommendation
-// import { getDisplayTeamName } from '../../utils/teamUtils'; 
-// (Note: This import is not strictly needed here, but the function is shown to prevent errors.)
-
-// Dummy functions for compilation context
-const getDisplayTeamName = (team: string) => team.replace('AFC ', '');
-class SupabaseService {
-    async getStats(team: string): Promise<any> {
-        // Dummy implementation to avoid more missing file errors
-        return {
-            homeAwaySupport: {
-                home: { hitRate: 90, matches: 5, average: 6 },
-                away: { hitRate: 70, matches: 5, average: 4 }
-            }
-        };
-    }
+/**
+ * Configuration for betting markets and their thresholds
+ */
+interface MarketConfig {
+  thresholds: number[];
+  minValue: number;
+  label: string;
+  useOrMore?: boolean;
 }
-const supabaseStatsService = new SupabaseService();
 
+const MARKET_CONFIGS: Record<BettingMarket, MarketConfig> = {
+  [BettingMarket.CARDS]: {
+    thresholds: [0.5, 1.5, 2.5, 3.5],
+    minValue: 0,
+    label: 'Team Cards'
+  },
+  [BettingMarket.CORNERS]: {
+    thresholds: [3.5, 4.5, 5.5, 6.5],
+    minValue: 0,
+    label: 'Team Corners'
+  },
+  [BettingMarket.FOULS]: {
+    thresholds: [8.5, 9.5, 10.5, 11.5],
+    minValue: 0,
+    label: 'Team Fouls Committed'
+  },
+  [BettingMarket.GOALS]: {
+    thresholds: [0.5, 1.5, 2.5],
+    minValue: 0,
+    label: 'Match Goals'
+  },
+  [BettingMarket.SHOTS_ON_TARGET]: {
+    thresholds: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+    minValue: 0,
+    label: 'Team Shots on Target',
+    useOrMore: true
+  },
+  [BettingMarket.TOTAL_SHOTS]: {
+    thresholds: [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25],
+    minValue: 0,
+    label: 'Team Total Shots',
+    useOrMore: true
+  },
+  [BettingMarket.BOTH_TEAMS_TO_SCORE]: {
+    thresholds: [0.5],
+    minValue: 0,
+    label: 'Both Teams to Score'
+  }
+};
+
+/**
+ * Configuration type for generic analysis loop
+ */
+interface MarketAnalysisConfig<T> {
+  market: BettingMarket;
+  service: { getStatistics: () => Promise<Map<string, { matches: number, matchDetails: T[] }>> };
+  valueExtractor: (detail: T) => number;
+  label: string;
+}
+
+/**
+ * Define a specific Union Type for the configuration array
+ */
+type AllMarketConfigs = 
+    | MarketAnalysisConfig<CardsMatchDetail>
+    | MarketAnalysisConfig<CornersMatchDetail>
+    | MarketAnalysisConfig<FoulsMatchDetail>
+    | MarketAnalysisConfig<GoalsDetail>
+    | MarketAnalysisConfig<ShotsMatchDetail>;
+
+
+// ----------------------------------------------------------------------
+// BettingInsightsService Implementation
+// ----------------------------------------------------------------------
 
 export class BettingInsightsService {
+  private readonly ROLLING_WINDOW = 5;
+  private readonly STREAK_THRESHOLD = 7;
+
+  /**
+   * Consolidated market analysis configurations for the generic loop.
+   */
+  private readonly MARKET_ANALYSIS_CONFIGS: AllMarketConfigs[] = [
+    {
+      market: BettingMarket.CARDS,
+      service: { getStatistics: () => supabaseCardsService.getCardStatistics() },
+      valueExtractor: (m: CardsMatchDetail) => m.cardsFor,
+      label: 'cards'
+    },
+    {
+      market: BettingMarket.CORNERS,
+      service: { getStatistics: () => supabaseCornersService.getCornerStatistics() },
+      valueExtractor: (m: CornersMatchDetail) => m.cornersFor,
+      label: 'corners'
+    },
+    {
+      market: BettingMarket.FOULS,
+      service: { getStatistics: () => supabaseFoulsService.getFoulStatistics() },
+      valueExtractor: (m: FoulsMatchDetail) => m.foulsCommittedFor,
+      label: 'fouls'
+    },
+    {
+      market: BettingMarket.GOALS,
+      service: { getStatistics: () => supabaseGoalsService.getGoalStatistics() },
+      valueExtractor: (m: GoalsDetail) => m.totalGoals,
+      label: 'goals'
+    },
+    {
+      market: BettingMarket.SHOTS_ON_TARGET,
+      service: { getStatistics: () => supabaseShootingService.getShootingStatistics() },
+      valueExtractor: (m: ShotsMatchDetail) => m.shotsOnTargetFor,
+      label: 'shots on target'
+    },
+    // NEW: Total shots market
+    {
+      market: BettingMarket.TOTAL_SHOTS,
+      service: { getStatistics: () => supabaseShootingService.getShootingStatistics() },
+      valueExtractor: (m: ShotsMatchDetail) => m.shotsFor,
+      label: 'total shots'
+    }
+  ];
+
+  /**
+   * Helper function to filter out redundant patterns (Max Specificity Principle).
+   */
+  private filterRedundantInsights(insights: BettingInsight[]): BettingInsight[] {
+    const mostSpecificInsights = new Map<string, BettingInsight>();
+
+    for (const insight of insights) {
+      const comparisonType = insight.comparison === 'binary' 
+        ? insight.outcome.includes('Yes') ? 'YES' : 'NO'
+        : insight.comparison;
+      
+      const key = `${insight.team}_${insight.market}_${comparisonType}`;
+      const existingInsight = mostSpecificInsights.get(key);
+
+      if (!existingInsight) {
+        mostSpecificInsights.set(key, insight);
+      } else {
+        // For OR_MORE comparisons, keep the highest threshold
+        if (insight.comparison === Comparison.OR_MORE) {
+          const shouldReplace = insight.threshold > existingInsight.threshold;
+          if (shouldReplace) {
+            mostSpecificInsights.set(key, insight);
+          }
+        } 
+        // For OVER/UNDER comparisons (unchanged logic)
+        else if (insight.comparison !== 'binary') {
+          let shouldReplace = false;
+
+          if (insight.comparison === Comparison.OVER) {
+            shouldReplace = insight.threshold > existingInsight.threshold;
+          } else if (insight.comparison === Comparison.UNDER) {
+            shouldReplace = insight.threshold < existingInsight.threshold;
+          }
+          
+          if (shouldReplace) {
+            mostSpecificInsights.set(key, insight);
+          }
+        }
+      }
+    }
+
+    return Array.from(mostSpecificInsights.values());
+  }
+
+  /**
+   * Main method: Get all betting insights for all teams
+   */
+  async getAllInsights(): Promise<InsightsResponse> {
+    console.log('[BettingInsights] 🎯 Starting insights analysis...');
     
-    // ... other methods (generateInsights, etc.) ...
+    const allInsights: BettingInsight[] = [];
+    
+    const marketAnalyses = this.MARKET_ANALYSIS_CONFIGS.map(
+      config => this.analyzeGenericMarket(config as any)
+    );
+    
+    marketAnalyses.push(this.analyzeBTTSMarket()); 
 
-    /**
-     * Placeholder function to calculate and inject confidence score and context details.
-     * This is where the TS error likely occurred.
-     */
-    private calculateConfidencePlaceholder(insight: BettingInsight): BettingInsight {
-        
-        let confidenceScore = 0;
-        const confidenceFactors: string[] = [];
-        
-        // 1. Base Score based on Hit Rate
-        if (insight.hitRate === 100) {
-            confidenceScore += 40;
-            confidenceFactors.push('100% Hit Rate in Sample');
-        } else if (insight.hitRate >= 90) {
-            confidenceScore += 30;
-            confidenceFactors.push('Very High Hit Rate (90%+)');
-        } else if (insight.hitRate >= 80) {
-            confidenceScore += 20;
-            confidenceFactors.push('High Hit Rate (80%+)');
-        }
-        
-        // 2. Score based on Average Margin (How much they exceed the threshold)
-        const margin = insight.averageValue - insight.threshold;
-        const marginRatio = margin / insight.threshold;
+    try {
+        const results = await Promise.all(marketAnalyses);
+        allInsights.push(...results.flat()); 
+    } catch (error) {
+        console.error('[BettingInsights] Error during market analysis:', error);
+        throw new Error('Failed to complete all market analyses.');
+    }
+    
+    
+    const finalInsights = this.filterRedundantInsights(allInsights);
 
-        if (marginRatio > 0.3) {
-            confidenceScore += 30;
-            confidenceFactors.push('Significantly above threshold (>30% margin)');
-        } else if (marginRatio > 0.15) {
-            confidenceScore += 20;
-            confidenceFactors.push('Comfortably above threshold (>15% margin)');
-        } else if (marginRatio > 0.05) {
-            confidenceScore += 10;
-            confidenceFactors.push('Slightly above threshold (>5% margin)');
-        }
-        
-        // 3. Score based on Match Count
-        if (insight.matchesAnalyzed >= 10) {
-            confidenceScore += 10;
-            confidenceFactors.push('Robust sample size (10+ matches)');
-        }
+    const uniqueTeams = new Set(finalInsights.map(i => i.team));
 
-        // 4. Score based on Home/Away Split
-        // FIX: Safely access the context object and its nested properties using optional chaining (?. )
-        const homeAwaySupport = insight.context?.homeAwaySupport; // <-- FIX APPLIED HERE
-        let homeAwayScore = 0;
+    console.log('[BettingInsights] ✅ Analysis complete:', {
+      totalInsights: finalInsights.length,
+      teamsAnalyzed: uniqueTeams.size
+    });
 
-        if (homeAwaySupport) {
-            if (homeAwaySupport.home.hitRate >= 80 && homeAwaySupport.home.matches >= 3) {
-                homeAwayScore += 5;
-            }
-            if (homeAwaySupport.away.hitRate >= 80 && homeAwaySupport.away.matches >= 3) {
-                homeAwayScore += 5;
-            }
-            if (homeAwayScore > 0) {
-                 confidenceFactors.push('Supported by venue split data');
-            }
-        }
-        confidenceScore += homeAwayScore;
+    return {
+      insights: finalInsights,
+      timestamp: new Date().toISOString(),
+      teamsAnalyzed: uniqueTeams.size,
+      totalPatterns: finalInsights.length
+    };
+  }
+
+  // ... (getTeamInsights, getMarketInsights, getCacheStatus methods remain unchanged)
+
+  /**
+   * Get insights for a specific team
+   */
+  async getTeamInsights(teamName: string): Promise<BettingInsight[]> {
+    const allInsights = await this.getAllInsights();
+    return allInsights.insights.filter(
+      insight => insight.team.toLowerCase() === teamName.toLowerCase()
+    );
+  }
+
+  /**
+   * Get insights for a specific market across all teams
+   */
+  async getMarketInsights(market: BettingMarket): Promise<BettingInsight[]> {
+    const allInsights = await this.getAllInsights();
+    return allInsights.insights.filter(insight => insight.market === market);
+  }
+
+  /**
+   * Generic method to analyze standard threshold markets
+   */
+  private async analyzeGenericMarket<T extends BaseMatchDetail>(config: MarketAnalysisConfig<T>): Promise<BettingInsight[]> {
+    console.log(`[BettingInsights] 📊 Analyzing ${config.label} market...`);
+    const insights: BettingInsight[] = [];
+    
+    const allStats = await config.service.getStatistics();
+    const marketConfig = MARKET_CONFIGS[config.market];
+
+    for (const [teamName, stats] of allStats.entries()) {
+      if (stats.matches < this.ROLLING_WINDOW) continue;
+
+      const values = stats.matchDetails.map(config.valueExtractor); 
+      
+      for (const threshold of marketConfig.thresholds) {
         
-        // 5. Cap Score and determine Level
-        confidenceScore = Math.min(100, confidenceScore);
-        
-        let confidenceLevel: Confidence['level'] = 'Low';
-        if (confidenceScore >= 80) {
-            confidenceLevel = 'Very High';
-        } else if (confidenceScore >= 60) {
-            confidenceLevel = 'High';
-        } else if (confidenceScore >= 40) {
-            confidenceLevel = 'Medium';
+        if (marketConfig.useOrMore) {
+          // Only analyze "X or more" patterns (no UNDER for whole number markets)
+          const orMorePattern = this.detectPattern(
+            values,
+            threshold,
+            teamName,
+            config.market,
+            `${threshold}+ ${marketConfig.label}`,
+            stats.matchDetails,
+            Comparison.OR_MORE
+          );
+          if (orMorePattern) insights.push(orMorePattern);
         } else {
-            confidenceLevel = 'Low';
+          // Traditional OVER/UNDER analysis for decimal thresholds
+          const baseOutcome = `${threshold} ${marketConfig.label}`;
+          
+          const overPattern = this.detectPattern(
+            values,
+            threshold,
+            teamName,
+            config.market,
+            `${Comparison.OVER} ${baseOutcome}`,
+            stats.matchDetails,
+            Comparison.OVER
+          );
+          if (overPattern) insights.push(overPattern);
+          
+          const underPattern = this.detectPattern(
+            values,
+            threshold,
+            teamName,
+            config.market,
+            `${Comparison.UNDER} ${baseOutcome}`,
+            stats.matchDetails,
+            Comparison.UNDER
+          );
+          if (underPattern) insights.push(underPattern);
         }
+      }
+    }
 
-        return {
-            ...insight,
-            context: {
-                ...insight.context, // Preserve other context fields
-                homeAwaySupport: homeAwaySupport,
-                confidence: {
-                    level: confidenceLevel,
-                    score: confidenceScore,
-                    factors: confidenceFactors
-                }
-            }
-        };
+    console.log(`[BettingInsights] Found ${insights.length} ${config.label} patterns`);
+    return insights;
+  }
+  
+  /**
+   * Dedicated method for BTTS analysis (Yes/No).
+   */
+  private async analyzeBTTSMarket(): Promise<BettingInsight[]> {
+    console.log('[BettingInsights] 📊 Analyzing Both Teams to Score market...');
+    const insights: BettingInsight[] = [];
+    const allStats = await supabaseGoalsService.getGoalStatistics();
+
+    for (const [teamName, stats] of allStats.entries()) {
+      if (stats.matches < this.ROLLING_WINDOW) continue;
+      
+      const yesPattern = this.detectBTTSPattern(
+        stats.matchDetails, 
+        teamName, 
+        true, 
+        'Both Teams to Score - Yes'
+      );
+      if (yesPattern) insights.push(yesPattern);
+      
+      const noPattern = this.detectBTTSPattern(
+        stats.matchDetails, 
+        teamName, 
+        false, 
+        'Both Teams to Score - No'
+      );
+      if (noPattern) insights.push(noPattern);
+    }
+
+    return insights;
+  }
+  
+  /**
+   * Core pattern detection logic
+   */
+  private detectPattern(
+    values: number[],
+    threshold: number,
+    teamName: string,
+    market: BettingMarket,
+    outcome: string,
+    matchDetails: Array<{ opponent: string; date?: string; isHome?: boolean }>,
+    comparison: Comparison
+  ): BettingInsight | null {
+    
+    // Define the hit condition based on comparison type
+    const isHit = (value: number) => {
+      if (comparison === Comparison.OVER) {
+        return value > threshold;
+      } else if (comparison === Comparison.UNDER) {
+        return value < threshold;
+      } else if (comparison === Comparison.OR_MORE) {
+        // For "X or more" bets, value must be >= threshold
+        return value >= threshold;
+      }
+      return false;
+    };
+
+    // Check for streaks (7+ consecutive matches)
+    let streakLength = 0;
+    for (const value of values) {
+      if (isHit(value)) {
+        streakLength++;
+      } else {
+        break;
+      }
     }
     
-    /**
-     * Main function to get all insights (re-calculates confidence for demonstration)
-     */
-    public async getAllInsights(): Promise<InsightsResponse> {
-        // Dummy data simulation
-        const dummyInsights: BettingInsight[] = [{
-            team: 'AFC Bournemouth',
-            market: BettingMarket.CORNERS,
-            comparison: Comparison.OVER,
-            threshold: 3.5,
-            outcome: 'Over 3.5 Team Corners',
-            hitRate: 100,
-            averageValue: 5.7,
-            isStreak: true,
-            streakLength: 8,
-            matchesAnalyzed: 10,
-            recentMatches: [/* ... data ... */],
-            context: {
-                homeAwaySupport: (await supabaseStatsService.getStats('AFC Bournemouth')).homeAwaySupport
-            }
-        }];
-        
-        // Recalculate confidence for the dummy data to ensure the fix is tested
-        const insightsWithConfidence = dummyInsights.map(i => this.calculateConfidencePlaceholder(i));
-        
-        return {
-            insights: insightsWithConfidence,
-            totalPatterns: insightsWithConfidence.length,
-            teamsAnalyzed: 2
-        };
+    // 1. PRIORITIZE: Return the insight if a 7+ streak is found
+    if (streakLength >= this.STREAK_THRESHOLD) {
+      return this.buildInsight(
+        values.slice(0, streakLength),
+        threshold,
+        teamName,
+        market,
+        outcome,
+        matchDetails.slice(0, streakLength),
+        true,
+        comparison,
+        streakLength
+      );
     }
+
+    // 2. FALLBACK: Check rolling 5 matches (most recent) for 100% hit rate
+    const rolling = values.slice(0, this.ROLLING_WINDOW);
+    const rollingHits = rolling.filter(isHit).length;
+    const rollingHitRate = (rollingHits / rolling.length) * 100;
+
+    if (rollingHitRate === 100) {
+      return this.buildInsight(
+        rolling,
+        threshold,
+        teamName,
+        market,
+        outcome,
+        matchDetails.slice(0, this.ROLLING_WINDOW),
+        false,
+        comparison,
+        undefined
+      );
+    }
+
+    return null;
+  }
+
+  /**
+   * Detect Both Teams to Score patterns (Yes/No)
+   */
+  private detectBTTSPattern(
+    matchDetails: GoalsDetail[],
+    teamName: string,
+    targetHit: boolean,
+    outcomeLabel: string
+  ): BettingInsight | null {
+    
+    const isHit = (m: GoalsDetail) => m.bothTeamsScored === targetHit;
+
+    let streakLength = 0;
+    for (const match of matchDetails) {
+      if (isHit(match)) {
+        streakLength++;
+      } else {
+        break;
+      }
+    }
+
+    const rolling = matchDetails.slice(0, this.ROLLING_WINDOW);
+    const rollingHits = rolling.filter(isHit).length;
+    const rollingHitRate = (rollingHits / rolling.length) * 100;
+
+    if (streakLength >= this.STREAK_THRESHOLD || rollingHitRate === 100) {
+      const isStreak = streakLength >= this.STREAK_THRESHOLD;
+      
+      const analyzedMatches = isStreak 
+        ? matchDetails.slice(0, streakLength)
+        : rolling;
+
+      // BTTS insight structure is returned here
+      return {
+        team: teamName,
+        market: BettingMarket.BOTH_TEAMS_TO_SCORE,
+        outcome: outcomeLabel,
+        hitRate: 100,
+        matchesAnalyzed: analyzedMatches.length,
+        isStreak: isStreak,
+        streakLength: isStreak ? streakLength : undefined,
+        threshold: 0.5,
+        averageValue: 1, // BTTS is binary, average value is not typically relevant but set to 1
+        comparison: 'binary',
+        recentMatches: analyzedMatches.map(m => ({
+          opponent: m.opponent,
+          value: m.bothTeamsScored ? 1 : 0,
+          hit: isHit(m),
+          date: m.date,
+          isHome: m.isHome 
+        }))
+        // NOTE: Confidence must be calculated and added to the context later if needed for BTTS
+      };
+    }
+
+    return null;
+  }
+
+  /**
+   * Renamed from 'calculateConfidencePlaceholder' to be production-ready.
+   * Calculates a detailed confidence score based on pattern statistics.
+   */
+  private calculateConfidenceScore(
+    values: number[],
+    threshold: number,
+    comparison: Comparison,
+    homeAwaySupport?: BettingInsight['context']['homeAwaySupport']
+  ): Confidence {
+    const avgValue = values.reduce((sum, v) => sum + v, 0) / values.length;
+    
+    // --- CONFIDENCE CALCULATION LOGIC ---
+    let baseScore = 0;
+    let factors: string[] = ['Perfect Hit Rate (100%) in recent games.'];
+
+    // 1. Base Score based on Average Value proximity to threshold (70 points max)
+    if (comparison === Comparison.OVER || comparison === Comparison.OR_MORE) {
+        const valueDifference = avgValue - threshold;
+        const maxExpectedDifference = 3.0; 
+        
+        baseScore = Math.min(70, Math.round((valueDifference / maxExpectedDifference) * 70));
+
+        if (avgValue >= threshold + 1.5) {
+            factors.push(`Team average (${avgValue.toFixed(1)}) significantly exceeds threshold.`);
+        }
+    } 
+    else if (comparison === Comparison.UNDER) {
+        const valueDifference = threshold - avgValue;
+        const maxExpectedDifference = 3.0; 
+        
+        baseScore = Math.min(70, Math.round((valueDifference / maxExpectedDifference) * 70));
+        
+        if (avgValue <= threshold - 1.5) {
+            factors.push(`Team average (${avgValue.toFixed(1)}) is well below threshold.`);
+        }
+    }
+
+    // 2. Bonus for Match Volume (10 points max)
+    baseScore += values.length >= 7 ? 10 : 0;
+    if (values.length >= 7) factors.push(`Pattern depth (${values.length} matches).`);
+
+    // 3. Bonus for Home/Away Support (20 points max)
+    let homeAwayBonus = 0;
+    if (homeAwaySupport) {
+        const { home, away } = homeAwaySupport;
+        if (home.matches > 0 && away.matches > 0 && home.hitRate === 100 && away.hitRate === 100) {
+            homeAwayBonus = 20;
+            factors.push('Perfect 100% Home/Away split hit rate.');
+        } else if (home.matches > 0 && home.hitRate === 100 || away.matches > 0 && away.hitRate === 100) {
+             homeAwayBonus = 5; 
+             factors.push(`Perfect 100% hit rate in ${home.hitRate === 100 ? 'Home' : 'Away'} matches.`);
+        }
+    }
+    baseScore += homeAwayBonus;
+
+
+    let finalScore = Math.min(100, Math.max(0, baseScore));
+
+    // 4. CRITICAL: Confidence Gating (Override if pattern is fragile)
+    const proximityTolerance = (comparison === Comparison.OVER || comparison === Comparison.OR_MORE) 
+        ? avgValue - threshold 
+        : threshold - avgValue;
+        
+    if (proximityTolerance < 0.2 && comparison !== 'binary') {
+        finalScore = 15; // Force Low confidence if average is too close to the edge
+        factors.push('Average value is too close to the threshold (proximity < 0.2). Pattern is fragile.');
+    }
+
+    let level: Confidence['level'];
+    if (finalScore >= 80) level = 'Very High';
+    else if (finalScore >= 60) level = 'High';
+    else if (finalScore >= 40) level = 'Medium';
+    else level = 'Low';
+
+    return {
+        level: level,
+        score: finalScore,
+        factors: Array.from(new Set(factors)) // Remove duplicates
+    };
+  }
+
+
+  /**
+   * Build insight object with all relevant data
+   */
+  private buildInsight(
+    values: number[],
+    threshold: number,
+    teamName: string,
+    market: BettingMarket,
+    outcome: string,
+    matchDetails: Array<{ opponent: string; date?: string; isHome?: boolean }>,
+    isStreak: boolean,
+    comparison: Comparison,
+    streakLength?: number
+  ): BettingInsight {
+    const avgValue = values.reduce((sum, v) => sum + v, 0) / values.length;
+    
+    const isHit = (value: number) => {
+      if (comparison === Comparison.OVER) {
+        return value > threshold;
+      } else if (comparison === Comparison.UNDER) {
+        return value < threshold;
+      } else if (comparison === Comparison.OR_MORE) {
+        return value >= threshold;
+      }
+      return false;
+    };
+
+    // Calculate Home/Away Support (data used for confidence and context)
+    const combinedData = matchDetails.map((detail, idx) => ({
+      ...detail,
+      value: values[idx],
+      hit: isHit(values[idx]!)
+    })).filter(d => d.isHome !== undefined); 
+
+    const homeHits = combinedData.filter(d => d.isHome && d.hit).length;
+    const awayHits = combinedData.filter(d => !d.isHome && d.hit).length;
+    const totalHome = combinedData.filter(d => d.isHome).length;
+    const totalAway = combinedData.filter(d => !d.isHome).length;
+    
+    const homeValues = combinedData.filter(d => d.isHome).map(d => d.value!);
+    const awayValues = combinedData.filter(d => !d.isHome).map(d => d.value!);
+
+    const avgHome = homeValues.length > 0 ? homeValues.reduce((s, v) => s + v, 0) / homeValues.length : 0;
+    const avgAway = awayValues.length > 0 ? awayValues.reduce((s, v) => s + v, 0) / awayValues.length : 0;
+    
+    const homeAwaySupport = (totalHome > 0 || totalAway > 0) ? {
+      home: { 
+        hitRate: totalHome > 0 ? Math.round((homeHits / totalHome) * 100) : 0, 
+        matches: totalHome,
+        average: Math.round(avgHome * 100) / 100
+      },
+      away: { 
+        hitRate: totalAway > 0 ? Math.round((awayHits / totalAway) * 100) : 0, 
+        matches: totalAway,
+        average: Math.round(avgAway * 100) / 100
+      }
+    } : undefined;
+
+    // 1. Calculate Confidence using the extracted Home/Away data
+    const confidence = this.calculateConfidenceScore(
+        values,
+        threshold,
+        comparison,
+        homeAwaySupport
+    );
+
+    // 2. Build the final Insight object
+    return {
+      team: teamName,
+      market,
+      outcome,
+      hitRate: 100,
+      matchesAnalyzed: values.length,
+      isStreak,
+      streakLength,
+      threshold,
+      comparison,
+      averageValue: Math.round(avgValue * 100) / 100,
+      recentMatches: values.map((value, idx) => ({
+        opponent: matchDetails[idx]?.opponent || 'Unknown',
+        value,
+        hit: isHit(value),
+        date: matchDetails[idx]?.date,
+        isHome: matchDetails[idx]?.isHome, 
+      })),
+      context: {
+          homeAwaySupport: homeAwaySupport,
+          confidence: confidence 
+      }
+    };
+  }
+
+  /**
+   * Filter insights by minimum streak length
+   */
+  filterByStreak(insights: BettingInsight[], minStreak: number = 7): BettingInsight[] {
+    return insights.filter(i => i.isStreak && (i.streakLength ?? 0) >= minStreak);
+  }
+
+  /**
+   * Filter insights by market
+   */
+  filterByMarket(insights: BettingInsight[], market: BettingMarket): BettingInsight[] {
+    return insights.filter(i => i.market === market);
+  }
+
+  /**
+   * Sort insights by streak length (longest first)
+   */
+  sortByStreak(insights: BettingInsight[]): BettingInsight[] {
+    return [...insights].sort((a, b) => {
+      const aStreak = a.streakLength ?? 0;
+      const bStreak = b.streakLength ?? 0;
+      return bStreak - aStreak;
+    });
+  }
+
+  /**
+   * Get cache status from all services
+   */
+  getCacheStatus() {
+    return {
+      cards: supabaseCardsService.getCacheStatus(),
+      corners: supabaseCornersService.getCacheStatus(),
+      fouls: supabaseFoulsService.getCacheStatus(),
+      goals: supabaseGoalsService.getCacheStatus(),
+      shooting: supabaseShootingService.getCacheStatus()
+    };
+  }
 }
 
 export const bettingInsightsService = new BettingInsightsService();
