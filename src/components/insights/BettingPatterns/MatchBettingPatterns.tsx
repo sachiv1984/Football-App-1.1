@@ -240,7 +240,7 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
                     <div className="pt-2 border-t border-gray-100">
                       <p className="text-xs text-gray-500 uppercase mb-2 font-semibold">Confidence Drivers</p>
                       <div className="space-y-1">
-                        {confidence.factors.slice(0, 3).map((factor, i) => (
+                        {confidence.factors.slice(0, 3).map((factor: string, i: number) => (
                           <div key={i} className="flex items-start gap-1.5">
                             <span className="text-green-500 mt-0.5">✓</span>
                             <span className="text-xs text-gray-700">{factor}</span>
@@ -254,7 +254,7 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
                   <div className="pt-2 border-t border-gray-100">
                     <p className="text-xs text-gray-500 uppercase mb-2 font-semibold">Last {insight.recentMatches.length} Matches ({insight.matchesAnalyzed} Sample)</p>
                     <div className="space-y-1">
-                      {insight.recentMatches.slice(0, 5).map((match, matchIdx: number) => (
+                      {insight.recentMatches.slice(0, 5).map((match: any, matchIdx: number) => (
                         <div
                           key={matchIdx}
                           className={`flex items-center justify-between p-2 rounded text-sm transition-colors ${match.hit ? 'bg-green-50 hover:bg-green-100' : 'bg-red-50 hover:bg-red-100'}`}
