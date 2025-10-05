@@ -3,6 +3,15 @@ import type { FeaturedFixtureWithImportance } from '../../types';
 import { supabase } from '../supabaseClient'; // your Supabase client
 import { normalizeTeamName, getDisplayTeamName, getTeamLogo, getCompetitionLogo } from '../../utils/teamUtils';
 
+// ----------------- NEW INTERFACE -----------------
+export interface TeamFixtureDisplay {
+    opponent: string;
+    venueStatus: 'Home' | 'Plane'; // 'Plane' is used for away games based on your UI
+    matchId: string;
+    dateTime: string;
+}
+// -------------------------------------------------
+
 export interface TeamSeasonStats {
   team: string;
   recentForm: ('W' | 'D' | 'L')[];
@@ -14,13 +23,13 @@ export interface TeamSeasonStats {
 
 interface SupabaseFixture {
   id: string;
-  datetime: string;        // Changed from dateTime to datetime
-  hometeam: string;        // Likely lowercase based on the pattern
-  awayteam: string;        // Likely lowercase based on the pattern
-  homescore?: number;      // Likely lowercase based on the pattern
-  awayscore?: number;      // Likely lowercase based on the pattern
+  datetime: string;
+  hometeam: string;
+  awayteam: string;
+  homescore?: number;
+  awayscore?: number;
   status: 'scheduled' | 'live' | 'finished' | 'postponed' | 'upcoming';
-  matchweek?: number;      // Likely lowercase based on the pattern
+  matchweek?: number;
   venue?: string;
 }
 
@@ -118,8 +127,6 @@ private calculateForm(fixtures: SupabaseFixture[]): Map<string, TeamSeasonStats>
         won: 0,
         drawn: 0,
         lost: 0,
-        // corners: 0,
-        // cornersAgainst: 0
       });
     }
     if (!stats.has(f.awayteam)) {
@@ -130,8 +137,6 @@ private calculateForm(fixtures: SupabaseFixture[]): Map<string, TeamSeasonStats>
         won: 0,
         drawn: 0,
         lost: 0,
-        // corners: 0,
-        // cornersAgainst: 0
       });
     }
   });
@@ -329,6 +334,50 @@ private async refreshCache(): Promise<void> {
       });
 
     return upcoming.slice(0, limit);
+  }
+
+  // ---------------- NEW METHOD FOR FIXING UI ----------------
+  /**
+   * Retrieves a team's next 'limit' number of scheduled fixtures and determines
+   * the opponent and venue status (Home or Plane).
+   * @param teamName The name of the team (e.g., 'Newcastle').
+   * @param limit The maximum number of fixtures to return.
+   * @returns An array of TeamFixtureDisplay objects.
+   */
+  async getTeamNextFixtures(teamName: string, limit: number = 5): Promise<TeamFixtureDisplay[]> {
+    if (!this.isCacheValid()) await this.refreshCache();
+    
+    // Normalize the input team name to match the cached data keys
+    const normalizedTargetTeam = normalizeTeamName(teamName);
+    const now = Date.now();
+
+    const teamFixtures: TeamFixtureDisplay[] = this.fixturesCache
+        // 1. Filter for fixtures involving the target team, that are scheduled, and in the future
+        .filter(f => 
+            (f.homeTeam.name === normalizedTargetTeam || f.awayTeam.name === normalizedTargetTeam) &&
+            new Date(f.dateTime).getTime() > now && 
+            f.status === 'scheduled' // Only consider 'scheduled' fixtures as 'next fixtures'
+        )
+        // 2. Sort by date ascending (earliest game first)
+        .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
+        // 3. Limit to the desired number of fixtures (e.g., 5)
+        .slice(0, limit)
+        // 4. Transform the data to the desired output format
+        .map(f => {
+            // Logic to determine if the target team is playing at home
+            const isHomeGame = f.homeTeam.name === normalizedTargetTeam;
+            
+            return {
+                matchId: f.id,
+                dateTime: f.dateTime,
+                // Opponent is the other team's short name
+                opponent: isHomeGame ? f.awayTeam.shortName : f.homeTeam.shortName,
+                // Venue Status: 'Home' if they are home team, 'Plane' if they are away team
+                venueStatus: isHomeGame ? 'Home' : 'Plane', 
+            };
+        });
+
+    return teamFixtures;
   }
 }
 
