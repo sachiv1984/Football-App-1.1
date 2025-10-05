@@ -2,152 +2,99 @@
 // Unified Team Utilities (Final Merged Version)
 
 // ---------------------------
-// Original Normalization Map (Your base list)
+// Final Merged Normalization Map
+// Consolidates all variations into the canonical name.
 // ---------------------------
-const TEAM_NORMALIZATION_MAP_BASE: Record<string, string> = {
-  // Manchester clubs
+const TEAM_NORMALIZATION_MAP: Record<string, string> = {
+  // Premier League Teams
   'Man Utd': 'Manchester United',
   'Manchester United FC': 'Manchester United',
-  'Man United': 'Manchester United', // Duplicate, but harmless
+  'Man United': 'Manchester United', 
   'Manchester Utd': 'Manchester United',
 
-  'Man City': 'Manchester City', // Duplicate, but harmless
+  'Man City': 'Manchester City', 
   'Manchester City FC': 'Manchester City',
 
-  // Tottenham
-  'Spurs': 'Tottenham Hotspur', // Duplicate, but harmless
-  'Tottenham': 'Tottenham Hotspur', // Duplicate, but harmless
+  'Spurs': 'Tottenham Hotspur', 
+  'Tottenham': 'Tottenham Hotspur', 
   'Tottenham Hotspur FC': 'Tottenham Hotspur',
 
-  // Brighton
   'Brighton': 'Brighton & Hove Albion',
   'Brighton Hove Albion': 'Brighton & Hove Albion',
+  'Brighton and Hove Albion': 'Brighton & Hove Albion', // API variation
+  'Brighton & Hove Albion FC': 'Brighton & Hove Albion', // API variation
 
-  // Sheffield
   'Sheffield Utd': 'Sheffield United',
+  'Sheffield United FC': 'Sheffield United', // API variation
 
-  // Wolves
-  'Wolves': 'Wolverhampton Wanderers', // Duplicate, but harmless
+  'Wolves': 'Wolverhampton Wanderers', 
   'Wolverhampton Wanderers FC': 'Wolverhampton Wanderers',
 
-  // Leicester
-  'Leicester': 'Leicester City', // Duplicate, but harmless
+  'Leicester': 'Leicester City', 
 
-  // Newcastle
-  'Newcastle': 'Newcastle United', // Duplicate, but harmless
+  'Newcastle': 'Newcastle United', 
   'Newcastle United FC': 'Newcastle United',
-  'Newcastle United': 'Newcastle United',
   'Newcastle Utd': 'Newcastle United',
 
-  // Sunderland
   'Sunderland': 'Sunderland AFC',
-  'Sunderland AFC': 'Sunderland AFC',
 
-  // West Ham
-  'West Ham': 'West Ham United', // Duplicate, but harmless
+  'West Ham': 'West Ham United', 
+  'West Ham FC': 'West Ham United', // API variation
 
-  // Palace
-  'Crystal Palace FC': 'Crystal Palace', // Duplicate, but harmless
+  'Crystal Palace FC': 'Crystal Palace', 
   'Palace': 'Crystal Palace',
 
-  // Forest
   'Forest': 'Nottingham Forest',
-  "Nott'm Forest": 'Nottingham Forest', // Duplicate, but harmless
+  "Nott'm Forest": 'Nottingham Forest', 
   'Nottingham Forest FC': 'Nottingham Forest',
   "Nott'ham Forest": 'Nottingham Forest',
 
-  // Villa
   'Villa': 'Aston Villa',
   'Aston Villa FC': 'Aston Villa',
 
-  // Fulham
   'Fulham FC': 'Fulham',
 
-  // Brentford
   'Brentford FC': 'Brentford',
 
-  // Everton
   'Everton FC': 'Everton',
 
-  // Liverpool
   'Liverpool FC': 'Liverpool',
 
-  // Arsenal
   'Arsenal FC': 'Arsenal',
 
-  // Chelsea
   'Chelsea FC': 'Chelsea',
 
-  // Bournemouth
-  'Bournemouth': 'AFC Bournemouth', // Duplicate, but harmless
+  'Bournemouth': 'AFC Bournemouth', 
   'AFC Bournemouth FC': 'AFC Bournemouth',
+  'Bournemouth FC': 'AFC Bournemouth', // API variation
 
-  // Luton
   'Luton': 'Luton Town',
   'Luton Town FC': 'Luton Town',
 
-  // Burnley
   'Burnley FC': 'Burnley',
     
-  // Leeds (from previous merge)
   'Leeds Utd': 'Leeds United',
   'Leeds United FC': 'Leeds United',
-};
-
-
-// ---------------------------
-// Additional API Normalization Entries (The new code you provided)
-// ---------------------------
-const ADDITIONAL_API_NORMALIZATIONS: Record<string, string> = {
-  // Common API variations
-  'Brighton and Hove Albion': 'Brighton & Hove Albion', // NEW
-  'Brighton & Hove Albion FC': 'Brighton & Hove Albion', // NEW
-  'Tottenham': 'Tottenham Hotspur',
-  'West Ham': 'West Ham United',
-  'West Ham FC': 'West Ham United', // NEW
-  'Sheffield United FC': 'Sheffield United', // NEW
-  'Crystal Palace FC': 'Crystal Palace',
-  'Nottingham Forest': 'Nottingham Forest', // NEW
-  'Nott\'m Forest': 'Nottingham Forest',
-  'AFC Bournemouth': 'AFC Bournemouth',
-  'Bournemouth FC': 'AFC Bournemouth', // NEW
   
-  // Handle potential API inconsistencies (mostly covered, but ensuring overwrite)
-  'Man United': 'Manchester United',
-  'Man City': 'Manchester City',
-  'Newcastle': 'Newcastle United',
-  'Leicester': 'Leicester City',
-  'Wolves': 'Wolverhampton Wanderers',
-  'Spurs': 'Tottenham Hotspur',
-  
-  // European competition variations (NEW TEAMS ADDED)
-  'Atletico Madrid': 'Atletico Madrid', // NEW
-  'Real Madrid': 'Real Madrid', // NEW
-  'FC Barcelona': 'Barcelona', // NEW
-  'Bayern Munich': 'Bayern Munich', // NEW
-  'Paris Saint-Germain': 'Paris Saint-Germain', // NEW
-  'PSG': 'Paris Saint-Germain', // NEW
-};
-
-
-// ---------------------------
-// Final Merged Normalization Map
-// ---------------------------
-const TEAM_NORMALIZATION_MAP: Record<string, string> = {
-  ...TEAM_NORMALIZATION_MAP_BASE,
-  ...ADDITIONAL_API_NORMALIZATIONS
+  // European teams (Ensuring canonical form is the VALUE)
+  'Atletico Madrid': 'Atletico Madrid',
+  'Real Madrid': 'Real Madrid',
+  'FC Barcelona': 'Barcelona', 
+  'Bayern Munich': 'Bayern Munich',
+  'Paris Saint-Germain': 'Paris Saint-Germain', 
+  'PSG': 'Paris Saint-Germain',
 };
 
 // Normalize team name → always returns canonical version
 export const normalizeTeamName = (name: string): string => {
+  if (!name) return name; // Handle null/undefined/empty string
   const clean = name.trim();
   // Use the merged map
   return TEAM_NORMALIZATION_MAP[clean] || clean;
 };
 
-
 // ---------------------------
-// Abbreviations for display (Using your existing list)
+// Abbreviations for display
 // ---------------------------
 const TEAM_ABBREVIATIONS: Record<string, string> = {
   'Manchester United': 'Man Utd',
@@ -160,9 +107,9 @@ const TEAM_ABBREVIATIONS: Record<string, string> = {
   'Sunderland AFC': 'Sunderland',
   'Wolverhampton Wanderers': 'Wolves',
   'Leicester City': 'Leicester',
-  'Crystal Palace': 'Crystal Palace',
+  'Crystal Palace': 'Palace', // Using 'Palace' is generally shorter and cleaner
   'Nottingham Forest': "Nott'm Forest",
-  'AFC Bournemouth': 'Bournemouth',
+  'AFC Bournemouth': 'Bournemouth', // Use 'Bournemouth' for display
   'Luton Town': 'Luton',
   'Aston Villa': 'Villa',
   'Fulham': 'Fulham',
@@ -173,13 +120,20 @@ const TEAM_ABBREVIATIONS: Record<string, string> = {
   'Chelsea': 'Chelsea',
   'Burnley': 'Burnley',
   'Leeds United': 'Leeds Utd',
+
+  // European team abbreviations
+  'Atletico Madrid': 'Atl. Madrid',
+  'Real Madrid': 'Real Madrid',
+  'Barcelona': 'Barca',
+  'Bayern Munich': 'Bayern',
+  'Paris Saint-Germain': 'PSG',
 };
 
 // ---------------------------
-// Logo Mapping (You MUST add new canonical names here if needed)
+// Logo Mapping
 // ---------------------------
 const TEAM_LOGO_MAP: Record<string, string> = {
-  // Existing Premier League teams
+  // Premier League teams
   'AFC Bournemouth': 'afc-bournemouth',
   'Arsenal': 'arsenal-fc',
   'Aston Villa': 'aston-villa',
@@ -204,10 +158,10 @@ const TEAM_LOGO_MAP: Record<string, string> = {
   'Leicester City': 'leicester-city',
   'Sheffield United': 'sheffield-united',
   
-  // 🎯 NEW European teams added from normalization map
+  // European teams
   'Atletico Madrid': 'atletico-madrid',
   'Real Madrid': 'real-madrid',
-  'Barcelona': 'fc-barcelona', // Using canonical form
+  'Barcelona': 'fc-barcelona', 
   'Bayern Munich': 'bayern-munich',
   'Paris Saint-Germain': 'paris-saint-germain',
 };
@@ -226,7 +180,7 @@ const COMPETITION_LOGOS: Record<string, string> = {
 };
 
 // ---------------------------
-// Display helpers (UNCHANGED)
+// Display helpers
 // ---------------------------
 export const getDisplayTeamName = (
   fullName: string,
@@ -234,10 +188,17 @@ export const getDisplayTeamName = (
   maxLength = 12
 ): string => {
   const normalized = normalizeTeamName(fullName);
+  
+  // 1. Try to use the established abbreviation
   if (TEAM_ABBREVIATIONS[normalized]) return TEAM_ABBREVIATIONS[normalized];
+
+  // 2. Fall back to API short name if it's clean and short enough
   if (apiShortName && apiShortName !== 'Unknown' && apiShortName.length <= maxLength)
     return apiShortName;
+
+  // 3. Use the normalized name, truncate if necessary
   if (normalized.length <= maxLength) return normalized;
+  
   return `${normalized.substring(0, maxLength - 3)}...`;
 };
 
