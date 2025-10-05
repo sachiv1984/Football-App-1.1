@@ -35,14 +35,6 @@ const InsightsContainer: React.FC<InsightsContainerProps> = ({
           />
         ))}
       </div>
-
-      {/* Responsible Gambling Notice */}
-      <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-        <p className="text-xs text-yellow-800">
-          <strong>⚠️ Please Gamble Responsibly:</strong> These insights are for entertainment purposes only. 
-          Always bet within your means and seek help if gambling becomes a problem. 18+ only.
-        </p>
-      </div>
     </div>
   );
 };
