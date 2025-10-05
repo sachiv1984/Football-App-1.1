@@ -73,8 +73,11 @@ interface Confidence {
     factors: string[];
 }
 
-// Define the reusable type for HomeAwaySupport for cleaner signature
-type HomeAwaySupport = {
+/**
+ * Define the reusable type for HomeAwaySupport for cleaner signature
+ */
+// FIX: Added 'export' to make the type visible to other modules
+export type HomeAwaySupport = {
     home: { hitRate: number; matches: number; average: number };
     away: { hitRate: number; matches: number; average: number };
 };
