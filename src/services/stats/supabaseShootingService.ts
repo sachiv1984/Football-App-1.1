@@ -12,7 +12,7 @@ export interface SupabaseShootingData {
   opp_shots_on_target: number;
   match_date?: string;
   matchweek?: number;
-  venue?: 'home' | 'away';
+  venue?: 'home' | 'away' | 'Home' | 'Away'; // Updated type to reflect reality
 }
 
 export interface DetailedShootingStats {
@@ -147,17 +147,22 @@ export class SupabaseShootingService {
       const totalShotsOnTargetAgainst = matches.reduce((sum, match) => sum + match.opp_shots_on_target, 0);
 
       // Create detailed match data with isHome field
-      const matchDetails = matches.map(match => ({
-        opponent: match.opponent,
-        totalShots: match.team_shots + match.opp_shots,
-        shotsFor: match.team_shots,
-        shotsAgainst: match.opp_shots,
-        shotsOnTargetFor: match.team_shots_on_target,
-        shotsOnTargetAgainst: match.opp_shots_on_target,
-        date: match.match_date,
-        matchweek: match.matchweek,
-        isHome: match.venue === 'home' // NEW: Convert venue to boolean
-      }));
+      const matchDetails = matches.map(match => {
+        // FIX: Convert raw venue to lowercase for reliable comparison
+        const venueLower = match.venue?.toLowerCase();
+
+        return {
+          opponent: match.opponent,
+          totalShots: match.team_shots + match.opp_shots,
+          shotsFor: match.team_shots,
+          shotsAgainst: match.opp_shots,
+          shotsOnTargetFor: match.team_shots_on_target,
+          shotsOnTargetAgainst: match.opp_shots_on_target,
+          date: match.match_date,
+          matchweek: match.matchweek,
+          isHome: venueLower === 'home' // ✅ FIXED: Case-insensitive check
+        };
+      });
 
       teamStats.set(teamName, {
         shots: totalShots,
