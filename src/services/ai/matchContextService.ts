@@ -22,6 +22,7 @@ interface MatchContext {
     strengthOfMatch: 'Poor' | 'Fair' | 'Good' | 'Excellent';
     recommendation: string;
     venueSpecific: boolean;
+    dataQuality: 'Excellent' | 'Good' | 'Fair' | 'Poor' | 'Insufficient';
     // NEW: BTTS-specific fields
     bttsContext?: {
       homeScoreProbability: number;
@@ -465,17 +466,45 @@ export class MatchContextService {
       const oppositionMatches = oppStats?.matches ?? 0;
       const venueSpecific = oppStats?.venueSpecific ?? false;
 
-      // Filter out BTTS and any other market that might use the "binary" comparison type
+      // Filter out markets that don't use standard opposition analysis
+      const isBTTS = insight.market === BettingMarket.BOTH_TEAMS_TO_SCORE;
       const shouldApplyContext = 
-        insight.market !== BettingMarket.BOTH_TEAMS_TO_SCORE && 
-        insight.comparison !== 'binary';
+        insight.comparison !== 'binary' && !isBTTS;
 
       let strengthOfMatch: MatchContext['strengthOfMatch'] = 'Fair';
       let recommendation: string = `No specific match context generated for ${insight.market} ${insight.comparison} pattern.`;
       let roundedOppositionAllows = 0;
+      let bttsContext: MatchContext['bttsContext'];
       const confidenceScore = insight.context?.confidence?.score ?? 0;
 
-      if (shouldApplyContext) {
+      // Handle BTTS separately
+      if (isBTTS) {
+        const bttsExpectation = insight.outcome.includes('Yes') ? 'Yes' : 'No';
+        const bttsEval = await this.evaluateBTTSMatchup(homeTeam, awayTeam, bttsExpectation);
+        
+        if (bttsEval) {
+          strengthOfMatch = bttsEval.strength;
+          bttsContext = {
+            homeScoreProbability: bttsEval.homeScoreProbability,
+            awayScoreProbability: bttsEval.awayScoreProbability,
+            homeGoalsFor: bttsEval.homeGoalsFor,
+            awayGoalsAgainst: bttsEval.awayGoalsAgainst,
+            awayGoalsFor: bttsEval.awayGoalsFor,
+            homeGoalsAgainst: bttsEval.homeGoalsAgainst
+          };
+          
+          recommendation = this.generateBTTSRecommendation(
+            insight.team,
+            insight.outcome,
+            strengthOfMatch,
+            isHome,
+            confidenceScore,
+            bttsContext,
+            bttsEval.venueSpecific
+          );
+        }
+      }
+      else if (shouldApplyContext) {
         // 2. Evaluate Match Strength (NOW RETURNS DOMINANCE INFO)
         const matchEvaluation = this.evaluateMatchStrength(
           insight.averageValue,
@@ -515,7 +544,8 @@ export class MatchContextService {
           isHome,
           strengthOfMatch,
           recommendation,
-          venueSpecific
+          venueSpecific,
+          bttsContext
         }
       });
     }
