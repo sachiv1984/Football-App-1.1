@@ -1,7 +1,9 @@
+// src/services/ai/matchContextService.ts
+
 import { 
-  BettingInsight, 
   BettingMarket, 
-  Comparison 
+  Comparison,
+  BettingInsight as BaseBettingInsight // Import the base type
 } from './bettingInsightsService';
 
 import { supabaseCardsService } from '../stats/supabaseCardsService';
@@ -9,6 +11,36 @@ import { supabaseCornersService } from '../stats/supabaseCornersService';
 import { supabaseFoulsService } from '../stats/supabaseFoulsService';
 import { supabaseGoalsService } from '../stats/supabaseGoalsService';
 import { supabaseShootingService } from '../stats/supabaseShootingService';
+
+
+// --- MISSING TYPE DEFINITIONS ---
+// Define the confidence structure that the code is trying to access
+interface Confidence {
+    level: 'Low' | 'Medium' | 'High' | 'Very High';
+    score: number;
+    factors: string[];
+}
+
+// Define the complete BettingInsight type by extending the imported one
+export interface BettingInsight extends BaseBettingInsight {
+    context?: {
+        // Properties already defined in the imported BaseBettingInsight
+        homeAwaySupport?: {
+            home: { hitRate: number; matches: number; average: number };
+            away: { hitRate: number; matches: number; average: number };
+        };
+        headToHeadSupport?: {
+            opponent: string;
+            hitRate: number;
+            matches: number;
+        };
+        
+        // FIX: The missing 'confidence' property
+        confidence?: Confidence; 
+    };
+}
+// --- END MISSING TYPE DEFINITIONS ---
+
 
 // Defining the specific match context structure
 interface MatchContext {
@@ -20,6 +52,8 @@ interface MatchContext {
 }
 
 // Defining the enriched insight as an intersection type 
+// NOTE: Since the local BettingInsight now includes all properties, 
+// MatchContextInsight correctly represents the final object.
 export type MatchContextInsight = BettingInsight & {
     matchContext: MatchContext;
 };
@@ -251,6 +285,11 @@ export class MatchContextService {
         );
 
         // 3. Generate Recommendation
+        
+        // FIX: The context object might not exist, so chain safely. 
+        // We know confidence is expected, so we use the extended type.
+        const confidenceScore = insight.context?.confidence?.score ?? 0; 
+
         recommendation = this.generateRecommendation(
           insight.team,
           insight.outcome,
@@ -259,7 +298,7 @@ export class MatchContextService {
           oppositionAllows,
           insight.threshold,
           isHome,
-          insight.context?.confidence?.score ?? 0
+          confidenceScore
         );
         roundedOppositionAllows = Math.round(oppositionAllows * 10) / 10;
       }
@@ -297,7 +336,7 @@ export class MatchContextService {
 
     // Filter for High/Very High confidence and Excellent/Good match strength
     const bestBets = enriched.filter(e => {
-      // Accessing confidence safely
+      // FIX: Accessing confidence safely
       const confidence = e.context?.confidence?.level;
       const strength = e.matchContext.strengthOfMatch;
 
@@ -309,7 +348,7 @@ export class MatchContextService {
 
     // Sort by confidence score (highest first)
     return bestBets.sort((a, b) => 
-      // Accessing confidence safely
+      // FIX: Accessing confidence safely
       (b.context?.confidence?.score ?? 0) - (a.context?.confidence?.score ?? 0)
     );
   }
