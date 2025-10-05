@@ -84,7 +84,7 @@ export interface BettingInsight {
     value: number;
     hit: boolean;
     date?: string;
-    isHome?: boolean; // <--- FIX 1: ADD isHome TO RECENT MATCHES (Already present)
+    isHome?: boolean;
   }>;
   context?: {
     homeAwaySupport?: {
@@ -335,6 +335,18 @@ export class BettingInsightsService {
     for (const [teamName, stats] of allStats.entries()) {
       if (stats.matches < this.ROLLING_WINDOW) continue;
 
+      // --- START DEBUG LOGGING ---
+      // Check data structure before analysis. Change 'Manchester United' if needed.
+      if (teamName.toLowerCase() === 'manchester united' || teamName.toLowerCase() === 'liverpool') { 
+          console.log(`[DEBUG INSIGHTS - ${config.market}] ${teamName} Match Details (Top 5)`);
+          console.log(stats.matchDetails.slice(0, 5).map(m => ({ 
+              opponent: m.opponent, 
+              date: m.date, 
+              isHome: m.isHome 
+          })));
+      }
+      // --- END DEBUG LOGGING ---
+
       const values = stats.matchDetails.map(config.valueExtractor); 
       
       for (const threshold of marketConfig.thresholds) {
@@ -537,7 +549,7 @@ export class BettingInsightsService {
           value: m.bothTeamsScored ? 1 : 0,
           hit: isHit(m),
           date: m.date,
-          isHome: m.isHome // ✅ FIX CONFIRMED (Needed to be explicit)
+          isHome: m.isHome 
         }))
       };
     }
@@ -620,7 +632,7 @@ export class BettingInsightsService {
         value,
         hit: isHit(value),
         date: matchDetails[idx]?.date,
-        isHome: matchDetails[idx]?.isHome, // ✅ FIX 2: PASSED isHome HERE
+        isHome: matchDetails[idx]?.isHome, 
       })),
       context: {
           homeAwaySupport: homeAwaySupport
