@@ -503,50 +503,54 @@ export class MatchContextService {
       return [];
     }
 
-    // 2. Validate teams are different
+    // 2. Normalize team names ONCE at the start for consistent usage
     const normalizedHome = normalizeTeamName(homeTeam);
     const normalizedAway = normalizeTeamName(awayTeam);
     
+    console.log(`[MatchContextService] 📝 Normalized teams: "${homeTeam}" → "${normalizedHome}", "${awayTeam}" → "${normalizedAway}"`);
+    
+    // 3. Validate teams are different
     if (normalizedHome === normalizedAway) {
       console.error(`[MatchContextService] ❌ Home and away teams cannot be the same: "${homeTeam}"`);
       return [];
     }
 
-    // 3. Verify teams exist in database
-    console.log(`[MatchContextService] 🔍 Verifying teams: ${homeTeam} vs ${awayTeam}`);
+    // 4. Verify teams exist in database
+    console.log(`[MatchContextService] 🔍 Verifying teams: ${normalizedHome} vs ${normalizedAway}`);
     const [homeExists, awayExists] = await Promise.all([
       this.verifyTeamExists(normalizedHome),
       this.verifyTeamExists(normalizedAway)
     ]);
 
     if (!homeExists) {
-      console.warn(`[MatchContextService] ⚠️ Home team "${homeTeam}" not found in database`);
+      console.warn(`[MatchContextService] ⚠️ Home team "${normalizedHome}" not found in database`);
     }
     if (!awayExists) {
-      console.warn(`[MatchContextService] ⚠️ Away team "${awayTeam}" not found in database`);
+      console.warn(`[MatchContextService] ⚠️ Away team "${normalizedAway}" not found in database`);
     }
 
-    // 4. Validate insights arrays
+    // 5. Validate insights arrays
     if (!homeInsights?.length && !awayInsights?.length) {
       console.warn('[MatchContextService] ⚠️ No insights provided for enrichment');
       return [];
     }
 
     // ===== PROCESS INSIGHTS =====
+    // IMPORTANT: Use normalized team names throughout for consistent database lookups
 
     const allInsights = [
       // Home team insights: opponent is AWAY, so check opponent's away defensive stats
       ...homeInsights.map(i => ({ 
         insight: i, 
         isHome: true, 
-        opponent: awayTeam,
+        opponent: normalizedAway,  // ✅ Use normalized name
         opponentIsHome: false // Opponent is playing away
       })),
       // Away team insights: opponent is HOME, so check opponent's home defensive stats
       ...awayInsights.map(i => ({ 
         insight: i, 
         isHome: false, 
-        opponent: homeTeam,
+        opponent: normalizedHome,  // ✅ Use normalized name
         opponentIsHome: true // Opponent is playing at home
       }))
     ];
@@ -554,6 +558,7 @@ export class MatchContextService {
     for (const { insight, isHome, opponent, opponentIsHome } of allInsights) {
       try {
         // 1. Get Opposition Stats (NOW VENUE-SPECIFIC)
+        // opponent is already normalized from allInsights map
         const oppStats = await this.getOppositionDefensiveStats(
           opponent, 
           insight.market, 
@@ -603,10 +608,14 @@ export class MatchContextService {
         let bttsContext: MatchContext['bttsContext'];
         const confidenceScore = insight.context?.confidence?.score ?? 0;
 
-        // Handle BTTS separately
+        // Handle BTTS separately - use normalized team names
         if (isBTTS) {
           const bttsExpectation = insight.outcome.includes('Yes') ? 'Yes' : 'No';
-          const bttsEval = await this.evaluateBTTSMatchup(homeTeam, awayTeam, bttsExpectation);
+          const bttsEval = await this.evaluateBTTSMatchup(
+            normalizedHome,  // ✅ Use normalized name
+            normalizedAway,  // ✅ Use normalized name
+            bttsExpectation
+          );
           
           if (bttsEval) {
             strengthOfMatch = bttsEval.strength;
