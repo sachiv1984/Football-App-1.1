@@ -84,7 +84,7 @@ export interface BettingInsight {
     value: number;
     hit: boolean;
     date?: string;
-    isHome?: boolean; // <--- FIX 1: ADD isHome TO RECENT MATCHES
+    isHome?: boolean; // <--- FIX 1: ADD isHome TO RECENT MATCHES (Already present)
   }>;
   context?: {
     homeAwaySupport?: {
@@ -537,7 +537,7 @@ export class BettingInsightsService {
           value: m.bothTeamsScored ? 1 : 0,
           hit: isHit(m),
           date: m.date,
-          isHome: m.isHome // <--- Added isHome here for BTTS
+          isHome: m.isHome // ✅ FIX CONFIRMED (Needed to be explicit)
         }))
       };
     }
@@ -574,9 +574,6 @@ export class BettingInsightsService {
     };
 
     // Calculate Home/Away Support (using simple hit rate/matches logic for this example)
-    const homeMatches = matchDetails.filter(d => d.isHome !== undefined);
-    
-    // We need to map values to their match details to check isHome
     const combinedData = matchDetails.map((detail, idx) => ({
       ...detail,
       value: values[idx],
@@ -623,7 +620,7 @@ export class BettingInsightsService {
         value,
         hit: isHit(value),
         date: matchDetails[idx]?.date,
-        isHome: matchDetails[idx]?.isHome, // <--- FIX 2: PASSED isHome HERE
+        isHome: matchDetails[idx]?.isHome, // ✅ FIX 2: PASSED isHome HERE
       })),
       context: {
           homeAwaySupport: homeAwaySupport
