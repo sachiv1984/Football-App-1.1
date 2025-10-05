@@ -318,8 +318,6 @@ export class BettingInsightsService {
     };
   }
 
-  // ... (getTeamInsights, getMarketInsights, getCacheStatus methods remain unchanged)
-
   /**
    * Get insights for a specific team
    */
@@ -536,7 +534,7 @@ export class BettingInsightsService {
         ? matchDetails.slice(0, streakLength)
         : rolling;
 
-      // BTTS insight structure is returned here
+      // BTTS insight structure is built here. No need to call buildInsight
       return {
         team: teamName,
         market: BettingMarket.BOTH_TEAMS_TO_SCORE,
@@ -555,7 +553,7 @@ export class BettingInsightsService {
           date: m.date,
           isHome: m.isHome 
         }))
-        // NOTE: Confidence must be calculated and added to the context later if needed for BTTS
+        // NOTE: Confidence logic should be run here for BTTS if needed
       };
     }
 
@@ -563,13 +561,13 @@ export class BettingInsightsService {
   }
 
   /**
-   * Renamed from 'calculateConfidencePlaceholder' to be production-ready.
    * Calculates a detailed confidence score based on pattern statistics.
+   * * FIX: The comparison parameter type now includes 'binary' to prevent TS2367.
    */
   private calculateConfidenceScore(
     values: number[],
     threshold: number,
-    comparison: Comparison,
+    comparison: Comparison | 'binary', // FIX: Added 'binary' to the type definition
     homeAwaySupport?: BettingInsight['context']['homeAwaySupport']
   ): Confidence {
     const avgValue = values.reduce((sum, v) => sum + v, 0) / values.length;
@@ -598,6 +596,9 @@ export class BettingInsightsService {
         if (avgValue <= threshold - 1.5) {
             factors.push(`Team average (${avgValue.toFixed(1)}) is well below threshold.`);
         }
+    } else if (comparison === 'binary') {
+        // Skip margin checks for BTTS, give a flat base score for 100% hit rate
+        baseScore = 30;
     }
 
     // 2. Bonus for Match Volume (10 points max)
@@ -626,7 +627,8 @@ export class BettingInsightsService {
         ? avgValue - threshold 
         : threshold - avgValue;
         
-    if (proximityTolerance < 0.2 && comparison !== 'binary') {
+    // Fix applied here: The comparison check is now valid
+    if (proximityTolerance < 0.2 && comparison !== 'binary') { 
         finalScore = 15; // Force Low confidence if average is too close to the edge
         factors.push('Average value is too close to the threshold (proximity < 0.2). Pattern is fragile.');
     }
