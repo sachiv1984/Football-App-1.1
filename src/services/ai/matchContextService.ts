@@ -42,9 +42,61 @@ export type MatchContextInsight = BettingInsight & {
 /**
  * Service to enrich betting insights with match-specific context
  * Analyzes how the opposition performs defensively in the relevant market
- * NOW WITH VENUE-SPECIFIC ANALYSIS
+ * NOW WITH VENUE-SPECIFIC ANALYSIS, BTTS SUPPORT, AND ROBUST ERROR HANDLING
  */
 export class MatchContextService {
+  
+  // Minimum number of matches required for reliable analysis
+  private readonly MIN_MATCHES_FOR_ANALYSIS = 3;
+  private readonly MIN_VENUE_MATCHES = 3;
+
+  /**
+   * Verify that a team exists in the database
+   */
+  private async verifyTeamExists(teamName: string): Promise<boolean> {
+    try {
+      // Check if team exists in any of the services
+      const [cardsStats, cornersStats, foulsStats, goalsStats, shootingStats] = await Promise.all([
+        supabaseCardsService.getCardStatistics(),
+        supabaseCornersService.getCornerStatistics(),
+        supabaseFoulsService.getFoulStatistics(),
+        supabaseGoalsService.getGoalStatistics(),
+        supabaseShootingService.getShootingStatistics()
+      ]);
+
+      return cardsStats.has(teamName) || 
+             cornersStats.has(teamName) || 
+             foulsStats.has(teamName) || 
+             goalsStats.has(teamName) || 
+             shootingStats.has(teamName);
+    } catch (error) {
+      console.error(`[MatchContextService] Error verifying team existence for ${teamName}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Calculate data quality based on sample size and venue-specificity
+   */
+  private calculateDataQuality(
+    matches: number, 
+    venueSpecific: boolean
+  ): 'Excellent' | 'Good' | 'Fair' | 'Poor' | 'Insufficient' {
+    if (matches === 0) return 'Insufficient';
+    if (matches < this.MIN_MATCHES_FOR_ANALYSIS) return 'Insufficient';
+    
+    if (venueSpecific) {
+      if (matches >= 10) return 'Excellent';
+      if (matches >= 7) return 'Good';
+      if (matches >= 5) return 'Fair';
+      return 'Poor';
+    } else {
+      // Non-venue-specific (fallback to league-wide)
+      if (matches >= 15) return 'Good';
+      if (matches >= 10) return 'Fair';
+      return 'Poor';
+    }
+  }
   
   /**
    * Get opposition's defensive stats for a specific market
@@ -428,7 +480,7 @@ export class MatchContextService {
 
   /**
    * Main function to enrich all insights with match-specific context (Step 2).
-   * NOW WITH VENUE-SPECIFIC OPPOSITION ANALYSIS
+   * NOW WITH VENUE-SPECIFIC OPPOSITION ANALYSIS, BTTS SUPPORT, AND VALIDATION
    */
   public async enrichMatchInsights(
     homeTeam: string,
@@ -437,6 +489,50 @@ export class MatchContextService {
     awayInsights: BettingInsight[]
   ): Promise<MatchContextInsight[]> {
     const enrichedInsights: MatchContextInsight[] = [];
+
+    // ===== INPUT VALIDATION =====
+    
+    // 1. Validate team names are non-empty
+    if (!homeTeam?.trim()) {
+      console.error('[MatchContextService] ❌ Invalid home team name: empty or undefined');
+      return [];
+    }
+    
+    if (!awayTeam?.trim()) {
+      console.error('[MatchContextService] ❌ Invalid away team name: empty or undefined');
+      return [];
+    }
+
+    // 2. Validate teams are different
+    const normalizedHome = normalizeTeamName(homeTeam);
+    const normalizedAway = normalizeTeamName(awayTeam);
+    
+    if (normalizedHome === normalizedAway) {
+      console.error(`[MatchContextService] ❌ Home and away teams cannot be the same: "${homeTeam}"`);
+      return [];
+    }
+
+    // 3. Verify teams exist in database
+    console.log(`[MatchContextService] 🔍 Verifying teams: ${homeTeam} vs ${awayTeam}`);
+    const [homeExists, awayExists] = await Promise.all([
+      this.verifyTeamExists(normalizedHome),
+      this.verifyTeamExists(normalizedAway)
+    ]);
+
+    if (!homeExists) {
+      console.warn(`[MatchContextService] ⚠️ Home team "${homeTeam}" not found in database`);
+    }
+    if (!awayExists) {
+      console.warn(`[MatchContextService] ⚠️ Away team "${awayTeam}" not found in database`);
+    }
+
+    // 4. Validate insights arrays
+    if (!homeInsights?.length && !awayInsights?.length) {
+      console.warn('[MatchContextService] ⚠️ No insights provided for enrichment');
+      return [];
+    }
+
+    // ===== PROCESS INSIGHTS =====
 
     const allInsights = [
       // Home team insights: opponent is AWAY, so check opponent's away defensive stats
@@ -456,102 +552,369 @@ export class MatchContextService {
     ];
 
     for (const { insight, isHome, opponent, opponentIsHome } of allInsights) {
-      // 1. Get Opposition Stats (NOW VENUE-SPECIFIC)
-      const oppStats = await this.getOppositionDefensiveStats(
-        opponent, 
-        insight.market, 
-        opponentIsHome
-      );
-      const oppositionAllows = oppStats?.average ?? 0;
-      const oppositionMatches = oppStats?.matches ?? 0;
-      const venueSpecific = oppStats?.venueSpecific ?? false;
-
-      // Filter out markets that don't use standard opposition analysis
-      const isBTTS = insight.market === BettingMarket.BOTH_TEAMS_TO_SCORE;
-      const shouldApplyContext = 
-        insight.comparison !== 'binary' && !isBTTS;
-
-      let strengthOfMatch: MatchContext['strengthOfMatch'] = 'Fair';
-      let recommendation: string = `No specific match context generated for ${insight.market} ${insight.comparison} pattern.`;
-      let roundedOppositionAllows = 0;
-      let bttsContext: MatchContext['bttsContext'];
-      const confidenceScore = insight.context?.confidence?.score ?? 0;
-
-      // Handle BTTS separately
-      if (isBTTS) {
-        const bttsExpectation = insight.outcome.includes('Yes') ? 'Yes' : 'No';
-        const bttsEval = await this.evaluateBTTSMatchup(homeTeam, awayTeam, bttsExpectation);
+      try {
+        // 1. Get Opposition Stats (NOW VENUE-SPECIFIC)
+        const oppStats = await this.getOppositionDefensiveStats(
+          opponent, 
+          insight.market, 
+          opponentIsHome
+        );
         
-        if (bttsEval) {
-          strengthOfMatch = bttsEval.strength;
-          bttsContext = {
-            homeScoreProbability: bttsEval.homeScoreProbability,
-            awayScoreProbability: bttsEval.awayScoreProbability,
-            homeGoalsFor: bttsEval.homeGoalsFor,
-            awayGoalsAgainst: bttsEval.awayGoalsAgainst,
-            awayGoalsFor: bttsEval.awayGoalsFor,
-            homeGoalsAgainst: bttsEval.homeGoalsAgainst
-          };
+        // ===== HANDLE MISSING OR INSUFFICIENT DATA =====
+        if (!oppStats || oppStats.matches < this.MIN_MATCHES_FOR_ANALYSIS) {
+          const matchCount = oppStats?.matches ?? 0;
+          const oppDisplayName = getDisplayTeamName(opponent);
           
-          recommendation = this.generateBTTSRecommendation(
+          console.warn(
+            `[MatchContextService] ⚠️ Insufficient data for ${oppDisplayName} in ${insight.market}: ${matchCount} matches`
+          );
+          
+          enrichedInsights.push({
+            ...insight,
+            matchContext: {
+              oppositionAllows: 0,
+              oppositionMatches: matchCount,
+              isHome,
+              strengthOfMatch: 'Poor',
+              recommendation: `⚠️ **DATA WARNING**: Insufficient opposition data for ${oppDisplayName} in ${insight.market} market (only ${matchCount} matches available). Minimum ${this.MIN_MATCHES_FOR_ANALYSIS} matches required for reliable analysis. **Proceed with extreme caution** - this recommendation is based on incomplete information.`,
+              venueSpecific: false,
+              dataQuality: 'Insufficient'
+            }
+          });
+          
+          continue; // Skip to next insight
+        }
+        
+        const oppositionAllows = oppStats.average;
+        const oppositionMatches = oppStats.matches;
+        const venueSpecific = oppStats.venueSpecific;
+        
+        // Calculate data quality
+        const dataQuality = this.calculateDataQuality(oppositionMatches, venueSpecific);
+
+        // Filter out markets that don't use standard opposition analysis
+        const isBTTS = insight.market === BettingMarket.BOTH_TEAMS_TO_SCORE;
+        const shouldApplyContext = 
+          insight.comparison !== 'binary' && !isBTTS;
+
+        let strengthOfMatch: MatchContext['strengthOfMatch'] = 'Fair';
+        let recommendation: string = `No specific match context generated for ${insight.market} ${insight.comparison} pattern.`;
+        let roundedOppositionAllows = 0;
+        let bttsContext: MatchContext['bttsContext'];
+        const confidenceScore = insight.context?.confidence?.score ?? 0;
+
+        // Handle BTTS separately
+        if (isBTTS) {
+          const bttsExpectation = insight.outcome.includes('Yes') ? 'Yes' : 'No';
+          const bttsEval = await this.evaluateBTTSMatchup(homeTeam, awayTeam, bttsExpectation);
+          
+          if (bttsEval) {
+            strengthOfMatch = bttsEval.strength;
+            bttsContext = {
+              homeScoreProbability: bttsEval.homeScoreProbability,
+              awayScoreProbability: bttsEval.awayScoreProbability,
+              homeGoalsFor: bttsEval.homeGoalsFor,
+              awayGoalsAgainst: bttsEval.awayGoalsAgainst,
+              awayGoalsFor: bttsEval.awayGoalsFor,
+              homeGoalsAgainst: bttsEval.homeGoalsAgainst
+            };
+            
+            recommendation = this.generateBTTSRecommendation(
+              insight.team,
+              insight.outcome,
+              strengthOfMatch,
+              isHome,
+              confidenceScore,
+              bttsContext,
+              bttsEval.venueSpecific
+            );
+          } else {
+            // BTTS evaluation failed - insufficient data
+            recommendation = `⚠️ **DATA WARNING**: Unable to evaluate BTTS matchup due to insufficient goal data for one or both teams. Cannot reliably assess this market.`;
+            strengthOfMatch = 'Poor';
+          }
+        }
+        else if (shouldApplyContext) {
+          // 2. Evaluate Match Strength (NOW RETURNS DOMINANCE INFO)
+          const matchEvaluation = this.evaluateMatchStrength(
+            insight.averageValue,
+            insight.threshold,
+            oppositionAllows,
+            confidenceScore,
+            insight.comparison as Comparison
+          );
+          
+          strengthOfMatch = matchEvaluation.strength;
+          const dominanceOverride = matchEvaluation.dominanceOverride;
+          const dominanceRatio = matchEvaluation.dominanceRatio;
+
+          // 3. Generate Recommendation (NOW INCLUDES DOMINANCE OVERRIDE MESSAGING)
+          recommendation = this.generateRecommendation(
             insight.team,
             insight.outcome,
             strengthOfMatch,
+            insight.averageValue,
+            oppositionAllows,
+            insight.threshold,
             isHome,
             confidenceScore,
-            bttsContext,
-            bttsEval.venueSpecific
+            venueSpecific,
+            dominanceOverride,
+            dominanceRatio
           );
+          
+          // Append data quality warning if needed
+          if (dataQuality === 'Poor' || dataQuality === 'Fair') {
+            recommendation += ` 📊 **Data Quality: ${dataQuality}** (${oppositionMatches} ${venueSpecific ? 'venue-specific' : 'total'} matches).`;
+          }
+          
+          roundedOppositionAllows = Math.round(oppositionAllows * 10) / 10;
         }
-      }
-      else if (shouldApplyContext) {
-        // 2. Evaluate Match Strength (NOW RETURNS DOMINANCE INFO)
-        const matchEvaluation = this.evaluateMatchStrength(
-          insight.averageValue,
-          insight.threshold,
-          oppositionAllows,
-          confidenceScore,
-          insight.comparison as Comparison
-        );
+
+        // 4. Build Enriched Insight
+        enrichedInsights.push({
+          ...insight,
+          matchContext: {
+            oppositionAllows: roundedOppositionAllows,
+            oppositionMatches,
+            isHome,
+            strengthOfMatch,
+            recommendation,
+            venueSpecific,
+            dataQuality,
+            bttsContext
+          }
+        });
         
-        strengthOfMatch = matchEvaluation.strength;
-        const dominanceOverride = matchEvaluation.dominanceOverride;
-        const dominanceRatio = matchEvaluation.dominanceRatio;
-
-        // 3. Generate Recommendation (NOW INCLUDES DOMINANCE OVERRIDE MESSAGING)
-        recommendation = this.generateRecommendation(
-          insight.team,
-          insight.outcome,
-          strengthOfMatch,
-          insight.averageValue,
-          oppositionAllows,
-          insight.threshold,
-          isHome,
-          confidenceScore,
-          venueSpecific,
-          dominanceOverride,
-          dominanceRatio
-        );
-        roundedOppositionAllows = Math.round(oppositionAllows * 10) / 10;
+      } catch (error) {
+        // Catch any errors during processing of individual insights
+        console.error(`[MatchContextService] 💥 Error processing insight for ${insight.team} - ${insight.market}:`, error);
+        
+        // Add insight with error state
+        enrichedInsights.push({
+          ...insight,
+          matchContext: {
+            oppositionAllows: 0,
+            oppositionMatches: 0,
+            isHome,
+            strengthOfMatch: 'Poor',
+            recommendation: `❌ **ERROR**: Unable to process match context due to system error. This bet cannot be reliably evaluated.`,
+            venueSpecific: false,
+            dataQuality: 'Insufficient'
+          }
+        });
       }
-
-      // 4. Build Enriched Insight
-      enrichedInsights.push({
-        ...insight,
-        matchContext: {
-          oppositionAllows: roundedOppositionAllows,
-          oppositionMatches,
-          isHome,
-          strengthOfMatch,
-          recommendation,
-          venueSpecific,
-          bttsContext
-        }
-      });
     }
 
     console.log(`[MatchContextService] ✅ Enriched ${enrichedInsights.length} insights with venue-specific context`);
     return enrichedInsights;
+  }
+
+  /**
+   * NEW: Evaluate BTTS (Both Teams To Score) matchup
+   * Requires bilateral analysis: both teams must have scoring capability
+   */
+  private async evaluateBTTSMatchup(
+    homeTeam: string,
+    awayTeam: string,
+    bttsExpectation: 'Yes' | 'No'
+  ): Promise<{
+    strength: 'Poor' | 'Fair' | 'Good' | 'Excellent';
+    homeScoreProbability: number;
+    awayScoreProbability: number;
+    homeGoalsFor: number;
+    awayGoalsAgainst: number;
+    awayGoalsFor: number;
+    homeGoalsAgainst: number;
+    venueSpecific: boolean;
+  } | null> {
+    
+    try {
+      const stats = await supabaseGoalsService.getGoalStatistics();
+      const homeStats = stats.get(homeTeam);
+      const awayStats = stats.get(awayTeam);
+      
+      if (!homeStats || !awayStats) return null;
+
+      // Get venue-specific stats
+      const homeHomeMatches = homeStats.matchDetails.filter(m => m.isHome === true);
+      const awayAwayMatches = awayStats.matchDetails.filter(m => m.isHome === false);
+      
+      const venueSpecific = homeHomeMatches.length >= this.MIN_VENUE_MATCHES && 
+                           awayAwayMatches.length >= this.MIN_VENUE_MATCHES;
+      
+      // Calculate home team's home offensive output
+      let homeGoalsFor: number;
+      if (venueSpecific) {
+        const totalHomeGoalsFor = homeHomeMatches.reduce((sum, m) => sum + m.goalsFor, 0);
+        homeGoalsFor = totalHomeGoalsFor / homeHomeMatches.length;
+      } else {
+        homeGoalsFor = homeStats.goalsFor / homeStats.matches;
+      }
+      
+      // Calculate away team's away defensive weakness
+      let awayGoalsAgainst: number;
+      if (venueSpecific) {
+        const totalAwayGoalsAgainst = awayAwayMatches.reduce((sum, m) => sum + m.goalsAgainst, 0);
+        awayGoalsAgainst = totalAwayGoalsAgainst / awayAwayMatches.length;
+      } else {
+        awayGoalsAgainst = awayStats.goalsAgainst / awayStats.matches;
+      }
+      
+      // Calculate away team's away offensive output
+      let awayGoalsFor: number;
+      if (venueSpecific) {
+        const totalAwayGoalsFor = awayAwayMatches.reduce((sum, m) => sum + m.goalsFor, 0);
+        awayGoalsFor = totalAwayGoalsFor / awayAwayMatches.length;
+      } else {
+        awayGoalsFor = awayStats.goalsFor / awayStats.matches;
+      }
+      
+      // Calculate home team's home defensive weakness
+      let homeGoalsAgainst: number;
+      if (venueSpecific) {
+        const totalHomeGoalsAgainst = homeHomeMatches.reduce((sum, m) => sum + m.goalsAgainst, 0);
+        homeGoalsAgainst = totalHomeGoalsAgainst / homeHomeMatches.length;
+      } else {
+        homeGoalsAgainst = homeStats.goalsAgainst / homeStats.matches;
+      }
+      
+      // Calculate scoring probabilities (average of offensive output and defensive weakness)
+      const homeScoreProbability = (homeGoalsFor + awayGoalsAgainst) / 2;
+      const awayScoreProbability = (awayGoalsFor + homeGoalsAgainst) / 2;
+      
+      const bttsThreshold = 0.5; // Both teams need >0.5 goals average to be "likely to score"
+      const homeLikelyToScore = homeScoreProbability > bttsThreshold;
+      const awayLikelyToScore = awayScoreProbability > bttsThreshold;
+      
+      let strength: 'Poor' | 'Fair' | 'Good' | 'Excellent' = 'Poor';
+      
+      if (bttsExpectation === 'Yes') {
+        // BTTS YES: Both teams need to score
+        if (homeLikelyToScore && awayLikelyToScore) {
+          const minProb = Math.min(homeScoreProbability, awayScoreProbability);
+          const avgProb = (homeScoreProbability + awayScoreProbability) / 2;
+          
+          // Excellent: Both teams very likely to score (strong offense + weak defense)
+          if (minProb >= 1.5 && avgProb >= 2.0) {
+            strength = 'Excellent';
+          }
+          // Good: Both teams likely to score with comfortable margins
+          else if (minProb >= 1.2 && avgProb >= 1.5) {
+            strength = 'Good';
+          }
+          // Fair: Both teams moderately likely to score
+          else if (minProb >= 0.8) {
+            strength = 'Fair';
+          }
+          // Poor: One team barely meets threshold
+          else {
+            strength = 'Poor';
+          }
+        } else {
+          // One or both teams unlikely to score
+          strength = 'Poor';
+        }
+      } else {
+        // BTTS NO: At least one team needs to NOT score
+        const homeUnlikelyToScore = homeScoreProbability <= 0.8;
+        const awayUnlikelyToScore = awayScoreProbability <= 0.8;
+        
+        if (homeUnlikelyToScore || awayUnlikelyToScore) {
+          const minProb = Math.min(homeScoreProbability, awayScoreProbability);
+          
+          // Excellent: One team very unlikely to score
+          if (minProb <= 0.5) {
+            strength = 'Excellent';
+          }
+          // Good: One team unlikely to score
+          else if (minProb <= 0.7) {
+            strength = 'Good';
+          }
+          // Fair: One team moderately unlikely to score
+          else {
+            strength = 'Fair';
+          }
+        } else {
+          // Both teams likely to score - bad for BTTS No
+          strength = 'Poor';
+        }
+      }
+      
+      return {
+        strength,
+        homeScoreProbability,
+        awayScoreProbability,
+        homeGoalsFor,
+        awayGoalsAgainst,
+        awayGoalsFor,
+        homeGoalsAgainst,
+        venueSpecific
+      };
+      
+    } catch (error) {
+      console.error(`[MatchContextService] Error evaluating BTTS matchup:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * NEW: Generate BTTS-specific recommendation text
+   */
+  private generateBTTSRecommendation(
+    teamName: string,
+    outcome: string, // "BTTS Yes" or "BTTS No"
+    strength: 'Poor' | 'Fair' | 'Good' | 'Excellent',
+    isHome: boolean,
+    confidenceScore: number,
+    bttsContext: {
+      homeScoreProbability: number;
+      awayScoreProbability: number;
+      homeGoalsFor: number;
+      awayGoalsAgainst: number;
+      awayGoalsFor: number;
+      homeGoalsAgainst: number;
+    },
+    venueSpecific: boolean
+  ): string {
+    const displayTeamName = getDisplayTeamName(teamName);
+    const isBTTSYes = outcome.includes('Yes');
+    const venue = isHome ? 'home' : 'away';
+    const venueNote = venueSpecific ? ' (venue-specific analysis)' : '';
+    
+    const homeProb = Math.round(bttsContext.homeScoreProbability * 10) / 10;
+    const awayProb = Math.round(bttsContext.awayScoreProbability * 10) / 10;
+    const confidenceText = `Confidence Score: ${confidenceScore}/100.`;
+    
+    if (isBTTSYes) {
+      // BTTS YES recommendations
+      let base = `${displayTeamName}'s pattern: ${outcome}${venueNote}. Home scoring probability: ${homeProb}, Away scoring probability: ${awayProb}.`;
+      
+      switch (strength) {
+        case 'Excellent':
+          return `✅ **STRONG SELECTION**: ${base} An **Excellent Matchup** - both teams demonstrate strong offensive output combined with defensive vulnerability. Both sides are highly likely to find the net. This is a high-confidence BTTS Yes opportunity. ${confidenceText}`;
+        case 'Good':
+          return `🔵 **Recommended**: ${base} A **Good Matchup** - both teams show good scoring capability and their opponents have defensive weaknesses. Strong indicators for both teams to score. ${confidenceText}`;
+        case 'Fair':
+          return `🟡 **Fair Selection**: ${base} Both teams have moderate scoring probabilities. While the indicators lean toward BTTS Yes, there's less margin for error. ${confidenceText}`;
+        case 'Poor':
+          return `🛑 **CAUTION ADVISED**: ${base} At least one team shows weak scoring probability or faces a strong defense. BTTS Yes carries significant risk in this matchup. ${confidenceText}`;
+      }
+    } else {
+      // BTTS NO recommendations
+      let base = `${displayTeamName}'s pattern: ${outcome}${venueNote}. Home scoring probability: ${homeProb}, Away scoring probability: ${awayProb}.`;
+      
+      switch (strength) {
+        case 'Excellent':
+          return `✅ **STRONG SELECTION**: ${base} An **Excellent Matchup** - at least one team shows very low scoring probability. Strong indicators for a clean sheet scenario. ${confidenceText}`;
+        case 'Good':
+          return `🔵 **Recommended**: ${base} A **Good Matchup** - one team has weak offensive output or faces a strong defense. Good probability of at least one team failing to score. ${confidenceText}`;
+        case 'Fair':
+          return `🟡 **Fair Selection**: ${base} One team has moderate scoring difficulty, suggesting a possible clean sheet. However, the margin is narrow. ${confidenceText}`;
+        case 'Poor':
+          return `🛑 **CAUTION ADVISED**: ${base} Both teams demonstrate strong scoring capability. BTTS No is high-risk as both sides are likely to find the net. ${confidenceText}`;
+      }
+    }
   }
 
   /**
