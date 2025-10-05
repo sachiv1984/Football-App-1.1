@@ -331,19 +331,19 @@ export class MatchContextService {
     
     const venue = isHome ? 'home' : 'away';
     const oppVenue = isHome ? 'away' : 'home';
-    const venueContext = venueSpecific 
-      ? ` (opponent's ${oppVenue} form)` 
-      : ' (league-wide average)';
+    const venueNote = venueSpecific 
+      ? ` when playing ${oppVenue}` 
+      : '';
     
     let base = `${displayTeamName}'s pattern: ${outcome} (${Math.round(patternAvg * 10) / 10} avg)`;
     const confidenceText = `Confidence Score: ${confidenceScore}/100.`;
 
     if (isUnderBet) {
         // Text for UNDER Bets
-        const oppWeaknessText = `as the opposition's low ${oppVenue} allowance rate (${Math.round(oppAllowsAvg * 10) / 10}${venueContext}) complements this under bet, with both teams showing restraint.`;
-        const oppAboveThresholdText = `because the opposition also has a low ${oppVenue} concession rate (${Math.round(oppAllowsAvg * 10) / 10}${venueContext}), suggesting a low-action match in this market.`;
-        const oppNearThresholdText = `The opposition's ${oppVenue} concession rate (${Math.round(oppAllowsAvg * 10) / 10}${venueContext}) is near the threshold. The success of this bet relies mainly on ${displayTeamName}'s strict current form.`;
-        const oppStrengthText = `The opposition is **not a clean-sheet side** ${oppVenue}, allowing ${Math.round(oppAllowsAvg * 10) / 10}${venueContext}, which is **above** the ${threshold} threshold. This is a higher-risk ${venue} matchup despite recent form.`;
+        const oppWeaknessText = `as the opposition's low allowance rate${venueNote} (${Math.round(oppAllowsAvg * 10) / 10} avg) complements this under bet, with both teams showing restraint.`;
+        const oppAboveThresholdText = `because the opposition also has a low concession rate${venueNote} (${Math.round(oppAllowsAvg * 10) / 10} avg), suggesting a low-action match in this market.`;
+        const oppNearThresholdText = `The opposition's concession rate${venueNote} (${Math.round(oppAllowsAvg * 10) / 10} avg) is near the threshold. The success of this bet relies mainly on ${displayTeamName}'s strict current form.`;
+        const oppStrengthText = `The opposition is **not a clean-sheet side**${venueNote}, allowing ${Math.round(oppAllowsAvg * 10) / 10} avg, which is **above** the ${threshold} threshold. This is a higher-risk ${venue} matchup despite recent form.`;
         
         switch (strength) {
             case 'Excellent':
@@ -357,10 +357,10 @@ export class MatchContextService {
         }
     } else {
         // Text for OVER/OR_MORE Bets
-        const oppWeaknessText = `as the opposition concedes significantly more than the ${threshold} threshold when playing ${oppVenue}${venueContext}.`;
-        const oppAboveThresholdText = `because the opposition allows above the threshold when playing ${oppVenue}${venueContext}, suggesting their defense is vulnerable to this market.`;
-        const oppNearThresholdText = `The opposition's ${oppVenue} concession rate (${Math.round(oppAllowsAvg * 10) / 10}${venueContext}) is near the threshold. The success of this bet relies mainly on ${displayTeamName}'s strong current form.`;
-        const oppStrengthText = `The opposition is defensively strong ${oppVenue}, allowing only ${Math.round(oppAllowsAvg * 10) / 10}${venueContext}, which is **below** the ${threshold} threshold. This is a difficult ${venue} matchup despite recent form.`;
+        const oppWeaknessText = `as the opposition concedes significantly more than the ${threshold} threshold${venueNote} (${Math.round(oppAllowsAvg * 10) / 10} avg).`;
+        const oppAboveThresholdText = `because the opposition allows above the threshold${venueNote} (${Math.round(oppAllowsAvg * 10) / 10} avg), suggesting their defense is vulnerable to this market.`;
+        const oppNearThresholdText = `The opposition's concession rate${venueNote} (${Math.round(oppAllowsAvg * 10) / 10} avg) is near the threshold. The success of this bet relies mainly on ${displayTeamName}'s strong current form.`;
+        const oppStrengthText = `The opposition is defensively strong${venueNote}, allowing only ${Math.round(oppAllowsAvg * 10) / 10} avg, which is **below** the ${threshold} threshold. This is a difficult ${venue} matchup despite recent form.`;
 
         switch (strength) {
           case 'Excellent':
