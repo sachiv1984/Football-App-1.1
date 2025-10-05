@@ -14,7 +14,7 @@ export interface SupabaseCardData {
   opp_second_yellow_cards: number;
   match_date?: string;
   matchweek?: number;
-  venue?: 'home' | 'away';
+  venue?: 'home' | 'away' | 'Home' | 'Away'; // Updated type to reflect reality
 }
 
 export interface DetailedCardStats {
@@ -183,6 +183,9 @@ export class SupabaseCardsService {
           match.opp_second_yellow_cards
         );
 
+        // FIX: Convert raw venue to lowercase for reliable comparison
+        const venueLower = match.venue?.toLowerCase();
+
         return {
           opponent: match.opponent,
           totalCards: teamCards + oppCards,
@@ -190,7 +193,7 @@ export class SupabaseCardsService {
           cardsAgainst: oppCards,
           date: match.match_date,
           matchweek: match.matchweek,
-          isHome: match.venue === 'home' // NEW: Convert venue to boolean
+          isHome: venueLower === 'home' // ✅ FIXED: Case-insensitive check
         };
       });
 
