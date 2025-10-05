@@ -1,4 +1,4 @@
-// src/services/ai/bettingInsightsService.ts (FULL CODE)
+// src/services/ai/bettingInsightsService.ts
 
 import { supabaseCardsService } from '../stats/supabaseCardsService';
 import { supabaseCornersService } from '../stats/supabaseCornersService';
@@ -56,13 +56,12 @@ export enum Comparison {
     OR_MORE = 'Or More' // NEW: For whole number markets (3+ shots)
 }
 
-// NEW: Definition for Confidence (required by MatchContextService and MatchBettingPatterns)
+// FIX 1: DEFINE Confidence interface
 interface Confidence {
     level: 'Low' | 'Medium' | 'High' | 'Very High';
     score: number;
     factors: string[];
 }
-
 
 export interface BettingInsight {
   team: string;
@@ -83,7 +82,7 @@ export interface BettingInsight {
   }>;
   context?: {
     homeAwaySupport?: {
-      // FIX 1: ADDED 'average' back to resolve TS2339 in component/page
+      // FIX 2: Ensure 'average' is present on home/away stats
       home: { hitRate: number; matches: number; average: number };
       away: { hitRate: number; matches: number; average: number };
     };
@@ -92,8 +91,8 @@ export interface BettingInsight {
       hitRate: number;
       matches: number;
     };
-    // FIX 2: ADDED 'confidence' to resolve TS2339 in MatchContextService
-    confidence?: Confidence; 
+    // FIX 3: ADD optional 'confidence' property
+    confidence?: Confidence;
   };
 }
 
@@ -568,7 +567,7 @@ export class BettingInsightsService {
       }
       return false;
     };
-    
+
     // Calculate Home/Away Support (using simple hit rate/matches logic for this example)
     const homeMatches = matchDetails.filter(d => d.isHome !== undefined);
     const homeHits = homeMatches.filter((d, idx) => d.isHome && isHit(values[idx]!)).length;
@@ -617,7 +616,7 @@ export class BettingInsightsService {
       })),
       context: {
           homeAwaySupport: homeAwaySupport
-          // confidence: undefined will satisfy the type (since it's optional)
+          // confidence is optional and will be undefined here, which is fine
       }
     };
   }
