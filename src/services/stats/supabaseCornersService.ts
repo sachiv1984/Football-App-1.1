@@ -10,7 +10,7 @@ export interface SupabaseCornerData {
   opp_corner_kicks: number;
   match_date?: string;
   matchweek?: number;
-  venue?: 'home' | 'away';
+  venue?: 'home' | 'away' | 'Home' | 'Away'; // Updated type to reflect reality
 }
 
 export interface DetailedCornerStats {
@@ -135,15 +135,20 @@ export class SupabaseCornersService {
       const totalCornersAgainst = matches.reduce((sum, match) => sum + match.opp_corner_kicks, 0);
 
       // Create detailed match data with isHome field
-      const matchDetails = matches.map(match => ({
-        opponent: match.opponent,
-        totalCorners: match.team_corner_kicks + match.opp_corner_kicks,
-        cornersFor: match.team_corner_kicks,
-        cornersAgainst: match.opp_corner_kicks,
-        date: match.match_date,
-        matchweek: match.matchweek,
-        isHome: match.venue === 'home' // NEW: Convert venue to boolean
-      }));
+      const matchDetails = matches.map(match => {
+        // FIX: Convert raw venue to lowercase for reliable comparison
+        const venueLower = match.venue?.toLowerCase();
+
+        return {
+          opponent: match.opponent,
+          totalCorners: match.team_corner_kicks + match.opp_corner_kicks,
+          cornersFor: match.team_corner_kicks,
+          cornersAgainst: match.opp_corner_kicks,
+          date: match.match_date,
+          matchweek: match.matchweek,
+          isHome: venueLower === 'home' // ✅ FIXED: Case-insensitive check
+        };
+      });
 
       teamStats.set(teamName, {
         corners: totalCorners,
