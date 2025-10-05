@@ -562,12 +562,11 @@ export class BettingInsightsService {
 
   /**
    * Calculates a detailed confidence score based on pattern statistics.
-   * * FIX: The comparison parameter type now includes 'binary' to prevent TS2367.
    */
   private calculateConfidenceScore(
     values: number[],
     threshold: number,
-    comparison: Comparison | 'binary', // FIX: Added 'binary' to the type definition
+    comparison: Comparison | 'binary',
     homeAwaySupport?: BettingInsight['context']['homeAwaySupport']
   ): Confidence {
     const avgValue = values.reduce((sum, v) => sum + v, 0) / values.length;
@@ -627,7 +626,6 @@ export class BettingInsightsService {
         ? avgValue - threshold 
         : threshold - avgValue;
         
-    // Fix applied here: The comparison check is now valid
     if (proximityTolerance < 0.2 && comparison !== 'binary') { 
         finalScore = 15; // Force Low confidence if average is too close to the edge
         factors.push('Average value is too close to the threshold (proximity < 0.2). Pattern is fragile.');
