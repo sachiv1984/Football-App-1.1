@@ -467,16 +467,20 @@ export class MatchContextService {
       const confidenceScore = insight.context?.confidence?.score ?? 0;
 
       if (shouldApplyContext) {
-        // 2. Evaluate Match Strength
-        strengthOfMatch = this.evaluateMatchStrength(
+        // 2. Evaluate Match Strength (NOW RETURNS DOMINANCE INFO)
+        const matchEvaluation = this.evaluateMatchStrength(
           insight.averageValue,
           insight.threshold,
           oppositionAllows,
           confidenceScore,
           insight.comparison as Comparison
         );
+        
+        strengthOfMatch = matchEvaluation.strength;
+        const dominanceOverride = matchEvaluation.dominanceOverride;
+        const dominanceRatio = matchEvaluation.dominanceRatio;
 
-        // 3. Generate Recommendation (NOW VENUE-AWARE)
+        // 3. Generate Recommendation (NOW INCLUDES DOMINANCE OVERRIDE MESSAGING)
         recommendation = this.generateRecommendation(
           insight.team,
           insight.outcome,
@@ -486,7 +490,9 @@ export class MatchContextService {
           insight.threshold,
           isHome,
           confidenceScore,
-          venueSpecific
+          venueSpecific,
+          dominanceOverride,
+          dominanceRatio
         );
         roundedOppositionAllows = Math.round(oppositionAllows * 10) / 10;
       }
