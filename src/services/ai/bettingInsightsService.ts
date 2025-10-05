@@ -9,29 +9,35 @@ import { supabaseShootingService } from '../stats/supabaseShootingService';
 interface BaseMatchDetail {
   opponent: string;
   date?: string;
-  isHome?: boolean; // NEW: Track home/away context
+  isHome?: boolean; // Track home/away context
 }
 
 interface GoalsDetail extends BaseMatchDetail {
   totalGoals: number;
   bothTeamsScored: boolean;
+  goalsAgainst?: number; // Added for context service
 }
 
 interface CardsMatchDetail extends BaseMatchDetail {
   cardsFor: number;
+  cardsAgainst?: number; // Added for context service
 }
 
 interface CornersMatchDetail extends BaseMatchDetail {
   cornersFor: number;
+  cornersAgainst?: number; // Added for context service
 }
 
 interface FoulsMatchDetail extends BaseMatchDetail {
   foulsCommittedFor: number;
+  foulsCommittedAgainst?: number; // Added for context service
 }
 
 interface ShotsMatchDetail extends BaseMatchDetail {
   shotsOnTargetFor: number;
-  shotsFor: number; // Added for total shots market
+  shotsFor: number;
+  shotsOnTargetAgainst?: number; // Added for context service
+  shotsAgainst?: number; // Added for context service
 }
 
 /**
@@ -43,7 +49,7 @@ export enum BettingMarket {
   FOULS = 'fouls',
   GOALS = 'goals',
   SHOTS_ON_TARGET = 'shots_on_target',
-  TOTAL_SHOTS = 'total_shots', // NEW: Total shots market
+  TOTAL_SHOTS = 'total_shots',
   BOTH_TEAMS_TO_SCORE = 'both_teams_to_score'
 }
 
@@ -53,10 +59,9 @@ export enum BettingMarket {
 export enum Comparison {
     OVER = 'Over',
     UNDER = 'Under',
-    OR_MORE = 'Or More' // NEW: For whole number markets (3+ shots)
+    OR_MORE = 'Or More'
 }
 
-// FIX 1: DEFINE Confidence interface
 interface Confidence {
     level: 'Low' | 'Medium' | 'High' | 'Very High';
     score: number;
@@ -79,10 +84,10 @@ export interface BettingInsight {
     value: number;
     hit: boolean;
     date?: string;
+    isHome?: boolean; // <--- FIX 1: ADD isHome TO RECENT MATCHES
   }>;
   context?: {
     homeAwaySupport?: {
-      // FIX 2: Ensure 'average' is present on home/away stats
       home: { hitRate: number; matches: number; average: number };
       away: { hitRate: number; matches: number; average: number };
     };
@@ -91,7 +96,6 @@ export interface BettingInsight {
       hitRate: number;
       matches: number;
     };
-    // FIX 3: ADD optional 'confidence' property
     confidence?: Confidence;
   };
 }
@@ -110,7 +114,7 @@ interface MarketConfig {
   thresholds: number[];
   minValue: number;
   label: string;
-  useOrMore?: boolean; // Optional flag for "or more" logic
+  useOrMore?: boolean;
 }
 
 const MARKET_CONFIGS: Record<BettingMarket, MarketConfig> = {
@@ -135,16 +139,16 @@ const MARKET_CONFIGS: Record<BettingMarket, MarketConfig> = {
     label: 'Match Goals'
   },
   [BettingMarket.SHOTS_ON_TARGET]: {
-    thresholds: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13], // UPDATED: Whole numbers only
+    thresholds: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
     minValue: 0,
     label: 'Team Shots on Target',
-    useOrMore: true // NEW: Flag for "or more" logic
+    useOrMore: true
   },
   [BettingMarket.TOTAL_SHOTS]: {
-    thresholds: [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25], // NEW
+    thresholds: [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25],
     minValue: 0,
     label: 'Team Total Shots',
-    useOrMore: true // NEW: Flag for "or more" logic
+    useOrMore: true
   },
   [BettingMarket.BOTH_TEAMS_TO_SCORE]: {
     thresholds: [0.5],
@@ -421,7 +425,7 @@ export class BettingInsightsService {
     teamName: string,
     market: BettingMarket,
     outcome: string,
-    matchDetails: Array<{ opponent: string; date?: string }>,
+    matchDetails: Array<{ opponent: string; date?: string; isHome?: boolean }>,
     comparison: Comparison
   ): BettingInsight | null {
     
@@ -532,7 +536,8 @@ export class BettingInsightsService {
           opponent: m.opponent,
           value: m.bothTeamsScored ? 1 : 0,
           hit: isHit(m),
-          date: m.date
+          date: m.date,
+          isHome: m.isHome // <--- Added isHome here for BTTS
         }))
       };
     }
@@ -570,14 +575,22 @@ export class BettingInsightsService {
 
     // Calculate Home/Away Support (using simple hit rate/matches logic for this example)
     const homeMatches = matchDetails.filter(d => d.isHome !== undefined);
-    const homeHits = homeMatches.filter((d, idx) => d.isHome && isHit(values[idx]!)).length;
-    const awayHits = homeMatches.filter((d, idx) => !d.isHome && isHit(values[idx]!)).length;
-    const totalHome = homeMatches.filter(d => d.isHome).length;
-    const totalAway = homeMatches.filter(d => !d.isHome).length;
     
-    // Simple average calculation for context purposes
-    const homeValues = homeMatches.filter(d => d.isHome).map((d, idx) => values[idx]!);
-    const awayValues = homeMatches.filter(d => !d.isHome).map((d, idx) => values[idx]!);
+    // We need to map values to their match details to check isHome
+    const combinedData = matchDetails.map((detail, idx) => ({
+      ...detail,
+      value: values[idx],
+      hit: isHit(values[idx]!)
+    })).filter(d => d.isHome !== undefined); // Only include matches where venue is known
+
+    const homeHits = combinedData.filter(d => d.isHome && d.hit).length;
+    const awayHits = combinedData.filter(d => !d.isHome && d.hit).length;
+    const totalHome = combinedData.filter(d => d.isHome).length;
+    const totalAway = combinedData.filter(d => !d.isHome).length;
+    
+    const homeValues = combinedData.filter(d => d.isHome).map(d => d.value!);
+    const awayValues = combinedData.filter(d => !d.isHome).map(d => d.value!);
+
     const avgHome = homeValues.length > 0 ? homeValues.reduce((s, v) => s + v, 0) / homeValues.length : 0;
     const avgAway = awayValues.length > 0 ? awayValues.reduce((s, v) => s + v, 0) / awayValues.length : 0;
     
@@ -585,17 +598,14 @@ export class BettingInsightsService {
       home: { 
         hitRate: totalHome > 0 ? Math.round((homeHits / totalHome) * 100) : 0, 
         matches: totalHome,
-        average: Math.round(avgHome * 100) / 100 // ADDED average
+        average: Math.round(avgHome * 100) / 100
       },
       away: { 
         hitRate: totalAway > 0 ? Math.round((awayHits / totalAway) * 100) : 0, 
         matches: totalAway,
-        average: Math.round(avgAway * 100) / 100 // ADDED average
+        average: Math.round(avgAway * 100) / 100
       }
     } : undefined;
-
-    // NOTE: Confidence logic is typically added later by the MatchContextService 
-    // but the type must be present.
 
     return {
       team: teamName,
@@ -612,11 +622,11 @@ export class BettingInsightsService {
         opponent: matchDetails[idx]?.opponent || 'Unknown',
         value,
         hit: isHit(value),
-        date: matchDetails[idx]?.date
+        date: matchDetails[idx]?.date,
+        isHome: matchDetails[idx]?.isHome, // <--- FIX 2: PASSED isHome HERE
       })),
       context: {
           homeAwaySupport: homeAwaySupport
-          // confidence is optional and will be undefined here, which is fine
       }
     };
   }
