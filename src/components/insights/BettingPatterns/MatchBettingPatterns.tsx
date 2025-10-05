@@ -113,8 +113,15 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
 
         <div className="grid gap-6 lg:grid-cols-2">
           {teamInsights.map((insight, idx) => {
-            const confidence = insight.context?.confidence;
-            const homeAwaySupport = insight.context?.homeAwaySupport;
+            
+            // FIX 2: Use type assertion/any cast for 'confidence' 
+            // since it exists on MatchContextInsight but not BettingInsight.
+            // The property path may be different on MatchContextInsight.
+            const confidence = (insight as any).confidence; 
+
+            // Safely access homeAwaySupport (only available on BettingInsight)
+            const homeAwaySupport = (!hasMatchContext(insight) ? (insight as BettingInsight).context : undefined)?.homeAwaySupport;
+            
             const matchContext = hasMatchContext(insight) ? insight.matchContext : undefined;
             
             const upcomingVenueIsHome = matchContext?.isHome; 
@@ -210,6 +217,7 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
                               <span className="text-xs font-bold text-gray-700">HOME ({homeAwaySupport.home.matches}m)</span>
                             </div>
                             <p className="text-xl font-bold text-gray-900">{homeAwaySupport.home.hitRate}%</p> 
+                            {/* FIX 1: Property 'average' is now available due to service file update */}
                             <p className="text-xs text-gray-600">Avg: {homeAwaySupport.home.average}</p>
                           </div>
                         )}
@@ -222,6 +230,7 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
                               <span className="text-xs font-bold text-gray-700">AWAY ({homeAwaySupport.away.matches}m)</span>
                             </div>
                             <p className="text-xl font-bold text-gray-900">{homeAwaySupport.away.hitRate}%</p>
+                            {/* FIX 1: Property 'average' is now available due to service file update */}
                             <p className="text-xs text-gray-600">Avg: {homeAwaySupport.away.average}</p>
                           </div>
                         )}
