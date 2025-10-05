@@ -10,7 +10,7 @@ export interface SupabaseGoalData {
   goals_against: number;
   match_date?: string;
   matchweek?: number;
-  venue?: 'home' | 'away';
+  venue?: 'home' | 'away' | 'Home' | 'Away'; // Updated type to reflect reality
 }
 
 export interface DetailedGoalStats {
@@ -87,17 +87,6 @@ export class SupabaseGoalsService {
         uniqueTeams: new Set(data.map(d => d.team_name)).size
       });
 
-      // --- CRITICAL DEBUG LOG: Inspect the raw venue field ---
-      const debugTeamName = 'Manchester United'; // Change this team name if needed
-      const sample = data.filter(d => d.team_name === debugTeamName).slice(0, 5);
-      console.log(`[SupabaseGoals] 🟥 RAW VENUE DATA DEBUG (${debugTeamName} - Top 5):`);
-      console.log(sample.map(d => ({
-          opponent: d.opponent,
-          rawVenue: d.venue, // <-- This MUST be 'home' or 'away'
-          date: d.match_date
-      })));
-      // --- END CRITICAL DEBUG LOG ---
-
       return data.map(row => ({
         id: row.id,
         team_name: normalizeTeamName(row.team_name),
@@ -106,7 +95,7 @@ export class SupabaseGoalsService {
         goals_against: row.goals_against || 0,
         match_date: row.match_date,
         matchweek: row.matchweek,
-        venue: row.venue
+        venue: row.venue // Raw value is fetched
       }));
 
     } catch (err) {
@@ -144,16 +133,21 @@ export class SupabaseGoalsService {
       const totalGoalsAgainst = matches.reduce((sum, match) => sum + match.goals_against, 0);
 
       // Create detailed match data with isHome field
-      const matchDetails = matches.map(match => ({
-        opponent: match.opponent,
-        totalGoals: match.goals_for + match.goals_against,
-        goalsFor: match.goals_for,
-        goalsAgainst: match.goals_against,
-        bothTeamsScored: match.goals_for > 0 && match.goals_against > 0,
-        date: match.match_date,
-        matchweek: match.matchweek,
-        isHome: match.venue === 'home' // Correct conversion logic
-      }));
+      const matchDetails = matches.map(match => {
+        // FIX: Convert raw venue to lowercase for reliable comparison
+        const venueLower = match.venue?.toLowerCase(); 
+
+        return {
+          opponent: match.opponent,
+          totalGoals: match.goals_for + match.goals_against,
+          goalsFor: match.goals_for,
+          goalsAgainst: match.goals_against,
+          bothTeamsScored: match.goals_for > 0 && match.goals_against > 0,
+          date: match.match_date,
+          matchweek: match.matchweek,
+          isHome: venueLower === 'home' // ✅ FIXED: Case-insensitive check
+        };
+      });
 
       teamStats.set(teamName, {
         goalsFor: totalGoalsFor,
