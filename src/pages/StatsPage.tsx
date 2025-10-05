@@ -369,18 +369,11 @@ const StatsPage: React.FC = () => {
                       <li>• <strong>100% Hit Rate:</strong> Pattern hit in every analyzed match</li>
                       <li>• <strong>Streaks (7+):</strong> Consecutive matches hitting the threshold</li>
                       <li>• <strong>Rolling (5):</strong> Last 5 matches all hit the threshold</li>
-                      <li>• <strong>Threshold:</strong> The betting line (e.g., 3+ shots on target)</li>
                       <li>• <strong>Average:</strong> Team's average performance in this market</li>
                     </ul>
                   </div>
 
-                  {/* Responsible Gambling Notice */}
-                  <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <p className="text-xs text-yellow-800">
-                      <strong>⚠️ Please Gamble Responsibly:</strong> Pattern detection shows historical data only. 
-                      Past performance does not guarantee future results. Always bet within your means. 18+ only.
-                    </p>
-                  </div>
+                  {/* Responsible Gambling Notice was here, now removed */}
                 </>
               )}
 
