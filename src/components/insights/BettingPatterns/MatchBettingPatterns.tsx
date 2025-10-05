@@ -2,7 +2,9 @@
 import React, { useState } from 'react';
 import { TrendingUp, Target, Home, Plane, Award, Info, Zap } from 'lucide-react';
 
-// Import the correct types from the service
+// FIX 1: Import the correct types from the service, ensuring HomeAwaySupport is available.
+// NOTE: HomeAwaySupport was correctly exported in bettingInsightsService.ts. 
+// We just need to ensure the import statement is correct.
 import { BettingInsight, HomeAwaySupport } from '../../../services/ai/bettingInsightsService';
 import { MatchContextInsight } from '../../../services/ai/matchContextService';
 
@@ -12,7 +14,7 @@ interface MatchBettingPatternsProps {
   awayTeam: string;
 }
 
-// *** FIX: Utility function to parse the recommendation text and handle **bold** syntax ***
+// *** Utility function to parse the recommendation text and handle **bold** syntax ***
 const renderRecommendationText = (text: string) => {
   const parts: React.ReactNode[] = [];
   // Regex to split the text by the bold markdown syntax (**...**)
@@ -131,7 +133,7 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
   }) => {
     if (teamInsights.length === 0) return null;
 
-    // FIX: State for venue consistency toggle (applied per TeamInsightsSection)
+    // State for venue consistency toggle (applied per TeamInsightsSection)
     const [venueView, setVenueView] = useState<'sample' | 'overall'>('sample');
 
     return (
@@ -151,11 +153,11 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
             
             const confidence = insight.context?.confidence; 
             
-            // FIX: Access the NEW home/away properties
+            // Access the NEW home/away properties
             const homeAwaySupportForSample = insight.context?.homeAwaySupportForSample;
             const homeAwaySupportOverall = insight.context?.homeAwaySupportOverall;
 
-            // FIX: Select the currently displayed data based on the toggle state
+            // Select the currently displayed data based on the toggle state
             const selectedHomeAwaySplit = venueView === 'sample' 
                 ? homeAwaySupportForSample 
                 : homeAwaySupportOverall;
@@ -170,7 +172,7 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
             const marginRatio = (insight.averageValue - insight.threshold) / insight.threshold; 
             const strengthStyle = matchContext ? getMatchStrengthStyle(matchContext.strengthOfMatch) : null;
 
-            // *** FIX: Extract the core recommendation part (after the initial header and before the confidence text) ***
+            // Extract the core recommendation part (after the initial header and before the confidence text)
             let recommendationBody: React.ReactNode = null;
             if (matchContext) {
                 // Remove the confidence score text from the end
@@ -185,7 +187,11 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
                 
                 recommendationBody = renderRecommendationText(mainBody);
             }
-            // *********************************************************************************************************
+
+            // FIX 2, 3, 4, 5: Safely calculate total matches for button labels using optional chaining 
+            // and avoiding strict nullish errors by pre-calculating or using a simple fallback.
+            const sampleMatches = (homeAwaySupportForSample?.home.matches ?? 0) + (homeAwaySupportForSample?.away.matches ?? 0);
+            const overallMatches = (homeAwaySupportOverall?.home.matches ?? 0) + (homeAwaySupportOverall?.away.matches ?? 0);
 
             return (
               <div 
@@ -233,7 +239,7 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
                         </div>
                         <div className={`p-3 rounded-lg border-l-4 ${strengthStyle?.hoverBg} ${strengthStyle?.text} ${strengthStyle?.border}`}>
                             <p className="text-sm font-semibold italic">
-                                {/* FIX: Render the main body of the recommendation with bolding */}
+                                {/* Render the main body of the recommendation with bolding */}
                                 {recommendationBody}
                             </p>
                             {/* Display Confidence Score text separately below the main body */}
@@ -279,7 +285,7 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
                                       : 'text-gray-600 hover:bg-gray-200'
                               }`}
                           >
-                              Pattern Sample ({homeAwaySupportForSample?.home.matches ?? 0 + homeAwaySupportForSample?.away.matches ?? 0}m)
+                              Pattern Sample ({sampleMatches}m)
                           </button>
                           <button
                               onClick={() => setVenueView('overall')}
@@ -289,7 +295,7 @@ const MatchBettingPatterns: React.FC<MatchBettingPatternsProps> = ({
                                       : 'text-gray-600 hover:bg-gray-200'
                               }`}
                           >
-                              Overall Season ({homeAwaySupportOverall?.home.matches ?? 0 + homeAwaySupportOverall?.away.matches ?? 0}m)
+                              Overall Season ({overallMatches}m)
                           </button>
                       </div>
 
