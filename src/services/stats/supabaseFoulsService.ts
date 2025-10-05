@@ -12,7 +12,7 @@ export interface SupabaseFoulData {
   opp_fouled: number;
   match_date?: string;
   matchweek?: number;
-  venue?: 'home' | 'away';
+  venue?: 'home' | 'away' | 'Home' | 'Away'; // Updated type to reflect reality
 }
 
 export interface DetailedFoulStats {
@@ -144,17 +144,22 @@ export class SupabaseFoulsService {
       const totalFoulsLost = matches.reduce((sum, match) => sum + match.opp_fouled, 0);
 
       // Create detailed match data with isHome field
-      const matchDetails = matches.map(match => ({
-        opponent: match.opponent,
-        totalFouls: match.team_fouls + match.opp_fouls,
-        foulsCommittedFor: match.team_fouls,
-        foulsWonFor: match.team_fouled,
-        foulsCommittedAgainst: match.opp_fouls,
-        foulsWonAgainst: match.opp_fouled,
-        date: match.match_date,
-        matchweek: match.matchweek,
-        isHome: match.venue === 'home' // NEW: Convert venue to boolean
-      }));
+      const matchDetails = matches.map(match => {
+        // FIX: Convert raw venue to lowercase for reliable comparison
+        const venueLower = match.venue?.toLowerCase();
+        
+        return {
+          opponent: match.opponent,
+          totalFouls: match.team_fouls + match.opp_fouls,
+          foulsCommittedFor: match.team_fouls,
+          foulsWonFor: match.team_fouled,
+          foulsCommittedAgainst: match.opp_fouls,
+          foulsWonAgainst: match.opp_fouled,
+          date: match.match_date,
+          matchweek: match.matchweek,
+          isHome: venueLower === 'home' // ✅ FIXED: Case-insensitive check
+        };
+      });
 
       teamStats.set(teamName, {
         foulsCommitted: totalFoulsCommitted,
