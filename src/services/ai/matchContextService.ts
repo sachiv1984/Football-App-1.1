@@ -725,6 +725,7 @@ export class MatchContextService {
   /**
    * NEW: Evaluate BTTS (Both Teams To Score) matchup
    * Requires bilateral analysis: both teams must have scoring capability
+   * Returns expected goals (not probability percentages) - represents average goals expected
    */
   private async evaluateBTTSMatchup(
     homeTeam: string,
