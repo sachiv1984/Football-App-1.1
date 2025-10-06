@@ -5,7 +5,7 @@ import { MatchContextInsight } from '../../services/ai/matchContextService';
 
 interface UnifiedBettingInsightsProps {
   insights: MatchContextInsight[];
-  // NOTE: homeTeam and awayTeam are now guaranteed to be CANONICAL names (e.g., 'Manchester United')
+  // These props are now expected to be CANONICAL names (e.g., 'Manchester United')
   homeTeam: string;
   awayTeam: string;
 }
@@ -23,9 +23,11 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
   const [selectedTeam, setSelectedTeam] = useState<'all' | 'home' | 'away'>('all');
   
   // Rank all bets
-  const rankedBets = showAccasOnly 
-    ? betRankingService.getAccumulatorBets(insights)
-    : betRankingService.rankBets(insights);
+  const rankedBets = useMemo(() => {
+    return showAccasOnly 
+      ? betRankingService.getAccumulatorBets(insights)
+      : betRankingService.rankBets(insights);
+  }, [insights, showAccasOnly]);
   
   // Filter logic now uses selectedTab
   const tabFiltered = selectedTab === 'all' 
@@ -36,7 +38,7 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
   const finalFiltered = selectedTeam === 'all'
     ? tabFiltered
     : tabFiltered.filter(bet => {
-        const isHomeTeam = bet.team === homeTeam; // Changed from .toLowerCase()
+        const isHomeTeam = bet.team === homeTeam;
         return selectedTeam === 'home' ? isHomeTeam : !isHomeTeam;
       });
   
@@ -68,13 +70,24 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
     { key: BetTier.FAIR, label: 'Fair', color: 'yellow' },
   ];
 
+  // Helper function for Top Pick tier display
+  const getTierDisplay = (tier: BetTier) => {
+      switch (tier) {
+          case BetTier.EXCELLENT: return { icon: <Award className="w-4 h-4 text-emerald-600" />, text: 'Excellent', style: 'text-emerald-800 bg-emerald-100 border-emerald-300' };
+          case BetTier.GOOD: return { icon: <TrendingUp className="w-4 h-4 text-blue-600" />, text: 'Good', style: 'text-blue-800 bg-blue-100 border-blue-300' };
+          case BetTier.FAIR: return { icon: <Target className="w-4 h-4 text-yellow-600" />, text: 'Fair', style: 'text-yellow-800 bg-yellow-100 border-yellow-300' };
+          default: return { icon: <Info className="w-4 h-4 text-gray-600" />, text: 'Other', style: 'text-gray-800 bg-gray-100 border-gray-300' };
+      }
+  };
+
+
   return (
     // Re-using the container style from ModernStatsTable
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden space-y-0">
       
       {/* HEADER BLOCK (Tabs and Secondary Filter) */}
       <div className="w-full">
-        {/* TABS - MIMIC STATS TABLE TABS (COUNTS REMOVED) */}
+        {/* TABS */}
         <div className="bg-gray-50 border-b border-gray-200 w-full flex">
           {tabs.map((tab) => {
             const isActive = selectedTab === tab.key;
@@ -97,7 +110,6 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
                   <div className="absolute inset-0 bg-gradient-to-t from-purple-50 to-transparent opacity-60 rounded-t-md pointer-events-none" />
                 )}
                 <span className="block truncate relative z-10">
-                  {/* ✨ CHANGE: Removed Count */}
                   {tab.label}
                 </span>
               </button>
@@ -105,58 +117,77 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
           })}
         </div>
 
-        {/* SECONDARY FILTER (Team/Acca Toggle) - MIMIC LEAGUE/SEASON ROW */}
-        <div className="p-4 sm:p-6 bg-gray-50 border-b border-gray-100 flex flex-wrap justify-between items-center gap-4">
+        {/* SECONDARY FILTER (Team/Acca Toggle & TOP PICK) */}
+        <div className="p-4 sm:p-6 bg-gray-50 border-b border-gray-100 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           
-          {/* Team Filter Buttons */}
-          <div className="flex flex-wrap gap-2">
-             <span className="text-sm font-semibold text-gray-700 hidden sm:block">Filter by Team:</span>
-            <button
-              onClick={() => setSelectedTeam('all')}
-              className={`px-3 py-1 rounded-full font-semibold transition-all text-xs ${
-                selectedTeam === 'all'
-                  ? 'bg-purple-600 text-white shadow-sm'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              All ({rankedBets.length})
-            </button>
-            <button
-              onClick={() => setSelectedTeam('home')}
-              className={`px-3 py-1 rounded-full font-semibold transition-all flex items-center gap-1 text-xs ${
-                selectedTeam === 'home'
-                  ? 'bg-green-600 text-white shadow-sm'
-                  : 'bg-green-100 text-green-700 hover:bg-green-200'
-              }`}
-            >
-              <Home className="w-3 h-3" />
-              {homeTeam} ({homeCount})
-            </button>
-            <button
-              onClick={() => setSelectedTeam('away')}
-              className={`px-3 py-1 rounded-full font-semibold transition-all flex items-center gap-1 text-xs ${
-                selectedTeam === 'away'
-                  ? 'bg-orange-600 text-white shadow-sm'
-                  : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
-              }`}
-            >
-              <Plane className="w-3 h-3" />
-              {awayTeam} ({awayCount})
-            </button>
+          {/* 🛠️ TOP PICK DISPLAY */}
+          {bestBet && (
+            <div className="flex items-center flex-wrap gap-2 text-sm lg:flex-1">
+                <span className="text-sm font-extrabold text-purple-700 flex items-center gap-1.5 flex-shrink-0">
+                    <Trophy className="w-5 h-5" />
+                    TOP PICK:
+                </span>
+                <div className="flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-bold bg-white shadow-sm truncate">
+                    {bestBet.outcome}
+                </div>
+                <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold ${getTierDisplay(bestBet.tier).style} flex-shrink-0`}>
+                    {getTierDisplay(bestBet.tier).icon}
+                    {getTierDisplay(bestBet.tier).text} Tier
+                </div>
+            </div>
+          )}
+
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 lg:ml-auto">
+            {/* Team Filter Buttons */}
+            <div className="flex flex-wrap gap-2">
+              <span className="text-sm font-semibold text-gray-700 hidden sm:block">Filter by Team:</span>
+              <button
+                onClick={() => setSelectedTeam('all')}
+                className={`px-3 py-1 rounded-full font-semibold transition-all text-xs ${
+                  selectedTeam === 'all'
+                    ? 'bg-purple-600 text-white shadow-sm'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                All ({rankedBets.length})
+              </button>
+              <button
+                onClick={() => setSelectedTeam('home')}
+                className={`px-3 py-1 rounded-full font-semibold transition-all flex items-center gap-1 text-xs ${
+                  selectedTeam === 'home'
+                    ? 'bg-green-600 text-white shadow-sm'
+                    : 'bg-green-100 text-green-700 hover:bg-green-200'
+                }`}
+              >
+                <Home className="w-3 h-3" />
+                {homeTeam} ({homeCount})
+              </button>
+              <button
+                onClick={() => setSelectedTeam('away')}
+                className={`px-3 py-1 rounded-full font-semibold transition-all flex items-center gap-1 text-xs ${
+                  selectedTeam === 'away'
+                    ? 'bg-orange-600 text-white shadow-sm'
+                    : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                }`}
+              >
+                <Plane className="w-3 h-3" />
+                {awayTeam} ({awayCount})
+              </button>
+            </div>
+            
+            {/* Acca Toggle */}
+            <label className="flex items-center gap-2 cursor-pointer text-xs sm:text-sm text-gray-600 ml-auto sm:ml-0">
+              <input
+                type="checkbox"
+                checked={showAccasOnly}
+                onChange={(e) => setShowAccasOnly(e.target.checked)}
+                className="w-4 h-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
+              />
+              <span className="font-medium">
+                Acca-Safe Only ({accumulatorBets.length})
+              </span>
+            </label>
           </div>
-          
-          {/* Acca Toggle */}
-          <label className="flex items-center gap-2 cursor-pointer text-xs sm:text-sm text-gray-600">
-            <input
-              type="checkbox"
-              checked={showAccasOnly}
-              onChange={(e) => setShowAccasOnly(e.target.checked)}
-              className="w-4 h-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
-            />
-            <span className="font-medium">
-              Acca-Safe Only ({accumulatorBets.length})
-            </span>
-          </label>
         </div>
       </div>
 
@@ -228,7 +259,7 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
 };
 
 // ----------------------------------------------------------------------
-// BETCARD COMPONENT 
+// BETCARD COMPONENT (Unchanged except for the necessary normalization fix in isHomeTeam)
 // ----------------------------------------------------------------------
 
 const BetCard: React.FC<{ 
