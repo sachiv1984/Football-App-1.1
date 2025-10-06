@@ -38,7 +38,8 @@ type ExtractMatchDetail<T> = T extends Map<string, infer V>
 type CardsMatchDetail = ExtractMatchDetail<CardsStats>;
 type CornersMatchDetail = ExtractMatchDetail<CornersStats>;
 type FoulsMatchDetail = ExtractMatchDetail<FoulsStats>;
-type GoalsMatchDetail = ExtractMatchMatchDetail<GoalsStats>;
+// FIX: Typo from 'ExtractMatchMatchDetail' to 'ExtractMatchDetail'
+type GoalsMatchDetail = ExtractMatchDetail<GoalsStats>;
 type ShootingMatchDetail = ExtractMatchDetail<ShootingStats>;
 
 // 3. UNION TYPE for getVenueSpecificMatches
@@ -774,7 +775,8 @@ export class MatchContextService {
         case 'Fair':
           return `🟡 **Fair Selection**: ${base} One team has moderate scoring difficulty, suggesting a possible clean sheet. However, the margin is narrow. ${confidenceText}`;
         case 'Poor':
-          return `🛑 **CAUTION ADVISED**: ${base} Both teams demonstrate strong expected goal outputs. BTTS No is high-risk as both sides are likely to find the net. ${confidenceContext}`;
+          // FIX: Typo from 'confidenceContext' to 'confidenceText'
+          return `🛑 **CAUTION ADVISED**: ${base} Both teams demonstrate strong expected goal outputs. BTTS No is high-risk as both sides are likely to find the net. ${confidenceText}`;
       }
     }
   }
@@ -800,6 +802,7 @@ export class MatchContextService {
           supabaseCardsService.getCardStatistics(),
           supabaseCornersService.getCornerStatistics(),
           supabaseFoulsService.getFoulStatistics(),
+          supabaseGoalsService.getGoalStatistics(),
           supabaseShootingService.getShootingStatistics()
         ]);
 
