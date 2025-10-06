@@ -10,7 +10,7 @@ import { supabaseCardsService } from '../stats/supabaseCardsService';
 import { supabaseCornersService } from '../stats/supabaseCornersService';
 import { supabaseFoulsService } from '../stats/supabaseFoulsService';
 import { supabaseGoalsService } from '../stats/supabaseGoalsService';
-import { supabaseShootingService, DetailedShootingStats } from '../stats/supabaseShootingService'; // FIX: Import DetailedShootingStats
+import { supabaseShootingService, DetailedShootingStats } from '../stats/supabaseShootingService';
 
 import { getDisplayTeamName, normalizeTeamName } from '../../utils/teamUtils';
 
@@ -53,7 +53,7 @@ export class MatchContextService {
   private readonly MIN_MATCHES_FOR_ANALYSIS = 3;
   private readonly MIN_VENUE_MATCHES = 3;
 
-  // ✅ NEW: In-memory cache for team existence verification
+  // In-memory cache for team existence verification (Memoization)
   private teamExistsCache = new Map<string, boolean>(); 
 
   /**
@@ -122,10 +122,6 @@ export class MatchContextService {
   
   /**
    * Get opposition's defensive stats for a specific market
-   * NOW VENUE-AWARE: Filters stats based on where the opposition will be playing
-   * * @param opponent - The opposing team name
-   * @param market - The betting market
-   * @param opponentIsHome - Whether the opponent is playing at home (they're home = we're away)
    */
   private async getOppositionDefensiveStats(
     opponent: string,
@@ -234,7 +230,7 @@ export class MatchContextService {
           // Define and cast the field name to the narrow, type-safe key
           const field = (market === BettingMarket.SHOTS_ON_TARGET 
             ? 'shotsOnTargetAgainst' 
-            : 'shotsAgainst') as ShootingFieldKey; // ✅ FIX: Cast to narrow type
+            : 'shotsAgainst') as ShootingFieldKey;
           
           // Filter matches based on opponent's venue
           const matchDetails = oppStats.matchDetails;
@@ -305,8 +301,6 @@ export class MatchContextService {
 
   /**
    * Evaluates the strength of the matchup based on the pattern and opposition stats.
-   * Handles both OVER/OR_MORE (offensive strength vs defensive weakness) and UNDER (defensive strength).
-   * * NEW: Includes dominance override for OVER bets where team quality transcends tough matchups
    */
   private evaluateMatchStrength(
     patternAvg: number,
@@ -417,7 +411,6 @@ export class MatchContextService {
 
   /**
    * Generates a text recommendation based on the context and match strength.
-   * NOW INCLUDES VENUE-AWARE CONTEXT AND DOMINANCE OVERRIDE MESSAGING
    */
   private generateRecommendation(
     teamName: string,
@@ -496,7 +489,6 @@ export class MatchContextService {
 
   /**
    * Main function to enrich all insights with match-specific context (Step 2).
-   * NOW WITH VENUE-SPECIFIC OPPOSITION ANALYSIS, BTTS SUPPORT, AND VALIDATION
    */
   public async enrichMatchInsights(
     homeTeam: string,
@@ -504,34 +496,27 @@ export class MatchContextService {
     homeInsights: BettingInsight[],
     awayInsights: BettingInsight[]
   ): Promise<MatchContextInsight[]> {
+    
+    const startTime = performance.now(); // ⏱️ Start timer
     const enrichedInsights: MatchContextInsight[] = [];
 
-    // ===== INPUT VALIDATION =====
-    
-    // 1. Validate team names are non-empty
-    if (!homeTeam?.trim()) {
-      console.error('[MatchContextService] ❌ Invalid home team name: empty or undefined');
+    // ===== INPUT VALIDATION & TEAM NORMALIZATION =====
+    if (!homeTeam?.trim() || !awayTeam?.trim()) {
+      console.error('[MatchContextService] ❌ Invalid team name: empty or undefined');
       return [];
     }
     
-    if (!awayTeam?.trim()) {
-      console.error('[MatchContextService] ❌ Invalid away team name: empty or undefined');
-      return [];
-    }
-
-    // 2. Normalize team names ONCE at the start for consistent usage
     const normalizedHome = normalizeTeamName(homeTeam);
     const normalizedAway = normalizeTeamName(awayTeam);
     
     console.log(`[MatchContextService] 📝 Normalized teams: "${homeTeam}" → "${normalizedHome}", "${awayTeam}" → "${normalizedAway}"`);
     
-    // 3. Validate teams are different
     if (normalizedHome === normalizedAway) {
       console.error(`[MatchContextService] ❌ Home and away teams cannot be the same: "${homeTeam}"`);
       return [];
     }
 
-    // 4. Verify teams exist in database - THIS NOW USES THE MEMOIZED FUNCTION
+    // 4. Verify teams exist in database - using memoized function
     console.log(`[MatchContextService] 🔍 Verifying teams: ${normalizedHome} vs ${normalizedAway}`);
     const [homeExists, awayExists] = await Promise.all([
       this.verifyTeamExists(normalizedHome),
@@ -545,39 +530,34 @@ export class MatchContextService {
       console.warn(`[MatchContextService] ⚠️ Away team "${normalizedAway}" not found in database`);
     }
 
-    // 5. Validate insights arrays
     if (!homeInsights?.length && !awayInsights?.length) {
       console.warn('[MatchContextService] ⚠️ No insights provided for enrichment');
       return [];
     }
 
     // ===== PROCESS INSIGHTS =====
-    // IMPORTANT: Use normalized team names throughout for consistent database lookups
-
     const allInsights = [
       // Home team insights: opponent is AWAY, so check opponent's away defensive stats
       ...homeInsights.map(i => ({ 
         insight: i, 
         isHome: true, 
-        opponent: normalizedAway,  // ✅ Use normalized name
-        opponentIsHome: false // Opponent is playing away
+        opponent: normalizedAway,
+        opponentIsHome: false
       })),
       // Away team insights: opponent is HOME, so check opponent's home defensive stats
       ...awayInsights.map(i => ({ 
         insight: i, 
         isHome: false, 
-        opponent: normalizedHome,  // ✅ Use normalized name
-        opponentIsHome: true // Opponent is playing at home
+        opponent: normalizedHome,
+        opponentIsHome: true
       }))
     ];
 
     for (const { insight, isHome, opponent, opponentIsHome } of allInsights) {
       try {
-        // Determine the normalized team name for this insight based on home/away status
         const insightTeamName = isHome ? normalizedHome : normalizedAway;
         
-        // 1. Get Opposition Stats (NOW VENUE-SPECIFIC)
-        // opponent is already normalized from allInsights map
+        // 1. Get Opposition Stats
         const oppStats = await this.getOppositionDefensiveStats(
           opponent, 
           insight.market, 
@@ -616,7 +596,6 @@ export class MatchContextService {
         // Calculate data quality
         const dataQuality = this.calculateDataQuality(oppositionMatches, venueSpecific);
 
-        // Filter out markets that don't use standard opposition analysis
         const isBTTS = insight.market === BettingMarket.BOTH_TEAMS_TO_SCORE;
         const shouldApplyContext = 
           insight.comparison !== 'binary' && !isBTTS;
@@ -627,12 +606,12 @@ export class MatchContextService {
         let bttsContext: MatchContext['bttsContext'];
         const confidenceScore = insight.context?.confidence?.score ?? 0;
 
-        // Handle BTTS separately - use normalized team names
+        // Handle BTTS separately
         if (isBTTS) {
           const bttsExpectation = insight.outcome.includes('Yes') ? 'Yes' : 'No';
           const bttsEval = await this.evaluateBTTSMatchup(
-            normalizedHome,  // ✅ Use normalized name
-            normalizedAway,  // ✅ Use normalized name
+            normalizedHome,
+            normalizedAway,
             bttsExpectation
           );
           
@@ -648,7 +627,7 @@ export class MatchContextService {
             };
             
             recommendation = this.generateBTTSRecommendation(
-              insightTeamName,  // ✅ Use normalized team name
+              insightTeamName,
               insight.outcome,
               strengthOfMatch,
               isHome,
@@ -657,13 +636,12 @@ export class MatchContextService {
               bttsEval.venueSpecific
             );
           } else {
-            // BTTS evaluation failed - insufficient data
             recommendation = `⚠️ **DATA WARNING**: Unable to evaluate BTTS matchup due to insufficient goal data for one or both teams. Cannot reliably assess this market.`;
             strengthOfMatch = 'Poor';
           }
         }
         else if (shouldApplyContext) {
-          // 2. Evaluate Match Strength (NOW RETURNS DOMINANCE INFO)
+          // 2. Evaluate Match Strength
           const matchEvaluation = this.evaluateMatchStrength(
             insight.averageValue,
             insight.threshold,
@@ -676,9 +654,9 @@ export class MatchContextService {
           const dominanceOverride = matchEvaluation.dominanceOverride;
           const dominanceRatio = matchEvaluation.dominanceRatio;
 
-          // 3. Generate Recommendation (NOW INCLUDES DOMINANCE OVERRIDE MESSAGING)
+          // 3. Generate Recommendation
           recommendation = this.generateRecommendation(
-            insightTeamName,  // ✅ Use normalized team name
+            insightTeamName,
             insight.outcome,
             strengthOfMatch,
             insight.averageValue,
@@ -734,14 +712,14 @@ export class MatchContextService {
       }
     }
 
-    console.log(`[MatchContextService] ✅ Enriched ${enrichedInsights.length} insights with venue-specific context`);
+    const duration = Math.round(performance.now() - startTime); // ⏱️ Calculate duration
+    console.log(`[MatchContextService] ✅ Enriched ${enrichedInsights.length} insights in ${duration}ms`); // 📝 Log duration
+    
     return enrichedInsights;
   }
 
   /**
    * NEW: Evaluate BTTS (Both Teams To Score) matchup
-   * Requires bilateral analysis: both teams must have scoring capability
-   * Returns expected goals (not probability percentages) - represents average goals expected
    */
   private async evaluateBTTSMatchup(
     homeTeam: string,
@@ -774,7 +752,7 @@ export class MatchContextService {
       
       const homeHomeMatchCount = homeHomeMatches.length;
       const awayAwayMatchCount = awayAwayMatches.length;
-      
+
       // Calculate home team's home offensive output
       let homeGoalsFor: number;
       if (venueSpecific && homeHomeMatchCount > 0) {
@@ -812,7 +790,6 @@ export class MatchContextService {
       }
       
       // Calculate expected goals (average of offensive output and defensive weakness)
-      // This represents the expected goal output, NOT a probability percentage
       const homeExpectedGoals = (homeGoalsFor + awayGoalsAgainst) / 2;
       const awayExpectedGoals = (awayGoalsFor + homeGoalsAgainst) / 2;
       
