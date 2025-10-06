@@ -10,7 +10,7 @@ import { supabaseCardsService } from '../stats/supabaseCardsService';
 import { supabaseCornersService } from '../stats/supabaseCornersService';
 import { supabaseFoulsService } from '../stats/supabaseFoulsService';
 import { supabaseGoalsService } from '../stats/supabaseGoalsService';
-import { supabaseShootingService } from '../stats/supabaseShootingService';
+import { supabaseShootingService, DetailedShootingStats } from '../stats/supabaseShootingService'; // ✅ FIX: Import DetailedShootingStats
 
 import { getDisplayTeamName, normalizeTeamName } from '../../utils/teamUtils';
 
@@ -38,6 +38,9 @@ interface MatchContext {
 export type MatchContextInsight = BettingInsight & {
     matchContext: MatchContext;
 };
+
+// Define the exact keys used for dynamic access in the Shooting market
+type ShootingFieldKey = 'shotsAgainst' | 'shotsOnTargetAgainst'; // ✅ FIX: Define narrow key type
 
 /**
  * Service to enrich betting insights with match-specific context
@@ -101,8 +104,7 @@ export class MatchContextService {
   /**
    * Get opposition's defensive stats for a specific market
    * NOW VENUE-AWARE: Filters stats based on where the opposition will be playing
-   * 
-   * @param opponent - The opposing team name
+   * * @param opponent - The opposing team name
    * @param market - The betting market
    * @param opponentIsHome - Whether the opponent is playing at home (they're home = we're away)
    */
@@ -128,7 +130,7 @@ export class MatchContextService {
               (sum, m) => sum + (m.cardsFor || 0), 0
             );
             return {
-              average: totalCardsAllowed / oppStats.matches,
+              average: oppStats.matches > 0 ? totalCardsAllowed / oppStats.matches : 0, // Division by zero safety
               matches: oppStats.matches,
               venueSpecific: false
             };
@@ -138,7 +140,7 @@ export class MatchContextService {
             (sum, m) => sum + (m.cardsFor || 0), 0
           );
           return {
-            average: totalCardsAllowed / venueMatches.length,
+            average: totalCardsAllowed / venueMatches.length, // venueMatches.length > 0 due to outer check
             matches: venueMatches.length,
             venueSpecific: true
           };
@@ -158,7 +160,7 @@ export class MatchContextService {
               (sum, m) => sum + (m.cornersAgainst || 0), 0
             );
             return {
-              average: totalCornersAgainst / oppStats.matches,
+              average: oppStats.matches > 0 ? totalCornersAgainst / oppStats.matches : 0, // Division by zero safety
               matches: oppStats.matches,
               venueSpecific: false
             };
@@ -188,7 +190,7 @@ export class MatchContextService {
               (sum, m) => sum + (m.foulsCommittedAgainst || 0), 0
             );
             return {
-              average: totalFoulsAgainst / oppStats.matches,
+              average: oppStats.matches > 0 ? totalFoulsAgainst / oppStats.matches : 0, // Division by zero safety
               matches: oppStats.matches,
               venueSpecific: false
             };
@@ -210,25 +212,30 @@ export class MatchContextService {
           const oppStats = stats.get(opponent);
           if (!oppStats) return null;
           
-          const field = market === BettingMarket.SHOTS_ON_TARGET 
+          // Define and cast the field name to the narrow, type-safe key
+          const field = (market === BettingMarket.SHOTS_ON_TARGET 
             ? 'shotsOnTargetAgainst' 
-            : 'shotsAgainst';
+            : 'shotsAgainst') as ShootingFieldKey; // ✅ FIX: Cast to narrow type
           
           // Filter matches based on opponent's venue
-          const venueMatches = oppStats.matchDetails.filter(m => m.isHome === opponentIsHome);
+          const matchDetails = oppStats.matchDetails;
+          const venueMatches = matchDetails.filter(m => m.isHome === opponentIsHome);
           
           // Use venue-specific matches if available, otherwise fallback to all matches
-          const matchesToUse = venueMatches.length > 0 ? venueMatches : oppStats.matchDetails;
+          const matchesToUse = venueMatches.length > 0 ? venueMatches : matchDetails;
           const venueSpecific = venueMatches.length > 0;
           
-          // @ts-ignore - Dynamic field access
+          // Accessing 'm[field]' is now type-safe because 'field' is cast to ShootingFieldKey,
+          // which is a subset of the properties on the match detail object.
           const totalAgainst = matchesToUse.reduce(
             (sum, m) => sum + (m[field] || 0), 0
           );
           
+          const matchCount = matchesToUse.length;
+          
           return {
-            average: totalAgainst / matchesToUse.length,
-            matches: matchesToUse.length,
+            average: matchCount > 0 ? totalAgainst / matchCount : 0, // Division by zero safety
+            matches: matchCount,
             venueSpecific
           };
         }
@@ -247,7 +254,7 @@ export class MatchContextService {
                 (sum, m) => sum + (m.goalsAgainst || 0), 0
               );
               return {
-                average: totalGoalsAgainst / oppStats.matches,
+                average: oppStats.matches > 0 ? totalGoalsAgainst / oppStats.matches : 0, // Division by zero safety
                 matches: oppStats.matches,
                 venueSpecific: false
               };
@@ -281,8 +288,7 @@ export class MatchContextService {
   /**
    * Evaluates the strength of the matchup based on the pattern and opposition stats.
    * Handles both OVER/OR_MORE (offensive strength vs defensive weakness) and UNDER (defensive strength).
-   * 
-   * NEW: Includes dominance override for OVER bets where team quality transcends tough matchups
+   * * NEW: Includes dominance override for OVER bets where team quality transcends tough matchups
    */
   private evaluateMatchStrength(
     patternAvg: number,
@@ -309,11 +315,11 @@ export class MatchContextService {
 
       const teamMargin = patternAvg - threshold;
       const oppMargin = oppAllowsAvg - threshold;
-      const teamMarginRatio = teamMargin / threshold;
-      const oppMarginRatio = oppMargin / threshold;
+      const teamMarginRatio = threshold > 0 ? teamMargin / threshold : (teamMargin > 0 ? 1 : 0);
+      const oppMarginRatio = threshold > 0 ? oppMargin / threshold : (oppMargin > 0 ? 1 : 0);
 
       // Calculate dominance ratio for potential override
-      dominanceRatio = patternAvg / threshold;
+      dominanceRatio = threshold > 0 ? patternAvg / threshold : undefined;
 
       // Excellent: Team significantly exceeds AND Opposition significantly allows more than threshold
       if (teamMarginRatio >= 0.15 && oppMarginRatio >= 0.15) {
@@ -332,12 +338,12 @@ export class MatchContextService {
         strength = 'Poor';
         
         // 🎯 DOMINANCE OVERRIDE: Elite team quality can transcend tough matchups
-        if (dominanceRatio >= 1.8 && teamMarginRatio >= 0.25) {
+        if (dominanceRatio !== undefined && dominanceRatio >= 1.8 && teamMarginRatio >= 0.25) {
           // Exceptional dominance: Team is 80%+ above threshold with 25%+ margin
           strength = 'Good';
           dominanceOverride = true;
           console.log(`[MatchContext] Dominance override: Poor → Good (ratio: ${dominanceRatio.toFixed(2)})`);
-        } else if (dominanceRatio >= 1.5) {
+        } else if (dominanceRatio !== undefined && dominanceRatio >= 1.5) {
           // Strong dominance: Team is 50%+ above threshold
           strength = 'Fair';
           dominanceOverride = true;
@@ -355,8 +361,8 @@ export class MatchContextService {
 
       const teamMargin = threshold - patternAvg; // Distance BELOW the threshold
       const oppMargin = threshold - oppAllowsAvg; // Distance BELOW the threshold
-      const teamMarginRatio = teamMargin / threshold;
-      const oppMarginRatio = oppMargin / threshold;
+      const teamMarginRatio = threshold > 0 ? teamMargin / threshold : (teamMargin > 0 ? 1 : 0);
+      const oppMarginRatio = threshold > 0 ? oppMargin / threshold : (oppMargin > 0 ? 1 : 0);
       
       // Excellent: Team significantly under AND Opposition significantly allows under threshold
       if (teamMarginRatio >= 0.15 && oppMarginRatio >= 0.15) {
@@ -748,40 +754,43 @@ export class MatchContextService {
       const venueSpecific = homeHomeMatches.length >= this.MIN_VENUE_MATCHES && 
                            awayAwayMatches.length >= this.MIN_VENUE_MATCHES;
       
+      const homeHomeMatchCount = homeHomeMatches.length;
+      const awayAwayMatchCount = awayAwayMatches.length;
+
       // Calculate home team's home offensive output
       let homeGoalsFor: number;
-      if (venueSpecific) {
+      if (venueSpecific && homeHomeMatchCount > 0) {
         const totalHomeGoalsFor = homeHomeMatches.reduce((sum, m) => sum + m.goalsFor, 0);
-        homeGoalsFor = totalHomeGoalsFor / homeHomeMatches.length;
+        homeGoalsFor = totalHomeGoalsFor / homeHomeMatchCount;
       } else {
-        homeGoalsFor = homeStats.goalsFor / homeStats.matches;
+        homeGoalsFor = homeStats.matches > 0 ? homeStats.goalsFor / homeStats.matches : 0;
       }
       
       // Calculate away team's away defensive weakness
       let awayGoalsAgainst: number;
-      if (venueSpecific) {
+      if (venueSpecific && awayAwayMatchCount > 0) {
         const totalAwayGoalsAgainst = awayAwayMatches.reduce((sum, m) => sum + m.goalsAgainst, 0);
-        awayGoalsAgainst = totalAwayGoalsAgainst / awayAwayMatches.length;
+        awayGoalsAgainst = totalAwayGoalsAgainst / awayAwayMatchCount;
       } else {
-        awayGoalsAgainst = awayStats.goalsAgainst / awayStats.matches;
+        awayGoalsAgainst = awayStats.matches > 0 ? awayStats.goalsAgainst / awayStats.matches : 0;
       }
       
       // Calculate away team's away offensive output
       let awayGoalsFor: number;
-      if (venueSpecific) {
+      if (venueSpecific && awayAwayMatchCount > 0) {
         const totalAwayGoalsFor = awayAwayMatches.reduce((sum, m) => sum + m.goalsFor, 0);
-        awayGoalsFor = totalAwayGoalsFor / awayAwayMatches.length;
+        awayGoalsFor = totalAwayGoalsFor / awayAwayMatchCount;
       } else {
-        awayGoalsFor = awayStats.goalsFor / awayStats.matches;
+        awayGoalsFor = awayStats.matches > 0 ? awayStats.goalsFor / awayStats.matches : 0;
       }
       
       // Calculate home team's home defensive weakness
       let homeGoalsAgainst: number;
-      if (venueSpecific) {
+      if (venueSpecific && homeHomeMatchCount > 0) {
         const totalHomeGoalsAgainst = homeHomeMatches.reduce((sum, m) => sum + m.goalsAgainst, 0);
-        homeGoalsAgainst = totalHomeGoalsAgainst / homeHomeMatches.length;
+        homeGoalsAgainst = totalHomeGoalsAgainst / homeHomeMatchCount;
       } else {
-        homeGoalsAgainst = homeStats.goalsAgainst / homeStats.matches;
+        homeGoalsAgainst = homeStats.matches > 0 ? homeStats.goalsAgainst / homeStats.matches : 0;
       }
       
       // Calculate expected goals (average of offensive output and defensive weakness)
