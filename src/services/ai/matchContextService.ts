@@ -35,14 +35,14 @@ type ExtractMatchDetail<T> = T extends Map<string, infer V>
   : never;
 
 // Now, we define the individual match detail types based on the inferred map types
-type CardsMatchDetail = ExtractMatchDetail<CardsStats>;      // Type: { cardsFor: number; isHome: boolean; ... }
-type CornersMatchDetail = ExtractMatchDetail<CornersStats>;  // Type: { cornersAgainst: number; isHome: boolean; ... }
-type FoulsMatchDetail = ExtractMatchDetail<FoulsStats>;      // Type: { foulsCommittedAgainst: number; isHome: boolean; ... }
-type GoalsMatchDetail = ExtractMatchDetail<GoalsStats>;      // Type: { goalsAgainst: number; goalsFor: number; isHome: boolean; ... }
-type ShootingMatchDetail = ExtractMatchDetail<ShootingStats>; // Type: { shotsAgainst: number; shotsOnTargetAgainst: number; isHome: boolean; ... }
+type CardsMatchDetail = ExtractMatchDetail<CardsStats>;
+type CornersMatchDetail = ExtractMatchDetail<CornersStats>;
+type FoulsMatchDetail = ExtractMatchDetail<FoulsStats>;
+type GoalsMatchDetail = ExtractMatchMatchDetail<GoalsStats>;
+type ShootingMatchDetail = ExtractMatchDetail<ShootingStats>;
 
 // 3. UNION TYPE for getVenueSpecificMatches
-// This is the clean replacement for MatchDetailBase that lets us safely switch on the market type.
+// This replaces the unsafe MatchDetailBase composite type.
 type MatchDetailType = 
   | CardsMatchDetail
   | CornersMatchDetail
@@ -87,8 +87,6 @@ export type MatchContextInsight = BettingInsight & {
 // Define the exact keys used for dynamic access in the Shooting market
 type ShootingFieldKey = 'shotsAgainst' | 'shotsOnTargetAgainst';
 
-// --- END OF NEW TYPE DEFINITIONS ---
-
 /**
  * Service to enrich betting insights with match-specific context
  */
@@ -103,7 +101,7 @@ export class MatchContextService {
 
   /**
    * Helper function to abstract the venue filtering and fallback logic.
-   * @template T - The type of the match detail object, now constrained to MatchDetailType.
+   * * @template T - The type of the match detail object, constrained to MatchDetailType.
    * @param allMatches - All available match details for the team.
    * @param opponentIsHome - The venue condition the opposition is playing at (true = home, false = away).
    * @returns An object containing the filtered array and a boolean indicating if it is venue-specific.
@@ -113,26 +111,26 @@ export class MatchContextService {
     opponentIsHome: boolean
   ): { matches: T[]; venueSpecific: boolean } {
     
-    // Filter for matches where the opposition played at the required venue
-    // The 'isHome' property is correctly inferred to exist on all members of MatchDetailType
+    // 1. Filter for matches where the opposition played at the required venue
     const venueMatches = allMatches.filter(m => m.isHome === opponentIsHome);
     
-    // Use venueMatches only if we meet the minimum threshold, otherwise use allMatches as fallback
+    // 2. Determine if the filtered data set is sufficient
     const useVenueSpecific = venueMatches.length >= this.MIN_VENUE_MATCHES;
     
+    // 3. Select the data set: filtered if sufficient, otherwise allMatches as fallback
     const matchesToUse = useVenueSpecific
       ? venueMatches 
       : allMatches;
     
+    // 4. Set the flag: Only true if we successfully met the venue threshold AND have data.
+    // This explicitly prevents the flag from being true when we use the fallback data (allMatches).
+    const venueSpecificFlag = useVenueSpecific && matchesToUse.length > 0;
+    
     return {
       matches: matchesToUse,
-      // The result is only considered 'venueSpecific' if we used the venueMatches data set
-      venueSpecific: useVenueSpecific
+      venueSpecific: venueSpecificFlag
     };
   }
-
-  // (The rest of verifyTeamExists, calculateDataQuality, getConfidenceContext remain the same)
-  // ... (verifyTeamExists, calculateDataQuality, getConfidenceContext)
 
   /**
    * Verify that a team exists in the database (Memoized)
@@ -229,7 +227,7 @@ export class MatchContextService {
             console.warn(`[Data Warning] ⚠️ Team ${opponent} (Cards) has only ${oppStats.matches} total matches. Proceeding with low sample size.`);
           }
 
-          // ✅ FIX: Safely assert the array type (which is now CardsMatchDetail[])
+          // ✅ Safely assert the array type (which is now CardsMatchDetail[])
           const matchDetails = oppStats.matchDetails as CardsMatchDetail[];
           
           const { matches: matchesToUse, venueSpecific } = this.getVenueSpecificMatches(
@@ -258,7 +256,7 @@ export class MatchContextService {
             console.warn(`[Data Warning] ⚠️ Team ${opponent} (Corners) has only ${oppStats.matches} total matches. Proceeding with low sample size.`);
           }
 
-          // ✅ FIX: Safely assert the array type
+          // ✅ Safely assert the array type
           const matchDetails = oppStats.matchDetails as CornersMatchDetail[];
 
           const { matches: matchesToUse, venueSpecific } = this.getVenueSpecificMatches(
@@ -287,7 +285,7 @@ export class MatchContextService {
             console.warn(`[Data Warning] ⚠️ Team ${opponent} (Fouls) has only ${oppStats.matches} total matches. Proceeding with low sample size.`);
           }
 
-          // ✅ FIX: Safely assert the array type
+          // ✅ Safely assert the array type
           const matchDetails = oppStats.matchDetails as FoulsMatchDetail[];
 
           const { matches: matchesToUse, venueSpecific } = this.getVenueSpecificMatches(
@@ -322,7 +320,7 @@ export class MatchContextService {
             ? 'shotsOnTargetAgainst' 
             : 'shotsAgainst') as ShootingFieldKey;
           
-          // ✅ FIX: Safely assert the array type
+          // ✅ Safely assert the array type
           const matchDetails = oppStats.matchDetails as ShootingMatchDetail[];
 
           const { matches: matchesToUse, venueSpecific } = this.getVenueSpecificMatches(
@@ -352,7 +350,7 @@ export class MatchContextService {
               console.warn(`[Data Warning] ⚠️ Team ${opponent} (Goals) has only ${oppStats.matches} total matches. Proceeding with low sample size.`);
             }
             
-            // ✅ FIX: Safely assert the array type
+            // ✅ Safely assert the array type
             const matchDetails = oppStats.matchDetails as GoalsMatchDetail[];
 
             const { matches: matchesToUse, venueSpecific } = this.getVenueSpecificMatches(
@@ -387,9 +385,6 @@ export class MatchContextService {
       return null;
     }
   }
-
-  // (evaluateMatchStrength, generateRecommendation, evaluateBTTSMatchup, generateBTTSRecommendation)
-  // ... (These functions remain the same as previous step, but are included in the final file)
 
   /**
    * Evaluates the strength of the matchup based on the pattern and opposition stats.
@@ -605,7 +600,7 @@ export class MatchContextService {
       
       if (!homeStats || !awayStats) return null;
 
-      // ✅ FIX: Safely assert the array type
+      // ✅ Safely assert the array type
       const homeMatchDetails = homeStats.matchDetails as GoalsMatchDetail[];
       const awayMatchDetails = awayStats.matchDetails as GoalsMatchDetail[];
 
@@ -779,7 +774,7 @@ export class MatchContextService {
         case 'Fair':
           return `🟡 **Fair Selection**: ${base} One team has moderate scoring difficulty, suggesting a possible clean sheet. However, the margin is narrow. ${confidenceText}`;
         case 'Poor':
-          return `🛑 **CAUTION ADVISED**: ${base} Both teams demonstrate strong expected goal outputs. BTTS No is high-risk as both sides are likely to find the net. ${confidenceText}`;
+          return `🛑 **CAUTION ADVISED**: ${base} Both teams demonstrate strong expected goal outputs. BTTS No is high-risk as both sides are likely to find the net. ${confidenceContext}`;
       }
     }
   }
