@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Trophy, TrendingUp, AlertTriangle, CheckCircle, XCircle, Target, Home, Plane, Info, Zap, Award, Filter } from 'lucide-react';
 import { betRankingService, BetTier, RankedBet } from '../../services/ai/betRankingService';
 import { MatchContextInsight } from '../../services/ai/matchContextService';
@@ -23,12 +23,11 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
     ? betRankingService.getAccumulatorBets(insights)
     : betRankingService.rankBets(insights);
   
-  // Filter by tier
+  // Filter logic remains the same
   const tierFiltered = selectedTier === 'all' 
     ? rankedBets 
     : rankedBets.filter(bet => bet.tier === selectedTier);
   
-  // Filter by team
   const finalFiltered = selectedTeam === 'all'
     ? tierFiltered
     : tierFiltered.filter(bet => {
@@ -36,88 +35,77 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
         return selectedTeam === 'home' ? isHomeTeam : !isHomeTeam;
       });
   
-  const getTierColor = (tier: BetTier) => {
-    switch (tier) {
-      case BetTier.EXCELLENT: return 'bg-emerald-500';
-      case BetTier.GOOD: return 'bg-blue-500';
-      case BetTier.FAIR: return 'bg-yellow-500';
-      case BetTier.POOR: return 'bg-orange-500';
-      case BetTier.AVOID: return 'bg-red-500';
-    }
-  };
-  
-  const getTierBadgeColor = (tier: BetTier) => {
-    switch (tier) {
-      case BetTier.EXCELLENT: return 'bg-emerald-100 text-emerald-800 border-emerald-300';
-      case BetTier.GOOD: return 'bg-blue-100 text-blue-800 border-blue-300';
-      case BetTier.FAIR: return 'bg-yellow-100 text-yellow-800 border-yellow-300';
-      case BetTier.POOR: return 'bg-orange-100 text-orange-800 border-orange-300';
-      case BetTier.AVOID: return 'bg-red-100 text-red-800 border-red-300';
-    }
-  };
-  
-  const tierCounts = {
-    [BetTier.EXCELLENT]: rankedBets.filter(b => b.tier === BetTier.EXCELLENT).length,
-    [BetTier.GOOD]: rankedBets.filter(b => b.tier === BetTier.GOOD).length,
-    [BetTier.FAIR]: rankedBets.filter(b => b.tier === BetTier.FAIR).length,
-    [BetTier.POOR]: rankedBets.filter(b => b.tier === BetTier.POOR).length,
-    [BetTier.AVOID]: rankedBets.filter(b => b.tier === BetTier.AVOID).length,
-  };
-  
-  const accumulatorBets = rankedBets.filter(b => b.accumulatorSafe);
-  const bestBet = rankedBets.length > 0 ? rankedBets[0] : null;
-  
-  const homeCount = rankedBets.filter(b => b.team.toLowerCase() === homeTeam.toLowerCase()).length;
-  const awayCount = rankedBets.filter(b => b.team.toLowerCase() === awayTeam.toLowerCase()).length;
+  // Memoize counts
+  const { tierCounts, accumulatorBets, bestBet, homeCount, awayCount } = useMemo(() => {
+    const accumulatorBets = rankedBets.filter(b => b.accumulatorSafe);
+    const bestBet = rankedBets.length > 0 ? rankedBets[0] : null;
+
+    return {
+        tierCounts: {
+            [BetTier.EXCELLENT]: rankedBets.filter(b => b.tier === BetTier.EXCELLENT).length,
+            [BetTier.GOOD]: rankedBets.filter(b => b.tier === BetTier.GOOD).length,
+            [BetTier.FAIR]: rankedBets.filter(b => b.tier === BetTier.FAIR).length,
+            [BetTier.POOR]: rankedBets.filter(b => b.tier === BetTier.POOR).length,
+            [BetTier.AVOID]: rankedBets.filter(b => b.tier === BetTier.AVOID).length,
+        },
+        accumulatorBets,
+        bestBet,
+        homeCount: rankedBets.filter(b => b.team.toLowerCase() === homeTeam.toLowerCase()).length,
+        awayCount: rankedBets.filter(b => b.team.toLowerCase() === awayTeam.toLowerCase()).length,
+    };
+  }, [rankedBets, homeTeam, awayTeam]);
   
   return (
-    <div className="space-y-6 bg-gray-50 rounded-xl shadow-2xl p-6">
-      {/* Header with Summary */}
-      <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl p-6 shadow-lg">
-        <h2 className="text-3xl font-extrabold mb-2 flex items-center gap-3">
-          <Trophy className="w-8 h-8" />
+    // ✨ FIX: Main container is clean (no explicit bg, no heavy shadow)
+    <div className="space-y-6">
+      
+      {/* Header with Summary - NOW MATCHES MODERN STATS TABLE */}
+      <div className="bg-white text-gray-900 rounded-xl p-6 shadow-md border border-gray-200">
+        <h2 className="text-2xl font-extrabold mb-2 flex items-center gap-3 text-purple-700">
+          <Trophy className="w-7 h-7" />
           {homeTeam} vs {awayTeam} - Betting Recommendations
         </h2>
-        <p className="text-sm opacity-90 mb-4">AI-Ranked betting opportunities based on statistical patterns</p>
+        <p className="text-sm text-gray-600 mb-4">AI-Ranked betting opportunities based on statistical patterns</p>
         
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-6">
-          <div className="bg-white/10 backdrop-blur rounded-lg p-3">
-            <p className="text-xs opacity-90">Total Insights</p>
-            <p className="text-3xl font-bold">{rankedBets.length}</p>
+          {/* ✨ FIX: Stat boxes use light gray background and purple accent */}
+          <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+            <p className="text-xs text-gray-500">Total Insights</p>
+            <p className="text-3xl font-bold text-purple-700">{rankedBets.length}</p>
           </div>
-          <div className="bg-white/10 backdrop-blur rounded-lg p-3">
-            <p className="text-xs opacity-90">Excellent</p>
-            <p className="text-3xl font-bold text-emerald-300">{tierCounts[BetTier.EXCELLENT]}</p>
+          <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+            <p className="text-xs text-gray-500">Excellent</p>
+            <p className="text-3xl font-bold text-emerald-600">{tierCounts[BetTier.EXCELLENT]}</p>
           </div>
-          <div className="bg-white/10 backdrop-blur rounded-lg p-3">
-            <p className="text-xs opacity-90">Good</p>
-            <p className="text-3xl font-bold text-blue-300">{tierCounts[BetTier.GOOD]}</p>
+          <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+            <p className="text-xs text-gray-500">Good</p>
+            <p className="text-3xl font-bold text-blue-600">{tierCounts[BetTier.GOOD]}</p>
           </div>
-          <div className="bg-white/10 backdrop-blur rounded-lg p-3">
-            <p className="text-xs opacity-90">Acca Safe</p>
-            <p className="text-3xl font-bold text-yellow-300">{accumulatorBets.length}</p>
+          <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+            <p className="text-xs text-gray-500">Acca Safe</p>
+            <p className="text-3xl font-bold text-yellow-600">{accumulatorBets.length}</p>
           </div>
-          <div className="bg-white/10 backdrop-blur rounded-lg p-3">
-            <p className="text-xs opacity-90">Best Score</p>
-            <p className="text-3xl font-bold text-green-300">{bestBet?.betScore ?? 0}</p>
+          <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+            <p className="text-xs text-gray-500">Best Score</p>
+            <p className="text-3xl font-bold text-green-600">{bestBet?.betScore ?? 0}</p>
           </div>
         </div>
       </div>
       
-      {/* Filters */}
-      <div className="bg-white rounded-xl p-4 shadow-md space-y-4">
-        <div className="flex items-center gap-2 mb-2">
-          <Filter className="w-5 h-5 text-gray-600" />
+      {/* Filters - NOW MATCHES MODERN STATS TABLE */}
+      <div className="bg-white rounded-xl p-4 shadow-md border border-gray-200 space-y-4">
+        <div className="flex items-center gap-2 mb-2 border-b border-gray-100 pb-2">
+          <Filter className="w-5 h-5 text-purple-600" />
           <h3 className="font-bold text-gray-800">Filters</h3>
         </div>
         
-        {/* Team Filter */}
+        {/* Team Filter - Buttons updated for light background */}
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setSelectedTeam('all')}
             className={`px-4 py-2 rounded-lg font-semibold transition-all ${
               selectedTeam === 'all'
-                ? 'bg-purple-600 text-white shadow-lg'
+                ? 'bg-purple-600 text-white shadow-md' // Using purple as the main accent
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -127,7 +115,7 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
             onClick={() => setSelectedTeam('home')}
             className={`px-4 py-2 rounded-lg font-semibold transition-all flex items-center gap-2 ${
               selectedTeam === 'home'
-                ? 'bg-green-600 text-white shadow-lg'
+                ? 'bg-green-600 text-white shadow-md'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -138,7 +126,7 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
             onClick={() => setSelectedTeam('away')}
             className={`px-4 py-2 rounded-lg font-semibold transition-all flex items-center gap-2 ${
               selectedTeam === 'away'
-                ? 'bg-orange-600 text-white shadow-lg'
+                ? 'bg-orange-600 text-white shadow-md'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -147,13 +135,13 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
           </button>
         </div>
         
-        {/* Tier Filter */}
+        {/* Tier Filter - Buttons updated for light background */}
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setSelectedTier('all')}
             className={`px-4 py-2 rounded-lg font-semibold transition-all ${
               selectedTier === 'all'
-                ? 'bg-purple-600 text-white shadow-lg'
+                ? 'bg-purple-600 text-white shadow-md'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -163,7 +151,7 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
             onClick={() => setSelectedTier(BetTier.EXCELLENT)}
             className={`px-3 py-2 rounded-lg font-semibold transition-all ${
               selectedTier === BetTier.EXCELLENT
-                ? 'bg-emerald-500 text-white shadow-lg'
+                ? 'bg-emerald-500 text-white shadow-md'
                 : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
             }`}
           >
@@ -173,7 +161,7 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
             onClick={() => setSelectedTier(BetTier.GOOD)}
             className={`px-3 py-2 rounded-lg font-semibold transition-all ${
               selectedTier === BetTier.GOOD
-                ? 'bg-blue-500 text-white shadow-lg'
+                ? 'bg-blue-500 text-white shadow-md'
                 : 'bg-blue-100 text-blue-800 hover:bg-blue-200'
             }`}
           >
@@ -183,7 +171,7 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
             onClick={() => setSelectedTier(BetTier.FAIR)}
             className={`px-3 py-2 rounded-lg font-semibold transition-all ${
               selectedTier === BetTier.FAIR
-                ? 'bg-yellow-500 text-white shadow-lg'
+                ? 'bg-yellow-500 text-white shadow-md'
                 : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
             }`}
           >
@@ -207,9 +195,10 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
         </div>
       </div>
       
-      {/* Best Bet Highlight */}
+      {/* Best Bet Highlight - NOW SUBTLE */}
       {bestBet && !showAccasOnly && selectedTier === 'all' && selectedTeam === 'all' && bestBet.betScore >= 75 && (
-        <div className="bg-gradient-to-br from-yellow-50 to-amber-50 border-4 border-yellow-400 rounded-xl p-6 shadow-xl">
+        // ✨ FIX: Light background, reduced yellow strength, subtle shadow
+        <div className="bg-white border-4 border-yellow-400 rounded-xl p-6 shadow-md">
           <div className="flex items-center gap-3 mb-4">
             <Trophy className="w-10 h-10 text-yellow-600" />
             <div>
@@ -219,13 +208,12 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
               <p className="text-sm text-gray-600">This is statistically the strongest opportunity in this match</p>
             </div>
           </div>
-          {/* 💥 FIX APPLIED HERE: Added homeTeam and awayTeam props */}
           <BetCard 
             bet={bestBet} 
             isHighlight={true} 
             rank={1}
-            homeTeam={homeTeam} // <-- FIX
-            awayTeam={awayTeam} // <-- FIX
+            homeTeam={homeTeam}
+            awayTeam={awayTeam}
           />
         </div>
       )}
@@ -233,7 +221,7 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
       {/* Bet List */}
       <div className="space-y-4">
         {finalFiltered.length === 0 ? (
-          <div className="bg-white rounded-xl p-12 text-center shadow-md">
+          <div className="bg-white rounded-xl p-12 text-center shadow-md border border-gray-200">
             <Target className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <p className="text-xl font-bold text-gray-600">No bets match your filters</p>
             <p className="text-sm text-gray-500 mt-2">Try adjusting your filter settings</p>
@@ -252,10 +240,9 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
       </div>
       
       {/* Summary Footer */}
-      {finalFiltered.length > 0 && (
-        <div className="bg-white rounded-xl p-6 shadow-md">
+      <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
           <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <Info className="w-5 h-5" />
+            <Info className="w-5 h-5 text-blue-500" />
             Betting Strategy Summary
           </h3>
           <div className="space-y-2 text-sm text-gray-700">
@@ -267,11 +254,11 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
             </p>
           </div>
         </div>
-      )}
     </div>
   );
 };
 
+// --- BetCard Component (The most important area for de-jarring the UI) ---
 const BetCard: React.FC<{ 
   bet: RankedBet; 
   rank?: number; 
@@ -281,6 +268,7 @@ const BetCard: React.FC<{
 }> = ({ bet, rank, isHighlight = false, homeTeam, awayTeam }) => {
   const [expanded, setExpanded] = useState(isHighlight);
   
+  // These gradients are small visual cues, so we'll keep them.
   const getScoreGradient = (score: number) => {
     if (score >= 80) return 'from-emerald-500 to-green-400';
     if (score >= 65) return 'from-blue-500 to-blue-400';
@@ -300,6 +288,7 @@ const BetCard: React.FC<{
   };
   
   const getMarketColor = (market: string) => {
+    // ✨ FIX: Light mode badge colors
     const colors: Record<string, string> = {
       cards: 'bg-yellow-100 text-yellow-800',
       corners: 'bg-blue-100 text-blue-800',
@@ -315,24 +304,27 @@ const BetCard: React.FC<{
   };
   
   const isHomeTeam = bet.team.toLowerCase() === homeTeam.toLowerCase();
-  const teamColor = isHomeTeam ? 'text-green-700' : 'text-orange-700';
-  const teamBg = isHomeTeam ? 'bg-green-50' : 'bg-orange-50';
+  const teamColor = isHomeTeam ? 'text-green-700' : 'text-orange-700'; // Light mode text color
+  const teamBg = isHomeTeam ? 'bg-green-50' : 'bg-orange-50'; // Light mode background color
   
   return (
     <div 
-      className={`bg-white rounded-xl border-2 ${getTierBorderColor(bet.tier)} shadow-lg overflow-hidden transition-all hover:shadow-xl ${
-        isHighlight ? 'ring-4 ring-yellow-300' : ''
+      // ✨ FIX: bg-white, subtle shadow, light gray hover/active ring
+      className={`bg-white rounded-xl border-2 ${getTierBorderColor(bet.tier)} border-opacity-30 shadow-sm overflow-hidden transition-all hover:shadow-md ${
+        isHighlight ? 'ring-4 ring-yellow-200' : 'hover:ring-2 hover:ring-gray-100' // Subtle highlight ring
       }`}
     >
       {/* Card Header - Always Visible */}
       <div 
+        // ✨ FIX: Light gray hover background
         className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-4 flex-1">
             {rank && (
-              <div className={`w-12 h-12 rounded-full ${bet.betScore >= 80 ? 'bg-gradient-to-br from-yellow-400 to-yellow-500' : 'bg-gray-200'} flex items-center justify-center font-bold text-xl ${bet.betScore >= 80 ? 'text-white' : 'text-gray-700'} shadow-md flex-shrink-0`}>
+              // ✨ FIX: Light gray background for rank circle
+              <div className={`w-12 h-12 rounded-full ${bet.betScore >= 80 ? 'bg-gradient-to-br from-yellow-400 to-yellow-500' : 'bg-gray-200'} flex items-center justify-center font-bold text-xl ${bet.betScore >= 80 ? 'text-white' : 'text-gray-700'} shadow-sm flex-shrink-0`}>
                 #{rank}
               </div>
             )}
@@ -347,6 +339,7 @@ const BetCard: React.FC<{
                   {bet.market.replace(/_/g, ' ').toUpperCase()}
                 </span>
                 {bet.isStreak && bet.streakLength && (
+                  // Light mode streak badge
                   <span className="px-2 py-1 rounded bg-purple-100 text-purple-800 text-xs font-bold flex items-center gap-1">
                     <TrendingUp className="w-3 h-3" />
                     {bet.streakLength} Game Streak
@@ -362,12 +355,13 @@ const BetCard: React.FC<{
           
           <div className="flex items-center gap-3 flex-shrink-0">
             {bet.accumulatorSafe && (
+              // Light mode acca badge
               <div className="hidden sm:block px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-bold border-2 border-purple-300">
                 ✓ ACCA SAFE
               </div>
             )}
             
-            <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${getScoreGradient(bet.betScore)} flex items-center justify-center shadow-lg flex-shrink-0`}>
+            <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${getScoreGradient(bet.betScore)} flex items-center justify-center shadow-md flex-shrink-0`}>
               <div className="text-center text-white">
                 <p className="text-2xl font-extrabold">{bet.betScore}</p>
                 <p className="text-xs font-semibold">SCORE</p>
@@ -381,9 +375,11 @@ const BetCard: React.FC<{
       
       {/* Expanded Details */}
       {expanded && (
-        <div className="border-t-2 border-gray-200 p-6 space-y-6 bg-gray-50">
+        // ✨ FIX: Light gray background for the inner content
+        <div className="border-t-2 border-gray-100 p-6 space-y-6 bg-gray-50">
           
           {/* Recommendation Box */}
+          {/* Light mode colors */}
           <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
             <h5 className="font-bold text-blue-900 mb-2 flex items-center gap-2">
               <Award className="w-5 h-5" />
@@ -402,7 +398,8 @@ const BetCard: React.FC<{
             </h5>
             <ul className="space-y-2">
               {bet.reasoning.map((reason, idx) => (
-                <li key={idx} className="flex items-start gap-2 text-sm text-gray-700 bg-white p-2 rounded">
+                // Light mode reasoning list items (white background)
+                <li key={idx} className="flex items-start gap-2 text-sm text-gray-700 bg-white p-2 rounded border border-gray-100">
                   <span className="text-green-500 mt-0.5 flex-shrink-0">✓</span>
                   <span>{reason}</span>
                 </li>
@@ -412,6 +409,7 @@ const BetCard: React.FC<{
           
           {/* Red Flags */}
           {bet.redFlags.length > 0 && (
+            // Light mode red flag box
             <div className="bg-red-50 border-l-4 border-red-500 rounded p-4">
               <h5 className="font-bold text-red-900 mb-2 flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-red-600" />
@@ -430,6 +428,7 @@ const BetCard: React.FC<{
           
           {/* Key Stats Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {/* Light mode stat boxes */}
             <div className="bg-white rounded-lg p-3 border border-gray-200">
               <p className="text-xs text-gray-500 uppercase mb-1">Confidence</p>
               <p className="text-2xl font-bold text-gray-900">{bet.context?.confidence?.score ?? 0}<span className="text-sm">/100</span></p>
@@ -488,6 +487,7 @@ const BetCard: React.FC<{
               {bet.recentMatches.slice(0, 5).map((match, idx) => (
                 <div
                   key={idx}
+                  // Light mode recent form colors
                   className={`flex items-center justify-between p-3 rounded transition-colors ${
                     match.hit ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
                   }`}
