@@ -44,17 +44,43 @@ type ShootingFieldKey = 'shotsAgainst' | 'shotsOnTargetAgainst';
 
 /**
  * Service to enrich betting insights with match-specific context
- * Analyzes how the opposition performs defensively in the relevant market
- * NOW WITH VENUE-SPECIFIC ANALYSIS, BTTS SUPPORT, AND ROBUST ERROR HANDLING
  */
 export class MatchContextService {
   
   // Minimum number of matches required for reliable analysis
   private readonly MIN_MATCHES_FOR_ANALYSIS = 3;
-  private readonly MIN_VENUE_MATCHES = 3;
+  private readonly MIN_VENUE_MATCHES = 3; // Threshold for venue-specific data validity
 
   // In-memory cache for team existence verification (Memoization)
   private teamExistsCache = new Map<string, boolean>(); 
+
+  /**
+   * Helper function to abstract the venue filtering and fallback logic.
+   * @template T - The type of the match detail object, must have an 'isHome' property.
+   * @param allMatches - All available match details for the team.
+   * @param opponentIsHome - The venue condition the opposition is playing at (true = home, false = away).
+   * @returns An object containing the filtered array and a boolean indicating if it is venue-specific.
+   */
+  private getVenueSpecificMatches<T extends { isHome?: boolean }>(
+    allMatches: T[],
+    opponentIsHome: boolean
+  ): { matches: T[]; venueSpecific: boolean } {
+    
+    // Filter for matches where the opposition played at the required venue
+    const venueMatches = allMatches.filter(m => m.isHome === opponentIsHome);
+    
+    // Use venueMatches only if we meet the minimum threshold, otherwise use allMatches as fallback
+    const useVenueSpecific = venueMatches.length >= this.MIN_VENUE_MATCHES;
+    
+    const matchesToUse = useVenueSpecific
+      ? venueMatches 
+      : allMatches;
+    
+    return {
+      matches: matchesToUse,
+      venueSpecific: useVenueSpecific
+    };
+  }
 
   /**
    * Verify that a team exists in the database (Memoized)
@@ -64,7 +90,6 @@ export class MatchContextService {
 
     // 1. Check Cache
     if (this.teamExistsCache.has(normalizedTeamName)) {
-      // console.log(`[MatchContextService] ♻️ Team verification cache hit for ${normalizedTeamName}`);
       return this.teamExistsCache.get(normalizedTeamName)!;
     }
 
@@ -136,28 +161,22 @@ export class MatchContextService {
           const oppStats = stats.get(opponent);
           if (!oppStats) return null;
           
-          // Filter matches based on opponent's venue
-          const venueMatches = oppStats.matchDetails.filter(m => m.isHome === opponentIsHome);
+          // ✨ REFACTOR: Use helper method
+          const { matches: matchesToUse, venueSpecific } = this.getVenueSpecificMatches(
+            oppStats.matchDetails,
+            opponentIsHome
+          );
           
-          if (venueMatches.length === 0) {
-            // Fallback to all matches if no venue-specific data
-            const totalCardsAllowed = oppStats.matchDetails.reduce(
-              (sum, m) => sum + (m.cardsFor || 0), 0
-            );
-            return {
-              average: oppStats.matches > 0 ? totalCardsAllowed / oppStats.matches : 0,
-              matches: oppStats.matches,
-              venueSpecific: false
-            };
-          }
-          
-          const totalCardsAllowed = venueMatches.reduce(
+          const totalCardsAllowed = matchesToUse.reduce(
             (sum, m) => sum + (m.cardsFor || 0), 0
           );
+          
+          const matchCount = matchesToUse.length;
+          
           return {
-            average: totalCardsAllowed / venueMatches.length,
-            matches: venueMatches.length,
-            venueSpecific: true
+            average: matchCount > 0 ? totalCardsAllowed / matchCount : 0,
+            matches: matchCount,
+            venueSpecific
           };
         }
 
@@ -166,28 +185,22 @@ export class MatchContextService {
           const oppStats = stats.get(opponent);
           if (!oppStats) return null;
           
-          // Filter matches based on opponent's venue
-          const venueMatches = oppStats.matchDetails.filter(m => m.isHome === opponentIsHome);
+          // ✨ REFACTOR: Use helper method
+          const { matches: matchesToUse, venueSpecific } = this.getVenueSpecificMatches(
+            oppStats.matchDetails,
+            opponentIsHome
+          );
           
-          if (venueMatches.length === 0) {
-            // Fallback to all matches
-            const totalCornersAgainst = oppStats.matchDetails.reduce(
-              (sum, m) => sum + (m.cornersAgainst || 0), 0
-            );
-            return {
-              average: oppStats.matches > 0 ? totalCornersAgainst / oppStats.matches : 0,
-              matches: oppStats.matches,
-              venueSpecific: false
-            };
-          }
-          
-          const totalCornersAgainst = venueMatches.reduce(
+          const totalCornersAgainst = matchesToUse.reduce(
             (sum, m) => sum + (m.cornersAgainst || 0), 0
           );
+
+          const matchCount = matchesToUse.length;
+          
           return {
-            average: totalCornersAgainst / venueMatches.length,
-            matches: venueMatches.length,
-            venueSpecific: true
+            average: matchCount > 0 ? totalCornersAgainst / matchCount : 0,
+            matches: matchCount,
+            venueSpecific
           };
         }
 
@@ -196,28 +209,22 @@ export class MatchContextService {
           const oppStats = stats.get(opponent);
           if (!oppStats) return null;
           
-          // Filter matches based on opponent's venue
-          const venueMatches = oppStats.matchDetails.filter(m => m.isHome === opponentIsHome);
+          // ✨ REFACTOR: Use helper method
+          const { matches: matchesToUse, venueSpecific } = this.getVenueSpecificMatches(
+            oppStats.matchDetails,
+            opponentIsHome
+          );
           
-          if (venueMatches.length === 0) {
-            // Fallback to all matches
-            const totalFoulsAgainst = oppStats.matchDetails.reduce(
-              (sum, m) => sum + (m.foulsCommittedAgainst || 0), 0
-            );
-            return {
-              average: oppStats.matches > 0 ? totalFoulsAgainst / oppStats.matches : 0,
-              matches: oppStats.matches,
-              venueSpecific: false
-            };
-          }
-          
-          const totalFoulsAgainst = venueMatches.reduce(
+          const totalFoulsAgainst = matchesToUse.reduce(
             (sum, m) => sum + (m.foulsCommittedAgainst || 0), 0
           );
+
+          const matchCount = matchesToUse.length;
+          
           return {
-            average: totalFoulsAgainst / venueMatches.length,
-            matches: venueMatches.length,
-            venueSpecific: true
+            average: matchCount > 0 ? totalFoulsAgainst / matchCount : 0,
+            matches: matchCount,
+            venueSpecific
           };
         }
 
@@ -232,13 +239,11 @@ export class MatchContextService {
             ? 'shotsOnTargetAgainst' 
             : 'shotsAgainst') as ShootingFieldKey;
           
-          // Filter matches based on opponent's venue
-          const matchDetails = oppStats.matchDetails;
-          const venueMatches = matchDetails.filter(m => m.isHome === opponentIsHome);
-          
-          // Use venue-specific matches if available, otherwise fallback to all matches
-          const matchesToUse = venueMatches.length > 0 ? venueMatches : matchDetails;
-          const venueSpecific = venueMatches.length > 0;
+          // ✨ REFACTOR: Use helper method
+          const { matches: matchesToUse, venueSpecific } = this.getVenueSpecificMatches(
+            oppStats.matchDetails,
+            opponentIsHome
+          );
           
           // Accessing 'm[field]' is now type-safe
           const totalAgainst = matchesToUse.reduce(
@@ -259,29 +264,23 @@ export class MatchContextService {
             const oppStats = stats.get(opponent);
             if (!oppStats) return null;
             
-            // Filter matches based on opponent's venue
-            const venueMatches = oppStats.matchDetails.filter(m => m.isHome === opponentIsHome);
-            
-            if (venueMatches.length === 0) {
-              // Fallback to all matches
-              const totalGoalsAgainst = oppStats.matchDetails.reduce(
-                (sum, m) => sum + (m.goalsAgainst || 0), 0
-              );
-              return {
-                average: oppStats.matches > 0 ? totalGoalsAgainst / oppStats.matches : 0,
-                matches: oppStats.matches,
-                venueSpecific: false
-              };
-            }
+            // ✨ REFACTOR: Use helper method
+            const { matches: matchesToUse, venueSpecific } = this.getVenueSpecificMatches(
+              oppStats.matchDetails,
+              opponentIsHome
+            );
             
             // Calculate average goals CONCEDED (goalsAgainst) at this venue
-            const totalGoalsAgainst = venueMatches.reduce(
+            const totalGoalsAgainst = matchesToUse.reduce(
               (sum, m) => sum + (m.goalsAgainst || 0), 0
             );
+            
+            const matchCount = matchesToUse.length;
+
             return {
-              average: totalGoalsAgainst / venueMatches.length,
-              matches: venueMatches.length,
-              venueSpecific: true
+              average: matchCount > 0 ? totalGoalsAgainst / matchCount : 0,
+              matches: matchCount,
+              venueSpecific
             };
         }
 
@@ -743,51 +742,41 @@ export class MatchContextService {
       
       if (!homeStats || !awayStats) return null;
 
-      // Get venue-specific stats
-      const homeHomeMatches = homeStats.matchDetails.filter(m => m.isHome === true);
-      const awayAwayMatches = awayStats.matchDetails.filter(m => m.isHome === false);
+      // Determine venue-specific matches for both home team (at home) and away team (away)
+      const { matches: homeHomeMatches, venueSpecific: homeVenueSpecific } = this.getVenueSpecificMatches(
+          homeStats.matchDetails,
+          true // Home team's perspective
+      );
+      const { matches: awayAwayMatches, venueSpecific: awayVenueSpecific } = this.getVenueSpecificMatches(
+          awayStats.matchDetails,
+          false // Away team's perspective
+      );
       
-      const venueSpecific = homeHomeMatches.length >= this.MIN_VENUE_MATCHES && 
-                           awayAwayMatches.length >= this.MIN_VENUE_MATCHES;
+      // Overall venue-specific flag for BTTS requires both to have sufficient venue data
+      const venueSpecific = homeVenueSpecific && awayVenueSpecific; 
       
       const homeHomeMatchCount = homeHomeMatches.length;
       const awayAwayMatchCount = awayAwayMatches.length;
-
-      // Calculate home team's home offensive output
-      let homeGoalsFor: number;
-      if (venueSpecific && homeHomeMatchCount > 0) {
-        const totalHomeGoalsFor = homeHomeMatches.reduce((sum, m) => sum + m.goalsFor, 0);
-        homeGoalsFor = totalHomeGoalsFor / homeHomeMatchCount;
-      } else {
-        homeGoalsFor = homeStats.matches > 0 ? homeStats.goalsFor / homeStats.matches : 0;
-      }
       
-      // Calculate away team's away defensive weakness
-      let awayGoalsAgainst: number;
-      if (venueSpecific && awayAwayMatchCount > 0) {
-        const totalAwayGoalsAgainst = awayAwayMatches.reduce((sum, m) => sum + m.goalsAgainst, 0);
-        awayGoalsAgainst = totalAwayGoalsAgainst / awayAwayMatchCount;
-      } else {
-        awayGoalsAgainst = awayStats.matches > 0 ? awayStats.goalsAgainst / awayStats.matches : 0;
-      }
+      // Calculate home team's home offensive output (Goals For at Home)
+      let homeGoalsFor: number = homeHomeMatchCount > 0 
+        ? homeHomeMatches.reduce((sum, m) => sum + m.goalsFor, 0) / homeHomeMatchCount
+        : 0;
       
-      // Calculate away team's away offensive output
-      let awayGoalsFor: number;
-      if (venueSpecific && awayAwayMatchCount > 0) {
-        const totalAwayGoalsFor = awayAwayMatches.reduce((sum, m) => sum + m.goalsFor, 0);
-        awayGoalsFor = totalAwayGoalsFor / awayAwayMatchCount;
-      } else {
-        awayGoalsFor = awayStats.matches > 0 ? awayStats.goalsFor / awayStats.matches : 0;
-      }
+      // Calculate away team's away defensive weakness (Goals Against Away)
+      let awayGoalsAgainst: number = awayAwayMatchCount > 0 
+        ? awayAwayMatches.reduce((sum, m) => sum + m.goalsAgainst, 0) / awayAwayMatchCount
+        : 0;
       
-      // Calculate home team's home defensive weakness
-      let homeGoalsAgainst: number;
-      if (venueSpecific && homeHomeMatchCount > 0) {
-        const totalHomeGoalsAgainst = homeHomeMatches.reduce((sum, m) => sum + m.goalsAgainst, 0);
-        homeGoalsAgainst = totalHomeGoalsAgainst / homeHomeMatchCount;
-      } else {
-        homeGoalsAgainst = homeStats.matches > 0 ? homeStats.goalsAgainst / homeStats.matches : 0;
-      }
+      // Calculate away team's away offensive output (Goals For Away)
+      let awayGoalsFor: number = awayAwayMatchCount > 0 
+        ? awayAwayMatches.reduce((sum, m) => sum + m.goalsFor, 0) / awayAwayMatchCount
+        : 0;
+      
+      // Calculate home team's home defensive weakness (Goals Against Home)
+      let homeGoalsAgainst: number = homeHomeMatchCount > 0 
+        ? homeHomeMatches.reduce((sum, m) => sum + m.goalsAgainst, 0) / homeHomeMatchCount
+        : 0;
       
       // Calculate expected goals (average of offensive output and defensive weakness)
       const homeExpectedGoals = (homeGoalsFor + awayGoalsAgainst) / 2;
