@@ -63,7 +63,7 @@ const StatsTeamLogo: React.FC<{ team: Team, size?: 'sm' | 'md' }> = ({ team, siz
 
 
 // ----------------------------------------------------------------------
-// UNIFIED BETTING INSIGHTS COMPONENT (Main Component)
+// UNIFIED BETTING INSIGHTS COMPONENT (Main Component - UNCHANGED)
 // ----------------------------------------------------------------------
 
 const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({ 
@@ -132,7 +132,7 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
       
       {/* HEADER BLOCK (Tabs and Secondary Filter) */}
       <div className="w-full">
-        {/* TABS */}
+        {/* TABS (UNCHANGED) */}
         <div className="bg-gray-50 border-b border-gray-200 w-full flex">
           {tabs.map((tab) => {
             const isActive = selectedTab === tab.key;
@@ -163,7 +163,7 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
           })}
         </div>
 
-        {/* SECONDARY FILTER (Team/Acca Toggle) */}
+        {/* SECONDARY FILTER (Team/Acca Toggle - UNCHANGED) */}
         <div className="p-4 sm:p-6 bg-gray-50 border-b border-gray-100 flex flex-wrap justify-between items-center gap-4">
           
           {/* Team Filter Buttons */}
@@ -220,7 +220,7 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
         </div>
       </div>
 
-      {/* Content */}
+      {/* Content (UNCHANGED) */}
       <div className="p-4 sm:p-6 space-y-6">
         
         {/* Best Bet Highlight */}
@@ -288,7 +288,7 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
 };
 
 // ----------------------------------------------------------------------
-// BETCARD COMPONENT (Updated with new compact footer logic)
+// BETCARD COMPONENT (Updated compact rendering)
 // ----------------------------------------------------------------------
 
 const BetCard: React.FC<{ 
@@ -302,7 +302,7 @@ const BetCard: React.FC<{
   const isCompactGridItem = !isHighlight && rank === undefined;
   const [expanded, setExpanded] = useState(isHighlight);
 
-  // Helper functions (Light Mode Colors - remaining the same)
+  // Helper functions (Light Mode Colors - UNCHANGED)
   const getScoreGradient = (score: number) => {
     if (score >= 80) return 'from-emerald-500 to-green-400';
     if (score >= 65) return 'from-blue-500 to-blue-400';
@@ -343,7 +343,7 @@ const BetCard: React.FC<{
   const teamColor = isHomeTeam ? 'text-green-700' : 'text-orange-700'; 
   const teamBg = isHomeTeam ? 'bg-green-50' : 'bg-orange-50'; 
   
-  // Renders the simplified view for grid items (UPDATED)
+  // Renders the simplified view for grid items (UPDATED FUNCTION)
   const renderCompactGridCard = () => {
       
       // Data required for the new footer elements
@@ -367,11 +367,16 @@ const BetCard: React.FC<{
                         </div>
                         
                     </div>
-                    {/* Market Label moved for better flow */}
-                    <span className={`px-2 py-0.5 rounded text-xs font-semibold ${getMarketColor(bet.market)}`}>
+                    
+                    {/* ❌ REMOVED: Market Label (Goals, Fouls, etc.) for a cleaner look */}
+                    {/* <span className={`px-2 py-0.5 rounded text-xs font-semibold ${getMarketColor(bet.market)}`}>
                         {bet.market.replace(/_/g, ' ').toUpperCase()}
-                    </span>
+                    </span> */}
+                    
                     <h4 className="text-base font-extrabold text-gray-900 truncate mt-1">{bet.outcome}</h4>
+                    {/* 💡 Small hint of the market type */}
+                    <p className="text-xs text-gray-500 capitalize">{bet.market.replace(/_/g, ' ')}</p>
+
                 </div>
 
                 {/* Score Circle (smaller for grid view) */}
@@ -392,30 +397,31 @@ const BetCard: React.FC<{
                         <TrendingUp className="w-3 h-3 text-purple-500" /> {bet.hitRate}% Hit
                     </p>
                     
-                    {/* 7+ STREAK BADGE */}
+                    {/* 7+ STREAK BADGE - REMOVED BACKGROUND */}
                     {showStreakBadge && (
-                        <span className="px-2 py-0.5 rounded bg-red-100 text-red-700 text-xs font-bold flex items-center gap-1 border border-red-200">
+                        <span className="text-red-700 font-bold flex items-center gap-1 border border-red-200 px-1 py-0.5 rounded">
                             <Zap className="w-3 h-3" />
                             {bet.streakLength}+ Streak
                         </span>
                     )}
                     
-                    {/* Acca Safe Badge (If Acca safe, move to end of left block for clean alignment) */}
+                    {/* Acca Safe Badge - REMOVED BACKGROUND */}
                     {bet.accumulatorSafe && (
-                        <p className="text-purple-700 font-bold flex items-center gap-1 ml-auto">
+                        <p className="text-purple-700 font-bold flex items-center gap-1 ml-auto border border-purple-200 px-1 py-0.5 rounded">
                             <CheckCircle className="w-3 h-3" /> Acca Safe
                         </p>
                     )}
                 </div>
 
 
-                {/* RIGHT SIDE: VENUE CONSISTENCY */}
+                {/* RIGHT SIDE: VENUE CONSISTENCY - REMOVED BACKGROUND */}
                 {showVenueSplit && (
-                    <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-lg border border-gray-100">
+                    <div className="flex items-center gap-2">
+                        <span className="text-gray-500 font-medium">Venue:</span>
                         
                         {/* Home Venue Consistency */}
                         {homeVenueData && homeVenueData.matches > 0 && (
-                            <div className={`flex items-center gap-1 px-1 rounded ${isHomeTeam ? 'bg-green-100' : ''}`}>
+                            <div className={`flex items-center gap-1 px-1 rounded`}>
                                 <Home className={`w-3 h-3 ${isHomeTeam ? 'text-green-600' : 'text-gray-500'}`} />
                                 <span className={`font-bold ${isHomeTeam ? 'text-green-700' : 'text-gray-800'}`}>{homeVenueData.hitRate}%</span>
                             </div>
@@ -423,7 +429,7 @@ const BetCard: React.FC<{
                         
                         {/* Away Venue Consistency */}
                         {awayVenueData && awayVenueData.matches > 0 && (
-                            <div className={`flex items-center gap-1 px-1 rounded ${!isHomeTeam ? 'bg-orange-100' : ''}`}>
+                            <div className={`flex items-center gap-1 px-1 rounded`}>
                                 <Plane className={`w-3 h-3 ${!isHomeTeam ? 'text-orange-600' : 'text-gray-500'}`} />
                                 <span className={`font-bold ${!isHomeTeam ? 'text-orange-700' : 'text-gray-800'}`}>{awayVenueData.hitRate}%</span>
                             </div>
@@ -435,7 +441,7 @@ const BetCard: React.FC<{
       );
   };
   
-  // Main Render
+  // Main Render (UNCHANGED)
   return (
     <div 
       className={`
@@ -448,7 +454,7 @@ const BetCard: React.FC<{
         // Render the compact version for the grid
         renderCompactGridCard()
       ) : (
-        // Render the full, expandable version for the TOP PICK highlight (unchanged)
+        // Render the full, expandable version for the TOP PICK highlight (UNCHANGED)
         <>
           <div 
             className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
@@ -506,7 +512,7 @@ const BetCard: React.FC<{
             </div>
           </div>
           
-          {/* Expanded Details (unchanged) */}
+          {/* Expanded Details (UNCHANGED) */}
           {expanded && (
             <div className="border-t-2 border-gray-100 p-6 space-y-6 bg-gray-50">
               
