@@ -1,3 +1,5 @@
+// src/pages/StatsPage.tsx
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import Header from '../components/common/Header/Header';
@@ -5,8 +7,6 @@ import Footer from '../components/common/Footer/Footer';
 import MatchHeader from '../components/stats/match/MatchHeader';
 import ModernStatsTable from '../components/stats/StatsTable/ModernStatsTable';
 import FBrefScraperVercel from '../components/FBrefScraper';
-// REMOVED: import MatchBettingPatterns from '../components/insights/BettingPatterns/MatchBettingPatterns';
-// ADDED: New unified insights component
 import UnifiedBettingInsights from '../components/insights/UnifiedBettingInsights';
 import { useFixtures, useFixtureNavigation } from '../hooks/useFixtures';
 import { useGameWeekFixtures } from '../hooks/useGameWeekFixtures';
@@ -18,6 +18,10 @@ import type { Fixture } from '../types';
 // Import the service and type for enriching insights (THE CRITICAL FIX)
 import { matchContextService, MatchContextInsight } from '../services/ai/matchContextService';
 import { BettingInsight } from '../services/ai/bettingInsightsService';
+
+// 🛠️ NEW: Import the team name utility for robust client-side filtering
+import { normalizeTeamName } from '../utils/teamUtils'; 
+
 
 const StatsPage: React.FC = () => {
   const { matchId } = useParams<{ matchId: string }>();
@@ -85,28 +89,34 @@ const StatsPage: React.FC = () => {
     const homeTeamName = currentFixture.homeTeam.name;
     const awayTeamName = currentFixture.awayTeam.name;
     
-    // 1. Filter the base insights by team (optimized single loop)
+    // 1. 🛠️ NORMALIZE FIXTURE NAMES FOR ROBUST FILTERING
+    const normalizedHome = normalizeTeamName(homeTeamName);
+    const normalizedAway = normalizeTeamName(awayTeamName);
+    
+    // 2. Filter the base insights by team (optimized single loop)
     const homeInsights: BettingInsight[] = [];
     const awayInsights: BettingInsight[] = [];
 
-    const homeNameLower = homeTeamName.toLowerCase();
-    const awayNameLower = awayTeamName.toLowerCase();
-
+    // NOTE: allBettingPatterns[i].team is already the canonical name (from bettingInsightsService)
     for (const pattern of allBettingPatterns) {
-        const team = pattern.team.toLowerCase();
-        if (team === homeNameLower) {
+        const teamCanonical = pattern.team;
+        
+        // Compare the canonical pattern name against the normalized fixture name
+        if (teamCanonical === normalizedHome) {
             homeInsights.push(pattern);
-        } else if (team === awayNameLower) {
+        } else if (teamCanonical === normalizedAway) {
             awayInsights.push(pattern);
         }
     }
 
-    // 2. Define the asynchronous enrichment function
+    // 3. Define the asynchronous enrichment function
     const enrichAndSet = async () => {
         try {
+            // Pass the normalized names to the service. (The service will normalize again, which is harmless,
+            // or we could trust our normalization here and pass the raw name, but passing normalized is cleaner)
             const enriched = await matchContextService.enrichMatchInsights(
-                homeTeamName,
-                awayTeamName,
+                normalizedHome, 
+                normalizedAway,
                 homeInsights,
                 awayInsights
             );
