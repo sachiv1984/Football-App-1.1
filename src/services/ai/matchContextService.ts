@@ -217,27 +217,19 @@ export class MatchContextService {
           // Filter matches based on opponent's venue
           const venueMatches = oppStats.matchDetails.filter(m => m.isHome === opponentIsHome);
           
-          if (venueMatches.length === 0) {
-            // Fallback to all matches
-            // @ts-ignore
-            const totalAgainst = oppStats.matchDetails.reduce(
-              (sum, m) => sum + (m[field] || 0), 0
-            );
-            return {
-              average: totalAgainst / oppStats.matches,
-              matches: oppStats.matches,
-              venueSpecific: false
-            };
-          }
+          // Use venue-specific matches if available, otherwise fallback to all matches
+          const matchesToUse = venueMatches.length > 0 ? venueMatches : oppStats.matchDetails;
+          const venueSpecific = venueMatches.length > 0;
           
-          // @ts-ignore
-          const totalAgainst = venueMatches.reduce(
+          // @ts-ignore - Dynamic field access
+          const totalAgainst = matchesToUse.reduce(
             (sum, m) => sum + (m[field] || 0), 0
           );
+          
           return {
-            average: totalAgainst / venueMatches.length,
-            matches: venueMatches.length,
-            venueSpecific: true
+            average: totalAgainst / matchesToUse.length,
+            matches: matchesToUse.length,
+            venueSpecific
           };
         }
 
