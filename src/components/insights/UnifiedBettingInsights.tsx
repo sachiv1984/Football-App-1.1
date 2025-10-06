@@ -9,13 +9,18 @@ interface UnifiedBettingInsightsProps {
   awayTeam: string;
 }
 
+// Define the content and key for the new tab structure
+type BetTab = 'all' | BetTier.EXCELLENT | BetTier.GOOD | BetTier.FAIR;
+
 const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({ 
   insights, 
   homeTeam, 
   awayTeam 
 }) => {
-  const [selectedTier, setSelectedTier] = useState<'all' | BetTier>('all');
+  // Use BetTab type for the primary filter (Tier)
+  const [selectedTab, setSelectedTab] = useState<BetTab>('all');
   const [showAccasOnly, setShowAccasOnly] = useState(false);
+  // Team filter remains the secondary selection
   const [selectedTeam, setSelectedTeam] = useState<'all' | 'home' | 'away'>('all');
   
   // Rank all bets
@@ -23,14 +28,14 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
     ? betRankingService.getAccumulatorBets(insights)
     : betRankingService.rankBets(insights);
   
-  // Filter logic
-  const tierFiltered = selectedTier === 'all' 
+  // Filter logic now uses selectedTab
+  const tabFiltered = selectedTab === 'all' 
     ? rankedBets 
-    : rankedBets.filter(bet => bet.tier === selectedTier);
+    : rankedBets.filter(bet => bet.tier === selectedTab);
   
   const finalFiltered = selectedTeam === 'all'
-    ? tierFiltered
-    : tierFiltered.filter(bet => {
+    ? tabFiltered
+    : tabFiltered.filter(bet => {
         const isHomeTeam = bet.team.toLowerCase() === homeTeam.toLowerCase();
         return selectedTeam === 'home' ? isHomeTeam : !isHomeTeam;
       });
@@ -55,211 +60,194 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
     };
   }, [rankedBets, homeTeam, awayTeam]);
   
+  const tabs: { key: BetTab; label: string; count: number; color?: string }[] = [
+    { key: 'all', label: 'All Bets', count: rankedBets.length },
+    { key: BetTier.EXCELLENT, label: 'Excellent', count: tierCounts[BetTier.EXCELLENT], color: 'emerald' },
+    { key: BetTier.GOOD, label: 'Good', count: tierCounts[BetTier.GOOD], color: 'blue' },
+    { key: BetTier.FAIR, label: 'Fair', count: tierCounts[BetTier.FAIR], color: 'yellow' },
+    // Poor/Avoid are filtered out of the main tabs but remain in total count
+  ];
+
   return (
-    <div className="space-y-6">
+    // Re-using the container style from ModernStatsTable
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden space-y-0">
       
-      {/* Header with Summary - LIGHT MODE */}
-      <div className="bg-white text-gray-900 rounded-xl p-6 shadow-md border border-gray-200">
-        <h2 className="text-2xl font-extrabold mb-2 flex items-center gap-3 text-purple-700">
-          <Trophy className="w-7 h-7" />
-          {homeTeam} vs {awayTeam} - Betting Recommendations
-        </h2>
-        <p className="text-sm text-gray-600 mb-4">AI-Ranked betting opportunities based on statistical patterns</p>
-        
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-6">
-          <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-            <p className="text-xs text-gray-500">Total Insights</p>
-            <p className="text-3xl font-bold text-purple-700">{rankedBets.length}</p>
-          </div>
-          <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-            <p className="text-xs text-gray-500">Excellent</p>
-            <p className="text-3xl font-bold text-emerald-600">{tierCounts[BetTier.EXCELLENT]}</p>
-          </div>
-          <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-            <p className="text-xs text-gray-500">Good</p>
-            <p className="text-3xl font-bold text-blue-600">{tierCounts[BetTier.GOOD]}</p>
-          </div>
-          <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-            <p className="text-xs text-gray-500">Acca Safe</p>
-            <p className="text-3xl font-bold text-yellow-600">{accumulatorBets.length}</p>
-          </div>
-          <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-            <p className="text-xs text-gray-500">Best Score</p>
-            <p className="text-3xl font-bold text-green-600">{bestBet?.betScore ?? 0}</p>
-          </div>
+      {/* HEADER BLOCK (Tabs and Secondary Filter) */}
+      <div className="w-full">
+        {/* TABS - MIMIC STATS TABLE TABS */}
+        <div className="bg-gray-50 border-b border-gray-200 w-full flex">
+          {tabs.map((tab) => {
+            const isActive = selectedTab === tab.key;
+            
+            // Define active colors (matching the purple accent from the Stats Table)
+            const activeClass = isActive
+              ? 'text-purple-800 border-purple-600 bg-white shadow-sm transform -translate-y-0.5 z-10'
+              : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50';
+              
+            const countColor = tab.color 
+              ? `text-${tab.color}-600` 
+              : 'text-gray-600';
+              
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setSelectedTab(tab.key)}
+                className={`
+                  flex-1 px-2 py-4 text-sm font-medium border-b-2 
+                  transition-all duration-300 cubic-bezier(0.4, 0, 0.2, 1) text-center min-w-0 relative
+                  ${activeClass}
+                `}
+              >
+                {isActive && (
+                  <div className="absolute inset-0 bg-gradient-to-t from-purple-50 to-transparent opacity-60 rounded-t-md pointer-events-none" />
+                )}
+                <span className="block truncate relative z-10">
+                  {tab.label} (<span className={`font-bold ${countColor}`}>{tab.count}</span>)
+                </span>
+              </button>
+            );
+          })}
         </div>
-      </div>
-      
-      {/* Filters - LIGHT MODE */}
-      <div className="bg-white rounded-xl p-4 shadow-md border border-gray-200 space-y-4">
-        <div className="flex items-center gap-2 mb-2 border-b border-gray-100 pb-2">
-          <Filter className="w-5 h-5 text-purple-600" />
-          <h3 className="font-bold text-gray-800">Filters</h3>
-        </div>
-        
-        {/* Team Filter */}
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setSelectedTeam('all')}
-            className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-              selectedTeam === 'all'
-                ? 'bg-purple-600 text-white shadow-md'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            All Teams ({rankedBets.length})
-          </button>
-          <button
-            onClick={() => setSelectedTeam('home')}
-            className={`px-4 py-2 rounded-lg font-semibold transition-all flex items-center gap-2 ${
-              selectedTeam === 'home'
-                ? 'bg-green-600 text-white shadow-md'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            <Home className="w-4 h-4" />
-            {homeTeam} ({homeCount})
-          </button>
-          <button
-            onClick={() => setSelectedTeam('away')}
-            className={`px-4 py-2 rounded-lg font-semibold transition-all flex items-center gap-2 ${
-              selectedTeam === 'away'
-                ? 'bg-orange-600 text-white shadow-md'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            <Plane className="w-4 h-4" />
-            {awayTeam} ({awayCount})
-          </button>
-        </div>
-        
-        {/* Tier Filter */}
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setSelectedTier('all')}
-            className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-              selectedTier === 'all'
-                ? 'bg-purple-600 text-white shadow-md'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            All Tiers
-          </button>
-          <button
-            onClick={() => setSelectedTier(BetTier.EXCELLENT)}
-            className={`px-3 py-2 rounded-lg font-semibold transition-all ${
-              selectedTier === BetTier.EXCELLENT
-                ? 'bg-emerald-500 text-white shadow-md'
-                : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
-            }`}
-          >
-            Excellent ({tierCounts[BetTier.EXCELLENT]})
-          </button>
-          <button
-            onClick={() => setSelectedTier(BetTier.GOOD)}
-            className={`px-3 py-2 rounded-lg font-semibold transition-all ${
-              selectedTier === BetTier.GOOD
-                ? 'bg-blue-500 text-white shadow-md'
-                : 'bg-blue-100 text-blue-800 hover:bg-blue-200'
-            }`}
-          >
-            Good ({tierCounts[BetTier.GOOD]})
-          </button>
-          <button
-            onClick={() => setSelectedTier(BetTier.FAIR)}
-            className={`px-3 py-2 rounded-lg font-semibold transition-all ${
-              selectedTier === BetTier.FAIR
-                ? 'bg-yellow-500 text-white shadow-md'
-                : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
-            }`}
-          >
-            Fair ({tierCounts[BetTier.FAIR]})
-          </button>
-        </div>
-        
-        {/* Acca Toggle */}
-        <div>
-          <label className="flex items-center gap-2 cursor-pointer">
+
+        {/* SECONDARY FILTER (Team/Acca Toggle) - MIMIC LEAGUE/SEASON ROW */}
+        <div className="p-4 sm:p-6 bg-gray-50 border-b border-gray-100 flex flex-wrap justify-between items-center gap-4">
+          
+          {/* Team Filter Buttons */}
+          <div className="flex flex-wrap gap-2">
+             <span className="text-sm font-semibold text-gray-700 hidden sm:block">Filter by Team:</span>
+            <button
+              onClick={() => setSelectedTeam('all')}
+              className={`px-3 py-1 rounded-full font-semibold transition-all text-xs ${
+                selectedTeam === 'all'
+                  ? 'bg-purple-600 text-white shadow-sm'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setSelectedTeam('home')}
+              className={`px-3 py-1 rounded-full font-semibold transition-all flex items-center gap-1 text-xs ${
+                selectedTeam === 'home'
+                  ? 'bg-green-600 text-white shadow-sm'
+                  : 'bg-green-100 text-green-700 hover:bg-green-200'
+              }`}
+            >
+              <Home className="w-3 h-3" />
+              {homeTeam}
+            </button>
+            <button
+              onClick={() => setSelectedTeam('away')}
+              className={`px-3 py-1 rounded-full font-semibold transition-all flex items-center gap-1 text-xs ${
+                selectedTeam === 'away'
+                  ? 'bg-orange-600 text-white shadow-sm'
+                  : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+              }`}
+            >
+              <Plane className="w-3 h-3" />
+              {awayTeam}
+            </button>
+          </div>
+          
+          {/* Acca Toggle */}
+          <label className="flex items-center gap-2 cursor-pointer text-xs sm:text-sm text-gray-600">
             <input
               type="checkbox"
               checked={showAccasOnly}
               onChange={(e) => setShowAccasOnly(e.target.checked)}
-              className="w-5 h-5 text-purple-600 rounded"
+              className="w-4 h-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
             />
-            <span className="font-semibold text-gray-700">
-              Show Accumulator-Safe Bets Only ({accumulatorBets.length})
+            <span className="font-medium">
+              Acca-Safe Only ({accumulatorBets.length})
             </span>
           </label>
         </div>
       </div>
-      
-      {/* Best Bet Highlight - Stays Full-Width and Expandable */}
-      {bestBet && !showAccasOnly && selectedTier === 'all' && selectedTeam === 'all' && bestBet.betScore >= 75 && (
-        <div className="bg-white border-4 border-yellow-400 rounded-xl p-6 shadow-md">
-          <div className="flex items-center gap-3 mb-4">
-            <Trophy className="w-10 h-10 text-yellow-600" />
-            <div>
-              <h3 className="text-2xl font-extrabold text-gray-900">
-                🏆 TOP PICK - Highest Ranked Bet
-              </h3>
-              <p className="text-sm text-gray-600">This is statistically the strongest opportunity in this match</p>
+
+      {/* Content */}
+      <div className="p-4 sm:p-6 space-y-6">
+        
+        {/* Match Title Row (Mimics Stat Table Header) */}
+        <div className="grid grid-cols-3 gap-4 items-center border-b border-gray-100 pb-4 mb-4">
+            <div className="text-center">
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 leading-tight">{homeTeam}</h3>
             </div>
-          </div>
-          <BetCard 
-            bet={bestBet} 
-            isHighlight={true} 
-            rank={1}
-            homeTeam={homeTeam}
-            awayTeam={awayTeam}
-          />
+            <div className="text-center">
+                <h2 className="text-xl sm:text-2xl font-bold text-purple-700 leading-tight">
+                    Recommendations
+                </h2>
+            </div>
+            <div className="text-center">
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 leading-tight">{awayTeam}</h3>
+            </div>
         </div>
-      )}
-      
-      {/* Bet List: NOW A RESPONSIVE GRID */}
-      <div>
-        {finalFiltered.length === 0 ? (
-          <div className="bg-white rounded-xl p-12 text-center shadow-md border border-gray-200">
-            <Target className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-xl font-bold text-gray-600">No bets match your filters</p>
-            <p className="text-sm text-gray-500 mt-2">Try adjusting your filter settings</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {finalFiltered.map((bet, idx) => (
-              <BetCard 
-                key={idx} 
-                bet={bet} 
-                // Grid items don't show rank or allow expansion
-                rank={undefined} 
-                homeTeam={homeTeam}
-                awayTeam={awayTeam}
-              />
-            ))}
+        
+        {/* Best Bet Highlight - Stays Full-Width and Expandable */}
+        {bestBet && !showAccasOnly && selectedTab === 'all' && selectedTeam === 'all' && bestBet.betScore >= 75 && (
+          <div className="bg-white border-4 border-yellow-400 rounded-xl p-6 shadow-md -mt-4">
+            <div className="flex items-center gap-3 mb-4">
+              <Trophy className="w-10 h-10 text-yellow-600" />
+              <div>
+                <h3 className="text-2xl font-extrabold text-gray-900">
+                  🏆 TOP PICK - Highest Ranked Bet
+                </h3>
+                <p className="text-sm text-gray-600">This is statistically the strongest opportunity in this match</p>
+              </div>
+            </div>
+            <BetCard 
+              bet={bestBet} 
+              isHighlight={true} 
+              rank={1}
+              homeTeam={homeTeam}
+              awayTeam={awayTeam}
+            />
           </div>
         )}
-      </div>
-      
-      {/* Summary Footer */}
-      <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
-          <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <Info className="w-5 h-5 text-blue-500" />
-            Betting Strategy Summary
-          </h3>
-          <div className="space-y-2 text-sm text-gray-700">
-            <p>• <strong>{tierCounts[BetTier.EXCELLENT]}</strong> Excellent bets (80+ score) - Heavy stake recommended</p>
-            <p>• <strong>{tierCounts[BetTier.GOOD]}</strong> Good bets (65-79 score) - Standard stake</p>
-            <p>• <strong>{accumulatorBets.length}</strong> bets qualify for accumulators (strict criteria met)</p>
-            <p className="text-xs text-gray-500 mt-4">
-              Tip: For best results, focus on Excellent and Good tiers. Avoid betting on Fair/Poor unless you have strong personal conviction.
-            </p>
-          </div>
+        
+        {/* Bet List: RESPONSIVE GRID */}
+        <div>
+          {finalFiltered.length === 0 ? (
+            <div className="bg-gray-50 rounded-xl p-12 text-center shadow-inner border border-gray-200">
+              <Target className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <p className="text-xl font-bold text-gray-600">No bets match your filters</p>
+              <p className="text-sm text-gray-500 mt-2">Try adjusting your filter settings</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {finalFiltered.map((bet, idx) => (
+                <BetCard 
+                  key={idx} 
+                  bet={bet} 
+                  rank={undefined} 
+                  homeTeam={homeTeam}
+                  awayTeam={awayTeam}
+                />
+              ))}
+            </div>
+          )}
         </div>
+        
+        {/* Summary Footer */}
+        <div className="bg-gray-50 rounded-xl p-4 shadow-inner border border-gray-200">
+            <h3 className="font-bold text-gray-800 mb-3 flex items-center gap-2 text-sm">
+              <Info className="w-4 h-4 text-blue-500" />
+              Betting Strategy Summary
+            </h3>
+            <div className="space-y-1 text-xs text-gray-700">
+              <p>• Focus on **Excellent ({tierCounts[BetTier.EXCELLENT]})** and **Good ({tierCounts[BetTier.GOOD]})** tiers for staking.</p>
+              <p>• Use **Acca-Safe ({accumulatorBets.length})** bets for combinations.</p>
+              <p className="text-xs text-gray-500 mt-2">
+                Tip: Betting on Poor/Avoid tiers carries significant risk and is not recommended by the AI model.
+              </p>
+            </div>
+          </div>
+      </div>
     </div>
   );
 };
 
 // ----------------------------------------------------------------------
-// BETCARD COMPONENT
+// BETCARD COMPONENT (Unchanged from the previous list-to-grid fix)
 // ----------------------------------------------------------------------
 
 const BetCard: React.FC<{ 
@@ -270,7 +258,6 @@ const BetCard: React.FC<{
   awayTeam: string;
 }> = ({ bet, rank, isHighlight = false, homeTeam, awayTeam }) => {
   
-  // Logic to determine if this is a compact, non-expandable card
   const isCompactGridItem = !isHighlight && rank === undefined;
   const [expanded, setExpanded] = useState(isHighlight);
 
