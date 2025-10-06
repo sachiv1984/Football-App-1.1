@@ -1,17 +1,70 @@
 import React, { useState, useMemo } from 'react';
-import { Trophy, TrendingUp, AlertTriangle, CheckCircle, XCircle, Target, Home, Plane, Info, Zap, Award, Filter } from 'lucide-react';
+import { Trophy, TrendingUp, AlertTriangle, CheckCircle, XCircle, Target, Home, Plane, Info, Zap, Award, Filter, ChevronDown } from 'lucide-react';
+
+// NOTE: You must ensure 'betRankingService' and 'MatchContextInsight' 
+// are correctly imported from their respective paths in your project.
 import { betRankingService, BetTier, RankedBet } from '../../services/ai/betRankingService';
 import { MatchContextInsight } from '../../services/ai/matchContextService';
 
+// --- NEW/UPDATED TYPE DEFINITIONS (Ensure 'Team' is imported/defined) ---
+
+// Define the Team interface required for the logo. 
+// This should match the one used in your ModernStatsTable.
+interface Team {
+  name: string; // The canonical name (e.g., 'Manchester United')
+  shortName?: string;
+  logo?: string; // The image URL
+}
+
 interface UnifiedBettingInsightsProps {
   insights: MatchContextInsight[];
-  // These props are now expected to be CANONICAL names (e.g., 'Manchester United')
-  homeTeam: string;
-  awayTeam: string;
+  // 👇 UPDATED: Now accepts full Team objects to get the logo URL
+  homeTeam: Team;
+  awayTeam: Team;
 }
 
 // Define the content and key for the new tab structure
 type BetTab = 'all' | BetTier.EXCELLENT | BetTier.GOOD | BetTier.FAIR;
+
+// ----------------------------------------------------------------------
+// 1. STATS TEAM LOGO COMPONENT (Essential for logo display)
+// ----------------------------------------------------------------------
+
+const StatsTeamLogo: React.FC<{ team: Team, size?: 'sm' | 'md' }> = ({ team, size = 'sm' }) => {
+  const sizeClasses = {
+    sm: "w-6 h-6 sm:w-8 sm:h-8",
+    md: "w-10 h-10 sm:w-12 sm:h-12"
+  };
+
+  if (team.logo) {
+    return (
+      <img 
+        src={team.logo} 
+        alt={team.name} 
+        className={`${sizeClasses[size]} object-contain flex-shrink-0`} 
+      />
+    );
+  }
+
+  // Fallback for missing logo
+  return (
+    <div className={`
+      ${sizeClasses[size]} rounded-full 
+      bg-gradient-to-br from-blue-500 to-blue-700 
+      text-white font-semibold shadow-sm
+      flex items-center justify-center flex-shrink-0
+    `}>
+      <span className="text-xs">
+        {team.shortName?.substring(0, 2) || team.name.substring(0, 2)}
+      </span>
+    </div>
+  );
+};
+
+
+// ----------------------------------------------------------------------
+// UNIFIED BETTING INSIGHTS COMPONENT (Main Component)
+// ----------------------------------------------------------------------
 
 const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({ 
   insights, 
@@ -21,6 +74,10 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
   const [selectedTab, setSelectedTab] = useState<BetTab>('all');
   const [showAccasOnly, setShowAccasOnly] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<'all' | 'home' | 'away'>('all');
+  
+  // Use canonical names from the Team objects for filtering
+  const homeTeamName = homeTeam.name;
+  const awayTeamName = awayTeam.name;
   
   // Rank all bets
   const rankedBets = useMemo(() => {
@@ -34,15 +91,15 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
     ? rankedBets 
     : rankedBets.filter(bet => bet.tier === selectedTab);
   
-  // 🎯 FIX (from previous steps): Use direct comparison as both bet.team and homeTeam/awayTeam props are CANONICAL
+  // Filtering uses the canonical names
   const finalFiltered = selectedTeam === 'all'
     ? tabFiltered
     : tabFiltered.filter(bet => {
-        const isHomeTeam = bet.team === homeTeam;
+        const isHomeTeam = bet.team === homeTeamName;
         return selectedTeam === 'home' ? isHomeTeam : !isHomeTeam;
       });
   
-  // Memoize counts (still needed for the summary and Acca toggle)
+  // Memoize counts 
   const { tierCounts, accumulatorBets, bestBet, homeCount, awayCount } = useMemo(() => {
     const accumulatorBets = rankedBets.filter(b => b.accumulatorSafe);
     const bestBet = rankedBets.length > 0 ? rankedBets[0] : null;
@@ -58,10 +115,10 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
         accumulatorBets,
         bestBet,
         // Using canonical comparison here
-        homeCount: rankedBets.filter(b => b.team === homeTeam).length,
-        awayCount: rankedBets.filter(b => b.team === awayTeam).length,
+        homeCount: rankedBets.filter(b => b.team === homeTeamName).length,
+        awayCount: rankedBets.filter(b => b.team === awayTeamName).length,
     };
-  }, [rankedBets, homeTeam, awayTeam]);
+  }, [rankedBets, homeTeamName, awayTeamName]);
   
   const tabs: { key: BetTab; label: string; color?: string }[] = [
     { key: 'all', label: 'All Bets' },
@@ -81,7 +138,7 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
           {tabs.map((tab) => {
             const isActive = selectedTab === tab.key;
             
-            // Define active colors (matching the purple accent from the Stats Table)
+            // Define active colors 
             const activeClass = isActive
               ? 'text-purple-800 border-purple-600 bg-white shadow-sm transform -translate-y-0.5 z-10'
               : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50';
@@ -121,7 +178,7 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
               }`}
             >
-              All {/* ❌ Removed ({rankedBets.length}) */}
+              All
             </button>
             <button
               onClick={() => setSelectedTeam('home')}
@@ -131,8 +188,9 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
                   : 'bg-green-100 text-green-700 hover:bg-green-200'
               }`}
             >
-              <Home className="w-3 h-3" />
-              {homeTeam} {/* ❌ Removed ({homeCount}) */}
+              {/* 👇 LOGO INTEGRATION */}
+              <StatsTeamLogo team={homeTeam} size="sm" /> 
+              {homeTeam.shortName || homeTeam.name}
             </button>
             <button
               onClick={() => setSelectedTeam('away')}
@@ -142,8 +200,9 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
                   : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
               }`}
             >
-              <Plane className="w-3 h-3" />
-              {awayTeam} {/* ❌ Removed ({awayCount}) */}
+              {/* 👇 LOGO INTEGRATION */}
+              <StatsTeamLogo team={awayTeam} size="sm" />
+              {awayTeam.shortName || awayTeam.name}
             </button>
           </div>
           
@@ -165,7 +224,7 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
       {/* Content */}
       <div className="p-4 sm:p-6 space-y-6">
         
-        {/* Best Bet Highlight - STAYS THE SAME */}
+        {/* Best Bet Highlight - NOTE: Pass the full Team objects here */}
         {bestBet && !showAccasOnly && selectedTab === 'all' && selectedTeam === 'all' && bestBet.betScore >= 75 && (
           <div className="bg-white border-4 border-yellow-400 rounded-xl p-6 shadow-md -mt-4">
             <div className="flex items-center gap-3 mb-4">
@@ -181,7 +240,8 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
               bet={bestBet} 
               isHighlight={true} 
               rank={1}
-              homeTeam={homeTeam}
+              // 👇 Pass the full Team objects
+              homeTeam={homeTeam} 
               awayTeam={awayTeam}
             />
           </div>
@@ -202,6 +262,7 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
                   key={idx} 
                   bet={bet} 
                   rank={undefined} 
+                  // 👇 Pass the full Team objects
                   homeTeam={homeTeam}
                   awayTeam={awayTeam}
                 />
@@ -230,15 +291,16 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
 };
 
 // ----------------------------------------------------------------------
-// BETCARD COMPONENT (Remains the same as the previously corrected version)
+// BETCARD COMPONENT (Updated for logo display)
 // ----------------------------------------------------------------------
 
 const BetCard: React.FC<{ 
   bet: RankedBet; 
   rank?: number; 
   isHighlight?: boolean;
-  homeTeam: string;
-  awayTeam: string;
+  // 👇 UPDATED: Accepts full Team objects
+  homeTeam: Team; 
+  awayTeam: Team;
 }> = ({ bet, rank, isHighlight = false, homeTeam, awayTeam }) => {
   
   const isCompactGridItem = !isHighlight && rank === undefined;
@@ -278,27 +340,33 @@ const BetCard: React.FC<{
     return colors[market] || 'bg-gray-100 text-gray-800';
   };
   
-  // Using canonical comparison
-  const isHomeTeam = bet.team === homeTeam; 
+  // Determine which team object belongs to the bet
+  const teamObject = bet.team === homeTeam.name ? homeTeam : awayTeam;
+  const isHomeTeam = teamObject.name === homeTeam.name;
+
   const teamColor = isHomeTeam ? 'text-green-700' : 'text-orange-700'; 
   const teamBg = isHomeTeam ? 'bg-green-50' : 'bg-orange-50'; 
   
   // Renders the simplified view for grid items
   const renderCompactGridCard = () => (
     <div className="p-3">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
                 {/* Team Badge and Outcome */}
                 <div className="flex items-center gap-2 mb-1">
+                    {/* 👇 LOGO INTEGRATION (using StatsTeamLogo) */}
+                    <StatsTeamLogo team={teamObject} size="sm" /> 
+
                     <div className={`px-2 py-0.5 rounded-full ${teamBg} ${teamColor} font-bold text-xs flex items-center gap-1`}>
-                        {isHomeTeam ? <Home className="w-3 h-3" /> : <Plane className="w-3 h-3" />}
-                        {bet.team}
+                        {teamObject.shortName || teamObject.name}
                     </div>
-                    <span className={`px-2 py-0.5 rounded text-xs font-semibold ${getMarketColor(bet.market)}`}>
-                        {bet.market.replace(/_/g, ' ').toUpperCase()}
-                    </span>
+                    
                 </div>
-                <h4 className="text-base font-extrabold text-gray-900 truncate">{bet.outcome}</h4>
+                {/* Market Label moved for better flow */}
+                <span className={`px-2 py-0.5 rounded text-xs font-semibold ${getMarketColor(bet.market)}`}>
+                    {bet.market.replace(/_/g, ' ').toUpperCase()}
+                </span>
+                <h4 className="text-base font-extrabold text-gray-900 truncate mt-1">{bet.outcome}</h4>
             </div>
 
             {/* Score Circle (smaller for grid view) */}
@@ -353,9 +421,11 @@ const BetCard: React.FC<{
                 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap mb-2">
+                    {/* 👇 LOGO INTEGRATION (Full View) */}
+                    <StatsTeamLogo team={teamObject} size="sm" /> 
+                    
                     <div className={`px-3 py-1 rounded-full ${teamBg} ${teamColor} font-bold text-sm flex items-center gap-1`}>
-                      {isHomeTeam ? <Home className="w-3 h-3" /> : <Plane className="w-3 h-3" />}
-                      {bet.team}
+                      {teamObject.shortName || teamObject.name}
                     </div>
                     <span className={`px-2 py-1 rounded text-xs font-semibold ${getMarketColor(bet.market)}`}>
                       {bet.market.replace(/_/g, ' ').toUpperCase()}
@@ -388,7 +458,7 @@ const BetCard: React.FC<{
                   </div>
                 </div>
                 
-                <TrendingUp className={`w-6 h-6 text-gray-400 transition-transform flex-shrink-0 ${expanded ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-6 h-6 text-gray-400 transition-transform flex-shrink-0 ${expanded ? 'rotate-180' : ''}`} />
               </div>
             </div>
           </div>
