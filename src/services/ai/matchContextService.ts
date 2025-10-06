@@ -9,7 +9,7 @@ import {
 // Import only the service objects (which are assumed to be exported)
 import { supabaseCardsService } from '../stats/supabaseCardsService';
 import { supabaseCornersService } from '../stats/supabaseCornersService';
-import { supabaseFoulsService } from '../stats/supabaseFoulsService';
+import { supabaseFoulsService } from '../stats/supabaseFoulService';
 import { supabaseGoalsService } from '../stats/supabaseGoalsService';
 import { supabaseShootingService } from '../stats/supabaseShootingService';
 
@@ -25,9 +25,6 @@ type GoalsStats = Awaited<ReturnType<typeof supabaseGoalsService.getGoalStatisti
 type ShootingStats = Awaited<ReturnType<typeof supabaseShootingService.getShootingStatistics>>;
 
 // 2. DYNAMICALLY INFERRED MATCH DETAIL TYPES (Replaces manual interfaces like CardMatchDetail)
-// We use conditional types to extract the element type of the 'matchDetails' array 
-// from the Stats Map Value type.
-// V extends { matchDetails: (infer D)[] } is the magic that extracts the array element D.
 type ExtractMatchDetail<T> = T extends Map<string, infer V> 
   ? V extends { matchDetails: (infer D)[] }
     ? D 
@@ -38,12 +35,10 @@ type ExtractMatchDetail<T> = T extends Map<string, infer V>
 type CardsMatchDetail = ExtractMatchDetail<CardsStats>;
 type CornersMatchDetail = ExtractMatchDetail<CornersStats>;
 type FoulsMatchDetail = ExtractMatchDetail<FoulsStats>;
-// FIX 1: Corrected typo from 'ExtractMatchMatchDetail' to 'ExtractMatchDetail'
 type GoalsMatchDetail = ExtractMatchDetail<GoalsStats>; 
 type ShootingMatchDetail = ExtractMatchDetail<ShootingStats>;
 
 // 3. UNION TYPE for getVenueSpecificMatches
-// This replaces the unsafe MatchDetailBase composite type.
 type MatchDetailType = 
   | CardsMatchDetail
   | CornersMatchDetail
@@ -134,7 +129,6 @@ export class MatchContextService {
       : allMatches;
     
     // 4. Set the flag: Only true if we successfully met the venue threshold AND have data.
-    // This explicitly prevents the flag from being true when we use the fallback data (allMatches).
     const venueSpecificFlag = useVenueSpecific && matchesToUse.length > 0;
     
     return {
@@ -214,7 +208,9 @@ export class MatchContextService {
                               confidenceScore >= 60 ? '✅' : 
                               confidenceScore >= 40 ? '⚠️' : '🚨';
 
-      return `${confidenceEmoji} Confidence: **${confidenceScore}/100**`;
+      // We no longer bold the confidence score here, as the final recommendation
+      // will combine all elements into one cohesive block.
+      return `${confidenceEmoji} Confidence: ${confidenceScore}/100`;
   }
   
   /**
@@ -238,7 +234,6 @@ export class MatchContextService {
             console.warn(`[Data Warning] ⚠️ Team ${opponent} (Cards) has only ${oppStats.matches} total matches. Proceeding with low sample size.`);
           }
 
-          // ✅ Safely assert the array type (which is now CardsMatchDetail[])
           const matchDetails = oppStats.matchDetails as CardsMatchDetail[];
           
           const { matches: matchesToUse, venueSpecific } = this.getVenueSpecificMatches(
@@ -247,7 +242,7 @@ export class MatchContextService {
           );
           
           const totalCardsAllowed = matchesToUse.reduce(
-            (sum, m) => sum + (m.cardsFor || 0), 0 // 'm.cardsFor' is now type-safe
+            (sum, m) => sum + (m.cardsFor || 0), 0 
           );
           
           const matchCount = matchesToUse.length;
@@ -267,7 +262,6 @@ export class MatchContextService {
             console.warn(`[Data Warning] ⚠️ Team ${opponent} (Corners) has only ${oppStats.matches} total matches. Proceeding with low sample size.`);
           }
 
-          // ✅ Safely assert the array type
           const matchDetails = oppStats.matchDetails as CornersMatchDetail[];
 
           const { matches: matchesToUse, venueSpecific } = this.getVenueSpecificMatches(
@@ -276,7 +270,7 @@ export class MatchContextService {
           );
           
           const totalCornersAgainst = matchesToUse.reduce(
-            (sum, m) => sum + (m.cornersAgainst || 0), 0 // 'm.cornersAgainst' is now type-safe
+            (sum, m) => sum + (m.cornersAgainst || 0), 0 
           );
 
           const matchCount = matchesToUse.length;
@@ -296,7 +290,6 @@ export class MatchContextService {
             console.warn(`[Data Warning] ⚠️ Team ${opponent} (Fouls) has only ${oppStats.matches} total matches. Proceeding with low sample size.`);
           }
 
-          // ✅ Safely assert the array type
           const matchDetails = oppStats.matchDetails as FoulsMatchDetail[];
 
           const { matches: matchesToUse, venueSpecific } = this.getVenueSpecificMatches(
@@ -305,7 +298,7 @@ export class MatchContextService {
           );
           
           const totalFoulsAgainst = matchesToUse.reduce(
-            (sum, m) => sum + (m.foulsCommittedAgainst || 0), 0 // 'm.foulsCommittedAgainst' is now type-safe
+            (sum, m) => sum + (m.foulsCommittedAgainst || 0), 0 
           );
 
           const matchCount = matchesToUse.length;
@@ -331,7 +324,6 @@ export class MatchContextService {
             ? 'shotsOnTargetAgainst' 
             : 'shotsAgainst') as ShootingFieldKey;
           
-          // ✅ Safely assert the array type
           const matchDetails = oppStats.matchDetails as ShootingMatchDetail[];
 
           const { matches: matchesToUse, venueSpecific } = this.getVenueSpecificMatches(
@@ -339,7 +331,6 @@ export class MatchContextService {
             opponentIsHome
           );
           
-          // 'm[field]' is now type-safe because ShootingMatchDetail contains both keys
           const totalAgainst = matchesToUse.reduce(
             (sum, m) => sum + (m[field] || 0), 0 
           );
@@ -361,7 +352,6 @@ export class MatchContextService {
               console.warn(`[Data Warning] ⚠️ Team ${opponent} (Goals) has only ${oppStats.matches} total matches. Proceeding with low sample size.`);
             }
             
-            // ✅ Safely assert the array type
             const matchDetails = oppStats.matchDetails as GoalsMatchDetail[];
 
             const { matches: matchesToUse, venueSpecific } = this.getVenueSpecificMatches(
@@ -371,7 +361,7 @@ export class MatchContextService {
             
             // Calculate average goals CONCEDED (goalsAgainst) at this venue
             const totalGoalsAgainst = matchesToUse.reduce(
-              (sum, m) => sum + (m.goalsAgainst || 0), 0 // 'm.goalsAgainst' is now type-safe
+              (sum, m) => sum + (m.goalsAgainst || 0), 0 
             );
             
             const matchCount = matchesToUse.length;
@@ -509,6 +499,7 @@ export class MatchContextService {
 
   /**
    * Generates a text recommendation based on the context and match strength.
+   * IMPROVED: Consolidated output to be a single, cohesive paragraph with embedded data.
    */
   private generateRecommendation(
     teamName: string,
@@ -521,7 +512,8 @@ export class MatchContextService {
     confidenceScore: number,
     venueSpecific: boolean,
     dominanceOverride: boolean,
-    dominanceRatio?: number
+    dominanceRatio?: number,
+    dataQuality?: 'Excellent' | 'Good' | 'Fair' | 'Poor' | 'Insufficient' // Added dataQuality
   ): string {
     const displayTeamName = getDisplayTeamName(teamName);
     const isUnderBet = outcome.startsWith('Under');
@@ -532,62 +524,86 @@ export class MatchContextService {
       ? ` when playing ${oppVenue}` 
       : '';
     
-    let base = `${displayTeamName}'s pattern: ${outcome} (${Math.round(patternAvg * 10) / 10} avg)`;
     const confidenceText = this.getConfidenceContext(confidenceScore);
-
-    // 🎯 DOMINANCE OVERRIDE MESSAGING (OVER bets only)
+    const roundedPatternAvg = Math.round(patternAvg * 10) / 10;
+    const roundedOppAllowsAvg = Math.round(oppAllowsAvg * 10) / 10;
+    
+    let baseRecommendation = `${displayTeamName}'s pattern: **${outcome} (${roundedPatternAvg} avg)**.`;
+    let mainContext = '';
+    let ratingPrefix = '';
+    
+    // --- Determine Rating Prefix and Main Context ---
+    
     if (dominanceOverride && !isUnderBet && dominanceRatio) {
       const dominancePercent = Math.round((dominanceRatio - 1) * 100);
+      ratingPrefix = strength === 'Good' ? '🔵 **Recommended (Dominance)**' : '🟡 **Fair Selection (Dominance)**';
       
-      if (strength === 'Good') {
-        return `🔵 **Recommended**: ${base}. Despite facing a defensively strong opponent${venueNote} (${Math.round(oppAllowsAvg * 10) / 10} avg below threshold), ${displayTeamName}'s exceptional form is **${dominancePercent}% above the ${threshold} threshold**. Their elite quality in this market suggests they can transcend the matchup difficulty. ${confidenceText}`;
-      }
+      mainContext = `Despite facing a defensively strong opponent${venueNote} (${roundedOppAllowsAvg} avg, **below the ${threshold} threshold**), ${displayTeamName}'s exceptional form is **${dominancePercent}% above the threshold**. Their elite quality in this market suggests they can transcend the matchup difficulty.`;
       
-      if (strength === 'Fair') {
-        return `🟡 **Fair Selection**: ${base}. While the opposition is defensively solid${venueNote} (${Math.round(oppAllowsAvg * 10) / 10} avg), ${displayTeamName}'s strong form (${dominancePercent}% above the ${threshold} threshold) provides a cushion against the tough matchup. Proceed with measured confidence. ${confidenceText}`;
-      }
-    }
-
-    if (isUnderBet) {
+    } else if (isUnderBet) {
         // Text for UNDER Bets
-        const oppWeaknessText = `as the opposition's low allowance rate${venueNote} (${Math.round(oppAllowsAvg * 10) / 10} avg) complements this under bet, with both teams showing restraint.`;
-        const oppAboveThresholdText = `because the opposition also has a low concession rate${venueNote} (${Math.round(oppAllowsAvg * 10) / 10} avg), suggesting a low-action match in this market.`;
-        const oppNearThresholdText = `The opposition's concession rate${venueNote} (${Math.round(oppAllowsAvg * 10) / 10} avg) is near the threshold. The success of this bet relies mainly on ${displayTeamName}'s strict current form.`;
-        const oppStrengthText = `The opposition is **not a clean-sheet side**${venueNote}, allowing ${Math.round(oppAllowsAvg * 10) / 10} avg, which is **above** the ${threshold} threshold. This is a higher-risk ${venue} matchup despite recent form.`;
+        const oppStrength = roundedOppAllowsAvg <= threshold ? 'complements' : 'hinders';
         
         switch (strength) {
             case 'Excellent':
-              return `✅ **STRONG SELECTION**: ${base}. An **Excellent Matchup** ${oppWeaknessText} This is a high-confidence, high-value opportunity. ${confidenceText}`;
+              ratingPrefix = '✅ **STRONG SELECTION**';
+              mainContext = `An **Excellent Matchup** as the opposition's low allowance rate${venueNote} (${roundedOppAllowsAvg} avg, **below the ${threshold} threshold**) ${oppStrength} this under bet. Both teams show restraint, making this a high-confidence opportunity.`;
+              break;
             case 'Good':
-              return `🔵 **Recommended**: ${base}. A **Good Matchup** ${oppAboveThresholdText} ${confidenceText}`;
+              ratingPrefix = '🔵 **Recommended**';
+              mainContext = `A **Good Matchup** because the opposition allows under the threshold${venueNote} (${roundedOppAllowsAvg} avg). This is a solid pick, backed by both team form and opposition weakness in this market.`;
+              break;
             case 'Fair':
-              return `🟡 **Fair Selection**: ${base}. ${oppNearThresholdText} ${confidenceText}`;
+              ratingPrefix = '🟡 **Fair Selection**';
+              mainContext = `The opposition's concession rate${venueNote} (${roundedOppAllowsAvg} avg) is near or at the ${threshold} threshold. The success of this bet relies mainly on **${displayTeamName}'s ability to maintain their discipline**.`;
+              break;
             case 'Poor':
-              return `🛑 **CAUTION ADVISED**: ${base}. ${oppStrengthText} ${confidenceText}`;
+              ratingPrefix = '🛑 **CAUTION ADVISED**';
+              mainContext = `The opposition is **not a clean-sheet side**${venueNote}, allowing **${roundedOppAllowsAvg} avg** which is **above** the ${threshold} threshold. This is a difficult ${venue} matchup despite recent form.`;
+              break;
         }
     } else {
         // Text for OVER/OR_MORE Bets
-        const oppWeaknessText = `as the opposition concedes significantly more than the ${threshold} threshold${venueNote} (${Math.round(oppAllowsAvg * 10) / 10} avg).`;
-        const oppAboveThresholdText = `because the opposition allows above the threshold${venueNote} (${Math.round(oppAllowsAvg * 10) / 10} avg), suggesting their defense is vulnerable to this market.`;
-        const oppNearThresholdText = `The opposition's concession rate${venueNote} (${Math.round(oppAllowsAvg * 10) / 10} avg) is near the threshold. The success of this bet relies mainly on ${displayTeamName}'s strong current form.`;
-        const oppStrengthText = `The opposition is defensively strong${venueNote}, allowing only ${Math.round(oppAllowsAvg * 10) / 10} avg, which is **below** the ${threshold} threshold. This is a difficult ${venue} matchup despite recent form.`;
-
+        const oppWeakness = roundedOppAllowsAvg > threshold ? 'vulnerable' : 'strong';
+        
         switch (strength) {
           case 'Excellent':
-            return `✅ **STRONG SELECTION**: ${base}. An **Excellent Matchup** ${oppWeaknessText} This is a high-confidence, high-value opportunity. ${confidenceText}`;
+            ratingPrefix = '✅ **STRONG SELECTION**';
+            mainContext = `An **Excellent Matchup** as the opposition allows **${roundedOppAllowsAvg} avg**, which is significantly **above the ${threshold} threshold**${venueNote}. This is a high-confidence, high-value opportunity.`;
+            break;
           case 'Good':
-            return `🔵 **Recommended**: ${base}. A **Good Matchup** ${oppAboveThresholdText} ${confidenceText}`;
+            ratingPrefix = '🔵 **Recommended**';
+            mainContext = `A **Good Matchup** because the opposition allows above the threshold${venueNote} (${roundedOppAllowsAvg} avg), suggesting their defense is ${oppWeakness} to this market.`;
+            break;
           case 'Fair':
-            return `🟡 **Fair Selection**: ${base}. ${oppNearThresholdText} ${confidenceText}`;
+            ratingPrefix = '🟡 **Fair Selection**';
+            mainContext = `The opposition's concession rate${venueNote} (${roundedOppAllowsAvg} avg) is near the ${threshold} threshold. The success of this bet relies mainly on **${displayTeamName}'s strong current form**.`;
+            break;
           case 'Poor':
-            return `🛑 **CAUTION ADVISED**: ${base}. ${oppStrengthText} ${confidenceText}`;
+            ratingPrefix = '🛑 **CAUTION ADVISED**';
+            mainContext = `The opposition is defensively ${oppWeakness} when playing ${oppVenue}, allowing only ${roundedOppAllowsAvg} avg, which is **below** the ${threshold} threshold. This is a difficult ${venue} matchup despite recent form.`;
+            break;
         }
     }
+    
+    // --- CONSOLIDATE FINAL OUTPUT ---
+    
+    let finalRecommendation = `${ratingPrefix}: ${baseRecommendation} ${mainContext}`;
+    
+    // Append Data Quality Warning (Consolidated into one line)
+    if (dataQuality === 'Poor' || dataQuality === 'Fair' || dataQuality === 'Insufficient') {
+        const matchesNote = `(${oppositionMatches} ${venueSpecific ? 'venue-specific' : 'total'} matches).`;
+        finalRecommendation += ` 📊 **Data Warning: ${dataQuality} Quality** ${matchesNote}`;
+    }
+    
+    // Append Confidence Score (Always last for visual closure)
+    finalRecommendation += ` ${confidenceText}`;
+    
+    return finalRecommendation;
   }
 
   /**
    * NEW: Evaluate BTTS (Both Teams To Score) matchup
-   * OPTIMIZED: Now accepts the pre-fetched goals statistics map.
    */
   private async evaluateBTTSMatchup(
     homeTeam: string,
@@ -611,7 +627,6 @@ export class MatchContextService {
       
       if (!homeStats || !awayStats) return null;
 
-      // ✅ Safely assert the array type
       const homeMatchDetails = homeStats.matchDetails as GoalsMatchDetail[];
       const awayMatchDetails = awayStats.matchDetails as GoalsMatchDetail[];
 
@@ -625,7 +640,6 @@ export class MatchContextService {
           false // Away team's perspective
       );
       
-      // Overall venue-specific flag for BTTS requires both to have sufficient venue data
       const venueSpecific = homeVenueSpecific && awayVenueSpecific; 
       
       const homeHomeMatchCount = homeHomeMatches.length;
@@ -668,24 +682,19 @@ export class MatchContextService {
           const minExpectedGoals = Math.min(homeExpectedGoals, awayExpectedGoals);
           const avgExpectedGoals = (homeExpectedGoals + awayExpectedGoals) / 2;
           
-          // Excellent: Both teams expected to score 1.5+ goals (≈78% probability each)
           if (minExpectedGoals >= 1.5 && avgExpectedGoals >= 2.0) {
             strength = 'Excellent';
           }
-          // Good: Both teams expected to score 1.2+ goals (≈70% probability each)
           else if (minExpectedGoals >= 1.2 && avgExpectedGoals >= 1.5) {
             strength = 'Good';
           }
-          // Fair: Both teams expected to score 0.8+ goals (≈55% probability each)
           else if (minExpectedGoals >= 0.8) {
             strength = 'Fair';
           }
-          // Poor: One team barely meets threshold
           else {
             strength = 'Poor';
           }
         } else {
-          // One or both teams unlikely to score
           strength = 'Poor';
         }
       } else {
@@ -696,20 +705,16 @@ export class MatchContextService {
         if (homeUnlikelyToScore || awayUnlikelyToScore) {
           const minExpectedGoals = Math.min(homeExpectedGoals, awayExpectedGoals);
           
-          // Excellent: One team expected to score ≤0.5 goals (≈40% probability)
           if (minExpectedGoals <= 0.5) {
             strength = 'Excellent';
           }
-          // Good: One team expected to score ≤0.7 goals (≈50% probability)
           else if (minExpectedGoals <= 0.7) {
             strength = 'Good';
           }
-          // Fair: One team expected to score ≤0.8 goals (≈55% probability)
           else {
             strength = 'Fair';
           }
         } else {
-          // Both teams likely to score - bad for BTTS No
           strength = 'Poor';
         }
       }
@@ -748,46 +753,81 @@ export class MatchContextService {
       awayGoalsFor: number;
       homeGoalsAgainst: number;
     },
-    venueSpecific: boolean
+    venueSpecific: boolean,
+    dataQuality: 'Excellent' | 'Good' | 'Fair' | 'Poor' | 'Insufficient' // Added dataQuality
   ): string {
     const displayTeamName = getDisplayTeamName(teamName);
     const isBTTSYes = outcome.includes('Yes');
-    const venue = isHome ? 'home' : 'away';
     const venueNote = venueSpecific ? ' (venue-specific analysis)' : '';
     
     const homeExpected = Math.round(bttsContext.homeExpectedGoals * 10) / 10;
     const awayExpected = Math.round(bttsContext.awayExpectedGoals * 10) / 10;
     const confidenceText = this.getConfidenceContext(confidenceScore);
     
+    let ratingPrefix = '';
+    let mainContext = '';
+
     if (isBTTSYes) {
       // BTTS YES recommendations
-      let base = `${displayTeamName}'s pattern: ${outcome}${venueNote}. Home expected goals: ${homeExpected}, Away expected goals: ${awayExpected}.`;
+      let base = `${displayTeamName}'s pattern: **${outcome}${venueNote}**. Home expected goals: ${homeExpected}, Away expected goals: ${awayExpected}.`;
       
       switch (strength) {
         case 'Excellent':
-          return `✅ **STRONG SELECTION**: ${base} An **Excellent Matchup** - both teams demonstrate strong offensive output combined with defensive vulnerability. Both sides are highly likely to find the net. This is a high-confidence BTTS Yes opportunity. ${confidenceText}`;
+          ratingPrefix = '✅ **STRONG SELECTION**';
+          mainContext = `An **Excellent Matchup** - both teams demonstrate strong offensive output combined with defensive vulnerability. Both sides are highly likely to find the net. This is a high-confidence BTTS Yes opportunity.`;
+          break;
         case 'Good':
-          return `🔵 **Recommended**: ${base} A **Good Matchup** - both teams show good scoring capability and their opponents have defensive weaknesses. Strong indicators for both teams to score. ${confidenceText}`;
+          ratingPrefix = '🔵 **Recommended**';
+          mainContext = `A **Good Matchup** - both teams show good scoring capability and their opponents have defensive weaknesses. Strong indicators for both teams to score.`;
+          break;
         case 'Fair':
-          return `🟡 **Fair Selection**: ${base} Both teams have moderate expected goal outputs. While the indicators lean toward BTTS Yes, there's less margin for error. ${confidenceText}`;
+          ratingPrefix = '🟡 **Fair Selection**';
+          mainContext = `Both teams have moderate expected goal outputs. While the indicators lean toward BTTS Yes, there's less margin for error.`;
+          break;
         case 'Poor':
-          return `🛑 **CAUTION ADVISED**: ${base} At least one team shows weak expected goal output or faces a strong defense. BTTS Yes carries significant risk in this matchup. ${confidenceText}`;
+          ratingPrefix = '🛑 **CAUTION ADVISED**';
+          mainContext = `At least one team shows weak expected goal output or faces a strong defense. BTTS Yes carries significant risk in this matchup.`;
+          break;
       }
+      
+      let finalRecommendation = `${ratingPrefix}: ${base} ${mainContext}`;
+      
+      if (dataQuality === 'Poor' || dataQuality === 'Fair' || dataQuality === 'Insufficient') {
+          finalRecommendation += ` 📊 **Data Warning: ${dataQuality} Quality**.`;
+      }
+      
+      return finalRecommendation + ` ${confidenceText}`;
+
     } else {
       // BTTS NO recommendations
-      let base = `${displayTeamName}'s pattern: ${outcome}${venueNote}. Home expected goals: ${homeExpected}, Away expected goals: ${awayExpected}.`;
+      let base = `${displayTeamName}'s pattern: **${outcome}${venueNote}**. Home expected goals: ${homeExpected}, Away expected goals: ${awayExpected}.`;
       
       switch (strength) {
         case 'Excellent':
-          return `✅ **STRONG SELECTION**: ${base} An **Excellent Matchup** - at least one team shows very low expected goal output. Strong indicators for a clean sheet scenario. ${confidenceText}`;
+          ratingPrefix = '✅ **STRONG SELECTION**';
+          mainContext = `An **Excellent Matchup** - at least one team shows very low expected goal output. Strong indicators for a clean sheet scenario.`;
+          break;
         case 'Good':
-          return `🔵 **Recommended**: ${base} A **Good Matchup** - one team has weak offensive output or faces a strong defense. Good probability of at least one team failing to score. ${confidenceText}`;
+          ratingPrefix = '🔵 **Recommended**';
+          mainContext = `A **Good Matchup** - one team has weak offensive output or faces a strong defense. Good probability of at least one team failing to score.`;
+          break;
         case 'Fair':
-          return `🟡 **Fair Selection**: ${base} One team has moderate scoring difficulty, suggesting a possible clean sheet. However, the margin is narrow. ${confidenceText}`;
+          ratingPrefix = '🟡 **Fair Selection**';
+          mainContext = `One team has moderate scoring difficulty, suggesting a possible clean sheet. However, the margin is narrow.`;
+          break;
         case 'Poor':
-          // FIX 2: Corrected typo from 'confidenceContext' to 'confidenceText'
-          return `🛑 **CAUTION ADVISED**: ${base} Both teams demonstrate strong expected goal outputs. BTTS No is high-risk as both sides are likely to find the net. ${confidenceText}`; 
+          ratingPrefix = '🛑 **CAUTION ADVISED**';
+          mainContext = `Both teams demonstrate strong expected goal outputs. BTTS No is high-risk as both sides are likely to find the net.`;
+          break;
       }
+      
+      let finalRecommendation = `${ratingPrefix}: ${base} ${mainContext}`;
+      
+      if (dataQuality === 'Poor' || dataQuality === 'Fair' || dataQuality === 'Insufficient') {
+          finalRecommendation += ` 📊 **Data Warning: ${dataQuality} Quality**.`;
+      }
+      
+      return finalRecommendation + ` ${confidenceText}`;
     }
   }
 
@@ -801,19 +841,17 @@ export class MatchContextService {
     awayInsights: BettingInsight[]
   ): Promise<MatchContextInsight[]> {
     
-    const startTime = performance.now(); // ⏱️ Start timer
+    const startTime = performance.now(); 
     const enrichedInsights: MatchContextInsight[] = [];
 
     // ===== 1. PARALLEL DATA FETCHING (OPTIMIZATION) =====
-    // Fetch all necessary stats concurrently to minimize network latency.
     const [goalsStats, cardsStats, cornersStats, foulsStats, shootingStats] = 
         await Promise.all([
           supabaseGoalsService.getGoalStatistics(),
           supabaseCardsService.getCardStatistics(),
           supabaseCornersService.getCornerStatistics(),
           supabaseFoulsService.getFoulStatistics(),
-          // FIX 3: Corrected duplicate call from goalsService to shootingService
-          supabaseShootingService.getShootingStatistics() 
+          supabaseShootingService.getShootingStatistics() // FIX: Corrected call
         ]);
 
     const allStats: AllStats = { 
@@ -833,8 +871,6 @@ export class MatchContextService {
     const normalizedHome = normalizeTeamName(homeTeam);
     const normalizedAway = normalizeTeamName(awayTeam);
     
-    console.log(`[MatchContextService] 📝 Normalized teams: "${homeTeam}" → "${normalizedHome}", "${awayTeam}" → "${normalizedAway}"`);
-    
     if (normalizedHome === normalizedAway) {
       console.error(`[MatchContextService] ❌ Home and away teams cannot be the same: "${homeTeam}"`);
       return [];
@@ -847,14 +883,12 @@ export class MatchContextService {
 
     // ===== PROCESS INSIGHTS =====
     const allInsights = [
-      // Home team insights: opponent is AWAY, so check opponent's away defensive stats
       ...homeInsights.map(i => ({ 
         insight: i, 
         isHome: true, 
         opponent: normalizedAway,
         opponentIsHome: false
       })),
-      // Away team insights: opponent is HOME, so check opponent's home defensive stats
       ...awayInsights.map(i => ({ 
         insight: i, 
         isHome: false, 
@@ -867,23 +901,18 @@ export class MatchContextService {
       try {
         const insightTeamName = isHome ? normalizedHome : normalizedAway;
         
-        // 1. Get Opposition Stats - PASS THE PRE-FETCHED DATA
+        // 1. Get Opposition Stats
         const oppStats = await this.getOppositionDefensiveStats(
           opponent, 
           insight.market, 
           opponentIsHome,
-          allStats // Pass the combined stats object
+          allStats 
         );
         
-        // ===== HANDLE MISSING OR INSUFFICIENT DATA (Final check before proceeding) =====
+        // ===== HANDLE MISSING OR INSUFFICIENT DATA =====
         if (!oppStats || oppStats.matches < this.MIN_MATCHES_FOR_ANALYSIS) {
           const matchCount = oppStats?.matches ?? 0;
           const oppDisplayName = getDisplayTeamName(opponent);
-          
-          if (oppStats && matchCount > 0) { 
-              // The early console.warn already handled the low count; this handles the final 'Insufficient' flag
-          }
-          
           const confidenceText = this.getConfidenceContext(insight.context?.confidence?.score ?? 0);
           
           enrichedInsights.push({
@@ -893,20 +922,19 @@ export class MatchContextService {
               oppositionMatches: matchCount,
               isHome,
               strengthOfMatch: 'Poor',
-              recommendation: `⚠️ **DATA WARNING**: Insufficient opposition data for ${oppDisplayName} in ${insight.market} market (only ${matchCount} matches available). Minimum ${this.MIN_MATCHES_FOR_ANALYSIS} matches required for reliable analysis. **Proceed with extreme caution** - this recommendation is based on incomplete information. ${confidenceText}`,
+              recommendation: `🛑 **DATA WARNING**: Insufficient opposition data for ${oppDisplayName} in ${insight.market} market (only ${matchCount} matches available). Minimum ${this.MIN_MATCHES_FOR_ANALYSIS} matches required. **Proceed with extreme caution**. ${confidenceText}`,
               venueSpecific: false,
               dataQuality: 'Insufficient'
             }
           });
           
-          continue; // Skip to next insight
+          continue; 
         }
         
         const oppositionAllows = oppStats.average;
         const oppositionMatches = oppStats.matches;
         const venueSpecific = oppStats.venueSpecific;
         
-        // Calculate data quality
         const dataQuality = this.calculateDataQuality(oppositionMatches, venueSpecific);
 
         const isBTTS = insight.market === BettingMarket.BOTH_TEAMS_TO_SCORE;
@@ -926,7 +954,7 @@ export class MatchContextService {
             normalizedHome,
             normalizedAway,
             bttsExpectation,
-            goalsStats // Pass goalsStats
+            goalsStats 
           );
           
           if (bttsEval) {
@@ -947,7 +975,8 @@ export class MatchContextService {
               isHome,
               confidenceScore,
               bttsContext,
-              bttsEval.venueSpecific
+              bttsEval.venueSpecific,
+              dataQuality // Pass dataQuality to BTTS generator
             );
           } else {
             const confidenceText = this.getConfidenceContext(confidenceScore);
@@ -969,7 +998,7 @@ export class MatchContextService {
           const dominanceOverride = matchEvaluation.dominanceOverride;
           const dominanceRatio = matchEvaluation.dominanceRatio;
 
-          // 3. Generate Recommendation
+          // 3. Generate Recommendation (Using enhanced text generator)
           recommendation = this.generateRecommendation(
             insightTeamName,
             insight.outcome,
@@ -981,13 +1010,9 @@ export class MatchContextService {
             confidenceScore,
             venueSpecific,
             dominanceOverride,
-            dominanceRatio
+            dominanceRatio,
+            dataQuality // Pass dataQuality to generator
           );
-          
-          // Append data quality warning if needed
-          if (dataQuality === 'Poor' || dataQuality === 'Fair') {
-            recommendation += ` 📊 **Data Quality: ${dataQuality}** (${oppositionMatches} ${venueSpecific ? 'venue-specific' : 'total'} matches).`;
-          }
           
           roundedOppositionAllows = Math.round(oppositionAllows * 10) / 10;
         }
@@ -1011,7 +1036,6 @@ export class MatchContextService {
         // Catch any errors during processing of individual insights
         console.error(`[MatchContextService] 💥 Error processing insight for ${insight.team} - ${insight.market}:`, error);
         
-        // Add insight with error state
         const confidenceText = this.getConfidenceContext(insight.context?.confidence?.score ?? 0);
         
         enrichedInsights.push({
@@ -1029,9 +1053,7 @@ export class MatchContextService {
       }
     }
 
-    const duration = Math.round(performance.now() - startTime); // ⏱️ Calculate duration
-    console.log(`[MatchContextService] ✅ Enriched ${enrichedInsights.length} insights in ${duration}ms`); // 📝 Log duration
-    
+    const duration = Math.round(performance.now() - startTime); 
     return enrichedInsights;
   }
 
@@ -1044,13 +1066,11 @@ export class MatchContextService {
     allInsights: BettingInsight[]
   ): Promise<MatchContextInsight[]> {
     
-    // Split into home and away insights
     const homeInsights = allInsights.filter(i => i.team.toLowerCase() === homeTeam.toLowerCase());
     const awayInsights = allInsights.filter(i => i.team.toLowerCase() === awayTeam.toLowerCase());
 
     const enriched = await this.enrichMatchInsights(homeTeam, awayTeam, homeInsights, awayInsights);
 
-    // Filter for High/Very High confidence and Excellent/Good match strength
     const bestBets = enriched.filter(e => {
       const confidence = e.context?.confidence?.level;
       const strength = e.matchContext.strengthOfMatch;
@@ -1061,7 +1081,6 @@ export class MatchContextService {
       return isHighConfidence && isGoodMatchup;
     });
 
-    // Sort by confidence score (highest first)
     return bestBets.sort((a, b) => 
       (b.context?.confidence?.score ?? 0) - (a.context?.confidence?.score ?? 0)
     );
@@ -1069,12 +1088,10 @@ export class MatchContextService {
 
   /**
    * Returns the current status of in-memory caches.
-   * Useful for monitoring, testing, and verifying memoization.
    */
   public getCacheStatus() {
     return {
       teamExistsCacheSize: this.teamExistsCache.size,
-      // Placeholder for future metrics like timestamps, hit rates, etc.
     };
   }
 }
