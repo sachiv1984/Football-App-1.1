@@ -9,7 +9,8 @@ import {
 // Import only the service objects (which are assumed to be exported)
 import { supabaseCardsService } from '../stats/supabaseCardsService';
 import { supabaseCornersService } from '../stats/supabaseCornersService';
-import { supabaseFoulsService } from '../stats/supabaseFoulService';
+// FIX 1: Corrected import path from 'supabaseFoulService' to 'supabaseFoulsService'
+import { supabaseFoulsService } from '../stats/supabaseFoulsService'; 
 import { supabaseGoalsService } from '../stats/supabaseGoalsService';
 import { supabaseShootingService } from '../stats/supabaseShootingService';
 
@@ -208,8 +209,6 @@ export class MatchContextService {
                               confidenceScore >= 60 ? '✅' : 
                               confidenceScore >= 40 ? '⚠️' : '🚨';
 
-      // We no longer bold the confidence score here, as the final recommendation
-      // will combine all elements into one cohesive block.
       return `${confidenceEmoji} Confidence: ${confidenceScore}/100`;
   }
   
@@ -513,7 +512,8 @@ export class MatchContextService {
     venueSpecific: boolean,
     dominanceOverride: boolean,
     dominanceRatio?: number,
-    dataQuality?: 'Excellent' | 'Good' | 'Fair' | 'Poor' | 'Insufficient' // Added dataQuality
+    dataQuality?: 'Excellent' | 'Good' | 'Fair' | 'Poor' | 'Insufficient', // Added dataQuality
+    oppositionMatches?: number // Added oppositionMatches
   ): string {
     const displayTeamName = getDisplayTeamName(teamName);
     const isUnderBet = outcome.startsWith('Under');
@@ -592,7 +592,8 @@ export class MatchContextService {
     
     // Append Data Quality Warning (Consolidated into one line)
     if (dataQuality === 'Poor' || dataQuality === 'Fair' || dataQuality === 'Insufficient') {
-        const matchesNote = `(${oppositionMatches} ${venueSpecific ? 'venue-specific' : 'total'} matches).`;
+        // Use optional chaining for safety, though oppositionMatches should be defined here.
+        const matchesNote = `(${(oppositionMatches ?? 0)} ${venueSpecific ? 'venue-specific' : 'total'} matches).`; 
         finalRecommendation += ` 📊 **Data Warning: ${dataQuality} Quality** ${matchesNote}`;
     }
     
@@ -754,7 +755,8 @@ export class MatchContextService {
       homeGoalsAgainst: number;
     },
     venueSpecific: boolean,
-    dataQuality: 'Excellent' | 'Good' | 'Fair' | 'Poor' | 'Insufficient' // Added dataQuality
+    dataQuality: 'Excellent' | 'Good' | 'Fair' | 'Poor' | 'Insufficient', // Added dataQuality
+    oppositionMatches: number // FIX 2A: Added missing oppositionMatches argument
   ): string {
     const displayTeamName = getDisplayTeamName(teamName);
     const isBTTSYes = outcome.includes('Yes');
@@ -793,7 +795,9 @@ export class MatchContextService {
       let finalRecommendation = `${ratingPrefix}: ${base} ${mainContext}`;
       
       if (dataQuality === 'Poor' || dataQuality === 'Fair' || dataQuality === 'Insufficient') {
-          finalRecommendation += ` 📊 **Data Warning: ${dataQuality} Quality**.`;
+          // FIX 2B: Use oppositionMatches to show match count in the data warning
+          const matchesNote = `(${oppositionMatches} ${venueSpecific ? 'venue-specific' : 'total'} matches).`; 
+          finalRecommendation += ` 📊 **Data Warning: ${dataQuality} Quality** ${matchesNote}`;
       }
       
       return finalRecommendation + ` ${confidenceText}`;
@@ -824,7 +828,9 @@ export class MatchContextService {
       let finalRecommendation = `${ratingPrefix}: ${base} ${mainContext}`;
       
       if (dataQuality === 'Poor' || dataQuality === 'Fair' || dataQuality === 'Insufficient') {
-          finalRecommendation += ` 📊 **Data Warning: ${dataQuality} Quality**.`;
+          // FIX 2B: Use oppositionMatches to show match count in the data warning
+          const matchesNote = `(${oppositionMatches} ${venueSpecific ? 'venue-specific' : 'total'} matches).`; 
+          finalRecommendation += ` 📊 **Data Warning: ${dataQuality} Quality** ${matchesNote}`;
       }
       
       return finalRecommendation + ` ${confidenceText}`;
@@ -851,7 +857,7 @@ export class MatchContextService {
           supabaseCardsService.getCardStatistics(),
           supabaseCornersService.getCornerStatistics(),
           supabaseFoulsService.getFoulStatistics(),
-          supabaseShootingService.getShootingStatistics() // FIX: Corrected call
+          supabaseShootingService.getShootingStatistics() 
         ]);
 
     const allStats: AllStats = { 
@@ -976,7 +982,8 @@ export class MatchContextService {
               confidenceScore,
               bttsContext,
               bttsEval.venueSpecific,
-              dataQuality // Pass dataQuality to BTTS generator
+              dataQuality,
+              oppositionMatches // FIX 2B: Passing the missing variable
             );
           } else {
             const confidenceText = this.getConfidenceContext(confidenceScore);
@@ -1011,7 +1018,8 @@ export class MatchContextService {
             venueSpecific,
             dominanceOverride,
             dominanceRatio,
-            dataQuality // Pass dataQuality to generator
+            dataQuality, // Pass dataQuality to generator
+            oppositionMatches // Pass oppositionMatches to generator
           );
           
           roundedOppositionAllows = Math.round(oppositionAllows * 10) / 10;
