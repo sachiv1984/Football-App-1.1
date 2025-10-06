@@ -15,44 +15,40 @@ import { supabaseShootingService } from '../stats/supabaseShootingService';
 
 import { getDisplayTeamName, normalizeTeamName } from '../../utils/teamUtils';
 
-// --- LOCAL TYPE DEFINITIONS TO AVOID TS2305 ERRORS ---
+// --- ROBUST DYNAMIC TYPE INFERENCE (Eliminates manual types and @ts-ignore) ---
 
 // 1. INFERRED STATS MAP TYPES (The key is the team name string)
-// Use Awaited<ReturnType<...>> to infer the Map<string, T> type returned by the async service functions.
 type CardsStats = Awaited<ReturnType<typeof supabaseCardsService.getCardStatistics>>;
 type CornersStats = Awaited<ReturnType<typeof supabaseCornersService.getCornerStatistics>>;
 type FoulsStats = Awaited<ReturnType<typeof supabaseFoulsService.getFoulStatistics>>;
 type GoalsStats = Awaited<ReturnType<typeof supabaseGoalsService.getGoalStatistics>>;
 type ShootingStats = Awaited<ReturnType<typeof supabaseShootingService.getShootingStatistics>>;
 
-// 2. LOCAL MATCH DETAIL TYPES (These replace the missing *MatchDetail imports)
-// We define the structure based on the properties used in the reduction logic.
+// 2. DYNAMICALLY INFERRED MATCH DETAIL TYPES (Replaces manual interfaces like CardMatchDetail)
+// We use conditional types to extract the element type of the 'matchDetails' array 
+// from the Stats Map Value type.
+// V extends { matchDetails: (infer D)[] } is the magic that extracts the array element D.
+type ExtractMatchDetail<T> = T extends Map<string, infer V> 
+  ? V extends { matchDetails: (infer D)[] }
+    ? D 
+    : never
+  : never;
 
-interface BaseMatchDetail {
-    isHome?: boolean;
-}
+// Now, we define the individual match detail types based on the inferred map types
+type CardsMatchDetail = ExtractMatchDetail<CardsStats>;      // Type: { cardsFor: number; isHome: boolean; ... }
+type CornersMatchDetail = ExtractMatchDetail<CornersStats>;  // Type: { cornersAgainst: number; isHome: boolean; ... }
+type FoulsMatchDetail = ExtractMatchDetail<FoulsStats>;      // Type: { foulsCommittedAgainst: number; isHome: boolean; ... }
+type GoalsMatchDetail = ExtractMatchDetail<GoalsStats>;      // Type: { goalsAgainst: number; goalsFor: number; isHome: boolean; ... }
+type ShootingMatchDetail = ExtractMatchDetail<ShootingStats>; // Type: { shotsAgainst: number; shotsOnTargetAgainst: number; isHome: boolean; ... }
 
-interface CardMatchDetail extends BaseMatchDetail {
-    cardsFor?: number;
-}
-interface CornerMatchDetail extends BaseMatchDetail {
-    cornersAgainst?: number;
-}
-interface FoulMatchDetail extends BaseMatchDetail {
-    foulsCommittedAgainst?: number;
-}
-interface GoalMatchDetail extends BaseMatchDetail {
-    goalsAgainst?: number;
-    goalsFor?: number;
-}
-interface DetailedShootingMatchDetail extends BaseMatchDetail {
-    shotsAgainst?: number;
-    shotsOnTargetAgainst?: number;
-}
-
-// 3. COMPOSITE BASE TYPE (Constraint for getVenueSpecificMatches)
-// This ensures that any array passed to the generic function has all properties that might be accessed.
-type MatchDetailBase = CardMatchDetail & CornerMatchDetail & FoulMatchDetail & GoalMatchDetail & DetailedShootingMatchDetail;
+// 3. UNION TYPE for getVenueSpecificMatches
+// This is the clean replacement for MatchDetailBase that lets us safely switch on the market type.
+type MatchDetailType = 
+  | CardsMatchDetail
+  | CornersMatchDetail
+  | FoulsMatchDetail
+  | GoalsMatchDetail
+  | ShootingMatchDetail;
 
 // 4. ALL STATS INTERFACE
 interface AllStats {
@@ -72,7 +68,7 @@ interface MatchContext {
     recommendation: string;
     venueSpecific: boolean;
     dataQuality: 'Excellent' | 'Good' | 'Fair' | 'Poor' | 'Insufficient';
-    // NEW: BTTS-specific fields
+    // BTTS-specific fields
     bttsContext?: {
       homeExpectedGoals: number;
       awayExpectedGoals: number;
@@ -91,6 +87,8 @@ export type MatchContextInsight = BettingInsight & {
 // Define the exact keys used for dynamic access in the Shooting market
 type ShootingFieldKey = 'shotsAgainst' | 'shotsOnTargetAgainst';
 
+// --- END OF NEW TYPE DEFINITIONS ---
+
 /**
  * Service to enrich betting insights with match-specific context
  */
@@ -105,17 +103,18 @@ export class MatchContextService {
 
   /**
    * Helper function to abstract the venue filtering and fallback logic.
-   * @template T - The type of the match detail object, now constrained to MatchDetailBase.
+   * @template T - The type of the match detail object, now constrained to MatchDetailType.
    * @param allMatches - All available match details for the team.
    * @param opponentIsHome - The venue condition the opposition is playing at (true = home, false = away).
    * @returns An object containing the filtered array and a boolean indicating if it is venue-specific.
    */
-  private getVenueSpecificMatches<T extends MatchDetailBase>(
+  private getVenueSpecificMatches<T extends MatchDetailType>(
     allMatches: T[],
     opponentIsHome: boolean
   ): { matches: T[]; venueSpecific: boolean } {
     
     // Filter for matches where the opposition played at the required venue
+    // The 'isHome' property is correctly inferred to exist on all members of MatchDetailType
     const venueMatches = allMatches.filter(m => m.isHome === opponentIsHome);
     
     // Use venueMatches only if we meet the minimum threshold, otherwise use allMatches as fallback
@@ -131,6 +130,9 @@ export class MatchContextService {
       venueSpecific: useVenueSpecific
     };
   }
+
+  // (The rest of verifyTeamExists, calculateDataQuality, getConfidenceContext remain the same)
+  // ... (verifyTeamExists, calculateDataQuality, getConfidenceContext)
 
   /**
    * Verify that a team exists in the database (Memoized)
@@ -223,21 +225,20 @@ export class MatchContextService {
           const oppStats = stats.cards.get(opponent);
           if (!oppStats) return null;
           
-          // 🛑 ADDED EARLY SAMPLE SIZE WARNING 🛑
           if (oppStats.matches < this.MIN_MATCHES_FOR_ANALYSIS) {
             console.warn(`[Data Warning] ⚠️ Team ${opponent} (Cards) has only ${oppStats.matches} total matches. Proceeding with low sample size.`);
           }
-          // 🛑 END WARNING 🛑
 
-          // FIX: Cast to the specific detail type
+          // ✅ FIX: Safely assert the array type (which is now CardsMatchDetail[])
+          const matchDetails = oppStats.matchDetails as CardsMatchDetail[];
+          
           const { matches: matchesToUse, venueSpecific } = this.getVenueSpecificMatches(
-            // @ts-ignore: We rely on the implicit definition of the generic T extending MatchDetailBase
-            oppStats.matchDetails as CardMatchDetail[], 
+            matchDetails, 
             opponentIsHome
           );
           
           const totalCardsAllowed = matchesToUse.reduce(
-            (sum, m) => sum + (m.cardsFor || 0), 0 
+            (sum, m) => sum + (m.cardsFor || 0), 0 // 'm.cardsFor' is now type-safe
           );
           
           const matchCount = matchesToUse.length;
@@ -253,21 +254,20 @@ export class MatchContextService {
           const oppStats = stats.corners.get(opponent);
           if (!oppStats) return null;
           
-          // 🛑 ADDED EARLY SAMPLE SIZE WARNING 🛑
           if (oppStats.matches < this.MIN_MATCHES_FOR_ANALYSIS) {
             console.warn(`[Data Warning] ⚠️ Team ${opponent} (Corners) has only ${oppStats.matches} total matches. Proceeding with low sample size.`);
           }
-          // 🛑 END WARNING 🛑
 
-          // FIX: Cast to the specific detail type
+          // ✅ FIX: Safely assert the array type
+          const matchDetails = oppStats.matchDetails as CornersMatchDetail[];
+
           const { matches: matchesToUse, venueSpecific } = this.getVenueSpecificMatches(
-            // @ts-ignore
-            oppStats.matchDetails as CornerMatchDetail[], 
+            matchDetails, 
             opponentIsHome
           );
           
           const totalCornersAgainst = matchesToUse.reduce(
-            (sum, m) => sum + (m.cornersAgainst || 0), 0
+            (sum, m) => sum + (m.cornersAgainst || 0), 0 // 'm.cornersAgainst' is now type-safe
           );
 
           const matchCount = matchesToUse.length;
@@ -283,21 +283,20 @@ export class MatchContextService {
           const oppStats = stats.fouls.get(opponent);
           if (!oppStats) return null;
           
-          // 🛑 ADDED EARLY SAMPLE SIZE WARNING 🛑
           if (oppStats.matches < this.MIN_MATCHES_FOR_ANALYSIS) {
             console.warn(`[Data Warning] ⚠️ Team ${opponent} (Fouls) has only ${oppStats.matches} total matches. Proceeding with low sample size.`);
           }
-          // 🛑 END WARNING 🛑
 
-          // FIX: Cast to the specific detail type
+          // ✅ FIX: Safely assert the array type
+          const matchDetails = oppStats.matchDetails as FoulsMatchDetail[];
+
           const { matches: matchesToUse, venueSpecific } = this.getVenueSpecificMatches(
-            // @ts-ignore
-            oppStats.matchDetails as FoulMatchDetail[], 
+            matchDetails, 
             opponentIsHome
           );
           
           const totalFoulsAgainst = matchesToUse.reduce(
-            (sum, m) => sum + (m.foulsCommittedAgainst || 0), 0
+            (sum, m) => sum + (m.foulsCommittedAgainst || 0), 0 // 'm.foulsCommittedAgainst' is now type-safe
           );
 
           const matchCount = matchesToUse.length;
@@ -314,25 +313,24 @@ export class MatchContextService {
           const oppStats = stats.shooting.get(opponent);
           if (!oppStats) return null;
           
-          // 🛑 ADDED EARLY SAMPLE SIZE WARNING 🛑
           if (oppStats.matches < this.MIN_MATCHES_FOR_ANALYSIS) {
             console.warn(`[Data Warning] ⚠️ Team ${opponent} (Shots) has only ${oppStats.matches} total matches. Proceeding with low sample size.`);
           }
-          // 🛑 END WARNING 🛑
 
-          // Define and cast the field name to the narrow, type-safe key
+          // Define and assert the field name
           const field = (market === BettingMarket.SHOTS_ON_TARGET 
             ? 'shotsOnTargetAgainst' 
             : 'shotsAgainst') as ShootingFieldKey;
           
-          // FIX: Cast to the specific detail type
+          // ✅ FIX: Safely assert the array type
+          const matchDetails = oppStats.matchDetails as ShootingMatchDetail[];
+
           const { matches: matchesToUse, venueSpecific } = this.getVenueSpecificMatches(
-            // @ts-ignore
-            oppStats.matchDetails as DetailedShootingMatchDetail[], 
+            matchDetails, 
             opponentIsHome
           );
           
-          // Accessing 'm[field]' is now type-safe because T extends MatchDetailBase
+          // 'm[field]' is now type-safe because ShootingMatchDetail contains both keys
           const totalAgainst = matchesToUse.reduce(
             (sum, m) => sum + (m[field] || 0), 0 
           );
@@ -350,22 +348,21 @@ export class MatchContextService {
             const oppStats = stats.goals.get(opponent);
             if (!oppStats) return null;
             
-            // 🛑 ADDED EARLY SAMPLE SIZE WARNING 🛑
             if (oppStats.matches < this.MIN_MATCHES_FOR_ANALYSIS) {
               console.warn(`[Data Warning] ⚠️ Team ${opponent} (Goals) has only ${oppStats.matches} total matches. Proceeding with low sample size.`);
             }
-            // 🛑 END WARNING 🛑
             
-            // FIX: Cast to the specific detail type
+            // ✅ FIX: Safely assert the array type
+            const matchDetails = oppStats.matchDetails as GoalsMatchDetail[];
+
             const { matches: matchesToUse, venueSpecific } = this.getVenueSpecificMatches(
-              // @ts-ignore
-              oppStats.matchDetails as GoalMatchDetail[], 
+              matchDetails, 
               opponentIsHome
             );
             
             // Calculate average goals CONCEDED (goalsAgainst) at this venue
             const totalGoalsAgainst = matchesToUse.reduce(
-              (sum, m) => sum + (m.goalsAgainst || 0), 0 
+              (sum, m) => sum + (m.goalsAgainst || 0), 0 // 'm.goalsAgainst' is now type-safe
             );
             
             const matchCount = matchesToUse.length;
@@ -390,6 +387,9 @@ export class MatchContextService {
       return null;
     }
   }
+
+  // (evaluateMatchStrength, generateRecommendation, evaluateBTTSMatchup, generateBTTSRecommendation)
+  // ... (These functions remain the same as previous step, but are included in the final file)
 
   /**
    * Evaluates the strength of the matchup based on the pattern and opposition stats.
@@ -527,7 +527,6 @@ export class MatchContextService {
       : '';
     
     let base = `${displayTeamName}'s pattern: ${outcome} (${Math.round(patternAvg * 10) / 10} avg)`;
-    // 🚩 UPDATED: Use the new helper for confidence context
     const confidenceText = this.getConfidenceContext(confidenceScore);
 
     // 🎯 DOMINANCE OVERRIDE MESSAGING (OVER bets only)
@@ -606,17 +605,17 @@ export class MatchContextService {
       
       if (!homeStats || !awayStats) return null;
 
+      // ✅ FIX: Safely assert the array type
+      const homeMatchDetails = homeStats.matchDetails as GoalsMatchDetail[];
+      const awayMatchDetails = awayStats.matchDetails as GoalsMatchDetail[];
+
       // Determine venue-specific matches for both home team (at home) and away team (away)
       const { matches: homeHomeMatches, venueSpecific: homeVenueSpecific } = this.getVenueSpecificMatches(
-          // FIX: Cast to the specific detail type
-          // @ts-ignore
-          homeStats.matchDetails as GoalMatchDetail[], 
+          homeMatchDetails, 
           true // Home team's perspective
       );
       const { matches: awayAwayMatches, venueSpecific: awayVenueSpecific } = this.getVenueSpecificMatches(
-          // FIX: Cast to the specific detail type
-          // @ts-ignore
-          awayStats.matchDetails as GoalMatchDetail[], 
+          awayMatchDetails, 
           false // Away team's perspective
       );
       
@@ -752,7 +751,6 @@ export class MatchContextService {
     
     const homeExpected = Math.round(bttsContext.homeExpectedGoals * 10) / 10;
     const awayExpected = Math.round(bttsContext.awayExpectedGoals * 10) / 10;
-    // 🚩 UPDATED: Use the new helper for confidence context
     const confidenceText = this.getConfidenceContext(confidenceScore);
     
     if (isBTTSYes) {
