@@ -5,6 +5,7 @@ import { MatchContextInsight } from '../../services/ai/matchContextService';
 
 interface UnifiedBettingInsightsProps {
   insights: MatchContextInsight[];
+  // NOTE: homeTeam and awayTeam are now guaranteed to be CANONICAL names (e.g., 'Manchester United')
   homeTeam: string;
   awayTeam: string;
 }
@@ -17,10 +18,8 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
   homeTeam, 
   awayTeam 
 }) => {
-  // Use BetTab type for the primary filter (Tier)
   const [selectedTab, setSelectedTab] = useState<BetTab>('all');
   const [showAccasOnly, setShowAccasOnly] = useState(false);
-  // Team filter remains the secondary selection
   const [selectedTeam, setSelectedTeam] = useState<'all' | 'home' | 'away'>('all');
   
   // Rank all bets
@@ -33,14 +32,15 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
     ? rankedBets 
     : rankedBets.filter(bet => bet.tier === selectedTab);
   
+  // 🎯 FIX: Use direct comparison as both bet.team and homeTeam/awayTeam props are now CANONICAL
   const finalFiltered = selectedTeam === 'all'
     ? tabFiltered
     : tabFiltered.filter(bet => {
-        const isHomeTeam = bet.team.toLowerCase() === homeTeam.toLowerCase();
+        const isHomeTeam = bet.team === homeTeam; // Changed from .toLowerCase()
         return selectedTeam === 'home' ? isHomeTeam : !isHomeTeam;
       });
   
-  // Memoize counts (still needed for secondary filter buttons and summary)
+  // Memoize counts 
   const { tierCounts, accumulatorBets, bestBet, homeCount, awayCount } = useMemo(() => {
     const accumulatorBets = rankedBets.filter(b => b.accumulatorSafe);
     const bestBet = rankedBets.length > 0 ? rankedBets[0] : null;
@@ -55,8 +55,9 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
         },
         accumulatorBets,
         bestBet,
-        homeCount: rankedBets.filter(b => b.team.toLowerCase() === homeTeam.toLowerCase()).length,
-        awayCount: rankedBets.filter(b => b.team.toLowerCase() === awayTeam.toLowerCase()).length,
+        // 🎯 FIX: Use direct comparison in counts as both bet.team and props are now CANONICAL
+        homeCount: rankedBets.filter(b => b.team === homeTeam).length,
+        awayCount: rankedBets.filter(b => b.team === awayTeam).length,
     };
   }, [rankedBets, homeTeam, awayTeam]);
   
@@ -78,7 +79,6 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
           {tabs.map((tab) => {
             const isActive = selectedTab === tab.key;
             
-            // Define active colors (matching the purple accent from the Stats Table)
             const activeClass = isActive
               ? 'text-purple-800 border-purple-600 bg-white shadow-sm transform -translate-y-0.5 z-10'
               : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50';
@@ -163,8 +163,6 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
       {/* Content */}
       <div className="p-4 sm:p-6 space-y-6">
         
-        {/* ✨ CHANGE: Removed the Match Title Row for a cleaner look */}
-        
         {/* Best Bet Highlight - Stays Full-Width and Expandable */}
         {bestBet && !showAccasOnly && selectedTab === 'all' && selectedTeam === 'all' && bestBet.betScore >= 75 && (
           <div className="bg-white border-4 border-yellow-400 rounded-xl p-6 shadow-md -mt-4">
@@ -230,7 +228,7 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
 };
 
 // ----------------------------------------------------------------------
-// BETCARD COMPONENT (Remains unchanged and uses the compact/highlight rendering)
+// BETCARD COMPONENT 
 // ----------------------------------------------------------------------
 
 const BetCard: React.FC<{ 
@@ -278,7 +276,8 @@ const BetCard: React.FC<{
     return colors[market] || 'bg-gray-100 text-gray-800';
   };
   
-  const isHomeTeam = bet.team.toLowerCase() === homeTeam.toLowerCase();
+  // 🎯 FIX: Use direct comparison as bet.team and homeTeam prop are both CANONICAL
+  const isHomeTeam = bet.team === homeTeam; 
   const teamColor = isHomeTeam ? 'text-green-700' : 'text-orange-700'; 
   const teamBg = isHomeTeam ? 'bg-green-50' : 'bg-orange-50'; 
   
