@@ -369,9 +369,6 @@ const BetCard: React.FC<{
                     </div>
                     
                     {/* ❌ REMOVED: Market Label (Goals, Fouls, etc.) for a cleaner look */}
-                    {/* <span className={`px-2 py-0.5 rounded text-xs font-semibold ${getMarketColor(bet.market)}`}>
-                        {bet.market.replace(/_/g, ' ').toUpperCase()}
-                    </span> */}
                     
                     <h4 className="text-base font-extrabold text-gray-900 truncate mt-1">{bet.outcome}</h4>
                     {/* 💡 Small hint of the market type */}
@@ -397,24 +394,24 @@ const BetCard: React.FC<{
                         <TrendingUp className="w-3 h-3 text-purple-500" /> {bet.hitRate}% Hit
                     </p>
                     
-                    {/* 7+ STREAK BADGE - REMOVED BACKGROUND */}
+                    {/* 7+ STREAK BADGE - REMOVED BACKGROUND AND BORDER */}
                     {showStreakBadge && (
-                        <span className="text-red-700 font-bold flex items-center gap-1 border border-red-200 px-1 py-0.5 rounded">
+                        <span className="text-red-700 font-bold flex items-center gap-1">
                             <Zap className="w-3 h-3" />
                             {bet.streakLength}+ Streak
                         </span>
                     )}
                     
-                    {/* Acca Safe Badge - REMOVED BACKGROUND */}
+                    {/* Acca Safe Badge - REMOVED BACKGROUND AND BORDER */}
                     {bet.accumulatorSafe && (
-                        <p className="text-purple-700 font-bold flex items-center gap-1 ml-auto border border-purple-200 px-1 py-0.5 rounded">
+                        <p className="text-purple-700 font-bold flex items-center gap-1 ml-auto">
                             <CheckCircle className="w-3 h-3" /> Acca Safe
                         </p>
                     )}
                 </div>
 
 
-                {/* RIGHT SIDE: VENUE CONSISTENCY - REMOVED BACKGROUND */}
+                {/* RIGHT SIDE: VENUE CONSISTENCY - UNCHANGED FROM PREVIOUS CLEANUP */}
                 {showVenueSplit && (
                     <div className="flex items-center gap-2">
                         <span className="text-gray-500 font-medium">Venue:</span>
