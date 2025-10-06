@@ -23,7 +23,7 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
     ? betRankingService.getAccumulatorBets(insights)
     : betRankingService.rankBets(insights);
   
-  // Filter logic remains the same
+  // Filter logic
   const tierFiltered = selectedTier === 'all' 
     ? rankedBets 
     : rankedBets.filter(bet => bet.tier === selectedTier);
@@ -56,10 +56,9 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
   }, [rankedBets, homeTeam, awayTeam]);
   
   return (
-    // ✨ FIX: Main container is clean (no explicit bg, no heavy shadow)
     <div className="space-y-6">
       
-      {/* Header with Summary - NOW MATCHES MODERN STATS TABLE */}
+      {/* Header with Summary - LIGHT MODE */}
       <div className="bg-white text-gray-900 rounded-xl p-6 shadow-md border border-gray-200">
         <h2 className="text-2xl font-extrabold mb-2 flex items-center gap-3 text-purple-700">
           <Trophy className="w-7 h-7" />
@@ -68,7 +67,6 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
         <p className="text-sm text-gray-600 mb-4">AI-Ranked betting opportunities based on statistical patterns</p>
         
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-6">
-          {/* ✨ FIX: Stat boxes use light gray background and purple accent */}
           <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
             <p className="text-xs text-gray-500">Total Insights</p>
             <p className="text-3xl font-bold text-purple-700">{rankedBets.length}</p>
@@ -92,20 +90,20 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
         </div>
       </div>
       
-      {/* Filters - NOW MATCHES MODERN STATS TABLE */}
+      {/* Filters - LIGHT MODE */}
       <div className="bg-white rounded-xl p-4 shadow-md border border-gray-200 space-y-4">
         <div className="flex items-center gap-2 mb-2 border-b border-gray-100 pb-2">
           <Filter className="w-5 h-5 text-purple-600" />
           <h3 className="font-bold text-gray-800">Filters</h3>
         </div>
         
-        {/* Team Filter - Buttons updated for light background */}
+        {/* Team Filter */}
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setSelectedTeam('all')}
             className={`px-4 py-2 rounded-lg font-semibold transition-all ${
               selectedTeam === 'all'
-                ? 'bg-purple-600 text-white shadow-md' // Using purple as the main accent
+                ? 'bg-purple-600 text-white shadow-md'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -135,7 +133,7 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
           </button>
         </div>
         
-        {/* Tier Filter - Buttons updated for light background */}
+        {/* Tier Filter */}
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setSelectedTier('all')}
@@ -195,9 +193,8 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
         </div>
       </div>
       
-      {/* Best Bet Highlight - NOW SUBTLE */}
+      {/* Best Bet Highlight - Stays Full-Width and Expandable */}
       {bestBet && !showAccasOnly && selectedTier === 'all' && selectedTeam === 'all' && bestBet.betScore >= 75 && (
-        // ✨ FIX: Light background, reduced yellow strength, subtle shadow
         <div className="bg-white border-4 border-yellow-400 rounded-xl p-6 shadow-md">
           <div className="flex items-center gap-3 mb-4">
             <Trophy className="w-10 h-10 text-yellow-600" />
@@ -218,8 +215,8 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
         </div>
       )}
       
-      {/* Bet List */}
-      <div className="space-y-4">
+      {/* Bet List: NOW A RESPONSIVE GRID */}
+      <div>
         {finalFiltered.length === 0 ? (
           <div className="bg-white rounded-xl p-12 text-center shadow-md border border-gray-200">
             <Target className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -227,15 +224,18 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
             <p className="text-sm text-gray-500 mt-2">Try adjusting your filter settings</p>
           </div>
         ) : (
-          finalFiltered.map((bet, idx) => (
-            <BetCard 
-              key={idx} 
-              bet={bet} 
-              rank={showAccasOnly || selectedTier !== 'all' ? undefined : idx + 1}
-              homeTeam={homeTeam}
-              awayTeam={awayTeam}
-            />
-          ))
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {finalFiltered.map((bet, idx) => (
+              <BetCard 
+                key={idx} 
+                bet={bet} 
+                // Grid items don't show rank or allow expansion
+                rank={undefined} 
+                homeTeam={homeTeam}
+                awayTeam={awayTeam}
+              />
+            ))}
+          </div>
         )}
       </div>
       
@@ -258,7 +258,10 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
   );
 };
 
-// --- BetCard Component (The most important area for de-jarring the UI) ---
+// ----------------------------------------------------------------------
+// BETCARD COMPONENT
+// ----------------------------------------------------------------------
+
 const BetCard: React.FC<{ 
   bet: RankedBet; 
   rank?: number; 
@@ -266,9 +269,12 @@ const BetCard: React.FC<{
   homeTeam: string;
   awayTeam: string;
 }> = ({ bet, rank, isHighlight = false, homeTeam, awayTeam }) => {
-  const [expanded, setExpanded] = useState(isHighlight);
   
-  // These gradients are small visual cues, so we'll keep them.
+  // Logic to determine if this is a compact, non-expandable card
+  const isCompactGridItem = !isHighlight && rank === undefined;
+  const [expanded, setExpanded] = useState(isHighlight);
+
+  // Helper functions (Light Mode Colors)
   const getScoreGradient = (score: number) => {
     if (score >= 80) return 'from-emerald-500 to-green-400';
     if (score >= 65) return 'from-blue-500 to-blue-400';
@@ -288,7 +294,6 @@ const BetCard: React.FC<{
   };
   
   const getMarketColor = (market: string) => {
-    // ✨ FIX: Light mode badge colors
     const colors: Record<string, string> = {
       cards: 'bg-yellow-100 text-yellow-800',
       corners: 'bg-blue-100 text-blue-800',
@@ -304,214 +309,254 @@ const BetCard: React.FC<{
   };
   
   const isHomeTeam = bet.team.toLowerCase() === homeTeam.toLowerCase();
-  const teamColor = isHomeTeam ? 'text-green-700' : 'text-orange-700'; // Light mode text color
-  const teamBg = isHomeTeam ? 'bg-green-50' : 'bg-orange-50'; // Light mode background color
+  const teamColor = isHomeTeam ? 'text-green-700' : 'text-orange-700'; 
+  const teamBg = isHomeTeam ? 'bg-green-50' : 'bg-orange-50'; 
   
+  // Renders the simplified view for grid items
+  const renderCompactGridCard = () => (
+    <div className="p-3">
+        <div className="flex items-center justify-between gap-3">
+            <div className="flex-1 min-w-0">
+                {/* Team Badge and Outcome */}
+                <div className="flex items-center gap-2 mb-1">
+                    <div className={`px-2 py-0.5 rounded-full ${teamBg} ${teamColor} font-bold text-xs flex items-center gap-1`}>
+                        {isHomeTeam ? <Home className="w-3 h-3" /> : <Plane className="w-3 h-3" />}
+                        {bet.team}
+                    </div>
+                    <span className={`px-2 py-0.5 rounded text-xs font-semibold ${getMarketColor(bet.market)}`}>
+                        {bet.market.replace(/_/g, ' ').toUpperCase()}
+                    </span>
+                </div>
+                <h4 className="text-base font-extrabold text-gray-900 truncate">{bet.outcome}</h4>
+            </div>
+
+            {/* Score Circle (smaller for grid view) */}
+            <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${getScoreGradient(bet.betScore)} flex items-center justify-center shadow-md flex-shrink-0`}>
+                <div className="text-center text-white">
+                    <p className="text-xl font-extrabold leading-none">{bet.betScore}</p>
+                    <p className="text-xs font-semibold leading-none">SCORE</p>
+                </div>
+            </div>
+        </div>
+        
+        {/* Additional data row */}
+        <div className="mt-2 pt-2 border-t border-gray-100 flex justify-between text-xs text-gray-600">
+            <p className="flex items-center gap-1">
+                <TrendingUp className="w-3 h-3" /> {bet.hitRate}% Hit
+            </p>
+            {bet.accumulatorSafe && (
+                <p className="text-purple-700 font-bold flex items-center gap-1">
+                    <CheckCircle className="w-3 h-3" /> Acca Safe
+                </p>
+            )}
+        </div>
+    </div>
+  );
+  
+  // Main Render
   return (
     <div 
-      // ✨ FIX: bg-white, subtle shadow, light gray hover/active ring
-      className={`bg-white rounded-xl border-2 ${getTierBorderColor(bet.tier)} border-opacity-30 shadow-sm overflow-hidden transition-all hover:shadow-md ${
-        isHighlight ? 'ring-4 ring-yellow-200' : 'hover:ring-2 hover:ring-gray-100' // Subtle highlight ring
-      }`}
+      className={`
+        bg-white rounded-xl border-2 ${getTierBorderColor(bet.tier)} border-opacity-30 shadow-sm overflow-hidden transition-all 
+        ${isHighlight ? 'ring-4 ring-yellow-200' : 'hover:shadow-md'}
+        ${isCompactGridItem ? 'hover:scale-[1.01] transition-transform duration-150' : ''}
+      `}
     >
-      {/* Card Header - Always Visible */}
-      <div 
-        // ✨ FIX: Light gray hover background
-        className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
-        onClick={() => setExpanded(!expanded)}
-      >
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-4 flex-1">
-            {rank && (
-              // ✨ FIX: Light gray background for rank circle
-              <div className={`w-12 h-12 rounded-full ${bet.betScore >= 80 ? 'bg-gradient-to-br from-yellow-400 to-yellow-500' : 'bg-gray-200'} flex items-center justify-center font-bold text-xl ${bet.betScore >= 80 ? 'text-white' : 'text-gray-700'} shadow-sm flex-shrink-0`}>
-                #{rank}
-              </div>
-            )}
-            
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap mb-2">
-                <div className={`px-3 py-1 rounded-full ${teamBg} ${teamColor} font-bold text-sm flex items-center gap-1`}>
-                  {isHomeTeam ? <Home className="w-3 h-3" /> : <Plane className="w-3 h-3" />}
-                  {bet.team}
-                </div>
-                <span className={`px-2 py-1 rounded text-xs font-semibold ${getMarketColor(bet.market)}`}>
-                  {bet.market.replace(/_/g, ' ').toUpperCase()}
-                </span>
-                {bet.isStreak && bet.streakLength && (
-                  // Light mode streak badge
-                  <span className="px-2 py-1 rounded bg-purple-100 text-purple-800 text-xs font-bold flex items-center gap-1">
-                    <TrendingUp className="w-3 h-3" />
-                    {bet.streakLength} Game Streak
-                  </span>
-                )}
-              </div>
-              <h4 className="text-xl font-extrabold text-gray-900 mb-1">{bet.outcome}</h4>
-              <p className="text-sm text-gray-600">
-                {bet.hitRate}% hit rate • {bet.matchesAnalyzed} matches • Avg: {bet.averageValue}
-              </p>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-3 flex-shrink-0">
-            {bet.accumulatorSafe && (
-              // Light mode acca badge
-              <div className="hidden sm:block px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-bold border-2 border-purple-300">
-                ✓ ACCA SAFE
-              </div>
-            )}
-            
-            <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${getScoreGradient(bet.betScore)} flex items-center justify-center shadow-md flex-shrink-0`}>
-              <div className="text-center text-white">
-                <p className="text-2xl font-extrabold">{bet.betScore}</p>
-                <p className="text-xs font-semibold">SCORE</p>
-              </div>
-            </div>
-            
-            <TrendingUp className={`w-6 h-6 text-gray-400 transition-transform flex-shrink-0 ${expanded ? 'rotate-180' : ''}`} />
-          </div>
-        </div>
-      </div>
-      
-      {/* Expanded Details */}
-      {expanded && (
-        // ✨ FIX: Light gray background for the inner content
-        <div className="border-t-2 border-gray-100 p-6 space-y-6 bg-gray-50">
-          
-          {/* Recommendation Box */}
-          {/* Light mode colors */}
-          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
-            <h5 className="font-bold text-blue-900 mb-2 flex items-center gap-2">
-              <Award className="w-5 h-5" />
-              Match Analysis & Recommendation
-            </h5>
-            <p className="text-sm text-blue-800 leading-relaxed">
-              {bet.matchContext.recommendation}
-            </p>
-          </div>
-          
-          {/* Why This Tier */}
-          <div>
-            <h5 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-green-600" />
-              Why This Bet is Ranked "{bet.tier}"
-            </h5>
-            <ul className="space-y-2">
-              {bet.reasoning.map((reason, idx) => (
-                // Light mode reasoning list items (white background)
-                <li key={idx} className="flex items-start gap-2 text-sm text-gray-700 bg-white p-2 rounded border border-gray-100">
-                  <span className="text-green-500 mt-0.5 flex-shrink-0">✓</span>
-                  <span>{reason}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          
-          {/* Red Flags */}
-          {bet.redFlags.length > 0 && (
-            // Light mode red flag box
-            <div className="bg-red-50 border-l-4 border-red-500 rounded p-4">
-              <h5 className="font-bold text-red-900 mb-2 flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
-                Red Flags & Risks
-              </h5>
-              <ul className="space-y-1">
-                {bet.redFlags.map((flag, idx) => (
-                  <li key={idx} className="flex items-start gap-2 text-sm text-red-700">
-                    <span className="text-red-500 mt-0.5 flex-shrink-0">⚠</span>
-                    <span>{flag}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          
-          {/* Key Stats Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {/* Light mode stat boxes */}
-            <div className="bg-white rounded-lg p-3 border border-gray-200">
-              <p className="text-xs text-gray-500 uppercase mb-1">Confidence</p>
-              <p className="text-2xl font-bold text-gray-900">{bet.context?.confidence?.score ?? 0}<span className="text-sm">/100</span></p>
-              <p className="text-xs text-gray-600">{bet.context?.confidence?.level}</p>
-            </div>
-            <div className="bg-white rounded-lg p-3 border border-gray-200">
-              <p className="text-xs text-gray-500 uppercase mb-1">Matchup</p>
-              <p className="text-2xl font-bold text-gray-900">{bet.matchContext.strengthOfMatch}</p>
-              <p className="text-xs text-gray-600">vs Opposition</p>
-            </div>
-            <div className="bg-white rounded-lg p-3 border border-gray-200">
-              <p className="text-xs text-gray-500 uppercase mb-1">Data Quality</p>
-              <p className="text-2xl font-bold text-gray-900">{bet.matchContext.dataQuality}</p>
-              <p className="text-xs text-gray-600">{bet.matchContext.oppositionMatches}m opponent</p>
-            </div>
-            <div className="bg-white rounded-lg p-3 border border-gray-200">
-              <p className="text-xs text-gray-500 uppercase mb-1">Opposition Avg</p>
-              <p className="text-2xl font-bold text-gray-900">{bet.matchContext.oppositionAllows}</p>
-              <p className="text-xs text-gray-600">{bet.matchContext.venueSpecific ? 'Venue-specific' : 'All matches'}</p>
-            </div>
-          </div>
-          
-          {/* Home/Away Venue Split */}
-          {bet.context?.homeAwaySupportForSample && (
-            <div className="bg-white rounded-lg p-4 border border-gray-200">
-              <h5 className="font-bold text-gray-900 mb-3 text-sm">Venue Consistency (Pattern Sample)</h5>
-              <div className="grid grid-cols-2 gap-3">
-                {bet.context.homeAwaySupportForSample.home.matches > 0 && (
-                  <div className={`p-3 rounded border-2 ${bet.matchContext.isHome ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-gray-50'}`}>
-                    <div className="flex items-center gap-2 mb-1">
-                      <Home className="w-4 h-4 text-gray-600" />
-                      <span className="text-xs font-bold text-gray-700">HOME ({bet.context.homeAwaySupportForSample.home.matches}m)</span>
-                    </div>
-                    <p className="text-2xl font-bold text-gray-900">{bet.context.homeAwaySupportForSample.home.hitRate}%</p>
-                    <p className="text-xs text-gray-600">Avg: {bet.context.homeAwaySupportForSample.home.average}</p>
+      {isCompactGridItem ? (
+        // Render the compact version for the grid
+        renderCompactGridCard()
+      ) : (
+        // Render the full, expandable version for the TOP PICK highlight
+        <>
+          <div 
+            className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+            onClick={() => setExpanded(!expanded)}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-4 flex-1">
+                {rank && (
+                  <div className={`w-12 h-12 rounded-full ${bet.betScore >= 80 ? 'bg-gradient-to-br from-yellow-400 to-yellow-500' : 'bg-gray-200'} flex items-center justify-center font-bold text-xl ${bet.betScore >= 80 ? 'text-white' : 'text-gray-700'} shadow-sm flex-shrink-0`}>
+                    #{rank}
                   </div>
                 )}
-                {bet.context.homeAwaySupportForSample.away.matches > 0 && (
-                  <div className={`p-3 rounded border-2 ${!bet.matchContext.isHome ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-gray-50'}`}>
-                    <div className="flex items-center gap-2 mb-1">
-                      <Plane className="w-4 h-4 text-gray-600" />
-                      <span className="text-xs font-bold text-gray-700">AWAY ({bet.context.homeAwaySupportForSample.away.matches}m)</span>
+                
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-2">
+                    <div className={`px-3 py-1 rounded-full ${teamBg} ${teamColor} font-bold text-sm flex items-center gap-1`}>
+                      {isHomeTeam ? <Home className="w-3 h-3" /> : <Plane className="w-3 h-3" />}
+                      {bet.team}
                     </div>
-                    <p className="text-2xl font-bold text-gray-900">{bet.context.homeAwaySupportForSample.away.hitRate}%</p>
-                    <p className="text-xs text-gray-600">Avg: {bet.context.homeAwaySupportForSample.away.average}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-          
-          {/* Recent Form */}
-          <div>
-            <h5 className="font-bold text-gray-900 mb-3 text-sm">Recent Form (Last {Math.min(5, bet.recentMatches.length)} Matches)</h5>
-            <div className="space-y-2">
-              {bet.recentMatches.slice(0, 5).map((match, idx) => (
-                <div
-                  key={idx}
-                  // Light mode recent form colors
-                  className={`flex items-center justify-between p-3 rounded transition-colors ${
-                    match.hit ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-2 h-2 rounded-full ${match.hit ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                    <span className="text-sm font-medium text-gray-700">vs {match.opponent}</span>
-                    {match.isHome !== undefined && (
-                      match.isHome ? <Home className="w-3 h-3 text-gray-400" /> : <Plane className="w-3 h-3 text-gray-400" />
+                    <span className={`px-2 py-1 rounded text-xs font-semibold ${getMarketColor(bet.market)}`}>
+                      {bet.market.replace(/_/g, ' ').toUpperCase()}
+                    </span>
+                    {bet.isStreak && bet.streakLength && (
+                      <span className="px-2 py-1 rounded bg-purple-100 text-purple-800 text-xs font-bold flex items-center gap-1">
+                        <TrendingUp className="w-3 h-3" />
+                        {bet.streakLength} Game Streak
+                      </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg font-bold text-gray-900">{match.value}</span>
-                    {match.hit ? (
-                      <CheckCircle className="w-4 h-4 text-green-600" />
-                    ) : (
-                      <XCircle className="w-4 h-4 text-red-600" />
+                  <h4 className="text-xl font-extrabold text-gray-900 mb-1">{bet.outcome}</h4>
+                  <p className="text-sm text-gray-600">
+                    {bet.hitRate}% hit rate • {bet.matchesAnalyzed} matches • Avg: {bet.averageValue}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3 flex-shrink-0">
+                {bet.accumulatorSafe && (
+                  <div className="hidden sm:block px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-bold border-2 border-purple-300">
+                    ✓ ACCA SAFE
+                  </div>
+                )}
+                
+                <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${getScoreGradient(bet.betScore)} flex items-center justify-center shadow-md flex-shrink-0`}>
+                  <div className="text-center text-white">
+                    <p className="text-2xl font-extrabold">{bet.betScore}</p>
+                    <p className="text-xs font-semibold">SCORE</p>
+                  </div>
+                </div>
+                
+                <TrendingUp className={`w-6 h-6 text-gray-400 transition-transform flex-shrink-0 ${expanded ? 'rotate-180' : ''}`} />
+              </div>
+            </div>
+          </div>
+          
+          {/* Expanded Details */}
+          {expanded && (
+            <div className="border-t-2 border-gray-100 p-6 space-y-6 bg-gray-50">
+              
+              {/* Recommendation Box */}
+              <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                <h5 className="font-bold text-blue-900 mb-2 flex items-center gap-2">
+                  <Award className="w-5 h-5" />
+                  Match Analysis & Recommendation
+                </h5>
+                <p className="text-sm text-blue-800 leading-relaxed">
+                  {bet.matchContext.recommendation}
+                </p>
+              </div>
+              
+              {/* Why This Tier */}
+              <div>
+                <h5 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  Why This Bet is Ranked "{bet.tier}"
+                </h5>
+                <ul className="space-y-2">
+                  {bet.reasoning.map((reason, idx) => (
+                    <li key={idx} className="flex items-start gap-2 text-sm text-gray-700 bg-white p-2 rounded border border-gray-100">
+                      <span className="text-green-500 mt-0.5 flex-shrink-0">✓</span>
+                      <span>{reason}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              
+              {/* Red Flags */}
+              {bet.redFlags.length > 0 && (
+                <div className="bg-red-50 border-l-4 border-red-500 rounded p-4">
+                  <h5 className="font-bold text-red-900 mb-2 flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5 text-red-600" />
+                    Red Flags & Risks
+                  </h5>
+                  <ul className="space-y-1">
+                    {bet.redFlags.map((flag, idx) => (
+                      <li key={idx} className="flex items-start gap-2 text-sm text-red-700">
+                        <span className="text-red-500 mt-0.5 flex-shrink-0">⚠</span>
+                        <span>{flag}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              {/* Key Stats Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="bg-white rounded-lg p-3 border border-gray-200">
+                  <p className="text-xs text-gray-500 uppercase mb-1">Confidence</p>
+                  <p className="text-2xl font-bold text-gray-900">{bet.context?.confidence?.score ?? 0}<span className="text-sm">/100</span></p>
+                  <p className="text-xs text-gray-600">{bet.context?.confidence?.level}</p>
+                </div>
+                <div className="bg-white rounded-lg p-3 border border-gray-200">
+                  <p className="text-xs text-gray-500 uppercase mb-1">Matchup</p>
+                  <p className="text-2xl font-bold text-gray-900">{bet.matchContext.strengthOfMatch}</p>
+                  <p className="text-xs text-gray-600">vs Opposition</p>
+                </div>
+                <div className="bg-white rounded-lg p-3 border border-gray-200">
+                  <p className="text-xs text-gray-500 uppercase mb-1">Data Quality</p>
+                  <p className="text-2xl font-bold text-gray-900">{bet.matchContext.dataQuality}</p>
+                  <p className="text-xs text-gray-600">{bet.matchContext.oppositionMatches}m opponent</p>
+                </div>
+                <div className="bg-white rounded-lg p-3 border border-gray-200">
+                  <p className="text-xs text-gray-500 uppercase mb-1">Opposition Avg</p>
+                  <p className="text-2xl font-bold text-gray-900">{bet.matchContext.oppositionAllows}</p>
+                  <p className="text-xs text-gray-600">{bet.matchContext.venueSpecific ? 'Venue-specific' : 'All matches'}</p>
+                </div>
+              </div>
+              
+              {/* Home/Away Venue Split */}
+              {bet.context?.homeAwaySupportForSample && (
+                <div className="bg-white rounded-lg p-4 border border-gray-200">
+                  <h5 className="font-bold text-gray-900 mb-3 text-sm">Venue Consistency (Pattern Sample)</h5>
+                  <div className="grid grid-cols-2 gap-3">
+                    {bet.context.homeAwaySupportForSample.home.matches > 0 && (
+                      <div className={`p-3 rounded border-2 ${bet.matchContext.isHome ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-gray-50'}`}>
+                        <div className="flex items-center gap-2 mb-1">
+                          <Home className="w-4 h-4 text-gray-600" />
+                          <span className="text-xs font-bold text-gray-700">HOME ({bet.context.homeAwaySupportForSample.home.matches}m)</span>
+                        </div>
+                        <p className="text-2xl font-bold text-gray-900">{bet.context.homeAwaySupportForSample.home.hitRate}%</p>
+                        <p className="text-xs text-gray-600">Avg: {bet.context.homeAwaySupportForSample.home.average}</p>
+                      </div>
+                    )}
+                    {bet.context.homeAwaySupportForSample.away.matches > 0 && (
+                      <div className={`p-3 rounded border-2 ${!bet.matchContext.isHome ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-gray-50'}`}>
+                        <div className="flex items-center gap-2 mb-1">
+                          <Plane className="w-4 h-4 text-gray-600" />
+                          <span className="text-xs font-bold text-gray-700">AWAY ({bet.context.homeAwaySupportForSample.away.matches}m)</span>
+                        </div>
+                        <p className="text-2xl font-bold text-gray-900">{bet.context.homeAwaySupportForSample.away.hitRate}%</p>
+                        <p className="text-xs text-gray-600">Avg: {bet.context.homeAwaySupportForSample.away.average}</p>
+                      </div>
                     )}
                   </div>
                 </div>
-              ))}
+              )}
+              
+              {/* Recent Form */}
+              <div>
+                <h5 className="font-bold text-gray-900 mb-3 text-sm">Recent Form (Last {Math.min(5, bet.recentMatches.length)} Matches)</h5>
+                <div className="space-y-2">
+                  {bet.recentMatches.slice(0, 5).map((match, idx) => (
+                    <div
+                      key={idx}
+                      className={`flex items-center justify-between p-3 rounded transition-colors ${
+                        match.hit ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-2 h-2 rounded-full ${match.hit ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                        <span className="text-sm font-medium text-gray-700">vs {match.opponent}</span>
+                        {match.isHome !== undefined && (
+                          match.isHome ? <Home className="w-3 h-3 text-gray-400" /> : <Plane className="w-3 h-3 text-gray-400" />
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg font-bold text-gray-900">{match.value}</span>
+                        {match.hit ? (
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <XCircle className="w-4 h-4 text-red-600" />
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          )}
+        </>
       )}
     </div>
   );
