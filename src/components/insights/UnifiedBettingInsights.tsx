@@ -1,4 +1,3 @@
-// src/components/insights/UnifiedBettingInsights.tsx
 import React, { useState } from 'react';
 import { Trophy, TrendingUp, AlertTriangle, CheckCircle, XCircle, Target, Home, Plane, Info, Zap, Award, Filter } from 'lucide-react';
 import { betRankingService, BetTier, RankedBet } from '../../services/ai/betRankingService';
@@ -220,7 +219,14 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
               <p className="text-sm text-gray-600">This is statistically the strongest opportunity in this match</p>
             </div>
           </div>
-          <BetCard bet={bestBet} isHighlight={true} rank={1} />
+          {/* 💥 FIX APPLIED HERE: Added homeTeam and awayTeam props */}
+          <BetCard 
+            bet={bestBet} 
+            isHighlight={true} 
+            rank={1}
+            homeTeam={homeTeam} // <-- FIX
+            awayTeam={awayTeam} // <-- FIX
+          />
         </div>
       )}
       
