@@ -6,11 +6,12 @@ import {
   Comparison 
 } from './bettingInsightsService';
 
-import { supabaseCardsService, CardStatistics } from '../stats/supabaseCardsService';
-import { supabaseCornersService, CornerStatistics } from '../stats/supabaseCornersService';
-import { supabaseFoulsService, FoulStatistics } from '../stats/supabaseFoulsService';
-import { supabaseGoalsService, GoalStatistics } from '../stats/supabaseGoalsService';
-import { supabaseShootingService, ShootingStatistics } from '../stats/supabaseShootingService';
+// --- ASSUMED FIX: Import the *service* and *types* from the stat modules ---
+import { supabaseCardsService, CardStatistics, CardMatchDetail } from '../stats/supabaseCardsService';
+import { supabaseCornersService, CornerStatistics, CornerMatchDetail } from '../stats/supabaseCornersService';
+import { supabaseFoulsService, FoulStatistics, FoulMatchDetail } from '../stats/supabaseFoulsService';
+import { supabaseGoalsService, GoalStatistics, GoalMatchDetail } from '../stats/supabaseGoalsService';
+import { supabaseShootingService, ShootingStatistics, DetailedShootingMatchDetail } from '../stats/supabaseShootingService';
 
 import { getDisplayTeamName, normalizeTeamName } from '../../utils/teamUtils';
 
@@ -28,6 +29,19 @@ interface AllStats {
     fouls: FoulsStats;
     shooting: ShootingStats;
 }
+
+// --- FIX: Define a comprehensive base type for the match details ---
+// This type includes all properties accessed in the reduction logic across all markets.
+type MatchDetailBase = {
+    isHome?: boolean;
+    cardsFor?: number;
+    cornersAgainst?: number;
+    foulsCommittedAgainst?: number;
+    goalsAgainst?: number;
+    goalsFor?: number;
+    shotsAgainst?: number;
+    shotsOnTargetAgainst?: number;
+};
 
 // Defining the specific match context structure
 interface MatchContext {
@@ -71,12 +85,13 @@ export class MatchContextService {
 
   /**
    * Helper function to abstract the venue filtering and fallback logic.
-   * @template T - The type of the match detail object, must have an 'isHome' property.
+   * FIX: Generic constraint changed to MatchDetailBase to ensure all properties exist.
+   * @template T - The type of the match detail object, now constrained to MatchDetailBase.
    * @param allMatches - All available match details for the team.
    * @param opponentIsHome - The venue condition the opposition is playing at (true = home, false = away).
    * @returns An object containing the filtered array and a boolean indicating if it is venue-specific.
    */
-  private getVenueSpecificMatches<T extends { isHome?: boolean }>(
+  private getVenueSpecificMatches<T extends MatchDetailBase>(
     allMatches: T[],
     opponentIsHome: boolean
   ): { matches: T[]; venueSpecific: boolean } {
@@ -100,7 +115,6 @@ export class MatchContextService {
 
   /**
    * Verify that a team exists in the database (Memoized)
-   * This still hits the services directly to check for existence across all tables.
    */
   private async verifyTeamExists(teamName: string): Promise<boolean> {
     const normalizedTeamName = normalizeTeamName(teamName); 
@@ -176,16 +190,17 @@ export class MatchContextService {
     try {
       switch (market) {
         case BettingMarket.CARDS: {
-          const oppStats = stats.cards.get(opponent); // Use pre-fetched stats
+          const oppStats = stats.cards.get(opponent);
           if (!oppStats) return null;
           
+          // FIX: Cast to the specific detail type
           const { matches: matchesToUse, venueSpecific } = this.getVenueSpecificMatches(
-            oppStats.matchDetails,
+            oppStats.matchDetails as CardMatchDetail[], 
             opponentIsHome
           );
           
           const totalCardsAllowed = matchesToUse.reduce(
-            (sum, m) => sum + (m.cardsFor || 0), 0
+            (sum, m) => sum + (m.cardsFor || 0), 0 
           );
           
           const matchCount = matchesToUse.length;
@@ -198,11 +213,12 @@ export class MatchContextService {
         }
 
         case BettingMarket.CORNERS: {
-          const oppStats = stats.corners.get(opponent); // Use pre-fetched stats
+          const oppStats = stats.corners.get(opponent);
           if (!oppStats) return null;
           
+          // FIX: Cast to the specific detail type
           const { matches: matchesToUse, venueSpecific } = this.getVenueSpecificMatches(
-            oppStats.matchDetails,
+            oppStats.matchDetails as CornerMatchDetail[], 
             opponentIsHome
           );
           
@@ -220,11 +236,12 @@ export class MatchContextService {
         }
 
         case BettingMarket.FOULS: {
-          const oppStats = stats.fouls.get(opponent); // Use pre-fetched stats
+          const oppStats = stats.fouls.get(opponent);
           if (!oppStats) return null;
           
+          // FIX: Cast to the specific detail type
           const { matches: matchesToUse, venueSpecific } = this.getVenueSpecificMatches(
-            oppStats.matchDetails,
+            oppStats.matchDetails as FoulMatchDetail[], 
             opponentIsHome
           );
           
@@ -243,7 +260,7 @@ export class MatchContextService {
 
         case BettingMarket.SHOTS_ON_TARGET:
         case BettingMarket.TOTAL_SHOTS: {
-          const oppStats = stats.shooting.get(opponent); // Use pre-fetched stats
+          const oppStats = stats.shooting.get(opponent);
           if (!oppStats) return null;
           
           // Define and cast the field name to the narrow, type-safe key
@@ -251,14 +268,15 @@ export class MatchContextService {
             ? 'shotsOnTargetAgainst' 
             : 'shotsAgainst') as ShootingFieldKey;
           
+          // FIX: Cast to the specific detail type
           const { matches: matchesToUse, venueSpecific } = this.getVenueSpecificMatches(
-            oppStats.matchDetails,
+            oppStats.matchDetails as DetailedShootingMatchDetail[], 
             opponentIsHome
           );
           
-          // Accessing 'm[field]' is now type-safe
+          // Accessing 'm[field]' is now type-safe because T extends MatchDetailBase
           const totalAgainst = matchesToUse.reduce(
-            (sum, m) => sum + (m[field] || 0), 0
+            (sum, m) => sum + (m[field] || 0), 0 
           );
           
           const matchCount = matchesToUse.length;
@@ -271,17 +289,18 @@ export class MatchContextService {
         }
 
         case BettingMarket.GOALS: {
-            const oppStats = stats.goals.get(opponent); // Use pre-fetched stats
+            const oppStats = stats.goals.get(opponent);
             if (!oppStats) return null;
             
+            // FIX: Cast to the specific detail type
             const { matches: matchesToUse, venueSpecific } = this.getVenueSpecificMatches(
-              oppStats.matchDetails,
+              oppStats.matchDetails as GoalMatchDetail[], 
               opponentIsHome
             );
             
             // Calculate average goals CONCEDED (goalsAgainst) at this venue
             const totalGoalsAgainst = matchesToUse.reduce(
-              (sum, m) => sum + (m.goalsAgainst || 0), 0
+              (sum, m) => sum + (m.goalsAgainst || 0), 0 
             );
             
             const matchCount = matchesToUse.length;
@@ -309,6 +328,7 @@ export class MatchContextService {
 
   /**
    * Evaluates the strength of the matchup based on the pattern and opposition stats.
+   * (Remains unchanged from the previous correct version)
    */
   private evaluateMatchStrength(
     patternAvg: number,
@@ -419,6 +439,7 @@ export class MatchContextService {
 
   /**
    * Generates a text recommendation based on the context and match strength.
+   * (Remains unchanged from the previous correct version)
    */
   private generateRecommendation(
     teamName: string,
@@ -516,18 +537,20 @@ export class MatchContextService {
   } | null> {
     
     try {
-      const homeStats = goalsStats.get(homeTeam); // Use passed goalsStats
-      const awayStats = goalsStats.get(awayTeam); // Use passed goalsStats
+      const homeStats = goalsStats.get(homeTeam);
+      const awayStats = goalsStats.get(awayTeam);
       
       if (!homeStats || !awayStats) return null;
 
       // Determine venue-specific matches for both home team (at home) and away team (away)
       const { matches: homeHomeMatches, venueSpecific: homeVenueSpecific } = this.getVenueSpecificMatches(
-          homeStats.matchDetails,
+          // FIX: Cast to the specific detail type
+          homeStats.matchDetails as GoalMatchDetail[], 
           true // Home team's perspective
       );
       const { matches: awayAwayMatches, venueSpecific: awayVenueSpecific } = this.getVenueSpecificMatches(
-          awayStats.matchDetails,
+          // FIX: Cast to the specific detail type
+          awayStats.matchDetails as GoalMatchDetail[], 
           false // Away team's perspective
       );
       
@@ -539,22 +562,22 @@ export class MatchContextService {
       
       // Calculate home team's home offensive output (Goals For at Home)
       let homeGoalsFor: number = homeHomeMatchCount > 0 
-        ? homeHomeMatches.reduce((sum, m) => sum + m.goalsFor, 0) / homeHomeMatchCount
+        ? homeHomeMatches.reduce((sum, m) => sum + (m.goalsFor || 0), 0) / homeHomeMatchCount // FIX: Added null check
         : 0;
       
       // Calculate away team's away defensive weakness (Goals Against Away)
       let awayGoalsAgainst: number = awayAwayMatchCount > 0 
-        ? awayAwayMatches.reduce((sum, m) => sum + m.goalsAgainst, 0) / awayAwayMatchCount
+        ? awayAwayMatches.reduce((sum, m) => sum + (m.goalsAgainst || 0), 0) / awayAwayMatchCount // FIX: Added null check
         : 0;
       
       // Calculate away team's away offensive output (Goals For Away)
       let awayGoalsFor: number = awayAwayMatchCount > 0 
-        ? awayAwayMatches.reduce((sum, m) => sum + m.goalsFor, 0) / awayAwayMatchCount
+        ? awayAwayMatches.reduce((sum, m) => sum + (m.goalsFor || 0), 0) / awayAwayMatchCount // FIX: Added null check
         : 0;
       
       // Calculate home team's home defensive weakness (Goals Against Home)
       let homeGoalsAgainst: number = homeHomeMatchCount > 0 
-        ? homeHomeMatches.reduce((sum, m) => sum + m.goalsAgainst, 0) / homeHomeMatchCount
+        ? homeHomeMatches.reduce((sum, m) => sum + (m.goalsAgainst || 0), 0) / homeHomeMatchCount // FIX: Added null check
         : 0;
       
       // Calculate expected goals (average of offensive output and defensive weakness)
@@ -639,6 +662,7 @@ export class MatchContextService {
 
   /**
    * NEW: Generate BTTS-specific recommendation text
+   * (Remains unchanged from the previous correct version)
    */
   private generateBTTSRecommendation(
     teamName: string,
@@ -743,9 +767,6 @@ export class MatchContextService {
       console.error(`[MatchContextService] ❌ Home and away teams cannot be the same: "${homeTeam}"`);
       return [];
     }
-
-    // NOTE: Team existence check is skipped here because allStats will handle missing teams gracefully.
-    // The verifyTeamExists is primarily for the general API check/memoization.
     
     if (!homeInsights?.length && !awayInsights?.length) {
       console.warn('[MatchContextService] ⚠️ No insights provided for enrichment');
