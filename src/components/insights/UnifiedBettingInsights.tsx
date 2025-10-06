@@ -343,7 +343,7 @@ const BetCard: React.FC<{
   const teamColor = isHomeTeam ? 'text-green-700' : 'text-orange-700'; 
   const teamBg = isHomeTeam ? 'bg-green-50' : 'bg-orange-50'; 
   
-  // Renders the simplified view for grid items (UPDATED FUNCTION)
+  // Renders the simplified view for grid items (FINAL UPDATED FUNCTION)
   const renderCompactGridCard = () => {
       
       // Data required for the new footer elements
@@ -368,11 +368,11 @@ const BetCard: React.FC<{
                         
                     </div>
                     
-                    {/* ❌ REMOVED: Market Label (Goals, Fouls, etc.) for a cleaner look */}
-                    
                     <h4 className="text-base font-extrabold text-gray-900 truncate mt-1">{bet.outcome}</h4>
-                    {/* 💡 Small hint of the market type */}
-                    <p className="text-xs text-gray-500 capitalize">{bet.market.replace(/_/g, ' ')}</p>
+                    
+                    {/* ❌ REMOVED: Small hint of the market type */}
+                    {/* <p className="text-xs text-gray-500 capitalize">{bet.market.replace(/_/g, ' ')}</p> */}
+                    
 
                 </div>
 
@@ -394,7 +394,7 @@ const BetCard: React.FC<{
                         <TrendingUp className="w-3 h-3 text-purple-500" /> {bet.hitRate}% Hit
                     </p>
                     
-                    {/* 7+ STREAK BADGE - REMOVED BACKGROUND AND BORDER */}
+                    {/* 7+ STREAK BADGE */}
                     {showStreakBadge && (
                         <span className="text-red-700 font-bold flex items-center gap-1">
                             <Zap className="w-3 h-3" />
@@ -402,7 +402,7 @@ const BetCard: React.FC<{
                         </span>
                     )}
                     
-                    {/* Acca Safe Badge - REMOVED BACKGROUND AND BORDER */}
+                    {/* Acca Safe Badge */}
                     {bet.accumulatorSafe && (
                         <p className="text-purple-700 font-bold flex items-center gap-1 ml-auto">
                             <CheckCircle className="w-3 h-3" /> Acca Safe
@@ -411,10 +411,10 @@ const BetCard: React.FC<{
                 </div>
 
 
-                {/* RIGHT SIDE: VENUE CONSISTENCY - UNCHANGED FROM PREVIOUS CLEANUP */}
+                {/* RIGHT SIDE: VENUE CONSISTENCY - REMOVED "Venue:" TEXT */}
                 {showVenueSplit && (
                     <div className="flex items-center gap-2">
-                        <span className="text-gray-500 font-medium">Venue:</span>
+                        {/* ❌ REMOVED: <span className="text-gray-500 font-medium">Venue:</span> */}
                         
                         {/* Home Venue Consistency */}
                         {homeVenueData && homeVenueData.matches > 0 && (
