@@ -10,7 +10,7 @@ import { supabaseCardsService } from '../stats/supabaseCardsService';
 import { supabaseCornersService } from '../stats/supabaseCornersService';
 import { supabaseFoulsService } from '../stats/supabaseFoulsService';
 import { supabaseGoalsService } from '../stats/supabaseGoalsService';
-import { supabaseShootingService, DetailedShootingStats } from '../stats/supabaseShootingService'; // ✅ FIX: Import DetailedShootingStats
+import { supabaseShootingService, DetailedShootingStats } from '../stats/supabaseShootingService'; // FIX: Import DetailedShootingStats
 
 import { getDisplayTeamName, normalizeTeamName } from '../../utils/teamUtils';
 
@@ -40,7 +40,7 @@ export type MatchContextInsight = BettingInsight & {
 };
 
 // Define the exact keys used for dynamic access in the Shooting market
-type ShootingFieldKey = 'shotsAgainst' | 'shotsOnTargetAgainst'; // ✅ FIX: Define narrow key type
+type ShootingFieldKey = 'shotsAgainst' | 'shotsOnTargetAgainst';
 
 /**
  * Service to enrich betting insights with match-specific context
@@ -53,10 +53,22 @@ export class MatchContextService {
   private readonly MIN_MATCHES_FOR_ANALYSIS = 3;
   private readonly MIN_VENUE_MATCHES = 3;
 
+  // ✅ NEW: In-memory cache for team existence verification
+  private teamExistsCache = new Map<string, boolean>(); 
+
   /**
-   * Verify that a team exists in the database
+   * Verify that a team exists in the database (Memoized)
    */
   private async verifyTeamExists(teamName: string): Promise<boolean> {
+    const normalizedTeamName = normalizeTeamName(teamName); 
+
+    // 1. Check Cache
+    if (this.teamExistsCache.has(normalizedTeamName)) {
+      // console.log(`[MatchContextService] ♻️ Team verification cache hit for ${normalizedTeamName}`);
+      return this.teamExistsCache.get(normalizedTeamName)!;
+    }
+
+    // 2. Perform expensive operation
     try {
       // Check if team exists in any of the services
       const [cardsStats, cornersStats, foulsStats, goalsStats, shootingStats] = await Promise.all([
@@ -67,13 +79,20 @@ export class MatchContextService {
         supabaseShootingService.getShootingStatistics()
       ]);
 
-      return cardsStats.has(teamName) || 
-             cornersStats.has(teamName) || 
-             foulsStats.has(teamName) || 
-             goalsStats.has(teamName) || 
-             shootingStats.has(teamName);
+      const exists = cardsStats.has(normalizedTeamName) || 
+                     cornersStats.has(normalizedTeamName) || 
+                     foulsStats.has(normalizedTeamName) || 
+                     goalsStats.has(normalizedTeamName) || 
+                     shootingStats.has(normalizedTeamName);
+      
+      // 3. Store result in cache
+      this.teamExistsCache.set(normalizedTeamName, exists);
+      
+      return exists;
     } catch (error) {
-      console.error(`[MatchContextService] Error verifying team existence for ${teamName}:`, error);
+      console.error(`[MatchContextService] Error verifying team existence for ${normalizedTeamName}:`, error);
+      // Store 'false' in cache on error to prevent repeated lookups
+      this.teamExistsCache.set(normalizedTeamName, false);
       return false;
     }
   }
@@ -130,7 +149,7 @@ export class MatchContextService {
               (sum, m) => sum + (m.cardsFor || 0), 0
             );
             return {
-              average: oppStats.matches > 0 ? totalCardsAllowed / oppStats.matches : 0, // Division by zero safety
+              average: oppStats.matches > 0 ? totalCardsAllowed / oppStats.matches : 0,
               matches: oppStats.matches,
               venueSpecific: false
             };
@@ -140,7 +159,7 @@ export class MatchContextService {
             (sum, m) => sum + (m.cardsFor || 0), 0
           );
           return {
-            average: totalCardsAllowed / venueMatches.length, // venueMatches.length > 0 due to outer check
+            average: totalCardsAllowed / venueMatches.length,
             matches: venueMatches.length,
             venueSpecific: true
           };
@@ -160,7 +179,7 @@ export class MatchContextService {
               (sum, m) => sum + (m.cornersAgainst || 0), 0
             );
             return {
-              average: oppStats.matches > 0 ? totalCornersAgainst / oppStats.matches : 0, // Division by zero safety
+              average: oppStats.matches > 0 ? totalCornersAgainst / oppStats.matches : 0,
               matches: oppStats.matches,
               venueSpecific: false
             };
@@ -190,7 +209,7 @@ export class MatchContextService {
               (sum, m) => sum + (m.foulsCommittedAgainst || 0), 0
             );
             return {
-              average: oppStats.matches > 0 ? totalFoulsAgainst / oppStats.matches : 0, // Division by zero safety
+              average: oppStats.matches > 0 ? totalFoulsAgainst / oppStats.matches : 0,
               matches: oppStats.matches,
               venueSpecific: false
             };
@@ -225,16 +244,15 @@ export class MatchContextService {
           const matchesToUse = venueMatches.length > 0 ? venueMatches : matchDetails;
           const venueSpecific = venueMatches.length > 0;
           
-          // Accessing 'm[field]' is now type-safe because 'field' is cast to ShootingFieldKey,
-          // which is a subset of the properties on the match detail object.
+          // Accessing 'm[field]' is now type-safe
           const totalAgainst = matchesToUse.reduce(
             (sum, m) => sum + (m[field] || 0), 0
           );
           
           const matchCount = matchesToUse.length;
-          
+
           return {
-            average: matchCount > 0 ? totalAgainst / matchCount : 0, // Division by zero safety
+            average: matchCount > 0 ? totalAgainst / matchCount : 0,
             matches: matchCount,
             venueSpecific
           };
@@ -254,7 +272,7 @@ export class MatchContextService {
                 (sum, m) => sum + (m.goalsAgainst || 0), 0
               );
               return {
-                average: oppStats.matches > 0 ? totalGoalsAgainst / oppStats.matches : 0, // Division by zero safety
+                average: oppStats.matches > 0 ? totalGoalsAgainst / oppStats.matches : 0,
                 matches: oppStats.matches,
                 venueSpecific: false
               };
@@ -513,7 +531,7 @@ export class MatchContextService {
       return [];
     }
 
-    // 4. Verify teams exist in database
+    // 4. Verify teams exist in database - THIS NOW USES THE MEMOIZED FUNCTION
     console.log(`[MatchContextService] 🔍 Verifying teams: ${normalizedHome} vs ${normalizedAway}`);
     const [homeExists, awayExists] = await Promise.all([
       this.verifyTeamExists(normalizedHome),
@@ -756,7 +774,7 @@ export class MatchContextService {
       
       const homeHomeMatchCount = homeHomeMatches.length;
       const awayAwayMatchCount = awayAwayMatches.length;
-
+      
       // Calculate home team's home offensive output
       let homeGoalsFor: number;
       if (venueSpecific && homeHomeMatchCount > 0) {
