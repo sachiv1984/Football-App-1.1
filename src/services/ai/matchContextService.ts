@@ -196,7 +196,7 @@ export class MatchContextService {
   }
 
   /**
-   * NEW: Helper to generate confidence text with emoji.
+   * Helper to generate confidence text with emoji.
    */
   private getConfidenceContext(confidenceScore: number): string {
       const confidenceEmoji = confidenceScore >= 80 ? '🔥' : 
@@ -1059,6 +1059,17 @@ export class MatchContextService {
     return bestBets.sort((a, b) => 
       (b.context?.confidence?.score ?? 0) - (a.context?.confidence?.score ?? 0)
     );
+  }
+
+  /**
+   * Returns the current status of in-memory caches.
+   * Useful for monitoring, testing, and verifying memoization.
+   */
+  public getCacheStatus() {
+    return {
+      teamExistsCacheSize: this.teamExistsCache.size,
+      // Placeholder for future metrics like timestamps, hit rates, etc.
+    };
   }
 }
 
