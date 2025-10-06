@@ -13,7 +13,7 @@ import { useGameWeekFixtures } from '../hooks/useGameWeekFixtures';
 import { useBettingInsights } from '../hooks/useBettingInsights';
 import { designTokens } from '../styles/designTokens';
 import { RefreshCw, AlertCircle, TrendingUp, Target, Filter } from 'lucide-react';
-import type { Fixture } from '../types';
+import type { Fixture, Team } from '../types'; // 💡 Ensure 'Team' is imported if not already in 'Fixture'
 
 // Import the service and type for enriching insights
 import { matchContextService, MatchContextInsight } from '../services/ai/matchContextService';
@@ -74,7 +74,7 @@ const StatsPage: React.FC = () => {
     setCurrentFixture(foundFixture || null);
   }, [matchId, featuredFixtures, gameWeekFixtures]);
 
-  // CRITICAL FIX: Effect to filter patterns by match teams AND enrich them asynchronously
+  // Effect to filter patterns by match teams AND enrich them asynchronously
   useEffect(() => {
     if (!currentFixture || patternsLoading || patternsError) {
         setEnrichedMatchPatterns([]);
@@ -128,7 +128,7 @@ const StatsPage: React.FC = () => {
 
   // --- Render Logic ---
   if (!currentFixture) {
-    // ... (Loading state unchanged)
+    // ... (Loading state)
     return (
       <div
         style={{
@@ -171,9 +171,8 @@ const StatsPage: React.FC = () => {
     );
   }
   
-  // 🛠️ NEW: Calculate normalized names for passing to the component props
-  const normalizedHomeTeamName = normalizeTeamName(currentFixture.homeTeam.name);
-  const normalizedAwayTeamName = normalizeTeamName(currentFixture.awayTeam.name);
+  // 💡 NOTE: The normalized names are no longer calculated here as they are not
+  // needed for the props. The full Team objects are passed directly.
 
   return (
     <div
@@ -190,7 +189,7 @@ const StatsPage: React.FC = () => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* ... (Navigation and Debugger unchanged) ... */}
+        {/* ... (debugger and navigation) ... */}
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-2xl lg:text-3xl font-semibold text-gray-900">
             Match Analysis
@@ -251,7 +250,7 @@ const StatsPage: React.FC = () => {
           {/* BETTING PATTERNS SECTION (Updated) */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             
-            {/* Header (Simplified - Unified component has its own header) */}
+            {/* Header */}
             <div className="bg-gradient-to-r from-purple-50 to-blue-50 px-6 py-4 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -317,13 +316,13 @@ const StatsPage: React.FC = () => {
                 </div>
               )}
 
-              {/* NEW UNIFIED INSIGHTS COMPONENT */}
+              {/* NEW UNIFIED INSIGHTS COMPONENT (FIXED PROPS) */}
               {!patternsLoading && !patternsError && (
                 <UnifiedBettingInsights
                   insights={enrichedMatchPatterns}
-                  // 🎯 FIX APPLIED HERE: Pass the normalized/canonical names
-                  homeTeam={normalizedHomeTeamName} 
-                  awayTeam={normalizedAwayTeamName}
+                  // ✅ FIX: Pass the full Team objects from the fixture to satisfy the component's new prop requirement.
+                  homeTeam={currentFixture.homeTeam} 
+                  awayTeam={currentFixture.awayTeam}
                 />
               )}
             </div>
