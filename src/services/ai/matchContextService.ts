@@ -25,8 +25,8 @@ interface MatchContext {
     dataQuality: 'Excellent' | 'Good' | 'Fair' | 'Poor' | 'Insufficient';
     // NEW: BTTS-specific fields
     bttsContext?: {
-      homeScoreProbability: number;
-      awayScoreProbability: number;
+      homeExpectedGoals: number;
+      awayExpectedGoals: number;
       homeGoalsFor: number;
       awayGoalsAgainst: number;
       awayGoalsFor: number;
@@ -557,6 +557,9 @@ export class MatchContextService {
 
     for (const { insight, isHome, opponent, opponentIsHome } of allInsights) {
       try {
+        // Determine the normalized team name for this insight based on home/away status
+        const insightTeamName = isHome ? normalizedHome : normalizedAway;
+        
         // 1. Get Opposition Stats (NOW VENUE-SPECIFIC)
         // opponent is already normalized from allInsights map
         const oppStats = await this.getOppositionDefensiveStats(
@@ -620,8 +623,8 @@ export class MatchContextService {
           if (bttsEval) {
             strengthOfMatch = bttsEval.strength;
             bttsContext = {
-              homeScoreProbability: bttsEval.homeScoreProbability,
-              awayScoreProbability: bttsEval.awayScoreProbability,
+              homeExpectedGoals: bttsEval.homeExpectedGoals,
+              awayExpectedGoals: bttsEval.awayExpectedGoals,
               homeGoalsFor: bttsEval.homeGoalsFor,
               awayGoalsAgainst: bttsEval.awayGoalsAgainst,
               awayGoalsFor: bttsEval.awayGoalsFor,
@@ -629,7 +632,7 @@ export class MatchContextService {
             };
             
             recommendation = this.generateBTTSRecommendation(
-              insight.team,
+              insightTeamName,  // ✅ Use normalized team name
               insight.outcome,
               strengthOfMatch,
               isHome,
@@ -659,7 +662,7 @@ export class MatchContextService {
 
           // 3. Generate Recommendation (NOW INCLUDES DOMINANCE OVERRIDE MESSAGING)
           recommendation = this.generateRecommendation(
-            insight.team,
+            insightTeamName,  // ✅ Use normalized team name
             insight.outcome,
             strengthOfMatch,
             insight.averageValue,
@@ -729,8 +732,8 @@ export class MatchContextService {
     bttsExpectation: 'Yes' | 'No'
   ): Promise<{
     strength: 'Poor' | 'Fair' | 'Good' | 'Excellent';
-    homeScoreProbability: number;
-    awayScoreProbability: number;
+    homeExpectedGoals: number;
+    awayExpectedGoals: number;
     homeGoalsFor: number;
     awayGoalsAgainst: number;
     awayGoalsFor: number;
@@ -788,32 +791,34 @@ export class MatchContextService {
         homeGoalsAgainst = homeStats.goalsAgainst / homeStats.matches;
       }
       
-      // Calculate scoring probabilities (average of offensive output and defensive weakness)
-      const homeScoreProbability = (homeGoalsFor + awayGoalsAgainst) / 2;
-      const awayScoreProbability = (awayGoalsFor + homeGoalsAgainst) / 2;
+      // Calculate expected goals (average of offensive output and defensive weakness)
+      // This represents the expected goal output, NOT a probability percentage
+      const homeExpectedGoals = (homeGoalsFor + awayGoalsAgainst) / 2;
+      const awayExpectedGoals = (awayGoalsFor + homeGoalsAgainst) / 2;
       
-      const bttsThreshold = 0.5; // Both teams need >0.5 goals average to be "likely to score"
-      const homeLikelyToScore = homeScoreProbability > bttsThreshold;
-      const awayLikelyToScore = awayScoreProbability > bttsThreshold;
+      // Threshold: 0.8 expected goals ≈ 55% probability of scoring (Poisson approximation)
+      const expectedGoalsThreshold = 0.8;
+      const homeLikelyToScore = homeExpectedGoals > expectedGoalsThreshold;
+      const awayLikelyToScore = awayExpectedGoals > expectedGoalsThreshold;
       
       let strength: 'Poor' | 'Fair' | 'Good' | 'Excellent' = 'Poor';
       
       if (bttsExpectation === 'Yes') {
         // BTTS YES: Both teams need to score
         if (homeLikelyToScore && awayLikelyToScore) {
-          const minProb = Math.min(homeScoreProbability, awayScoreProbability);
-          const avgProb = (homeScoreProbability + awayScoreProbability) / 2;
+          const minExpectedGoals = Math.min(homeExpectedGoals, awayExpectedGoals);
+          const avgExpectedGoals = (homeExpectedGoals + awayExpectedGoals) / 2;
           
-          // Excellent: Both teams very likely to score (strong offense + weak defense)
-          if (minProb >= 1.5 && avgProb >= 2.0) {
+          // Excellent: Both teams expected to score 1.5+ goals (≈78% probability each)
+          if (minExpectedGoals >= 1.5 && avgExpectedGoals >= 2.0) {
             strength = 'Excellent';
           }
-          // Good: Both teams likely to score with comfortable margins
-          else if (minProb >= 1.2 && avgProb >= 1.5) {
+          // Good: Both teams expected to score 1.2+ goals (≈70% probability each)
+          else if (minExpectedGoals >= 1.2 && avgExpectedGoals >= 1.5) {
             strength = 'Good';
           }
-          // Fair: Both teams moderately likely to score
-          else if (minProb >= 0.8) {
+          // Fair: Both teams expected to score 0.8+ goals (≈55% probability each)
+          else if (minExpectedGoals >= 0.8) {
             strength = 'Fair';
           }
           // Poor: One team barely meets threshold
@@ -826,21 +831,21 @@ export class MatchContextService {
         }
       } else {
         // BTTS NO: At least one team needs to NOT score
-        const homeUnlikelyToScore = homeScoreProbability <= 0.8;
-        const awayUnlikelyToScore = awayScoreProbability <= 0.8;
+        const homeUnlikelyToScore = homeExpectedGoals <= 0.8;
+        const awayUnlikelyToScore = awayExpectedGoals <= 0.8;
         
         if (homeUnlikelyToScore || awayUnlikelyToScore) {
-          const minProb = Math.min(homeScoreProbability, awayScoreProbability);
+          const minExpectedGoals = Math.min(homeExpectedGoals, awayExpectedGoals);
           
-          // Excellent: One team very unlikely to score
-          if (minProb <= 0.5) {
+          // Excellent: One team expected to score ≤0.5 goals (≈40% probability)
+          if (minExpectedGoals <= 0.5) {
             strength = 'Excellent';
           }
-          // Good: One team unlikely to score
-          else if (minProb <= 0.7) {
+          // Good: One team expected to score ≤0.7 goals (≈50% probability)
+          else if (minExpectedGoals <= 0.7) {
             strength = 'Good';
           }
-          // Fair: One team moderately unlikely to score
+          // Fair: One team expected to score ≤0.8 goals (≈55% probability)
           else {
             strength = 'Fair';
           }
@@ -852,8 +857,8 @@ export class MatchContextService {
       
       return {
         strength,
-        homeScoreProbability,
-        awayScoreProbability,
+        homeExpectedGoals,
+        awayExpectedGoals,
         homeGoalsFor,
         awayGoalsAgainst,
         awayGoalsFor,
@@ -877,8 +882,8 @@ export class MatchContextService {
     isHome: boolean,
     confidenceScore: number,
     bttsContext: {
-      homeScoreProbability: number;
-      awayScoreProbability: number;
+      homeExpectedGoals: number;
+      awayExpectedGoals: number;
       homeGoalsFor: number;
       awayGoalsAgainst: number;
       awayGoalsFor: number;
@@ -891,13 +896,13 @@ export class MatchContextService {
     const venue = isHome ? 'home' : 'away';
     const venueNote = venueSpecific ? ' (venue-specific analysis)' : '';
     
-    const homeProb = Math.round(bttsContext.homeScoreProbability * 10) / 10;
-    const awayProb = Math.round(bttsContext.awayScoreProbability * 10) / 10;
+    const homeExpected = Math.round(bttsContext.homeExpectedGoals * 10) / 10;
+    const awayExpected = Math.round(bttsContext.awayExpectedGoals * 10) / 10;
     const confidenceText = `Confidence Score: ${confidenceScore}/100.`;
     
     if (isBTTSYes) {
       // BTTS YES recommendations
-      let base = `${displayTeamName}'s pattern: ${outcome}${venueNote}. Home scoring probability: ${homeProb}, Away scoring probability: ${awayProb}.`;
+      let base = `${displayTeamName}'s pattern: ${outcome}${venueNote}. Home expected goals: ${homeExpected}, Away expected goals: ${awayExpected}.`;
       
       switch (strength) {
         case 'Excellent':
@@ -905,23 +910,23 @@ export class MatchContextService {
         case 'Good':
           return `🔵 **Recommended**: ${base} A **Good Matchup** - both teams show good scoring capability and their opponents have defensive weaknesses. Strong indicators for both teams to score. ${confidenceText}`;
         case 'Fair':
-          return `🟡 **Fair Selection**: ${base} Both teams have moderate scoring probabilities. While the indicators lean toward BTTS Yes, there's less margin for error. ${confidenceText}`;
+          return `🟡 **Fair Selection**: ${base} Both teams have moderate expected goal outputs. While the indicators lean toward BTTS Yes, there's less margin for error. ${confidenceText}`;
         case 'Poor':
-          return `🛑 **CAUTION ADVISED**: ${base} At least one team shows weak scoring probability or faces a strong defense. BTTS Yes carries significant risk in this matchup. ${confidenceText}`;
+          return `🛑 **CAUTION ADVISED**: ${base} At least one team shows weak expected goal output or faces a strong defense. BTTS Yes carries significant risk in this matchup. ${confidenceText}`;
       }
     } else {
       // BTTS NO recommendations
-      let base = `${displayTeamName}'s pattern: ${outcome}${venueNote}. Home scoring probability: ${homeProb}, Away scoring probability: ${awayProb}.`;
+      let base = `${displayTeamName}'s pattern: ${outcome}${venueNote}. Home expected goals: ${homeExpected}, Away expected goals: ${awayExpected}.`;
       
       switch (strength) {
         case 'Excellent':
-          return `✅ **STRONG SELECTION**: ${base} An **Excellent Matchup** - at least one team shows very low scoring probability. Strong indicators for a clean sheet scenario. ${confidenceText}`;
+          return `✅ **STRONG SELECTION**: ${base} An **Excellent Matchup** - at least one team shows very low expected goal output. Strong indicators for a clean sheet scenario. ${confidenceText}`;
         case 'Good':
           return `🔵 **Recommended**: ${base} A **Good Matchup** - one team has weak offensive output or faces a strong defense. Good probability of at least one team failing to score. ${confidenceText}`;
         case 'Fair':
           return `🟡 **Fair Selection**: ${base} One team has moderate scoring difficulty, suggesting a possible clean sheet. However, the margin is narrow. ${confidenceText}`;
         case 'Poor':
-          return `🛑 **CAUTION ADVISED**: ${base} Both teams demonstrate strong scoring capability. BTTS No is high-risk as both sides are likely to find the net. ${confidenceText}`;
+          return `🛑 **CAUTION ADVISED**: ${base} Both teams demonstrate strong expected goal outputs. BTTS No is high-risk as both sides are likely to find the net. ${confidenceText}`;
       }
     }
   }
