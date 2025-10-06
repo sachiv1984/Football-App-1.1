@@ -15,10 +15,9 @@ import { designTokens } from '../styles/designTokens';
 import { RefreshCw, AlertCircle, TrendingUp, Target, Filter } from 'lucide-react';
 import type { Fixture } from '../types';
 
-// Import the service and type for enriching insights (THE CRITICAL FIX)
+// Import the service and type for enriching insights
 import { matchContextService, MatchContextInsight } from '../services/ai/matchContextService';
 import { BettingInsight } from '../services/ai/bettingInsightsService';
-
 // 🛠️ NEW: Import the team name utility for robust client-side filtering
 import { normalizeTeamName } from '../utils/teamUtils'; 
 
@@ -30,16 +29,13 @@ const StatsPage: React.FC = () => {
   const [currentFixture, setCurrentFixture] = useState<Fixture | null>(null);
   const [showDebugger, setShowDebugger] = useState(false);
   
-  // NEW: State for the final, enriched patterns
   const [enrichedMatchPatterns, setEnrichedMatchPatterns] = useState<MatchContextInsight[]>([]);
 
-  // Get fixtures from both sources to find the matching one
   const { featuredFixtures } = useFixtures();
   const { fixtures: gameWeekFixtures } = useGameWeekFixtures();
 
-  // Betting Patterns Hook (fetches ALL patterns)
   const {
-    insights: allBettingPatterns, // Renamed to clarify it's the full list
+    insights: allBettingPatterns,
     loading: patternsLoading,
     error: patternsError,
     refresh: refreshPatterns,
@@ -59,7 +55,7 @@ const StatsPage: React.FC = () => {
     let foundFixture = allFixtures.find(fixture => 
       fixture.id?.toString() === matchId
     );
-
+    // ... (rest of fixture finding logic remains the same)
     if (!foundFixture) {
       foundFixture = allFixtures.find(fixture => {
         const homeTeam = fixture.homeTeam.name || fixture.homeTeam.shortName || 'home';
@@ -80,7 +76,6 @@ const StatsPage: React.FC = () => {
 
   // CRITICAL FIX: Effect to filter patterns by match teams AND enrich them asynchronously
   useEffect(() => {
-    // Only proceed if we have a fixture, the patterns have loaded, and there's no error
     if (!currentFixture || patternsLoading || patternsError) {
         setEnrichedMatchPatterns([]);
         return;
@@ -97,7 +92,7 @@ const StatsPage: React.FC = () => {
     const homeInsights: BettingInsight[] = [];
     const awayInsights: BettingInsight[] = [];
 
-    // NOTE: allBettingPatterns[i].team is already the canonical name (from bettingInsightsService)
+    // Pattern.team is already canonical
     for (const pattern of allBettingPatterns) {
         const teamCanonical = pattern.team;
         
@@ -112,8 +107,7 @@ const StatsPage: React.FC = () => {
     // 3. Define the asynchronous enrichment function
     const enrichAndSet = async () => {
         try {
-            // Pass the normalized names to the service. (The service will normalize again, which is harmless,
-            // or we could trust our normalization here and pass the raw name, but passing normalized is cleaner)
+            // Pass the normalized names to the service.
             const enriched = await matchContextService.enrichMatchInsights(
                 normalizedHome, 
                 normalizedAway,
@@ -123,7 +117,6 @@ const StatsPage: React.FC = () => {
             setEnrichedMatchPatterns(enriched);
         } catch (error) {
             console.error("Failed to enrich match insights with context:", error);
-            // Fallback to empty array on failure
             setEnrichedMatchPatterns([]); 
         }
     };
@@ -133,8 +126,9 @@ const StatsPage: React.FC = () => {
   }, [allBettingPatterns, currentFixture, patternsLoading, patternsError]);
 
 
-  // Loading state while we find the fixture
+  // --- Render Logic ---
   if (!currentFixture) {
+    // ... (Loading state unchanged)
     return (
       <div
         style={{
@@ -177,8 +171,9 @@ const StatsPage: React.FC = () => {
     );
   }
   
-  // NOTE: Home/Away pattern counts were removed as the new component calculates its own counts 
-  // based on the RANKED list internally.
+  // 🛠️ NEW: Calculate normalized names for passing to the component props
+  const normalizedHomeTeamName = normalizeTeamName(currentFixture.homeTeam.name);
+  const normalizedAwayTeamName = normalizeTeamName(currentFixture.awayTeam.name);
 
   return (
     <div
@@ -195,7 +190,7 @@ const StatsPage: React.FC = () => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Navigation Buttons */}
+        {/* ... (Navigation and Debugger unchanged) ... */}
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-2xl lg:text-3xl font-semibold text-gray-900">
             Match Analysis
@@ -228,7 +223,6 @@ const StatsPage: React.FC = () => {
 
         {/* Content Sections */}
         <div className="space-y-8">
-          {/* Debug Panel */}
           {showDebugger && (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
               <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
@@ -245,7 +239,6 @@ const StatsPage: React.FC = () => {
             </div>
           )}
 
-          {/* Modern Stats Table with Live Data */}
           <ModernStatsTable
             homeTeam={currentFixture.homeTeam}
             awayTeam={currentFixture.awayTeam}
@@ -290,7 +283,7 @@ const StatsPage: React.FC = () => {
             </div>
 
             {/* Content Area */}
-            <div className="p-4 sm:p-6"> {/* Padding slightly reduced to accommodate UnifiedInsights' own padding */}
+            <div className="p-4 sm:p-6">
               {patternsLoading && (
                 <div className="flex items-center justify-center py-12">
                   <div className="text-center">
@@ -327,9 +320,10 @@ const StatsPage: React.FC = () => {
               {/* NEW UNIFIED INSIGHTS COMPONENT */}
               {!patternsLoading && !patternsError && (
                 <UnifiedBettingInsights
-                  insights={enrichedMatchPatterns} // <-- Passing the enriched data
-                  homeTeam={currentFixture.homeTeam.name}
-                  awayTeam={currentFixture.awayTeam.name}
+                  insights={enrichedMatchPatterns}
+                  // 🎯 FIX APPLIED HERE: Pass the normalized/canonical names
+                  homeTeam={normalizedHomeTeamName} 
+                  awayTeam={normalizedAwayTeamName}
                 />
               )}
             </div>
