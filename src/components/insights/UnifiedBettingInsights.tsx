@@ -6,10 +6,9 @@ import { Trophy, TrendingUp, AlertTriangle, CheckCircle, XCircle, Target, Home, 
 import { betRankingService, BetTier, RankedBet } from '../../services/ai/betRankingService';
 import { MatchContextInsight } from '../../services/ai/matchContextService';
 
-// --- NEW/UPDATED TYPE DEFINITIONS (Ensure 'Team' is imported/defined) ---
+// --- TYPE DEFINITIONS ---
 
 // Define the Team interface required for the logo. 
-// This should match the one used in your ModernStatsTable.
 interface Team {
   name: string; // The canonical name (e.g., 'Manchester United')
   shortName?: string;
@@ -18,16 +17,17 @@ interface Team {
 
 interface UnifiedBettingInsightsProps {
   insights: MatchContextInsight[];
-  // 👇 UPDATED: Now accepts full Team objects to get the logo URL
-  homeTeam: Team;
+  // UPDATED: Now accepts full Team objects
+  homeTeam: Team; 
   awayTeam: Team;
 }
 
 // Define the content and key for the new tab structure
 type BetTab = 'all' | BetTier.EXCELLENT | BetTier.GOOD | BetTier.FAIR;
 
+
 // ----------------------------------------------------------------------
-// 1. STATS TEAM LOGO COMPONENT (Essential for logo display)
+// STATS TEAM LOGO COMPONENT
 // ----------------------------------------------------------------------
 
 const StatsTeamLogo: React.FC<{ team: Team, size?: 'sm' | 'md' }> = ({ team, size = 'sm' }) => {
@@ -128,7 +128,6 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
   ];
 
   return (
-    // Re-using the container style from ModernStatsTable
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden space-y-0">
       
       {/* HEADER BLOCK (Tabs and Secondary Filter) */}
@@ -188,7 +187,7 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
                   : 'bg-green-100 text-green-700 hover:bg-green-200'
               }`}
             >
-              {/* 👇 LOGO INTEGRATION */}
+              {/* LOGO INTEGRATION */}
               <StatsTeamLogo team={homeTeam} size="sm" /> 
               {homeTeam.shortName || homeTeam.name}
             </button>
@@ -200,7 +199,7 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
                   : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
               }`}
             >
-              {/* 👇 LOGO INTEGRATION */}
+              {/* LOGO INTEGRATION */}
               <StatsTeamLogo team={awayTeam} size="sm" />
               {awayTeam.shortName || awayTeam.name}
             </button>
@@ -224,7 +223,7 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
       {/* Content */}
       <div className="p-4 sm:p-6 space-y-6">
         
-        {/* Best Bet Highlight - NOTE: Pass the full Team objects here */}
+        {/* Best Bet Highlight */}
         {bestBet && !showAccasOnly && selectedTab === 'all' && selectedTeam === 'all' && bestBet.betScore >= 75 && (
           <div className="bg-white border-4 border-yellow-400 rounded-xl p-6 shadow-md -mt-4">
             <div className="flex items-center gap-3 mb-4">
@@ -240,7 +239,6 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
               bet={bestBet} 
               isHighlight={true} 
               rank={1}
-              // 👇 Pass the full Team objects
               homeTeam={homeTeam} 
               awayTeam={awayTeam}
             />
@@ -262,7 +260,6 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
                   key={idx} 
                   bet={bet} 
                   rank={undefined} 
-                  // 👇 Pass the full Team objects
                   homeTeam={homeTeam}
                   awayTeam={awayTeam}
                 />
@@ -291,14 +288,13 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
 };
 
 // ----------------------------------------------------------------------
-// BETCARD COMPONENT (Updated for logo display)
+// BETCARD COMPONENT (Updated with new compact footer logic)
 // ----------------------------------------------------------------------
 
 const BetCard: React.FC<{ 
   bet: RankedBet; 
   rank?: number; 
   isHighlight?: boolean;
-  // 👇 UPDATED: Accepts full Team objects
   homeTeam: Team; 
   awayTeam: Team;
 }> = ({ bet, rank, isHighlight = false, homeTeam, awayTeam }) => {
@@ -306,7 +302,7 @@ const BetCard: React.FC<{
   const isCompactGridItem = !isHighlight && rank === undefined;
   const [expanded, setExpanded] = useState(isHighlight);
 
-  // Helper functions (Light Mode Colors)
+  // Helper functions (Light Mode Colors - remaining the same)
   const getScoreGradient = (score: number) => {
     if (score >= 80) return 'from-emerald-500 to-green-400';
     if (score >= 65) return 'from-blue-500 to-blue-400';
@@ -347,50 +343,97 @@ const BetCard: React.FC<{
   const teamColor = isHomeTeam ? 'text-green-700' : 'text-orange-700'; 
   const teamBg = isHomeTeam ? 'bg-green-50' : 'bg-orange-50'; 
   
-  // Renders the simplified view for grid items
-  const renderCompactGridCard = () => (
-    <div className="p-3">
-        <div className="flex items-start justify-between gap-3">
-            <div className="flex-1 min-w-0">
-                {/* Team Badge and Outcome */}
-                <div className="flex items-center gap-2 mb-1">
-                    {/* 👇 LOGO INTEGRATION (using StatsTeamLogo) */}
-                    <StatsTeamLogo team={teamObject} size="sm" /> 
+  // Renders the simplified view for grid items (UPDATED)
+  const renderCompactGridCard = () => {
+      
+      // Data required for the new footer elements
+      const showStreakBadge = bet.isStreak && (bet.streakLength ?? 0) >= 7;
+      const homeVenueData = bet.context?.homeAwaySupportForSample?.home;
+      const awayVenueData = bet.context?.homeAwaySupportForSample?.away;
+      
+      // Determine which venue data to show (if applicable)
+      const showVenueSplit = homeVenueData && awayVenueData && (homeVenueData.matches > 0 || awayVenueData.matches > 0);
 
-                    <div className={`px-2 py-0.5 rounded-full ${teamBg} ${teamColor} font-bold text-xs flex items-center gap-1`}>
-                        {teamObject.shortName || teamObject.name}
+      return (
+        <div className="p-3">
+            <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                    {/* Team Badge and Outcome */}
+                    <div className="flex items-center gap-2 mb-1">
+                        <StatsTeamLogo team={teamObject} size="sm" /> 
+
+                        <div className={`px-2 py-0.5 rounded-full ${teamBg} ${teamColor} font-bold text-xs flex items-center gap-1`}>
+                            {teamObject.shortName || teamObject.name}
+                        </div>
+                        
                     </div>
-                    
+                    {/* Market Label moved for better flow */}
+                    <span className={`px-2 py-0.5 rounded text-xs font-semibold ${getMarketColor(bet.market)}`}>
+                        {bet.market.replace(/_/g, ' ').toUpperCase()}
+                    </span>
+                    <h4 className="text-base font-extrabold text-gray-900 truncate mt-1">{bet.outcome}</h4>
                 </div>
-                {/* Market Label moved for better flow */}
-                <span className={`px-2 py-0.5 rounded text-xs font-semibold ${getMarketColor(bet.market)}`}>
-                    {bet.market.replace(/_/g, ' ').toUpperCase()}
-                </span>
-                <h4 className="text-base font-extrabold text-gray-900 truncate mt-1">{bet.outcome}</h4>
-            </div>
 
-            {/* Score Circle (smaller for grid view) */}
-            <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${getScoreGradient(bet.betScore)} flex items-center justify-center shadow-md flex-shrink-0`}>
-                <div className="text-center text-white">
-                    <p className="text-xl font-extrabold leading-none">{bet.betScore}</p>
-                    <p className="text-xs font-semibold leading-none">SCORE</p>
+                {/* Score Circle (smaller for grid view) */}
+                <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${getScoreGradient(bet.betScore)} flex items-center justify-center shadow-md flex-shrink-0`}>
+                    <div className="text-center text-white">
+                        <p className="text-xl font-extrabold leading-none">{bet.betScore}</p>
+                        <p className="text-xs font-semibold leading-none">SCORE</p>
+                    </div>
                 </div>
             </div>
+            
+            {/* UPDATED FOOTER ROW */}
+            <div className="mt-2 pt-2 border-t border-gray-100 flex justify-between items-center text-xs text-gray-600">
+                
+                {/* LEFT SIDE: Hit Rate, Streak, and Acca Safe Badges */}
+                <div className="flex items-center gap-3">
+                    <p className="flex items-center gap-1 font-semibold text-gray-700">
+                        <TrendingUp className="w-3 h-3 text-purple-500" /> {bet.hitRate}% Hit
+                    </p>
+                    
+                    {/* 7+ STREAK BADGE */}
+                    {showStreakBadge && (
+                        <span className="px-2 py-0.5 rounded bg-red-100 text-red-700 text-xs font-bold flex items-center gap-1 border border-red-200">
+                            <Zap className="w-3 h-3" />
+                            {bet.streakLength}+ Streak
+                        </span>
+                    )}
+                    
+                    {/* Acca Safe Badge (If Acca safe, move to end of left block for clean alignment) */}
+                    {bet.accumulatorSafe && (
+                        <p className="text-purple-700 font-bold flex items-center gap-1 ml-auto">
+                            <CheckCircle className="w-3 h-3" /> Acca Safe
+                        </p>
+                    )}
+                </div>
+
+
+                {/* RIGHT SIDE: VENUE CONSISTENCY */}
+                {showVenueSplit && (
+                    <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-lg border border-gray-100">
+                        
+                        {/* Home Venue Consistency */}
+                        {homeVenueData && homeVenueData.matches > 0 && (
+                            <div className={`flex items-center gap-1 px-1 rounded ${isHomeTeam ? 'bg-green-100' : ''}`}>
+                                <Home className={`w-3 h-3 ${isHomeTeam ? 'text-green-600' : 'text-gray-500'}`} />
+                                <span className={`font-bold ${isHomeTeam ? 'text-green-700' : 'text-gray-800'}`}>{homeVenueData.hitRate}%</span>
+                            </div>
+                        )}
+                        
+                        {/* Away Venue Consistency */}
+                        {awayVenueData && awayVenueData.matches > 0 && (
+                            <div className={`flex items-center gap-1 px-1 rounded ${!isHomeTeam ? 'bg-orange-100' : ''}`}>
+                                <Plane className={`w-3 h-3 ${!isHomeTeam ? 'text-orange-600' : 'text-gray-500'}`} />
+                                <span className={`font-bold ${!isHomeTeam ? 'text-orange-700' : 'text-gray-800'}`}>{awayVenueData.hitRate}%</span>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
         </div>
-        
-        {/* Additional data row */}
-        <div className="mt-2 pt-2 border-t border-gray-100 flex justify-between text-xs text-gray-600">
-            <p className="flex items-center gap-1">
-                <TrendingUp className="w-3 h-3" /> {bet.hitRate}% Hit
-            </p>
-            {bet.accumulatorSafe && (
-                <p className="text-purple-700 font-bold flex items-center gap-1">
-                    <CheckCircle className="w-3 h-3" /> Acca Safe
-                </p>
-            )}
-        </div>
-    </div>
-  );
+      );
+  };
   
   // Main Render
   return (
@@ -405,7 +448,7 @@ const BetCard: React.FC<{
         // Render the compact version for the grid
         renderCompactGridCard()
       ) : (
-        // Render the full, expandable version for the TOP PICK highlight
+        // Render the full, expandable version for the TOP PICK highlight (unchanged)
         <>
           <div 
             className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
@@ -421,7 +464,7 @@ const BetCard: React.FC<{
                 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap mb-2">
-                    {/* 👇 LOGO INTEGRATION (Full View) */}
+                    {/* LOGO INTEGRATION (Full View) */}
                     <StatsTeamLogo team={teamObject} size="sm" /> 
                     
                     <div className={`px-3 py-1 rounded-full ${teamBg} ${teamColor} font-bold text-sm flex items-center gap-1`}>
@@ -463,7 +506,7 @@ const BetCard: React.FC<{
             </div>
           </div>
           
-          {/* Expanded Details */}
+          {/* Expanded Details (unchanged) */}
           {expanded && (
             <div className="border-t-2 border-gray-100 p-6 space-y-6 bg-gray-50">
               
