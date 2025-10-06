@@ -6,13 +6,28 @@ import {
   Comparison 
 } from './bettingInsightsService';
 
-import { supabaseCardsService } from '../stats/supabaseCardsService';
-import { supabaseCornersService } from '../stats/supabaseCornersService';
-import { supabaseFoulsService } from '../stats/supabaseFoulsService';
-import { supabaseGoalsService } from '../stats/supabaseGoalsService';
-import { supabaseShootingService, DetailedShootingStats } from '../stats/supabaseShootingService';
+import { supabaseCardsService, CardStatistics } from '../stats/supabaseCardsService';
+import { supabaseCornersService, CornerStatistics } from '../stats/supabaseCornersService';
+import { supabaseFoulsService, FoulStatistics } from '../stats/supabaseFoulsService';
+import { supabaseGoalsService, GoalStatistics } from '../stats/supabaseGoalsService';
+import { supabaseShootingService, ShootingStatistics } from '../stats/supabaseShootingService';
 
 import { getDisplayTeamName, normalizeTeamName } from '../../utils/teamUtils';
+
+// Type definitions for the pre-fetched statistics
+type GoalsStats = GoalStatistics;
+type CardsStats = CardStatistics;
+type CornersStats = CornerStatistics;
+type FoulsStats = FoulStatistics;
+type ShootingStats = ShootingStatistics;
+
+interface AllStats {
+    goals: GoalsStats;
+    cards: CardsStats;
+    corners: CornersStats;
+    fouls: FoulsStats;
+    shooting: ShootingStats;
+}
 
 // Defining the specific match context structure
 interface MatchContext {
@@ -78,12 +93,14 @@ export class MatchContextService {
     
     return {
       matches: matchesToUse,
+      // The result is only considered 'venueSpecific' if we used the venueMatches data set
       venueSpecific: useVenueSpecific
     };
   }
 
   /**
    * Verify that a team exists in the database (Memoized)
+   * This still hits the services directly to check for existence across all tables.
    */
   private async verifyTeamExists(teamName: string): Promise<boolean> {
     const normalizedTeamName = normalizeTeamName(teamName); 
@@ -93,7 +110,7 @@ export class MatchContextService {
       return this.teamExistsCache.get(normalizedTeamName)!;
     }
 
-    // 2. Perform expensive operation
+    // 2. Perform expensive operation (parallel fetching only here)
     try {
       // Check if team exists in any of the services
       const [cardsStats, cornersStats, foulsStats, goalsStats, shootingStats] = await Promise.all([
@@ -147,21 +164,21 @@ export class MatchContextService {
   
   /**
    * Get opposition's defensive stats for a specific market
+   * OPTIMIZED: Now accepts the pre-fetched statistics map.
    */
   private async getOppositionDefensiveStats(
     opponent: string,
     market: BettingMarket,
-    opponentIsHome: boolean
+    opponentIsHome: boolean,
+    stats: AllStats
   ): Promise<{ average: number; matches: number; venueSpecific: boolean } | null> {
     
     try {
       switch (market) {
         case BettingMarket.CARDS: {
-          const stats = await supabaseCardsService.getCardStatistics();
-          const oppStats = stats.get(opponent);
+          const oppStats = stats.cards.get(opponent); // Use pre-fetched stats
           if (!oppStats) return null;
           
-          // ✨ REFACTOR: Use helper method
           const { matches: matchesToUse, venueSpecific } = this.getVenueSpecificMatches(
             oppStats.matchDetails,
             opponentIsHome
@@ -181,11 +198,9 @@ export class MatchContextService {
         }
 
         case BettingMarket.CORNERS: {
-          const stats = await supabaseCornersService.getCornerStatistics();
-          const oppStats = stats.get(opponent);
+          const oppStats = stats.corners.get(opponent); // Use pre-fetched stats
           if (!oppStats) return null;
           
-          // ✨ REFACTOR: Use helper method
           const { matches: matchesToUse, venueSpecific } = this.getVenueSpecificMatches(
             oppStats.matchDetails,
             opponentIsHome
@@ -205,11 +220,9 @@ export class MatchContextService {
         }
 
         case BettingMarket.FOULS: {
-          const stats = await supabaseFoulsService.getFoulStatistics();
-          const oppStats = stats.get(opponent);
+          const oppStats = stats.fouls.get(opponent); // Use pre-fetched stats
           if (!oppStats) return null;
           
-          // ✨ REFACTOR: Use helper method
           const { matches: matchesToUse, venueSpecific } = this.getVenueSpecificMatches(
             oppStats.matchDetails,
             opponentIsHome
@@ -230,8 +243,7 @@ export class MatchContextService {
 
         case BettingMarket.SHOTS_ON_TARGET:
         case BettingMarket.TOTAL_SHOTS: {
-          const stats = await supabaseShootingService.getShootingStatistics();
-          const oppStats = stats.get(opponent);
+          const oppStats = stats.shooting.get(opponent); // Use pre-fetched stats
           if (!oppStats) return null;
           
           // Define and cast the field name to the narrow, type-safe key
@@ -239,7 +251,6 @@ export class MatchContextService {
             ? 'shotsOnTargetAgainst' 
             : 'shotsAgainst') as ShootingFieldKey;
           
-          // ✨ REFACTOR: Use helper method
           const { matches: matchesToUse, venueSpecific } = this.getVenueSpecificMatches(
             oppStats.matchDetails,
             opponentIsHome
@@ -260,11 +271,9 @@ export class MatchContextService {
         }
 
         case BettingMarket.GOALS: {
-            const stats = await supabaseGoalsService.getGoalStatistics();
-            const oppStats = stats.get(opponent);
+            const oppStats = stats.goals.get(opponent); // Use pre-fetched stats
             if (!oppStats) return null;
             
-            // ✨ REFACTOR: Use helper method
             const { matches: matchesToUse, venueSpecific } = this.getVenueSpecificMatches(
               oppStats.matchDetails,
               opponentIsHome
@@ -487,243 +496,14 @@ export class MatchContextService {
   }
 
   /**
-   * Main function to enrich all insights with match-specific context (Step 2).
-   */
-  public async enrichMatchInsights(
-    homeTeam: string,
-    awayTeam: string,
-    homeInsights: BettingInsight[],
-    awayInsights: BettingInsight[]
-  ): Promise<MatchContextInsight[]> {
-    
-    const startTime = performance.now(); // ⏱️ Start timer
-    const enrichedInsights: MatchContextInsight[] = [];
-
-    // ===== INPUT VALIDATION & TEAM NORMALIZATION =====
-    if (!homeTeam?.trim() || !awayTeam?.trim()) {
-      console.error('[MatchContextService] ❌ Invalid team name: empty or undefined');
-      return [];
-    }
-    
-    const normalizedHome = normalizeTeamName(homeTeam);
-    const normalizedAway = normalizeTeamName(awayTeam);
-    
-    console.log(`[MatchContextService] 📝 Normalized teams: "${homeTeam}" → "${normalizedHome}", "${awayTeam}" → "${normalizedAway}"`);
-    
-    if (normalizedHome === normalizedAway) {
-      console.error(`[MatchContextService] ❌ Home and away teams cannot be the same: "${homeTeam}"`);
-      return [];
-    }
-
-    // 4. Verify teams exist in database - using memoized function
-    console.log(`[MatchContextService] 🔍 Verifying teams: ${normalizedHome} vs ${normalizedAway}`);
-    const [homeExists, awayExists] = await Promise.all([
-      this.verifyTeamExists(normalizedHome),
-      this.verifyTeamExists(normalizedAway)
-    ]);
-
-    if (!homeExists) {
-      console.warn(`[MatchContextService] ⚠️ Home team "${normalizedHome}" not found in database`);
-    }
-    if (!awayExists) {
-      console.warn(`[MatchContextService] ⚠️ Away team "${normalizedAway}" not found in database`);
-    }
-
-    if (!homeInsights?.length && !awayInsights?.length) {
-      console.warn('[MatchContextService] ⚠️ No insights provided for enrichment');
-      return [];
-    }
-
-    // ===== PROCESS INSIGHTS =====
-    const allInsights = [
-      // Home team insights: opponent is AWAY, so check opponent's away defensive stats
-      ...homeInsights.map(i => ({ 
-        insight: i, 
-        isHome: true, 
-        opponent: normalizedAway,
-        opponentIsHome: false
-      })),
-      // Away team insights: opponent is HOME, so check opponent's home defensive stats
-      ...awayInsights.map(i => ({ 
-        insight: i, 
-        isHome: false, 
-        opponent: normalizedHome,
-        opponentIsHome: true
-      }))
-    ];
-
-    for (const { insight, isHome, opponent, opponentIsHome } of allInsights) {
-      try {
-        const insightTeamName = isHome ? normalizedHome : normalizedAway;
-        
-        // 1. Get Opposition Stats
-        const oppStats = await this.getOppositionDefensiveStats(
-          opponent, 
-          insight.market, 
-          opponentIsHome
-        );
-        
-        // ===== HANDLE MISSING OR INSUFFICIENT DATA =====
-        if (!oppStats || oppStats.matches < this.MIN_MATCHES_FOR_ANALYSIS) {
-          const matchCount = oppStats?.matches ?? 0;
-          const oppDisplayName = getDisplayTeamName(opponent);
-          
-          console.warn(
-            `[MatchContextService] ⚠️ Insufficient data for ${oppDisplayName} in ${insight.market}: ${matchCount} matches`
-          );
-          
-          enrichedInsights.push({
-            ...insight,
-            matchContext: {
-              oppositionAllows: 0,
-              oppositionMatches: matchCount,
-              isHome,
-              strengthOfMatch: 'Poor',
-              recommendation: `⚠️ **DATA WARNING**: Insufficient opposition data for ${oppDisplayName} in ${insight.market} market (only ${matchCount} matches available). Minimum ${this.MIN_MATCHES_FOR_ANALYSIS} matches required for reliable analysis. **Proceed with extreme caution** - this recommendation is based on incomplete information.`,
-              venueSpecific: false,
-              dataQuality: 'Insufficient'
-            }
-          });
-          
-          continue; // Skip to next insight
-        }
-        
-        const oppositionAllows = oppStats.average;
-        const oppositionMatches = oppStats.matches;
-        const venueSpecific = oppStats.venueSpecific;
-        
-        // Calculate data quality
-        const dataQuality = this.calculateDataQuality(oppositionMatches, venueSpecific);
-
-        const isBTTS = insight.market === BettingMarket.BOTH_TEAMS_TO_SCORE;
-        const shouldApplyContext = 
-          insight.comparison !== 'binary' && !isBTTS;
-
-        let strengthOfMatch: MatchContext['strengthOfMatch'] = 'Fair';
-        let recommendation: string = `No specific match context generated for ${insight.market} ${insight.comparison} pattern.`;
-        let roundedOppositionAllows = 0;
-        let bttsContext: MatchContext['bttsContext'];
-        const confidenceScore = insight.context?.confidence?.score ?? 0;
-
-        // Handle BTTS separately
-        if (isBTTS) {
-          const bttsExpectation = insight.outcome.includes('Yes') ? 'Yes' : 'No';
-          const bttsEval = await this.evaluateBTTSMatchup(
-            normalizedHome,
-            normalizedAway,
-            bttsExpectation
-          );
-          
-          if (bttsEval) {
-            strengthOfMatch = bttsEval.strength;
-            bttsContext = {
-              homeExpectedGoals: bttsEval.homeExpectedGoals,
-              awayExpectedGoals: bttsEval.awayExpectedGoals,
-              homeGoalsFor: bttsEval.homeGoalsFor,
-              awayGoalsAgainst: bttsEval.awayGoalsAgainst,
-              awayGoalsFor: bttsEval.awayGoalsFor,
-              homeGoalsAgainst: bttsEval.homeGoalsAgainst
-            };
-            
-            recommendation = this.generateBTTSRecommendation(
-              insightTeamName,
-              insight.outcome,
-              strengthOfMatch,
-              isHome,
-              confidenceScore,
-              bttsContext,
-              bttsEval.venueSpecific
-            );
-          } else {
-            recommendation = `⚠️ **DATA WARNING**: Unable to evaluate BTTS matchup due to insufficient goal data for one or both teams. Cannot reliably assess this market.`;
-            strengthOfMatch = 'Poor';
-          }
-        }
-        else if (shouldApplyContext) {
-          // 2. Evaluate Match Strength
-          const matchEvaluation = this.evaluateMatchStrength(
-            insight.averageValue,
-            insight.threshold,
-            oppositionAllows,
-            confidenceScore,
-            insight.comparison as Comparison
-          );
-          
-          strengthOfMatch = matchEvaluation.strength;
-          const dominanceOverride = matchEvaluation.dominanceOverride;
-          const dominanceRatio = matchEvaluation.dominanceRatio;
-
-          // 3. Generate Recommendation
-          recommendation = this.generateRecommendation(
-            insightTeamName,
-            insight.outcome,
-            strengthOfMatch,
-            insight.averageValue,
-            oppositionAllows,
-            insight.threshold,
-            isHome,
-            confidenceScore,
-            venueSpecific,
-            dominanceOverride,
-            dominanceRatio
-          );
-          
-          // Append data quality warning if needed
-          if (dataQuality === 'Poor' || dataQuality === 'Fair') {
-            recommendation += ` 📊 **Data Quality: ${dataQuality}** (${oppositionMatches} ${venueSpecific ? 'venue-specific' : 'total'} matches).`;
-          }
-          
-          roundedOppositionAllows = Math.round(oppositionAllows * 10) / 10;
-        }
-
-        // 4. Build Enriched Insight
-        enrichedInsights.push({
-          ...insight,
-          matchContext: {
-            oppositionAllows: roundedOppositionAllows,
-            oppositionMatches,
-            isHome,
-            strengthOfMatch,
-            recommendation,
-            venueSpecific,
-            dataQuality,
-            bttsContext
-          }
-        });
-        
-      } catch (error) {
-        // Catch any errors during processing of individual insights
-        console.error(`[MatchContextService] 💥 Error processing insight for ${insight.team} - ${insight.market}:`, error);
-        
-        // Add insight with error state
-        enrichedInsights.push({
-          ...insight,
-          matchContext: {
-            oppositionAllows: 0,
-            oppositionMatches: 0,
-            isHome,
-            strengthOfMatch: 'Poor',
-            recommendation: `❌ **ERROR**: Unable to process match context due to system error. This bet cannot be reliably evaluated.`,
-            venueSpecific: false,
-            dataQuality: 'Insufficient'
-          }
-        });
-      }
-    }
-
-    const duration = Math.round(performance.now() - startTime); // ⏱️ Calculate duration
-    console.log(`[MatchContextService] ✅ Enriched ${enrichedInsights.length} insights in ${duration}ms`); // 📝 Log duration
-    
-    return enrichedInsights;
-  }
-
-  /**
    * NEW: Evaluate BTTS (Both Teams To Score) matchup
+   * OPTIMIZED: Now accepts the pre-fetched goals statistics map.
    */
   private async evaluateBTTSMatchup(
     homeTeam: string,
     awayTeam: string,
-    bttsExpectation: 'Yes' | 'No'
+    bttsExpectation: 'Yes' | 'No',
+    goalsStats: GoalsStats // Accept goalsStats
   ): Promise<{
     strength: 'Poor' | 'Fair' | 'Good' | 'Excellent';
     homeExpectedGoals: number;
@@ -736,9 +516,8 @@ export class MatchContextService {
   } | null> {
     
     try {
-      const stats = await supabaseGoalsService.getGoalStatistics();
-      const homeStats = stats.get(homeTeam);
-      const awayStats = stats.get(awayTeam);
+      const homeStats = goalsStats.get(homeTeam); // Use passed goalsStats
+      const awayStats = goalsStats.get(awayTeam); // Use passed goalsStats
       
       if (!homeStats || !awayStats) return null;
 
@@ -915,6 +694,249 @@ export class MatchContextService {
           return `🛑 **CAUTION ADVISED**: ${base} Both teams demonstrate strong expected goal outputs. BTTS No is high-risk as both sides are likely to find the net. ${confidenceText}`;
       }
     }
+  }
+
+  /**
+   * Main function to enrich all insights with match-specific context (Step 2).
+   */
+  public async enrichMatchInsights(
+    homeTeam: string,
+    awayTeam: string,
+    homeInsights: BettingInsight[],
+    awayInsights: BettingInsight[]
+  ): Promise<MatchContextInsight[]> {
+    
+    const startTime = performance.now(); // ⏱️ Start timer
+    const enrichedInsights: MatchContextInsight[] = [];
+
+    // ===== 1. PARALLEL DATA FETCHING (OPTIMIZATION) =====
+    // Fetch all necessary stats concurrently to minimize network latency.
+    const [goalsStats, cardsStats, cornersStats, foulsStats, shootingStats] = 
+        await Promise.all([
+          supabaseGoalsService.getGoalStatistics(),
+          supabaseCardsService.getCardStatistics(),
+          supabaseCornersService.getCornerStatistics(),
+          supabaseFoulsService.getFoulStatistics(),
+          supabaseShootingService.getShootingStatistics()
+        ]);
+
+    const allStats: AllStats = { 
+        goals: goalsStats, 
+        cards: cardsStats, 
+        corners: cornersStats, 
+        fouls: foulsStats, 
+        shooting: shootingStats 
+    };
+
+    // ===== INPUT VALIDATION & TEAM NORMALIZATION =====
+    if (!homeTeam?.trim() || !awayTeam?.trim()) {
+      console.error('[MatchContextService] ❌ Invalid team name: empty or undefined');
+      return [];
+    }
+    
+    const normalizedHome = normalizeTeamName(homeTeam);
+    const normalizedAway = normalizeTeamName(awayTeam);
+    
+    console.log(`[MatchContextService] 📝 Normalized teams: "${homeTeam}" → "${normalizedHome}", "${awayTeam}" → "${normalizedAway}"`);
+    
+    if (normalizedHome === normalizedAway) {
+      console.error(`[MatchContextService] ❌ Home and away teams cannot be the same: "${homeTeam}"`);
+      return [];
+    }
+
+    // NOTE: Team existence check is skipped here because allStats will handle missing teams gracefully.
+    // The verifyTeamExists is primarily for the general API check/memoization.
+    
+    if (!homeInsights?.length && !awayInsights?.length) {
+      console.warn('[MatchContextService] ⚠️ No insights provided for enrichment');
+      return [];
+    }
+
+    // ===== PROCESS INSIGHTS =====
+    const allInsights = [
+      // Home team insights: opponent is AWAY, so check opponent's away defensive stats
+      ...homeInsights.map(i => ({ 
+        insight: i, 
+        isHome: true, 
+        opponent: normalizedAway,
+        opponentIsHome: false
+      })),
+      // Away team insights: opponent is HOME, so check opponent's home defensive stats
+      ...awayInsights.map(i => ({ 
+        insight: i, 
+        isHome: false, 
+        opponent: normalizedHome,
+        opponentIsHome: true
+      }))
+    ];
+
+    for (const { insight, isHome, opponent, opponentIsHome } of allInsights) {
+      try {
+        const insightTeamName = isHome ? normalizedHome : normalizedAway;
+        
+        // 1. Get Opposition Stats - PASS THE PRE-FETCHED DATA
+        const oppStats = await this.getOppositionDefensiveStats(
+          opponent, 
+          insight.market, 
+          opponentIsHome,
+          allStats // Pass the combined stats object
+        );
+        
+        // ===== HANDLE MISSING OR INSUFFICIENT DATA =====
+        if (!oppStats || oppStats.matches < this.MIN_MATCHES_FOR_ANALYSIS) {
+          const matchCount = oppStats?.matches ?? 0;
+          const oppDisplayName = getDisplayTeamName(opponent);
+          
+          if (oppStats) { // Log warning only if stats are found but count is low
+              console.warn(
+                `[MatchContextService] ⚠️ Insufficient data for ${oppDisplayName} in ${insight.market}: ${matchCount} matches`
+              );
+          }
+          
+          enrichedInsights.push({
+            ...insight,
+            matchContext: {
+              oppositionAllows: 0,
+              oppositionMatches: matchCount,
+              isHome,
+              strengthOfMatch: 'Poor',
+              recommendation: `⚠️ **DATA WARNING**: Insufficient opposition data for ${oppDisplayName} in ${insight.market} market (only ${matchCount} matches available). Minimum ${this.MIN_MATCHES_FOR_ANALYSIS} matches required for reliable analysis. **Proceed with extreme caution** - this recommendation is based on incomplete information.`,
+              venueSpecific: false,
+              dataQuality: 'Insufficient'
+            }
+          });
+          
+          continue; // Skip to next insight
+        }
+        
+        const oppositionAllows = oppStats.average;
+        const oppositionMatches = oppStats.matches;
+        const venueSpecific = oppStats.venueSpecific;
+        
+        // Calculate data quality
+        const dataQuality = this.calculateDataQuality(oppositionMatches, venueSpecific);
+
+        const isBTTS = insight.market === BettingMarket.BOTH_TEAMS_TO_SCORE;
+        const shouldApplyContext = 
+          insight.comparison !== 'binary' && !isBTTS;
+
+        let strengthOfMatch: MatchContext['strengthOfMatch'] = 'Fair';
+        let recommendation: string = `No specific match context generated for ${insight.market} ${insight.comparison} pattern.`;
+        let roundedOppositionAllows = 0;
+        let bttsContext: MatchContext['bttsContext'];
+        const confidenceScore = insight.context?.confidence?.score ?? 0;
+
+        // Handle BTTS separately
+        if (isBTTS) {
+          const bttsExpectation = insight.outcome.includes('Yes') ? 'Yes' : 'No';
+          const bttsEval = await this.evaluateBTTSMatchup(
+            normalizedHome,
+            normalizedAway,
+            bttsExpectation,
+            goalsStats // Pass goalsStats
+          );
+          
+          if (bttsEval) {
+            strengthOfMatch = bttsEval.strength;
+            bttsContext = {
+              homeExpectedGoals: bttsEval.homeExpectedGoals,
+              awayExpectedGoals: bttsEval.awayExpectedGoals,
+              homeGoalsFor: bttsEval.homeGoalsFor,
+              awayGoalsAgainst: bttsEval.awayGoalsAgainst,
+              awayGoalsFor: bttsEval.awayGoalsFor,
+              homeGoalsAgainst: bttsEval.homeGoalsAgainst
+            };
+            
+            recommendation = this.generateBTTSRecommendation(
+              insightTeamName,
+              insight.outcome,
+              strengthOfMatch,
+              isHome,
+              confidenceScore,
+              bttsContext,
+              bttsEval.venueSpecific
+            );
+          } else {
+            recommendation = `⚠️ **DATA WARNING**: Unable to evaluate BTTS matchup due to insufficient goal data for one or both teams. Cannot reliably assess this market.`;
+            strengthOfMatch = 'Poor';
+          }
+        }
+        else if (shouldApplyContext) {
+          // 2. Evaluate Match Strength
+          const matchEvaluation = this.evaluateMatchStrength(
+            insight.averageValue,
+            insight.threshold,
+            oppositionAllows,
+            confidenceScore,
+            insight.comparison as Comparison
+          );
+          
+          strengthOfMatch = matchEvaluation.strength;
+          const dominanceOverride = matchEvaluation.dominanceOverride;
+          const dominanceRatio = matchEvaluation.dominanceRatio;
+
+          // 3. Generate Recommendation
+          recommendation = this.generateRecommendation(
+            insightTeamName,
+            insight.outcome,
+            strengthOfMatch,
+            insight.averageValue,
+            oppositionAllows,
+            insight.threshold,
+            isHome,
+            confidenceScore,
+            venueSpecific,
+            dominanceOverride,
+            dominanceRatio
+          );
+          
+          // Append data quality warning if needed
+          if (dataQuality === 'Poor' || dataQuality === 'Fair') {
+            recommendation += ` 📊 **Data Quality: ${dataQuality}** (${oppositionMatches} ${venueSpecific ? 'venue-specific' : 'total'} matches).`;
+          }
+          
+          roundedOppositionAllows = Math.round(oppositionAllows * 10) / 10;
+        }
+
+        // 4. Build Enriched Insight
+        enrichedInsights.push({
+          ...insight,
+          matchContext: {
+            oppositionAllows: roundedOppositionAllows,
+            oppositionMatches,
+            isHome,
+            strengthOfMatch,
+            recommendation,
+            venueSpecific,
+            dataQuality,
+            bttsContext
+          }
+        });
+        
+      } catch (error) {
+        // Catch any errors during processing of individual insights
+        console.error(`[MatchContextService] 💥 Error processing insight for ${insight.team} - ${insight.market}:`, error);
+        
+        // Add insight with error state
+        enrichedInsights.push({
+          ...insight,
+          matchContext: {
+            oppositionAllows: 0,
+            oppositionMatches: 0,
+            isHome,
+            strengthOfMatch: 'Poor',
+            recommendation: `❌ **ERROR**: Unable to process match context due to system error. This bet cannot be reliably evaluated.`,
+            venueSpecific: false,
+            dataQuality: 'Insufficient'
+          }
+        });
+      }
+    }
+
+    const duration = Math.round(performance.now() - startTime); // ⏱️ Calculate duration
+    console.log(`[MatchContextService] ✅ Enriched ${enrichedInsights.length} insights in ${duration}ms`); // 📝 Log duration
+    
+    return enrichedInsights;
   }
 
   /**
