@@ -194,6 +194,17 @@ export class MatchContextService {
       return 'Poor';
     }
   }
+
+  /**
+   * NEW: Helper to generate confidence text with emoji.
+   */
+  private getConfidenceContext(confidenceScore: number): string {
+      const confidenceEmoji = confidenceScore >= 80 ? '🔥' : 
+                              confidenceScore >= 60 ? '✅' : 
+                              confidenceScore >= 40 ? '⚠️' : '🚨';
+
+      return `${confidenceEmoji} Confidence: **${confidenceScore}/100**`;
+  }
   
   /**
    * Get opposition's defensive stats for a specific market
@@ -516,7 +527,8 @@ export class MatchContextService {
       : '';
     
     let base = `${displayTeamName}'s pattern: ${outcome} (${Math.round(patternAvg * 10) / 10} avg)`;
-    const confidenceText = `Confidence Score: ${confidenceScore}/100.`;
+    // 🚩 UPDATED: Use the new helper for confidence context
+    const confidenceText = this.getConfidenceContext(confidenceScore);
 
     // 🎯 DOMINANCE OVERRIDE MESSAGING (OVER bets only)
     if (dominanceOverride && !isUnderBet && dominanceRatio) {
@@ -740,7 +752,8 @@ export class MatchContextService {
     
     const homeExpected = Math.round(bttsContext.homeExpectedGoals * 10) / 10;
     const awayExpected = Math.round(bttsContext.awayExpectedGoals * 10) / 10;
-    const confidenceText = `Confidence Score: ${confidenceScore}/100.`;
+    // 🚩 UPDATED: Use the new helper for confidence context
+    const confidenceText = this.getConfidenceContext(confidenceScore);
     
     if (isBTTSYes) {
       // BTTS YES recommendations
@@ -861,9 +874,11 @@ export class MatchContextService {
           const matchCount = oppStats?.matches ?? 0;
           const oppDisplayName = getDisplayTeamName(opponent);
           
-          if (oppStats && matchCount > 0) { // Log warning only if stats are found but count is low, but the console.warn above already handles the *low* part
-              // This block handles the failure to meet the *minimum required* threshold for the final analysis
+          if (oppStats && matchCount > 0) { 
+              // The early console.warn already handled the low count; this handles the final 'Insufficient' flag
           }
+          
+          const confidenceText = this.getConfidenceContext(insight.context?.confidence?.score ?? 0);
           
           enrichedInsights.push({
             ...insight,
@@ -872,7 +887,7 @@ export class MatchContextService {
               oppositionMatches: matchCount,
               isHome,
               strengthOfMatch: 'Poor',
-              recommendation: `⚠️ **DATA WARNING**: Insufficient opposition data for ${oppDisplayName} in ${insight.market} market (only ${matchCount} matches available). Minimum ${this.MIN_MATCHES_FOR_ANALYSIS} matches required for reliable analysis. **Proceed with extreme caution** - this recommendation is based on incomplete information.`,
+              recommendation: `⚠️ **DATA WARNING**: Insufficient opposition data for ${oppDisplayName} in ${insight.market} market (only ${matchCount} matches available). Minimum ${this.MIN_MATCHES_FOR_ANALYSIS} matches required for reliable analysis. **Proceed with extreme caution** - this recommendation is based on incomplete information. ${confidenceText}`,
               venueSpecific: false,
               dataQuality: 'Insufficient'
             }
@@ -929,7 +944,8 @@ export class MatchContextService {
               bttsEval.venueSpecific
             );
           } else {
-            recommendation = `⚠️ **DATA WARNING**: Unable to evaluate BTTS matchup due to insufficient goal data for one or both teams. Cannot reliably assess this market.`;
+            const confidenceText = this.getConfidenceContext(confidenceScore);
+            recommendation = `⚠️ **DATA WARNING**: Unable to evaluate BTTS matchup due to insufficient goal data for one or both teams. Cannot reliably assess this market. ${confidenceText}`;
             strengthOfMatch = 'Poor';
           }
         }
@@ -990,6 +1006,8 @@ export class MatchContextService {
         console.error(`[MatchContextService] 💥 Error processing insight for ${insight.team} - ${insight.market}:`, error);
         
         // Add insight with error state
+        const confidenceText = this.getConfidenceContext(insight.context?.confidence?.score ?? 0);
+        
         enrichedInsights.push({
           ...insight,
           matchContext: {
@@ -997,7 +1015,7 @@ export class MatchContextService {
             oppositionMatches: 0,
             isHome,
             strengthOfMatch: 'Poor',
-            recommendation: `❌ **ERROR**: Unable to process match context due to system error. This bet cannot be reliably evaluated.`,
+            recommendation: `❌ **ERROR**: Unable to process match context due to system error. This bet cannot be reliably evaluated. ${confidenceText}`,
             venueSpecific: false,
             dataQuality: 'Insufficient'
           }
