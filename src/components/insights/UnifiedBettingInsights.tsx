@@ -40,7 +40,7 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
         return selectedTeam === 'home' ? isHomeTeam : !isHomeTeam;
       });
   
-  // Memoize counts
+  // Memoize counts (still needed for secondary filter buttons and summary)
   const { tierCounts, accumulatorBets, bestBet, homeCount, awayCount } = useMemo(() => {
     const accumulatorBets = rankedBets.filter(b => b.accumulatorSafe);
     const bestBet = rankedBets.length > 0 ? rankedBets[0] : null;
@@ -60,12 +60,11 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
     };
   }, [rankedBets, homeTeam, awayTeam]);
   
-  const tabs: { key: BetTab; label: string; count: number; color?: string }[] = [
-    { key: 'all', label: 'All Bets', count: rankedBets.length },
-    { key: BetTier.EXCELLENT, label: 'Excellent', count: tierCounts[BetTier.EXCELLENT], color: 'emerald' },
-    { key: BetTier.GOOD, label: 'Good', count: tierCounts[BetTier.GOOD], color: 'blue' },
-    { key: BetTier.FAIR, label: 'Fair', count: tierCounts[BetTier.FAIR], color: 'yellow' },
-    // Poor/Avoid are filtered out of the main tabs but remain in total count
+  const tabs: { key: BetTab; label: string; color?: string }[] = [
+    { key: 'all', label: 'All Bets' },
+    { key: BetTier.EXCELLENT, label: 'Excellent', color: 'emerald' },
+    { key: BetTier.GOOD, label: 'Good', color: 'blue' },
+    { key: BetTier.FAIR, label: 'Fair', color: 'yellow' },
   ];
 
   return (
@@ -74,7 +73,7 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
       
       {/* HEADER BLOCK (Tabs and Secondary Filter) */}
       <div className="w-full">
-        {/* TABS - MIMIC STATS TABLE TABS */}
+        {/* TABS - MIMIC STATS TABLE TABS (COUNTS REMOVED) */}
         <div className="bg-gray-50 border-b border-gray-200 w-full flex">
           {tabs.map((tab) => {
             const isActive = selectedTab === tab.key;
@@ -83,10 +82,6 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
             const activeClass = isActive
               ? 'text-purple-800 border-purple-600 bg-white shadow-sm transform -translate-y-0.5 z-10'
               : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50';
-              
-            const countColor = tab.color 
-              ? `text-${tab.color}-600` 
-              : 'text-gray-600';
               
             return (
               <button
@@ -102,7 +97,8 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
                   <div className="absolute inset-0 bg-gradient-to-t from-purple-50 to-transparent opacity-60 rounded-t-md pointer-events-none" />
                 )}
                 <span className="block truncate relative z-10">
-                  {tab.label} (<span className={`font-bold ${countColor}`}>{tab.count}</span>)
+                  {/* ✨ CHANGE: Removed Count */}
+                  {tab.label}
                 </span>
               </button>
             );
@@ -123,7 +119,7 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
               }`}
             >
-              All
+              All ({rankedBets.length})
             </button>
             <button
               onClick={() => setSelectedTeam('home')}
@@ -134,7 +130,7 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
               }`}
             >
               <Home className="w-3 h-3" />
-              {homeTeam}
+              {homeTeam} ({homeCount})
             </button>
             <button
               onClick={() => setSelectedTeam('away')}
@@ -145,7 +141,7 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
               }`}
             >
               <Plane className="w-3 h-3" />
-              {awayTeam}
+              {awayTeam} ({awayCount})
             </button>
           </div>
           
@@ -167,20 +163,7 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
       {/* Content */}
       <div className="p-4 sm:p-6 space-y-6">
         
-        {/* Match Title Row (Mimics Stat Table Header) */}
-        <div className="grid grid-cols-3 gap-4 items-center border-b border-gray-100 pb-4 mb-4">
-            <div className="text-center">
-                <h3 className="text-lg sm:text-xl font-bold text-gray-900 leading-tight">{homeTeam}</h3>
-            </div>
-            <div className="text-center">
-                <h2 className="text-xl sm:text-2xl font-bold text-purple-700 leading-tight">
-                    Recommendations
-                </h2>
-            </div>
-            <div className="text-center">
-                <h3 className="text-lg sm:text-xl font-bold text-gray-900 leading-tight">{awayTeam}</h3>
-            </div>
-        </div>
+        {/* ✨ CHANGE: Removed the Match Title Row for a cleaner look */}
         
         {/* Best Bet Highlight - Stays Full-Width and Expandable */}
         {bestBet && !showAccasOnly && selectedTab === 'all' && selectedTeam === 'all' && bestBet.betScore >= 75 && (
@@ -247,7 +230,7 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
 };
 
 // ----------------------------------------------------------------------
-// BETCARD COMPONENT (Unchanged from the previous list-to-grid fix)
+// BETCARD COMPONENT (Remains unchanged and uses the compact/highlight rendering)
 // ----------------------------------------------------------------------
 
 const BetCard: React.FC<{ 
