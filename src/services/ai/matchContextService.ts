@@ -1,4 +1,4 @@
-// src/services/ai/matchContextService.ts
+l// src/services/ai/matchContextService.ts
 
 import { 
   BettingInsight, 
@@ -6,7 +6,7 @@ import {
   Comparison 
 } from './bettingInsightsService';
 
-// Import only the service objects (which we know are exported)
+// Import only the service objects (which are assumed to be exported)
 import { supabaseCardsService } from '../stats/supabaseCardsService';
 import { supabaseCornersService } from '../stats/supabaseCornersService';
 import { supabaseFoulsService } from '../stats/supabaseFoulsService';
@@ -18,6 +18,7 @@ import { getDisplayTeamName, normalizeTeamName } from '../../utils/teamUtils';
 // --- LOCAL TYPE DEFINITIONS TO AVOID TS2305 ERRORS ---
 
 // 1. INFERRED STATS MAP TYPES (The key is the team name string)
+// Use Awaited<ReturnType<...>> to infer the Map<string, T> type returned by the async service functions.
 type CardsStats = Awaited<ReturnType<typeof supabaseCardsService.getCardStatistics>>;
 type CornersStats = Awaited<ReturnType<typeof supabaseCornersService.getCornerStatistics>>;
 type FoulsStats = Awaited<ReturnType<typeof supabaseFoulsService.getFoulStatistics>>;
@@ -25,7 +26,7 @@ type GoalsStats = Awaited<ReturnType<typeof supabaseGoalsService.getGoalStatisti
 type ShootingStats = Awaited<ReturnType<typeof supabaseShootingService.getShootingStatistics>>;
 
 // 2. LOCAL MATCH DETAIL TYPES (These replace the missing *MatchDetail imports)
-// Used for typing the arrays inside the Map values.
+// We define the structure based on the properties used in the reduction logic.
 
 interface BaseMatchDetail {
     isHome?: boolean;
@@ -49,7 +50,8 @@ interface DetailedShootingMatchDetail extends BaseMatchDetail {
     shotsOnTargetAgainst?: number;
 }
 
-// 3. COMPOSITE BASE TYPE (Needed for the generic filter function)
+// 3. COMPOSITE BASE TYPE (Constraint for getVenueSpecificMatches)
+// This ensures that any array passed to the generic function has all properties that might be accessed.
 type MatchDetailBase = CardMatchDetail & CornerMatchDetail & FoulMatchDetail & GoalMatchDetail & DetailedShootingMatchDetail;
 
 // 4. ALL STATS INTERFACE
@@ -210,6 +212,12 @@ export class MatchContextService {
           const oppStats = stats.cards.get(opponent);
           if (!oppStats) return null;
           
+          // 🛑 ADDED EARLY SAMPLE SIZE WARNING 🛑
+          if (oppStats.matches < this.MIN_MATCHES_FOR_ANALYSIS) {
+            console.warn(`[Data Warning] ⚠️ Team ${opponent} (Cards) has only ${oppStats.matches} total matches. Proceeding with low sample size.`);
+          }
+          // 🛑 END WARNING 🛑
+
           // FIX: Cast to the specific detail type
           const { matches: matchesToUse, venueSpecific } = this.getVenueSpecificMatches(
             // @ts-ignore: We rely on the implicit definition of the generic T extending MatchDetailBase
@@ -234,6 +242,12 @@ export class MatchContextService {
           const oppStats = stats.corners.get(opponent);
           if (!oppStats) return null;
           
+          // 🛑 ADDED EARLY SAMPLE SIZE WARNING 🛑
+          if (oppStats.matches < this.MIN_MATCHES_FOR_ANALYSIS) {
+            console.warn(`[Data Warning] ⚠️ Team ${opponent} (Corners) has only ${oppStats.matches} total matches. Proceeding with low sample size.`);
+          }
+          // 🛑 END WARNING 🛑
+
           // FIX: Cast to the specific detail type
           const { matches: matchesToUse, venueSpecific } = this.getVenueSpecificMatches(
             // @ts-ignore
@@ -258,6 +272,12 @@ export class MatchContextService {
           const oppStats = stats.fouls.get(opponent);
           if (!oppStats) return null;
           
+          // 🛑 ADDED EARLY SAMPLE SIZE WARNING 🛑
+          if (oppStats.matches < this.MIN_MATCHES_FOR_ANALYSIS) {
+            console.warn(`[Data Warning] ⚠️ Team ${opponent} (Fouls) has only ${oppStats.matches} total matches. Proceeding with low sample size.`);
+          }
+          // 🛑 END WARNING 🛑
+
           // FIX: Cast to the specific detail type
           const { matches: matchesToUse, venueSpecific } = this.getVenueSpecificMatches(
             // @ts-ignore
@@ -283,6 +303,12 @@ export class MatchContextService {
           const oppStats = stats.shooting.get(opponent);
           if (!oppStats) return null;
           
+          // 🛑 ADDED EARLY SAMPLE SIZE WARNING 🛑
+          if (oppStats.matches < this.MIN_MATCHES_FOR_ANALYSIS) {
+            console.warn(`[Data Warning] ⚠️ Team ${opponent} (Shots) has only ${oppStats.matches} total matches. Proceeding with low sample size.`);
+          }
+          // 🛑 END WARNING 🛑
+
           // Define and cast the field name to the narrow, type-safe key
           const field = (market === BettingMarket.SHOTS_ON_TARGET 
             ? 'shotsOnTargetAgainst' 
@@ -312,6 +338,12 @@ export class MatchContextService {
         case BettingMarket.GOALS: {
             const oppStats = stats.goals.get(opponent);
             if (!oppStats) return null;
+            
+            // 🛑 ADDED EARLY SAMPLE SIZE WARNING 🛑
+            if (oppStats.matches < this.MIN_MATCHES_FOR_ANALYSIS) {
+              console.warn(`[Data Warning] ⚠️ Team ${opponent} (Goals) has only ${oppStats.matches} total matches. Proceeding with low sample size.`);
+            }
+            // 🛑 END WARNING 🛑
             
             // FIX: Cast to the specific detail type
             const { matches: matchesToUse, venueSpecific } = this.getVenueSpecificMatches(
@@ -824,15 +856,13 @@ export class MatchContextService {
           allStats // Pass the combined stats object
         );
         
-        // ===== HANDLE MISSING OR INSUFFICIENT DATA =====
+        // ===== HANDLE MISSING OR INSUFFICIENT DATA (Final check before proceeding) =====
         if (!oppStats || oppStats.matches < this.MIN_MATCHES_FOR_ANALYSIS) {
           const matchCount = oppStats?.matches ?? 0;
           const oppDisplayName = getDisplayTeamName(opponent);
           
-          if (oppStats) { // Log warning only if stats are found but count is low
-              console.warn(
-                `[MatchContextService] ⚠️ Insufficient data for ${oppDisplayName} in ${insight.market}: ${matchCount} matches`
-              );
+          if (oppStats && matchCount > 0) { // Log warning only if stats are found but count is low, but the console.warn above already handles the *low* part
+              // This block handles the failure to meet the *minimum required* threshold for the final analysis
           }
           
           enrichedInsights.push({
