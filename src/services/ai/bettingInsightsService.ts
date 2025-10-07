@@ -18,9 +18,16 @@ interface BaseMatchDetail {
 }
 
 interface GoalsDetail extends BaseMatchDetail {
-  totalGoals: number;
+  totalGoals: number; // This is the goals SCORED BY THE TEAM being analyzed.
   bothTeamsScored: boolean;
   goalsAgainst?: number;
+}
+
+// Custom interface for Match-level analysis (requires both home/away goals)
+interface MatchGoalsDetail extends BaseMatchDetail {
+    // We will calculate totalGoals in the analysis step, but we need the raw data.
+    goalsFor: number;
+    goalsAgainst: number;
 }
 
 interface CardsMatchDetail extends BaseMatchDetail {
@@ -52,7 +59,8 @@ export enum BettingMarket {
   CARDS = 'cards',
   CORNERS = 'corners',
   FOULS = 'fouls',
-  GOALS = 'goals',
+  TEAM_GOALS = 'team_goals', // NEW MARKET
+  GOALS = 'goals', // RENAME/REPURPOSE TO TOTAL_MATCH_GOALS
   SHOTS_ON_TARGET = 'shots_on_target',
   TOTAL_SHOTS = 'total_shots',
   BOTH_TEAMS_TO_SCORE = 'both_teams_to_score',
@@ -124,7 +132,8 @@ interface MarketConfig {
   useOrMore?: boolean;
 }
 
-const MARKET_CONFIGS: Record<Exclude<BettingMarket, BettingMarket.MATCH_RESULT>, MarketConfig> = {
+// UPDATED MARKET CONFIGS
+const MARKET_CONFIGS: Record<Exclude<BettingMarket, BettingMarket.MATCH_RESULT | BettingMarket.GOALS>, MarketConfig> = {
   [BettingMarket.CARDS]: {
     thresholds: [0.5, 1.5, 2.5, 3.5],
     minValue: 0,
@@ -140,11 +149,12 @@ const MARKET_CONFIGS: Record<Exclude<BettingMarket, BettingMarket.MATCH_RESULT>,
     minValue: 0,
     label: 'Team Fouls Committed'
   },
-  [BettingMarket.GOALS]: {
+  [BettingMarket.TEAM_GOALS]: { // NEW CONFIG
     thresholds: [0.5, 1.5, 2.5],
     minValue: 0,
-    label: 'Match Goals'
+    label: 'Team Goals'
   },
+  // GOALS market is handled separately below (Match Total Goals)
   [BettingMarket.SHOTS_ON_TARGET]: {
     thresholds: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
     minValue: 0,
@@ -189,6 +199,7 @@ export class BettingInsightsService {
   private readonly MIN_HIT_RATE = 80; 
   private readonly MIN_SAMPLE_SIZE = 8; 
   
+  // UPDATED MARKET ANALYSIS CONFIGS
   private readonly MARKET_ANALYSIS_CONFIGS: AllMarketConfigs[] = [
     {
       market: BettingMarket.CARDS,
@@ -209,10 +220,11 @@ export class BettingInsightsService {
       label: 'fouls'
     },
     {
-      market: BettingMarket.GOALS,
+      // TEAM_GOALS: This is the old GOALS market logic, now correctly labeled as Team Goals.
+      market: BettingMarket.TEAM_GOALS, 
       service: { getStatistics: () => supabaseGoalsService.getGoalStatistics() },
-      valueExtractor: (m: GoalsDetail) => m.totalGoals,
-      label: 'goals'
+      valueExtractor: (m: GoalsDetail) => m.totalGoals, // Goals *for* the analyzed team
+      label: 'team goals' 
     },
     {
       market: BettingMarket.SHOTS_ON_TARGET,
@@ -306,6 +318,7 @@ export class BettingInsightsService {
     
     marketAnalyses.push(this.analyzeBTTSMarket()); 
     marketAnalyses.push(this.analyzeMatchResultMarket()); 
+    marketAnalyses.push(this.analyzeTotalMatchGoalsMarket()); // NEW: Total Match Goals Market
 
     try {
         const results = await Promise.all(marketAnalyses);
@@ -360,7 +373,8 @@ export class BettingInsightsService {
     const insights: BettingInsight[] = [];
     
     const allStats = await config.service.getStatistics();
-    const marketConfig = MARKET_CONFIGS[config.market as Exclude<BettingMarket, BettingMarket.MATCH_RESULT>];
+    // Use MARKET_CONFIGS key, or default to the Team Goals config for the new market.
+    const marketConfig = MARKET_CONFIGS[config.market as Exclude<BettingMarket, BettingMarket.GOALS | BettingMarket.MATCH_RESULT>];
 
     for (const [teamName, stats] of allStats.entries()) {
       if (stats.matches < this.ROLLING_WINDOW) continue;
@@ -382,14 +396,14 @@ export class BettingInsightsService {
           );
           if (orMorePattern) insights.push(orMorePattern);
         } else {
-          const baseOutcome = `${threshold} ${marketConfig.label}`;
+          const baseOutcome = `${marketConfig.label}`;
           
           const overPattern = this.detectPattern(
             allValues,
             threshold,
             teamName,
             config.market,
-            `${Comparison.OVER} ${baseOutcome}`,
+            `${Comparison.OVER} ${threshold} ${baseOutcome}`,
             allMatchDetails,
             Comparison.OVER
           );
@@ -400,7 +414,7 @@ export class BettingInsightsService {
             threshold,
             teamName,
             config.market,
-            `${Comparison.UNDER} ${baseOutcome}`,
+            `${Comparison.UNDER} ${threshold} ${baseOutcome}`,
             allMatchDetails,
             Comparison.UNDER
           );
@@ -411,6 +425,57 @@ export class BettingInsightsService {
 
     console.log(`[BettingInsights] Found ${insights.length} ${config.label} patterns`);
     return insights;
+  }
+  
+  /**
+   * NEW MARKET: Analyzes the total goals scored in a match.
+   */
+  private async analyzeTotalMatchGoalsMarket(): Promise<BettingInsight[]> {
+      console.log('[BettingInsights] ⚽ Analyzing Total Match Goals market...');
+      const insights: BettingInsight[] = [];
+      const allStats = await supabaseGoalsService.getGoalStatistics(); // Uses same data
+
+      const totalGoalsThresholds = [1.5, 2.5, 3.5, 4.5];
+      const market = BettingMarket.GOALS;
+      const label = 'Total Match Goals';
+
+      for (const [teamName, stats] of allStats.entries()) {
+          if (stats.matches < this.ROLLING_WINDOW) continue;
+
+          // Crucial: Calculate the sum of goals (for + against) for the total match goals
+          // Note: This relies on goalsAgainst being present, which is standard in goals service
+          const allMatchDetails = stats.matchDetails as MatchGoalsDetail[];
+          const allValues = allMatchDetails.map(m => (m.goalsFor || 0) + (m.goalsAgainst || 0));
+
+          for (const threshold of totalGoalsThresholds) {
+              const baseOutcome = `${label}`;
+
+              const overPattern = this.detectPattern(
+                  allValues,
+                  threshold,
+                  teamName,
+                  market,
+                  `${Comparison.OVER} ${threshold} ${baseOutcome}`,
+                  allMatchDetails,
+                  Comparison.OVER
+              );
+              if (overPattern) insights.push(overPattern);
+              
+              const underPattern = this.detectPattern(
+                  allValues,
+                  threshold,
+                  teamName,
+                  market,
+                  `${Comparison.UNDER} ${threshold} ${baseOutcome}`,
+                  allMatchDetails,
+                  Comparison.UNDER
+              );
+              if (underPattern) insights.push(underPattern);
+          }
+      }
+
+      console.log(`[BettingInsights] Found ${insights.length} ${label} patterns`);
+      return insights;
   }
   
   private async analyzeBTTSMarket(): Promise<BettingInsight[]> {
@@ -430,7 +495,7 @@ export class BettingInsightsService {
       );
 
       const yesPattern = this.detectBTTSPattern(
-        stats.matchDetails, 
+        stats.matchDetails as GoalsDetail[], 
         teamName, 
         true, 
         'Both Teams to Score - Yes',
@@ -439,7 +504,7 @@ export class BettingInsightsService {
       if (yesPattern) insights.push(yesPattern);
       
       const noPattern = this.detectBTTSPattern(
-        stats.matchDetails, 
+        stats.matchDetails as GoalsDetail[], 
         teamName, 
         false, 
         'Both Teams to Score - No',
@@ -788,7 +853,7 @@ export class BettingInsightsService {
     const hits = sampleValues.filter(isHit).length;
     const actualHitRate = Math.round((hits / sampleValues.length) * 100);
 
-    // FIX: Change 'values' to 'sampleValues' to resolve the TS2304 error
+    // This was the line with the 'values' error, now fixed to 'sampleValues'
     const homeAwaySupportForSample = this.calculateHomeAwaySupport(
         sampleMatchDetails, sampleValues, isHit
     );
