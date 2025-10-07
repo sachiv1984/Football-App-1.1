@@ -229,7 +229,7 @@ export class BettingInsightsService {
   ];
 
   /**
-   * CORRECTED: Helper function to filter out redundant patterns (Max Specificity Principle).
+   * Helper function to filter out redundant patterns (Max Specificity Principle).
    */
   private filterRedundantInsights(insights: BettingInsight[]): BettingInsight[] {
     const mostSpecificInsights = new Map<string, BettingInsight>();
@@ -788,8 +788,9 @@ export class BettingInsightsService {
     const hits = sampleValues.filter(isHit).length;
     const actualHitRate = Math.round((hits / sampleValues.length) * 100);
 
+    // FIX: Change 'values' to 'sampleValues' to resolve the TS2304 error
     const homeAwaySupportForSample = this.calculateHomeAwaySupport(
-        sampleMatchDetails, values, isHit
+        sampleMatchDetails, sampleValues, isHit
     );
 
     const homeAwaySupportOverall = this.calculateHomeAwaySupport(
