@@ -16,7 +16,7 @@ import { supabaseShootingService } from '../stats/supabaseShootingService';
 
 import { getDisplayTeamName, normalizeTeamName } from '../../utils/teamUtils';
 
-// --- ROBUST DYNAMIC TYPE INFERENCE (Eliminates manual types and @ts-ignore) ---
+// --- ROBUST DYNAMIC TYPE INFERENCE ---
 
 // 1. INFERRED STATS MAP TYPES (The key is the team name string)
 type CardsStats = Awaited<ReturnType<typeof supabaseCardsService.getCardStatistics>>;
@@ -25,7 +25,7 @@ type FoulsStats = Awaited<ReturnType<typeof supabaseFoulsService.getFoulStatisti
 type GoalsStats = Awaited<ReturnType<typeof supabaseGoalsService.getGoalStatistics>>;
 type ShootingStats = Awaited<ReturnType<typeof supabaseShootingService.getShootingStatistics>>;
 
-// 2. DYNAMICALLY INFERRED MATCH DETAIL TYPES (Replaces manual interfaces like CardMatchDetail)
+// 2. DYNAMICALLY INFERRED MATCH DETAIL TYPES 
 type ExtractMatchDetail<T> = T extends Map<string, infer V> 
   ? V extends { matchDetails: (infer D)[] }
     ? D 
@@ -91,14 +91,13 @@ export class MatchContextService {
   
   // Minimum number of matches required for reliable analysis
   private readonly MIN_MATCHES_FOR_ANALYSIS = 3;
-  private readonly MIN_VENUE_MATCHES = 3; // Threshold for venue-specific data validity
+  private readonly MIN_VENUE_MATCHES = 3; 
 
   // In-memory cache for team existence verification (Memoization)
   private teamExistsCache = new Map<string, boolean>(); 
 
   /**
    * Clears the in-memory cache used for verifying team existence.
-   * This is necessary to prevent memory bloat over long periods of operation.
    */
   public clearTeamExistsCache(): void {
     const sizeBefore = this.teamExistsCache.size;
@@ -108,10 +107,6 @@ export class MatchContextService {
 
   /**
    * Helper function to abstract the venue filtering and fallback logic.
-   * * @template T - The type of the match detail object, constrained to MatchDetailType.
-   * @param allMatches - All available match details for the team.
-   * @param opponentIsHome - The venue condition the opposition is playing at (true = home, false = away).
-   * @returns An object containing the filtered array and a boolean indicating if it is venue-specific.
    */
   private getVenueSpecificMatches<T extends MatchDetailType>(
     allMatches: T[],
@@ -144,14 +139,11 @@ export class MatchContextService {
   private async verifyTeamExists(teamName: string): Promise<boolean> {
     const normalizedTeamName = normalizeTeamName(teamName); 
 
-    // 1. Check Cache
     if (this.teamExistsCache.has(normalizedTeamName)) {
       return this.teamExistsCache.get(normalizedTeamName)!;
     }
 
-    // 2. Perform expensive operation (parallel fetching only here)
     try {
-      // Check if team exists in any of the services
       const [cardsStats, cornersStats, foulsStats, goalsStats, shootingStats] = await Promise.all([
         supabaseCardsService.getCardStatistics(),
         supabaseCornersService.getCornerStatistics(),
@@ -166,13 +158,11 @@ export class MatchContextService {
                      goalsStats.has(normalizedTeamName) || 
                      shootingStats.has(normalizedTeamName);
       
-      // 3. Store result in cache
       this.teamExistsCache.set(normalizedTeamName, exists);
       
       return exists;
     } catch (error) {
       console.error(`[MatchContextService] Error verifying team existence for ${normalizedTeamName}:`, error);
-      // Store 'false' in cache on error to prevent repeated lookups
       this.teamExistsCache.set(normalizedTeamName, false);
       return false;
     }
@@ -214,7 +204,6 @@ export class MatchContextService {
   
   /**
    * Get opposition's defensive stats for a specific market
-   * OPTIMIZED: Now accepts the pre-fetched statistics map.
    */
   private async getOppositionDefensiveStats(
     opponent: string,
@@ -268,6 +257,7 @@ export class MatchContextService {
             opponentIsHome
           );
           
+          // Opposition's goals/corners/shots allowed is the 'Against' stat in the opponent's perspective
           const totalCornersAgainst = matchesToUse.reduce(
             (sum, m) => sum + (m.cornersAgainst || 0), 0 
           );
@@ -377,6 +367,13 @@ export class MatchContextService {
             return { average: 0, matches: 0, venueSpecific: false };
         }
 
+        // 🏆 ADDITION: Handle Match Result market gracefully
+        case BettingMarket.MATCH_RESULT: {
+            // Match Result analysis is self-contained in bettingInsightsService 
+            // and does not rely on opposition defensive averages here.
+            return { average: 0, matches: 0, venueSpecific: false };
+        }
+
         default:
           return null;
       }
@@ -409,7 +406,6 @@ export class MatchContextService {
 
     // --- Logic for OVER/OR_MORE Bets (Looking for high values) ---
     if (isOverBet) {
-      // Must meet or exceed threshold
       if (patternAvg < threshold) return { strength: 'Poor', dominanceOverride: false }; 
 
       const teamMargin = patternAvg - threshold;
@@ -417,33 +413,26 @@ export class MatchContextService {
       const teamMarginRatio = threshold > 0 ? teamMargin / threshold : (teamMargin > 0 ? 1 : 0);
       const oppMarginRatio = threshold > 0 ? oppMargin / threshold : (oppMargin > 0 ? 1 : 0);
 
-      // Calculate dominance ratio for potential override
       dominanceRatio = threshold > 0 ? patternAvg / threshold : undefined;
 
-      // Excellent: Team significantly exceeds AND Opposition significantly allows more than threshold
       if (teamMarginRatio >= 0.15 && oppMarginRatio >= 0.15) {
         strength = 'Excellent';
       }
-      // Good: Team comfortably exceeds AND Opposition allows above threshold
       else if (teamMarginRatio >= 0.10 && oppMarginRatio >= 0.05) {
         strength = 'Good';
       }
-      // Fair: Team meets or slightly exceeds, AND Opposition allows at least the threshold
       else if (teamMargin > 0 && oppAllowsAvg >= threshold) {
         strength = 'Fair';
       }
-      // Poor: Opposition allows less than the threshold (i.e., this is a tough matchup)
       else if (oppAllowsAvg < threshold) {
         strength = 'Poor';
         
-        // 🎯 DOMINANCE OVERRIDE: Elite team quality can transcend tough matchups
+        // 🎯 DOMINANCE OVERRIDE
         if (dominanceRatio !== undefined && dominanceRatio >= 1.8 && teamMarginRatio >= 0.25) {
-          // Exceptional dominance: Team is 80%+ above threshold with 25%+ margin
           strength = 'Good';
           dominanceOverride = true;
           console.log(`[MatchContext] Dominance override: Poor → Good (ratio: ${dominanceRatio.toFixed(2)})`);
         } else if (dominanceRatio !== undefined && dominanceRatio >= 1.5) {
-          // Strong dominance: Team is 50%+ above threshold
           strength = 'Fair';
           dominanceOverride = true;
           console.log(`[MatchContext] Dominance override: Poor → Fair (ratio: ${dominanceRatio.toFixed(2)})`);
@@ -455,37 +444,31 @@ export class MatchContextService {
     
     // --- Logic for UNDER Bets (Looking for low values) ---
     else { // Comparison.UNDER
-      // Must meet or come under the threshold.
       if (patternAvg > threshold) return { strength: 'Poor', dominanceOverride: false }; 
 
-      const teamMargin = threshold - patternAvg; // Distance BELOW the threshold
-      const oppMargin = threshold - oppAllowsAvg; // Distance BELOW the threshold
+      const teamMargin = threshold - patternAvg; 
+      const oppMargin = threshold - oppAllowsAvg; 
       const teamMarginRatio = threshold > 0 ? teamMargin / threshold : (teamMargin > 0 ? 1 : 0);
       const oppMarginRatio = threshold > 0 ? oppMargin / threshold : (oppMargin > 0 ? 1 : 0);
       
-      // Excellent: Team significantly under AND Opposition significantly allows under threshold
       if (teamMarginRatio >= 0.15 && oppMarginRatio >= 0.15) {
         strength = 'Excellent';
       }
-      // Good: Team comfortably under AND Opposition allows under threshold
       else if (teamMarginRatio >= 0.10 && oppMarginRatio >= 0.05) {
         strength = 'Good';
       }
-      // Fair: Team meets or slightly under, AND Opposition allows at most the threshold
       else if (teamMargin > 0 && oppAllowsAvg <= threshold) {
         strength = 'Fair';
       }
-      // Poor: Opposition allows MORE than the threshold (i.e., this is a difficult matchup)
       else if (oppAllowsAvg > threshold) {
         strength = 'Poor';
-        // NOTE: No dominance override for UNDER bets - one bad performance breaks the bet
+        // No dominance override for UNDER bets
       } else {
           strength = 'Fair';
       }
     }
 
     // --- Logic Gate for Confidence Score ---
-    // Override high match strength if the calculated Confidence Score is low
     if (confidenceScore < 60 && (strength === 'Good' || strength === 'Excellent')) {
         return { strength: 'Fair', dominanceOverride, dominanceRatio }; 
     }
@@ -498,7 +481,6 @@ export class MatchContextService {
 
   /**
    * Generates a text recommendation based on the context and match strength.
-   * IMPROVED: Consolidated output to be a single, cohesive paragraph with embedded data.
    */
   private generateRecommendation(
     teamName: string,
@@ -512,8 +494,8 @@ export class MatchContextService {
     venueSpecific: boolean,
     dominanceOverride: boolean,
     dominanceRatio?: number,
-    dataQuality?: 'Excellent' | 'Good' | 'Fair' | 'Poor' | 'Insufficient', // Added dataQuality
-    oppositionMatches?: number // Added oppositionMatches
+    dataQuality?: 'Excellent' | 'Good' | 'Fair' | 'Poor' | 'Insufficient', 
+    oppositionMatches?: number 
   ): string {
     const displayTeamName = getDisplayTeamName(teamName);
     const isUnderBet = outcome.startsWith('Under');
@@ -592,7 +574,6 @@ export class MatchContextService {
     
     // Append Data Quality Warning (Consolidated into one line)
     if (dataQuality === 'Poor' || dataQuality === 'Fair' || dataQuality === 'Insufficient') {
-        // Use optional chaining for safety, though oppositionMatches should be defined here.
         const matchesNote = `(${(oppositionMatches ?? 0)} ${venueSpecific ? 'venue-specific' : 'total'} matches).`; 
         finalRecommendation += ` 📊 **Data Warning: ${dataQuality} Quality** ${matchesNote}`;
     }
@@ -604,7 +585,7 @@ export class MatchContextService {
   }
 
   /**
-   * NEW: Evaluate BTTS (Both Teams To Score) matchup
+   * Evaluate BTTS (Both Teams To Score) matchup
    */
   private async evaluateBTTSMatchup(
     homeTeam: string,
@@ -738,7 +719,7 @@ export class MatchContextService {
   }
 
   /**
-   * NEW: Generate BTTS-specific recommendation text
+   * Generate BTTS-specific recommendation text
    */
   private generateBTTSRecommendation(
     teamName: string,
@@ -755,8 +736,8 @@ export class MatchContextService {
       homeGoalsAgainst: number;
     },
     venueSpecific: boolean,
-    dataQuality: 'Excellent' | 'Good' | 'Fair' | 'Poor' | 'Insufficient', // Added dataQuality
-    oppositionMatches: number // FIX 2A: Added missing oppositionMatches argument
+    dataQuality: 'Excellent' | 'Good' | 'Fair' | 'Poor' | 'Insufficient', 
+    oppositionMatches: number 
   ): string {
     const displayTeamName = getDisplayTeamName(teamName);
     const isBTTSYes = outcome.includes('Yes');
@@ -795,7 +776,6 @@ export class MatchContextService {
       let finalRecommendation = `${ratingPrefix}: ${base} ${mainContext}`;
       
       if (dataQuality === 'Poor' || dataQuality === 'Fair' || dataQuality === 'Insufficient') {
-          // FIX 2B: Use oppositionMatches to show match count in the data warning
           const matchesNote = `(${oppositionMatches} ${venueSpecific ? 'venue-specific' : 'total'} matches).`; 
           finalRecommendation += ` 📊 **Data Warning: ${dataQuality} Quality** ${matchesNote}`;
       }
@@ -828,7 +808,6 @@ export class MatchContextService {
       let finalRecommendation = `${ratingPrefix}: ${base} ${mainContext}`;
       
       if (dataQuality === 'Poor' || dataQuality === 'Fair' || dataQuality === 'Insufficient') {
-          // FIX 2B: Use oppositionMatches to show match count in the data warning
           const matchesNote = `(${oppositionMatches} ${venueSpecific ? 'venue-specific' : 'total'} matches).`; 
           finalRecommendation += ` 📊 **Data Warning: ${dataQuality} Quality** ${matchesNote}`;
       }
@@ -915,8 +894,11 @@ export class MatchContextService {
           allStats 
         );
         
-        // ===== HANDLE MISSING OR INSUFFICIENT DATA =====
-        if (!oppStats || oppStats.matches < this.MIN_MATCHES_FOR_ANALYSIS) {
+        // ===== HANDLE MISSING OR INSUFFICIENT DATA (Only for non-Match Result markets) =====
+        const isMatchResult = insight.market === BettingMarket.MATCH_RESULT;
+
+        // Note: Match Result markets do not rely on oppositionAllows, so we skip the check
+        if (!isMatchResult && (!oppStats || oppStats.matches < this.MIN_MATCHES_FOR_ANALYSIS)) {
           const matchCount = oppStats?.matches ?? 0;
           const oppDisplayName = getDisplayTeamName(opponent);
           const confidenceText = this.getConfidenceContext(insight.context?.confidence?.score ?? 0);
@@ -937,15 +919,18 @@ export class MatchContextService {
           continue; 
         }
         
-        const oppositionAllows = oppStats.average;
-        const oppositionMatches = oppStats.matches;
-        const venueSpecific = oppStats.venueSpecific;
+        const oppositionAllows = oppStats?.average ?? 0;
+        const oppositionMatches = oppStats?.matches ?? 0;
+        const venueSpecific = oppStats?.venueSpecific ?? false;
         
-        const dataQuality = this.calculateDataQuality(oppositionMatches, venueSpecific);
+        const dataQuality = this.calculateDataQuality(
+          isMatchResult ? insight.matchesAnalyzed : oppositionMatches, // Use insight's sample size for Match Result quality
+          venueSpecific
+        );
 
         const isBTTS = insight.market === BettingMarket.BOTH_TEAMS_TO_SCORE;
         const shouldApplyContext = 
-          insight.comparison !== 'binary' && !isBTTS;
+          insight.comparison !== 'binary' && !isBTTS && !isMatchResult;
 
         let strengthOfMatch: MatchContext['strengthOfMatch'] = 'Fair';
         let recommendation: string = `No specific match context generated for ${insight.market} ${insight.comparison} pattern.`;
@@ -983,7 +968,7 @@ export class MatchContextService {
               bttsContext,
               bttsEval.venueSpecific,
               dataQuality,
-              oppositionMatches // FIX 2B: Passing the missing variable
+              oppositionMatches 
             );
           } else {
             const confidenceText = this.getConfidenceContext(confidenceScore);
@@ -991,6 +976,19 @@ export class MatchContextService {
             strengthOfMatch = 'Poor';
           }
         }
+        // Handle Match Result (No opposition defensive average needed, only quality check)
+        else if (isMatchResult) {
+            strengthOfMatch = insight.context?.confidence?.level === 'Very High' ? 'Excellent' :
+                              insight.context?.confidence?.level === 'High' ? 'Good' : 'Fair';
+            
+            const confidenceText = this.getConfidenceContext(confidenceScore);
+            const qualityNote = dataQuality !== 'Excellent' ? `(Data Quality: ${dataQuality}).` : '';
+            
+            recommendation = `🎯 **MATCH RESULT INSIGHT**: ${insight.outcome} pattern detected with **${strengthOfMatch}** confidence. This is based purely on the team's strong, recent performance and consistency. No opposition defensive stats are used for this market. ${qualityNote} ${confidenceText}`;
+            
+            roundedOppositionAllows = 0; // Keep at 0 for display consistency
+        }
+        // Handle standard markets (Goals, Cards, Corners, Shots)
         else if (shouldApplyContext) {
           // 2. Evaluate Match Strength
           const matchEvaluation = this.evaluateMatchStrength(
@@ -1018,8 +1016,8 @@ export class MatchContextService {
             venueSpecific,
             dominanceOverride,
             dominanceRatio,
-            dataQuality, // Pass dataQuality to generator
-            oppositionMatches // Pass oppositionMatches to generator
+            dataQuality, 
+            oppositionMatches
           );
           
           roundedOppositionAllows = Math.round(oppositionAllows * 10) / 10;
@@ -1062,6 +1060,7 @@ export class MatchContextService {
     }
 
     const duration = Math.round(performance.now() - startTime); 
+    console.log(`[MatchContextService] ✅ Enrichment complete in ${duration}ms. ${enrichedInsights.length} insights processed.`);
     return enrichedInsights;
   }
 
