@@ -17,17 +17,12 @@ interface BaseMatchDetail {
   isHome?: boolean; 
 }
 
-// 🎯 FIX: Updated GoalsDetail to match the SupabaseGoalsService output.
-// We must include totalGoals, but we will ignore it in the analysis logic.
 interface GoalsDetail extends BaseMatchDetail {
   totalGoals: number; // Redundant, but required to match source interface
   goalsFor: number;   // Goals SCORED BY THE TEAM being analyzed.
   goalsAgainst: number;
   bothTeamsScored: boolean;
 }
-
-// ❌ REMOVED: MatchGoalsDetail is no longer needed/used.
-// The analysis will use GoalsDetail and calculate the sum explicitly.
 
 interface CardsMatchDetail extends BaseMatchDetail {
   cardsFor: number;
@@ -59,7 +54,6 @@ export enum BettingMarket {
   CORNERS = 'corners',
   FOULS = 'fouls',
   TEAM_GOALS = 'team_goals', // Team-specific goals
-  // ❌ REMOVED: GOALS market (Total Match Goals)
   SHOTS_ON_TARGET = 'shots_on_target',
   TOTAL_SHOTS = 'total_shots',
   BOTH_TEAMS_TO_SCORE = 'both_teams_to_score',
@@ -247,9 +241,10 @@ export class BettingInsightsService {
       const comparisonType = insight.market === BettingMarket.MATCH_RESULT 
         ? insight.outcome.split(' - ')[1] 
         : insight.comparison === 'binary' 
-            ? insight.outcome.includes('Yes') ? 'YES' : 'NO'
+            ? insight.outcome.includes('Yes') || insight.outcome.includes('Win') ? 'YES' : 'NO'
             : insight.comparison;
       
+      // NOTE: BTTS insights should remain team-specific; they do not get grouped under "Fixture"
       const genericKey = `${insight.team}_${insight.market}_${comparisonType}`;
       const existingInsight = mostSpecificInsights.get(genericKey);
 
@@ -316,7 +311,6 @@ export class BettingInsightsService {
     // 🧹 CLEANUP: Only analyze BTTS and Match Result (no Total Goals)
     marketAnalyses.push(this.analyzeBTTSMarket()); 
     marketAnalyses.push(this.analyzeMatchResultMarket()); 
-    // ❌ analyzeTotalMatchGoalsMarket() is removed
 
     try {
         const results = await Promise.all(marketAnalyses);
@@ -370,7 +364,6 @@ export class BettingInsightsService {
     console.log(`[BettingInsights] 📊 Analyzing ${config.label} market...`);
     const insights: BettingInsight[] = [];
     
-    // ❌ Removed BettingMarket.GOALS from the MARKET_CONFIGS typing, so we can safely use Exclude
     const allStats = await config.service.getStatistics();
     const marketConfig = MARKET_CONFIGS[config.market as Exclude<BettingMarket, BettingMarket.MATCH_RESULT>];
 
@@ -425,9 +418,6 @@ export class BettingInsightsService {
     return insights;
   }
   
-  /**
-   * ❌ DELETED: analyzeTotalMatchGoalsMarket() is removed as per Option 1.
-   */
   
   private async analyzeBTTSMarket(): Promise<BettingInsight[]> {
     console.log('[BettingInsights] 📊 Analyzing Both Teams to Score market...');
@@ -446,7 +436,6 @@ export class BettingInsightsService {
           (value) => value === 1 
       );
 
-      // 🎯 FIX: Cast is safe using the updated GoalsDetail interface
       const yesPattern = this.detectBTTSPattern(
         stats.matchDetails as GoalsDetail[], 
         teamName, 
@@ -456,7 +445,6 @@ export class BettingInsightsService {
       );
       if (yesPattern) insights.push(yesPattern);
       
-      // 🎯 FIX: Cast is safe using the updated GoalsDetail interface
       const noPattern = this.detectBTTSPattern(
         stats.matchDetails as GoalsDetail[], 
         teamName, 
@@ -467,28 +455,16 @@ export class BettingInsightsService {
       if (noPattern) insights.push(noPattern);
     }
 
-    // FIX: BTTS is technically a fixture-level market, but depends on team stats.
-    // We should only keep the one with the highest confidence/hit rate to represent the fixture.
-    if (insights.length > 0) {
-        const bttsYesInsights = insights.filter(i => i.outcome.includes('Yes'));
-        const bttsNoInsights = insights.filter(i => i.outcome.includes('No'));
-        
-        const bestYes = bttsYesInsights.sort((a, b) => (b.context?.confidence?.score ?? 0) - (a.context?.confidence?.score ?? 0))[0];
-        const bestNo = bttsNoInsights.sort((a, b) => (b.context?.confidence?.score ?? 0) - (a.context?.confidence?.score ?? 0))[0];
-        
-        const filteredInsights: BettingInsight[] = [];
-        if (bestYes) {
-            bestYes.team = "Fixture";
-            filteredInsights.push(bestYes);
-        }
-        if (bestNo) {
-            bestNo.team = "Fixture";
-            filteredInsights.push(bestNo);
-        }
-        return filteredInsights;
-    }
-
-    return insights;
+    // ===============================================
+    // ✅ FIX APPLIED: REMOVING INCORRECT FILTERING LOGIC
+    // ===============================================
+    // The previous logic incorrectly reduced all team-specific BTTS insights 
+    // to a single 'Fixture' insight, losing crucial venue context.
+    // By simply returning all insights, we keep the team-specific context 
+    // required for the contextual service.
+    // ===============================================
+    
+    return insights; 
   }
 
   /**
@@ -677,7 +653,7 @@ export class BettingInsightsService {
       isStreak,
       streakLength: isStreak ? streakLength : undefined,
       threshold: 0.5,
-      averageValue: targetHit ? 1 : 0, // 🎯 NOTE: Consider changing to `actualHitRate! / 100` for more meaning in binary markets.
+      averageValue: targetHit ? 1 : 0, // NOTE: Changing this to `actualHitRate! / 100` might be more descriptive, but sticking to 1/0 for now.
       comparison: 'binary',
       recentMatches: analyzedMatches!.map(m => ({
         opponent: m.opponent,
@@ -773,7 +749,7 @@ export class BettingInsightsService {
       isStreak,
       streakLength: isStreak ? streakLength : undefined,
       threshold: 0.5, 
-      averageValue: targetOutcome === 'Win' ? 1 : 0, // 🎯 NOTE: Consider changing to `actualHitRate! / 100` for more meaning in binary markets.
+      averageValue: targetOutcome === 'Win' ? 1 : 0, // NOTE: Changing this to `actualHitRate! / 100` might be more descriptive, but sticking to 1/0 for now.
       comparison: 'binary',
       recentMatches: analyzedMatches!.map(m => ({
         opponent: m.opponent,
@@ -999,7 +975,7 @@ export class BettingInsightsService {
 
     // 5. PENALTIES
     if (hitRate < 90 && values.length < 10) {
-      finalScore -= 10;
+      finalScore = Math.max(finalScore - 10, 0);
       factors.push('Small sample size with non-perfect hit rate reduces confidence.');
     }
     
