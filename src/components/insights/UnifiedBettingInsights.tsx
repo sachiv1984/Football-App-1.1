@@ -1,10 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { Trophy, TrendingUp, AlertTriangle, CheckCircle, XCircle, Target, Home, Plane, Info, Zap, Award, ChevronDown } from 'lucide-react';
-
-// NOTE: You must ensure 'betRankingService' and 'MatchContextInsight' 
-// are correctly imported from their respective paths in your project.
 import { betRankingService, BetTier, RankedBet } from '../../services/ai/betRankingService';
 import { MatchContextInsight } from '../../services/ai/matchContextService';
+// 🆕 IMPORT THE TEAM UTILITY HERE
+import { getDisplayTeamName } from '../../utils/teamUtils'; 
 
 // --- TYPE DEFINITIONS ---
 
@@ -628,7 +627,9 @@ const BetCard: React.FC<{
                       >
                         <div className="flex items-center gap-3">
                           <div className={`w-2 h-2 rounded-full ${match.hit ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                          <span className="text-sm font-medium text-gray-700">vs {match.opponent}</span>
+                          <span className="text-sm font-medium text-gray-700">
+                            vs {getDisplayTeamName(match.opponent)} 
+                          </span> {/* 🎯 FIX APPLIED HERE */}
                           {match.isHome !== undefined && (
                             match.isHome ? <Home className="w-3 h-3 text-gray-400" /> : <Plane className="w-3 h-3 text-gray-400" />
                           )}
