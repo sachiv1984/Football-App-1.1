@@ -317,13 +317,12 @@ export class BettingInsightsService {
     
     const allInsights: BettingInsight[] = [];
     
-    const marketAnalyses = this.MARKET_ANALYSIS_CONFIGS.map(
-      config => this.analyzeGenericMarket(config as any)
-    );
-    
-    // 🧹 CLEANUP: Only analyze BTTS and Match Result (no Total Goals)
-    marketAnalyses.push(this.analyzeBTTSMarket()); 
-    marketAnalyses.push(this.analyzeMatchResultMarket()); 
+    // Parallelize market analysis
+    const marketAnalyses = [
+        ...this.MARKET_ANALYSIS_CONFIGS.map(config => this.analyzeGenericMarket(config as any)),
+        this.analyzeBTTSMarket(), 
+        this.analyzeMatchResultMarket() 
+    ];
 
     try {
         const results = await Promise.all(marketAnalyses);
@@ -382,9 +381,12 @@ export class BettingInsightsService {
     console.log(`[BettingInsights] 📊 Analyzing ${config.label} market...`);
     const insights: BettingInsight[] = [];
     
-    const allStats = await config.service.getStatistics();
+    // This call fetches stats for ALL teams in one go. Cannot parallelize here.
+    const allStats = await config.service.getStatistics(); 
     const marketConfig = MARKET_CONFIGS[config.market as Exclude<BettingMarket, BettingMarket.MATCH_RESULT | BettingMarket.GOALS>];
 
+    // NOTE: If the data structure allowed, we would map the team iteration and use Promise.all here
+    // But since `allStats.entries()` is a generator/iterator, we process teams sequentially.
     for (const [teamName, stats] of allStats.entries()) {
       if (stats.matches < this.ROLLING_WINDOW) continue;
 
@@ -446,17 +448,19 @@ export class BettingInsightsService {
       if (stats.matches < this.ROLLING_WINDOW) continue;
       
       const allDetails = stats.matchDetails as GoalsDetail[];
-      const allValues = allDetails.map(m => m.bothTeamsScored ? 1 : 0);
       
+      // BTTS - YES
       const yesPattern = this._detectBinaryPattern<GoalsDetail>(
           allDetails,
-          allValues,
+          allDetails.map(m => m.bothTeamsScored ? 1 : 0),
           teamName,
           BettingMarket.BOTH_TEAMS_TO_SCORE,
           'Both Teams to Score - Yes'
+          // No getContext needed for BTTS
       );
       if (yesPattern) insights.push(yesPattern);
       
+      // BTTS - NO
       const noPattern = this._detectBinaryPattern<GoalsDetail>(
           allDetails,
           allDetails.map(m => m.bothTeamsScored ? 0 : 1), // Invert for "No"
@@ -481,23 +485,27 @@ export class BettingInsightsService {
     const allStats = await supabaseCardsService.getCardStatistics(); 
     const teamNames = Array.from(allStats.keys());
 
+    // NOTE: This is where we could parallelize the fetching of match results per team.
+    // However, for consistency and simplicity, we keep the iteration synchronous here.
     for (const teamName of teamNames) {
       
       const allMatchResults = await fbrefFixtureService.getTeamMatchResultsByVenue(teamName);
 
       if (allMatchResults.length < this.ROLLING_WINDOW) continue;
       
-      const winPattern = this._detectBinaryPattern<MatchResultDetail>(
+      // WIN
+      const winPattern = this._detectBinaryPattern(
           allMatchResults,
           allMatchResults.map(m => m.outcome === 'Win' ? 1 : 0),
           teamName,
           BettingMarket.MATCH_RESULT,
           'Match Result - Win',
-          (m: MatchResultDetail) => `(${m.scoreFor}-${m.scoreAgainst})`
+          (m: MatchResultDetail) => `(${m.scoreFor}-${m.scoreAgainst})` // Explicit MatchResultDetail context
       );
       if (winPattern) insights.push(winPattern);
 
-      const drawPattern = this._detectBinaryPattern<MatchResultDetail>(
+      // DRAW
+      const drawPattern = this._detectBinaryPattern(
           allMatchResults,
           allMatchResults.map(m => m.outcome === 'Draw' ? 1 : 0),
           teamName,
@@ -507,7 +515,8 @@ export class BettingInsightsService {
       );
       if (drawPattern) insights.push(drawPattern);
       
-      const lossPattern = this._detectBinaryPattern<MatchResultDetail>(
+      // LOSS
+      const lossPattern = this._detectBinaryPattern(
           allMatchResults,
           allMatchResults.map(m => m.outcome === 'Loss' ? 1 : 0),
           teamName,
@@ -606,8 +615,35 @@ export class BettingInsightsService {
     return null;
   }
 
+  // ------------------------------------------------------------------
+  // 3. TYPE OVERLOADED BINARY DETECTION (BTTS and Match Result)
+  // ------------------------------------------------------------------
+
   /**
-   * 2. Refactored helper: Detects patterns for binary outcomes (BTTS, Match Result)
+   * Overload 1: For MatchResultDetail (requires a context formatter function)
+   */
+  private _detectBinaryPattern(
+    allMatchDetails: MatchResultDetail[],
+    allValues: number[],
+    teamName: string,
+    market: BettingMarket.MATCH_RESULT,
+    outcomeLabel: string,
+    getContext: (m: MatchResultDetail) => string
+  ): BettingInsight | null;
+  
+  /**
+   * Overload 2: Generic for other binary markets like BTTS (does not require a context formatter)
+   */
+  private _detectBinaryPattern<T extends BaseMatchDetail>(
+    allMatchDetails: T[],
+    allValues: number[],
+    teamName: string,
+    market: BettingMarket.BOTH_TEAMS_TO_SCORE,
+    outcomeLabel: string,
+  ): BettingInsight | null;
+
+  /**
+   * Implementation signature for the private helper.
    */
   private _detectBinaryPattern<T extends BaseMatchDetail>(
     allMatchDetails: T[],
@@ -615,7 +651,7 @@ export class BettingInsightsService {
     teamName: string,
     market: BettingMarket.BOTH_TEAMS_TO_SCORE | BettingMarket.MATCH_RESULT,
     outcomeLabel: string,
-    getContext?: (m: T extends MatchResultDetail ? MatchResultDetail : BaseMatchDetail) => string // Use intersection for specific context
+    getContext?: (m: T) => string // getContext is optional here
   ): BettingInsight | null {
     
     const isHit = (value: number) => value === 1; // Always check for value 1 (a hit)
@@ -633,7 +669,7 @@ export class BettingInsightsService {
     const rollingHitRate = (rolling.filter(isHit).length / rolling.length) * 100;
 
     const extendedSampleCount = Math.min(
-        market === BettingMarket.MATCH_RESULT ? 20 : 15, // Match result tends to need a larger sample
+        market === BettingMarket.MATCH_RESULT ? 20 : 15,
         allValues.length
     );
     
@@ -697,14 +733,12 @@ export class BettingInsightsService {
       comparison: 'binary',
       recentMatches: analyzedDetails!.map((m, idx) => ({
         opponent: m.opponent,
-        // The value is 1/0 from allValues
         value: analyzedValues![idx], 
         hit: analyzedValues![idx] === 1,
         date: m.date,
         isHome: m.isHome,
-        // Context is only available for MatchResultDetail, ensuring type safety here
-        context: market === BettingMarket.MATCH_RESULT && getContext ? 
-                 getContext(m as any) : undefined 
+        // The getContext check is now much cleaner thanks to the overloads
+        context: getContext ? getContext(m) : undefined
       })),
       context: {
         homeAwaySupportForSample,
