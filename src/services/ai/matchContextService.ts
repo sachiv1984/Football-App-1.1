@@ -6,16 +6,31 @@ import {
   Comparison 
 } from './bettingInsightsService';
 
-// Import only the service objects (which are assumed to be exported)
+// --- START: UPDATED IMPORTS ---
+// REMOVE: Direct imports of stats services for verification purposes
+// import { supabaseCardsService } from '../stats/supabaseCardsService';
+// import { supabaseCornersService } from '../stats/supabaseCornersService';
+// import { supabaseFoulsService } from '../stats/supabaseFoulsService'; 
+// import { supabaseGoalsService } from '../stats/supabaseGoalsService';
+// import { supabaseShootingService } from '../stats/supabaseShootingService';
+
+// PRESERVE: Direct imports of stats services for actual data compilation
 import { supabaseCardsService } from '../stats/supabaseCardsService';
 import { supabaseCornersService } from '../stats/supabaseCornersService';
 import { supabaseFoulsService } from '../stats/supabaseFoulsService'; 
 import { supabaseGoalsService } from '../stats/supabaseGoalsService';
 import { supabaseShootingService } from '../stats/supabaseShootingService';
+
 import { fbrefFixtureService } from '../fixtures/fbrefFixtureService'; 
 import { getDisplayTeamName, normalizeTeamName } from '../../utils/teamUtils';
 
+// 🚀 NEW, EFFICIENT IMPORT
+import { supabaseTeamService } from '../team/supabaseTeamService';
+// --- END: UPDATED IMPORTS ---
+
+
 // --- ROBUST DYNAMIC TYPE INFERENCE ---
+// (All types preserved exactly as in the original file)
 
 // 1. INFERRED STATS MAP TYPES (The key is the team name string)
 type CardsStats = Awaited<ReturnType<typeof supabaseCardsService.getCardStatistics>>;
@@ -133,39 +148,32 @@ export class MatchContextService {
   }
 
   /**
-   * Verify that a team exists in the database (Memoized)
+   * 🚀 REWRITTEN FOR EFFICIENCY
+   * Verify that a team exists using the new lightweight service (Memoized).
    */
   private async verifyTeamExists(teamName: string): Promise<boolean> {
     const normalizedTeamName = normalizeTeamName(teamName); 
 
+    // 1. Check local memoization cache first
     if (this.teamExistsCache.has(normalizedTeamName)) {
-      return this.teamExistsCache.get(normalizedTeamName)!;
+        console.log(`[MatchContextService] Team existence cache hit for: ${normalizedTeamName}`);
+        return this.teamExistsCache.get(normalizedTeamName)!;
     }
 
+    // 2. Use the dedicated, efficient service call
+    console.log(`[MatchContextService] Checking team existence for: ${normalizedTeamName} via SupabaseTeamService`);
     try {
-      // NOTE: This hits all services to check existence. It is inefficient but necessary 
-      // without a dedicated team lookup service.
-      const [cardsStats, cornersStats, foulsStats, goalsStats, shootingStats] = await Promise.all([
-        supabaseCardsService.getCardStatistics(),
-        supabaseCornersService.getCornerStatistics(),
-        supabaseFoulsService.getFoulStatistics(),
-        supabaseGoalsService.getGoalStatistics(),
-        supabaseShootingService.getShootingStatistics()
-      ]);
-
-      const exists = cardsStats.has(normalizedTeamName) || 
-                     cornersStats.has(normalizedTeamName) || 
-                     foulsStats.has(normalizedTeamName) || 
-                     goalsStats.has(normalizedTeamName) || 
-                     shootingStats.has(normalizedTeamName);
-      
-      this.teamExistsCache.set(normalizedTeamName, exists);
-      
-      return exists;
+        // 🚀 This single, lightweight call replaces the five heavy Promise.all checks.
+        const exists = await supabaseTeamService.teamExists(normalizedTeamName);
+        
+        // 3. Update local memoization cache
+        this.teamExistsCache.set(normalizedTeamName, exists);
+        
+        return exists;
     } catch (error) {
-      console.error(`[MatchContextService] Error verifying team existence for ${normalizedTeamName}:`, error);
-      this.teamExistsCache.set(normalizedTeamName, false);
-      return false;
+        console.error(`[MatchContextService] Error verifying team existence for ${normalizedTeamName}:`, error);
+        this.teamExistsCache.set(normalizedTeamName, false);
+        return false;
     }
   }
 
@@ -941,6 +949,8 @@ export class MatchContextService {
     const enrichedInsights: MatchContextInsight[] = [];
 
     // ===== 1. PARALLEL DATA FETCHING (OPTIMIZATION) =====
+    // NOTE: This initial fetch of all stats maps is still necessary for context calculation,
+    // but the expensive *verification* step has been removed.
     const [goalsStats, cardsStats, cornersStats, foulsStats, shootingStats] = 
         await Promise.all([
           supabaseGoalsService.getGoalStatistics(),
@@ -972,6 +982,18 @@ export class MatchContextService {
       return [];
     }
     
+    // --- TEAM EXISTENCE CHECK (Now much faster) ---
+    const [homeExists, awayExists] = await Promise.all([
+        this.verifyTeamExists(normalizedHome),
+        this.verifyTeamExists(normalizedAway),
+    ]);
+
+    if (!homeExists || !awayExists) {
+        console.error(`[MatchContextService] ❌ One or both teams not found in data: Home: ${homeExists}, Away: ${awayExists}`);
+        return [];
+    }
+    // --- END TEAM EXISTENCE CHECK ---
+
     if (!homeInsights?.length && !awayInsights?.length) {
       console.warn('[MatchContextService] ⚠️ No insights provided for enrichment');
       return [];
