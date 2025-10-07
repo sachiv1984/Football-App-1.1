@@ -190,6 +190,10 @@ export class BettingInsightsService {
   private readonly STREAK_THRESHOLD = 7;
   private readonly MIN_HIT_RATE = 80; 
   private readonly MIN_SAMPLE_SIZE = 8; 
+  private readonly CACHE_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
+  
+  // 1. Caching Layer Implementation
+  private cache: { data: InsightsResponse, timestamp: number } | null = null;
   
   private readonly MARKET_ANALYSIS_CONFIGS: AllMarketConfigs[] = [
     {
@@ -301,6 +305,14 @@ export class BettingInsightsService {
    * Main method: Get all betting insights for all teams
    */
   async getAllInsights(): Promise<InsightsResponse> {
+    const now = Date.now();
+    
+    // 1. Caching Check
+    if (this.cache && (now - this.cache.timestamp) < this.CACHE_TIMEOUT_MS) {
+      console.log('[BettingInsights] ♻️ Returning cached insights.');
+      return this.cache.data;
+    }
+      
     console.log('[BettingInsights] 🎯 Starting insights analysis...');
     
     const allInsights: BettingInsight[] = [];
@@ -331,12 +343,17 @@ export class BettingInsightsService {
       teamsAnalyzed: uniqueTeams.size
     });
 
-    return {
-      insights: finalInsights,
-      timestamp: new Date().toISOString(),
-      teamsAnalyzed: uniqueTeams.size,
-      totalPatterns: finalInsights.length
+    const response: InsightsResponse = {
+        insights: finalInsights,
+        timestamp: new Date().toISOString(),
+        teamsAnalyzed: uniqueTeams.size,
+        totalPatterns: finalInsights.length
     };
+    
+    // 1. Cache the result
+    this.cache = { data: response, timestamp: now };
+
+    return response;
   }
 
   /**
@@ -428,30 +445,26 @@ export class BettingInsightsService {
     for (const [teamName, stats] of allStats.entries()) {
       if (stats.matches < this.ROLLING_WINDOW) continue;
       
-      // Value extraction is simple (1 or 0) based on the boolean flag
-      const allValues = stats.matchDetails.map(m => m.bothTeamsScored ? 1 : 0);
+      const allDetails = stats.matchDetails as GoalsDetail[];
+      const allValues = allDetails.map(m => m.bothTeamsScored ? 1 : 0);
       
-      const homeAwaySupportOverall = this.calculateHomeAwaySupport(
-          stats.matchDetails,
+      const yesPattern = this._detectBinaryPattern(
+          allDetails,
           allValues,
-          (value) => value === 1 
-      );
-
-      const yesPattern = this.detectBTTSPattern(
-        stats.matchDetails as GoalsDetail[], 
-        teamName, 
-        true, 
-        'Both Teams to Score - Yes',
-        homeAwaySupportOverall
+          teamName,
+          BettingMarket.BOTH_TEAMS_TO_SCORE,
+          true,
+          'Both Teams to Score - Yes'
       );
       if (yesPattern) insights.push(yesPattern);
       
-      const noPattern = this.detectBTTSPattern(
-        stats.matchDetails as GoalsDetail[], 
-        teamName, 
-        false, 
-        'Both Teams to Score - No',
-        homeAwaySupportOverall
+      const noPattern = this._detectBinaryPattern(
+          allDetails,
+          allValues,
+          teamName,
+          BettingMarket.BOTH_TEAMS_TO_SCORE,
+          false,
+          'Both Teams to Score - No'
       );
       if (noPattern) insights.push(noPattern);
     }
@@ -476,13 +489,40 @@ export class BettingInsightsService {
 
       if (allMatchResults.length < this.ROLLING_WINDOW) continue;
       
-      const winPattern = this.detectMatchResultPattern(allMatchResults, teamName, 'Win');
+      const winPattern = this._detectBinaryPattern(
+          allMatchResults,
+          allMatchResults.map(m => m.outcome === 'Win' ? 1 : 0),
+          teamName,
+          BettingMarket.MATCH_RESULT,
+          true,
+          'Match Result - Win',
+          (m: MatchResultDetail) => m.outcome === 'Win',
+          (m: MatchResultDetail) => `(${m.scoreFor}-${m.scoreAgainst})`
+      );
       if (winPattern) insights.push(winPattern);
 
-      const drawPattern = this.detectMatchResultPattern(allMatchResults, teamName, 'Draw');
+      const drawPattern = this._detectBinaryPattern(
+          allMatchResults,
+          allMatchResults.map(m => m.outcome === 'Draw' ? 1 : 0),
+          teamName,
+          BettingMarket.MATCH_RESULT,
+          true,
+          'Match Result - Draw',
+          (m: MatchResultDetail) => m.outcome === 'Draw',
+          (m: MatchResultDetail) => `(${m.scoreFor}-${m.scoreAgainst})`
+      );
       if (drawPattern) insights.push(drawPattern);
       
-      const lossPattern = this.detectMatchResultPattern(allMatchResults, teamName, 'Loss');
+      const lossPattern = this._detectBinaryPattern(
+          allMatchResults,
+          allMatchResults.map(m => m.outcome === 'Loss' ? 1 : 0),
+          teamName,
+          BettingMarket.MATCH_RESULT,
+          true,
+          'Match Result - Loss',
+          (m: MatchResultDetail) => m.outcome === 'Loss',
+          (m: MatchResultDetail) => `(${m.scoreFor}-${m.scoreAgainst})`
+      );
       if (lossPattern) insights.push(lossPattern);
     }
 
@@ -575,50 +615,60 @@ export class BettingInsightsService {
   }
 
   /**
-   * Detect Both Teams to Score patterns (Yes/No)
+   * 2. Refactored helper: Detects patterns for binary outcomes (BTTS, Match Result)
    */
-  private detectBTTSPattern(
-    allMatchDetails: GoalsDetail[],
+  private _detectBinaryPattern<T extends BaseMatchDetail>(
+    allMatchDetails: T[],
+    allValues: number[], // 1 (hit) or 0 (miss)
     teamName: string,
-    targetHit: boolean,
+    market: BettingMarket.BOTH_TEAMS_TO_SCORE | BettingMarket.MATCH_RESULT,
+    targetHitValue: boolean, // true for 'Yes'/'Win', false for 'No'/'Draw'/'Loss' (used for BTTS only)
     outcomeLabel: string,
-    homeAwaySupportOverall: HomeAwaySupport | undefined
+    isDetailHit?: (m: T) => boolean, // Optional for MatchResult
+    getContext?: (m: T) => string // Optional context for MatchResult
   ): BettingInsight | null {
     
-    const isHit = (m: GoalsDetail) => m.bothTeamsScored === targetHit;
+    const isHit = (value: number) => value === 1; // Always check for value 1 (a hit)
     
     let streakLength = 0;
-    for (const match of allMatchDetails) {
-      if (isHit(match)) {
+    for (const value of allValues) {
+      if (isHit(value)) {
         streakLength++;
       } else {
         break;
       }
     }
 
-    const rolling = allMatchDetails.slice(0, this.ROLLING_WINDOW);
-    const rollingHits = rolling.filter(isHit).length;
-    const rollingHitRate = (rollingHits / rolling.length) * 100;
+    const rolling = allValues.slice(0, this.ROLLING_WINDOW);
+    const rollingHitRate = (rolling.filter(isHit).length / rolling.length) * 100;
 
-    const extendedSampleCount = Math.min(15, allMatchDetails.length);
-    let analyzedMatches: GoalsDetail[] | undefined;
+    const extendedSampleCount = Math.min(
+        market === BettingMarket.MATCH_RESULT ? 20 : 15, // Match result tends to need a larger sample
+        allValues.length
+    );
+    
+    let analyzedValues: number[] | undefined;
+    let analyzedDetails: T[] | undefined;
     let actualHitRate: number | undefined;
     let isStreak = false;
     
     if (streakLength >= this.STREAK_THRESHOLD) {
-      analyzedMatches = allMatchDetails.slice(0, streakLength);
+      analyzedValues = allValues.slice(0, streakLength);
+      analyzedDetails = allMatchDetails.slice(0, streakLength);
       actualHitRate = 100;
       isStreak = true;
     } else if (rollingHitRate === 100) {
-      analyzedMatches = rolling;
+      analyzedValues = rolling;
+      analyzedDetails = allMatchDetails.slice(0, this.ROLLING_WINDOW);
       actualHitRate = 100;
     } else if (extendedSampleCount >= this.MIN_SAMPLE_SIZE) {
-      const sample = allMatchDetails.slice(0, extendedSampleCount);
+      const sample = allValues.slice(0, extendedSampleCount);
       const hits = sample.filter(isHit).length;
       const hitRate = (hits / sample.length) * 100;
       
       if (hitRate >= this.MIN_HIT_RATE) {
-        analyzedMatches = sample;
+        analyzedValues = sample;
+        analyzedDetails = allMatchDetails.slice(0, extendedSampleCount);
         actualHitRate = Math.round(hitRate);
       } else {
         return null; 
@@ -627,141 +677,42 @@ export class BettingInsightsService {
       return null; 
     }
     
-    const sampleValues = analyzedMatches!.map(m => m.bothTeamsScored ? 1 : 0);
     const homeAwaySupportForSample = this.calculateHomeAwaySupport(
-        analyzedMatches!, sampleValues, (value) => value === 1 
+        analyzedDetails!, analyzedValues!, isHit 
     );
     
-    // NOTE: BTTS is a binary market, so we pass BettingMarket.BOTH_TEAMS_TO_SCORE
+    const homeAwaySupportOverall = this.calculateHomeAwaySupport(
+        allMatchDetails, allValues, isHit 
+    );
+    
     const confidence = this.calculateConfidenceScore(
-        sampleValues, 
+        analyzedValues!, 
         0.5, 
         'binary', 
-        BettingMarket.BOTH_TEAMS_TO_SCORE, // Pass market type
+        market, 
         homeAwaySupportForSample, 
         actualHitRate! 
     );
 
     return {
       team: teamName,
-      market: BettingMarket.BOTH_TEAMS_TO_SCORE,
+      market: market,
       outcome: outcomeLabel,
       hitRate: actualHitRate!, 
-      matchesAnalyzed: analyzedMatches!.length,
+      matchesAnalyzed: analyzedDetails!.length,
       isStreak,
       streakLength: isStreak ? streakLength : undefined,
       threshold: 0.5,
       averageValue: actualHitRate! / 100, // Use hitRate as the average for binary markets
       comparison: 'binary',
-      recentMatches: analyzedMatches!.map(m => ({
+      recentMatches: analyzedDetails!.map((m, idx) => ({
         opponent: m.opponent,
-        value: m.bothTeamsScored ? 1 : 0,
-        hit: isHit(m),
-        date: m.date,
-        isHome: m.isHome 
-      })),
-      context: {
-        homeAwaySupportForSample,
-        homeAwaySupportOverall,
-        confidence
-      }
-    };
-  }
-
-  /**
-   * Detects patterns for a specific match result outcome (Win, Draw, Loss).
-   */
-  private detectMatchResultPattern(
-    allMatchDetails: MatchResultDetail[],
-    teamName: string,
-    targetOutcome: 'Win' | 'Draw' | 'Loss',
-  ): BettingInsight | null {
-    
-    const isHit = (m: MatchResultDetail) => m.outcome === targetOutcome;
-    
-    const allValues = allMatchDetails.map(m => isHit(m) ? 1 : 0);
-    
-    // 1. Check for streak 
-    let streakLength = 0;
-    for (const match of allMatchDetails) {
-      if (isHit(match)) {
-        streakLength++;
-      } else {
-        break;
-      }
-    }
-
-    // 2. Check rolling 5 for 100%
-    const rolling = allMatchDetails.slice(0, this.ROLLING_WINDOW);
-    const rollingHits = rolling.filter(isHit).length;
-    const rollingHitRate = (rollingHits / rolling.length) * 100;
-
-    // 3. Check larger sample for 80%+ (Max 20 matches)
-    const extendedSampleCount = Math.min(20, allMatchDetails.length);
-    let analyzedMatches: MatchResultDetail[] | undefined;
-    let actualHitRate: number | undefined;
-    let isStreak = false;
-    
-    if (streakLength >= this.STREAK_THRESHOLD) {
-      analyzedMatches = allMatchDetails.slice(0, streakLength);
-      actualHitRate = 100;
-      isStreak = true;
-    } else if (rollingHitRate === 100) {
-      analyzedMatches = rolling;
-      actualHitRate = 100;
-    } else if (extendedSampleCount >= this.MIN_SAMPLE_SIZE) {
-      const sample = allMatchDetails.slice(0, extendedSampleCount);
-      const hits = sample.filter(isHit).length;
-      const hitRate = (hits / sample.length) * 100;
-      
-      if (hitRate >= this.MIN_HIT_RATE) {
-        analyzedMatches = sample;
-        actualHitRate = Math.round(hitRate);
-      } else {
-        return null; 
-      }
-    } else {
-      return null; 
-    }
-    
-    const sampleValues = analyzedMatches!.map(m => isHit(m) ? 1 : 0);
-    
-    const homeAwaySupportForSample = this.calculateHomeAwaySupport(
-        analyzedMatches!, sampleValues, (value) => value === 1 
-    );
-    
-    const homeAwaySupportOverall = this.calculateHomeAwaySupport(
-        allMatchDetails, allValues, (value) => value === 1 
-    );
-    
-    // NOTE: Match result is a binary market, so we pass BettingMarket.MATCH_RESULT
-    const confidence = this.calculateConfidenceScore(
-        sampleValues, 
-        0.5, 
-        'binary', 
-        BettingMarket.MATCH_RESULT, // Pass market type
-        homeAwaySupportForSample, 
-        actualHitRate! 
-    );
-
-    return {
-      team: teamName,
-      market: BettingMarket.MATCH_RESULT,
-      outcome: `Match Result - ${targetOutcome}`, 
-      hitRate: actualHitRate!,
-      matchesAnalyzed: analyzedMatches!.length,
-      isStreak,
-      streakLength: isStreak ? streakLength : undefined,
-      threshold: 0.5, 
-      averageValue: actualHitRate! / 100, // Use hitRate as the average for binary markets
-      comparison: 'binary',
-      recentMatches: analyzedMatches!.map(m => ({
-        opponent: m.opponent,
-        value: isHit(m) ? 1 : 0, 
-        hit: isHit(m),
+        // For BTTS, value is 1/0 from allValues. For MatchResult, it's 1/0 from allValues
+        value: analyzedValues![idx], 
+        hit: analyzedValues![idx] === 1,
         date: m.date,
         isHome: m.isHome,
-        context: `(${m.scoreFor}-${m.scoreAgainst})` 
+        context: getContext ? getContext(m) : undefined
       })),
       context: {
         homeAwaySupportForSample,
