@@ -26,6 +26,16 @@ interface UnifiedBettingInsightsProps {
 type BetTab = 'all' | BetTier.EXCELLENT | BetTier.GOOD | BetTier.FAIR;
 
 
+// --- UTILITY TO RENDER MARKDOWN BOLDING ---
+// Since the analysis string uses Markdown **bold**, we need a simple converter.
+// This handles **bolding** but assumes emojis are already rendered correctly.
+const renderMarkdown = (text: string | undefined): string => {
+  if (!text) return '';
+  // Convert **text** to <strong>text</strong>
+  let html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  return html;
+};
+
 // ----------------------------------------------------------------------
 // STATS TEAM LOGO COMPONENT
 // ----------------------------------------------------------------------
@@ -306,22 +316,6 @@ const BetCard: React.FC<{
     }
   };
   
-  // NOTE: getMarketColor is now only used for the small badge in the compact view.
-  const getMarketColor = (market: string) => {
-    const colors: Record<string, string> = {
-      cards: 'bg-yellow-100 text-yellow-800',
-      corners: 'bg-blue-100 text-blue-800',
-      fouls: 'bg-red-100 text-red-800',
-      team_goals: 'bg-green-100 text-green-800',
-      goals: 'bg-lime-100 text-lime-800', 
-      shots_on_target: 'bg-purple-100 text-purple-800',
-      total_shots: 'bg-violet-100 text-violet-800',
-      both_teams_to_score: 'bg-indigo-100 text-indigo-800',
-      match_result: 'bg-teal-100 text-teal-800'
-    };
-    return colors[market] || 'bg-gray-100 text-gray-800';
-  };
-  
   // --- LOGIC FOR FIXTURE BETS ---
   const isFixtureBet = bet.team === 'Fixture';
   
@@ -502,16 +496,23 @@ const BetCard: React.FC<{
           {expanded && (
             <div className="border-t-2 border-gray-100 p-6 space-y-6 bg-gray-50">
               
-              {/* UPDATED: Match Analysis & Recommendation (Now integrated) */}
-              <div>
-                <h5 className="font-bold text-gray-900 mb-2 flex items-center gap-2 text-base">
-                  <Award className="w-5 h-5 text-purple-600" />
-                  AI Match Analysis & Recommendation
-                </h5>
-                <p className="text-sm text-gray-700 leading-relaxed bg-white p-3 rounded border border-gray-200">
-                  {bet.matchContext.recommendation}
-                </p>
-              </div>
+              {/* 🆕 NEW: Unified Stylized Analysis (Match Analysis & Recommendation) */}
+              {bet.stylizedAnalysis && (
+                <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                  <h5 className="font-bold text-gray-900 mb-2 flex items-center gap-2 text-base">
+                    <Award className="w-5 h-5 text-purple-600" />
+                    AI Insight
+                  </h5>
+                  
+                  {/* CRITICAL: Use dangerouslySetInnerHTML with Markdown converter */}
+                  <p 
+                    className="text-sm text-gray-700 leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: renderMarkdown(bet.stylizedAnalysis) }} 
+                  />
+                  
+                </div>
+              )}
+              {/* END NEW BLOCK */}
               
               {/* Why This Tier */}
               <div>
