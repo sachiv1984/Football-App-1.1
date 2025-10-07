@@ -308,6 +308,8 @@ const BetCard: React.FC<{
   
   const isCompactGridItem = !isHighlight && rank === undefined;
   const [expanded, setExpanded] = useState(isHighlight);
+  // 🆕 ADDED STATE FOR COLLAPSIBLE RECENT FORM
+  const [formExpanded, setFormExpanded] = useState(false); 
 
   // Helper functions (Light Mode Colors - UNCHANGED)
   const getScoreGradient = (score: number) => {
@@ -621,36 +623,52 @@ const BetCard: React.FC<{
                 </div>
               )}
               
-              {/* Recent Form */}
+              {/* 🆕 COLLAPSIBLE RECENT FORM SECTION */}
               <div>
-                <h5 className="font-bold text-gray-900 mb-3 text-sm">Recent Form (Last {Math.min(5, bet.recentMatches.length)} Matches)</h5>
-                <div className="space-y-2">
-                  {bet.recentMatches.slice(0, 5).map((match, idx) => (
-                    <div
-                      key={idx}
-                      className={`flex items-center justify-between p-3 rounded transition-colors ${
-                        match.hit ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-2 h-2 rounded-full ${match.hit ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                        <span className="text-sm font-medium text-gray-700">vs {match.opponent}</span>
-                        {match.isHome !== undefined && (
-                          match.isHome ? <Home className="w-3 h-3 text-gray-400" /> : <Plane className="w-3 h-3 text-gray-400" />
-                        )}
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent card from collapsing when clicking form button
+                    setFormExpanded(!formExpanded);
+                  }}
+                  className="w-full flex items-center justify-between p-3 rounded-lg bg-white hover:bg-gray-100 transition-colors border border-gray-200"
+                >
+                  <h5 className="font-bold text-gray-900 text-sm flex items-center gap-2">
+                    Recent Form (Last {Math.min(5, bet.recentMatches.length)} Matches)
+                  </h5>
+                  <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${formExpanded ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {/* Collapsible Content */}
+                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${formExpanded ? 'max-h-[500px] mt-3' : 'max-h-0'}`}>
+                  <div className="space-y-2">
+                    {bet.recentMatches.slice(0, 5).map((match, idx) => (
+                      <div
+                        key={idx}
+                        className={`flex items-center justify-between p-3 rounded transition-colors ${
+                          match.hit ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-2 h-2 rounded-full ${match.hit ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                          <span className="text-sm font-medium text-gray-700">vs {match.opponent}</span>
+                          {match.isHome !== undefined && (
+                            match.isHome ? <Home className="w-3 h-3 text-gray-400" /> : <Plane className="w-3 h-3 text-gray-400" />
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg font-bold text-gray-900">{match.value}</span>
+                          {match.hit ? (
+                            <CheckCircle className="w-4 h-4 text-green-600" />
+                          ) : (
+                            <XCircle className="w-4 h-4 text-red-600" />
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg font-bold text-gray-900">{match.value}</span>
-                        {match.hit ? (
-                          <CheckCircle className="w-4 h-4 text-green-600" />
-                        ) : (
-                          <XCircle className="w-4 h-4 text-red-600" />
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
+              
             </div>
           )}
         </>
