@@ -57,7 +57,8 @@ export enum BettingMarket {
   SHOTS_ON_TARGET = 'shots_on_target',
   TOTAL_SHOTS = 'total_shots',
   BOTH_TEAMS_TO_SCORE = 'both_teams_to_score',
-  MATCH_RESULT = 'match_result'
+  MATCH_RESULT = 'match_result',
+  GOALS = 'goals' // Added for the proximity helper only
 }
 
 /**
@@ -125,7 +126,7 @@ interface MarketConfig {
   useOrMore?: boolean;
 }
 
-const MARKET_CONFIGS: Record<Exclude<BettingMarket, BettingMarket.MATCH_RESULT>, MarketConfig> = {
+const MARKET_CONFIGS: Record<Exclude<BettingMarket, BettingMarket.MATCH_RESULT | BettingMarket.GOALS>, MarketConfig> = {
   [BettingMarket.CARDS]: {
     thresholds: [0.5, 1.5, 2.5, 3.5],
     minValue: 0,
@@ -365,7 +366,7 @@ export class BettingInsightsService {
     const insights: BettingInsight[] = [];
     
     const allStats = await config.service.getStatistics();
-    const marketConfig = MARKET_CONFIGS[config.market as Exclude<BettingMarket, BettingMarket.MATCH_RESULT>];
+    const marketConfig = MARKET_CONFIGS[config.market as Exclude<BettingMarket, BettingMarket.MATCH_RESULT | BettingMarket.GOALS>];
 
     for (const [teamName, stats] of allStats.entries()) {
       if (stats.matches < this.ROLLING_WINDOW) continue;
@@ -455,15 +456,6 @@ export class BettingInsightsService {
       if (noPattern) insights.push(noPattern);
     }
 
-    // ===============================================
-    // ✅ FIX APPLIED: REMOVING INCORRECT FILTERING LOGIC
-    // ===============================================
-    // The previous logic incorrectly reduced all team-specific BTTS insights 
-    // to a single 'Fixture' insight, losing crucial venue context.
-    // By simply returning all insights, we keep the team-specific context 
-    // required for the contextual service.
-    // ===============================================
-    
     return insights; 
   }
 
@@ -640,8 +632,14 @@ export class BettingInsightsService {
         analyzedMatches!, sampleValues, (value) => value === 1 
     );
     
+    // NOTE: BTTS is a binary market, so we pass BettingMarket.BOTH_TEAMS_TO_SCORE
     const confidence = this.calculateConfidenceScore(
-        sampleValues, 0.5, 'binary', homeAwaySupportForSample, actualHitRate! 
+        sampleValues, 
+        0.5, 
+        'binary', 
+        BettingMarket.BOTH_TEAMS_TO_SCORE, // Pass market type
+        homeAwaySupportForSample, 
+        actualHitRate! 
     );
 
     return {
@@ -653,7 +651,7 @@ export class BettingInsightsService {
       isStreak,
       streakLength: isStreak ? streakLength : undefined,
       threshold: 0.5,
-      averageValue: targetHit ? 1 : 0, // NOTE: Changing this to `actualHitRate! / 100` might be more descriptive, but sticking to 1/0 for now.
+      averageValue: actualHitRate! / 100, // Use hitRate as the average for binary markets
       comparison: 'binary',
       recentMatches: analyzedMatches!.map(m => ({
         opponent: m.opponent,
@@ -736,8 +734,14 @@ export class BettingInsightsService {
         allMatchDetails, allValues, (value) => value === 1 
     );
     
+    // NOTE: Match result is a binary market, so we pass BettingMarket.MATCH_RESULT
     const confidence = this.calculateConfidenceScore(
-        sampleValues, 0.5, 'binary', homeAwaySupportForSample, actualHitRate! 
+        sampleValues, 
+        0.5, 
+        'binary', 
+        BettingMarket.MATCH_RESULT, // Pass market type
+        homeAwaySupportForSample, 
+        actualHitRate! 
     );
 
     return {
@@ -749,7 +753,7 @@ export class BettingInsightsService {
       isStreak,
       streakLength: isStreak ? streakLength : undefined,
       threshold: 0.5, 
-      averageValue: targetOutcome === 'Win' ? 1 : 0, // NOTE: Changing this to `actualHitRate! / 100` might be more descriptive, but sticking to 1/0 for now.
+      averageValue: actualHitRate! / 100, // Use hitRate as the average for binary markets
       comparison: 'binary',
       recentMatches: analyzedMatches!.map(m => ({
         opponent: m.opponent,
@@ -813,7 +817,12 @@ export class BettingInsightsService {
     );
 
     const confidence = this.calculateConfidenceScore(
-        sampleValues, threshold, comparison, homeAwaySupportForSample, actualHitRate
+        sampleValues, 
+        threshold, 
+        comparison, 
+        market, // Pass market type
+        homeAwaySupportForSample, 
+        actualHitRate
     );
 
     return {
@@ -840,6 +849,30 @@ export class BettingInsightsService {
           confidence: confidence 
       }
     };
+  }
+  
+  /**
+   * Defines market-specific proximity thresholds for the penalty logic.
+   * Values represent the *minimum required percentage margin* over/under the threshold.
+   */
+  private getMarketSpecificProximityThresholds(market: BettingMarket): { fragile: number; risky: number } {
+      // fragile: Below this percent margin -> CRITICAL penalty
+      // risky: Below this percent margin -> MODERATE penalty
+      const thresholds: Record<BettingMarket, { fragile: number; risky: number }> = {
+          [BettingMarket.CARDS]: { fragile: 15, risky: 30 },
+          [BettingMarket.CORNERS]: { fragile: 12, risky: 25 },
+          [BettingMarket.FOULS]: { fragile: 8, risky: 15 },
+          [BettingMarket.TEAM_GOALS]: { fragile: 15, risky: 30 },
+          [BettingMarket.SHOTS_ON_TARGET]: { fragile: 8, risky: 15 },
+          [BettingMarket.TOTAL_SHOTS]: { fragile: 5, risky: 10 },
+          
+          // Binary/Match markets
+          [BettingMarket.BOTH_TEAMS_TO_SCORE]: { fragile: 0, risky: 0 }, 
+          [BettingMarket.MATCH_RESULT]: { fragile: 0, risky: 0 },
+          [BettingMarket.GOALS]: { fragile: 15, risky: 30 }, // Default for total goals if implemented later
+      };
+      
+      return thresholds[market] || { fragile: 10, risky: 20 }; // Default fallback
   }
 
   /**
@@ -889,6 +922,7 @@ export class BettingInsightsService {
     values: number[],
     threshold: number,
     comparison: Comparison | 'binary',
+    market: BettingMarket, // Added for market-specific thresholds
     homeAwaySupportForSample?: HomeAwaySupport,
     hitRate: number = 100 
   ): Confidence {
@@ -918,7 +952,7 @@ export class BettingInsightsService {
     // 2. Base Score based on Average Value proximity (40 points max)
     if (comparison === Comparison.OVER || comparison === Comparison.OR_MORE) {
         const valueDifference = avgValue - threshold;
-        const maxExpectedDifference = 3.0;
+        const maxExpectedDifference = 3.0; // Standardize max scaling difference
         
         baseScore += Math.min(40, Math.round((valueDifference / maxExpectedDifference) * 40));
 
@@ -974,18 +1008,36 @@ export class BettingInsightsService {
     let finalScore = Math.min(100, Math.max(0, baseScore));
 
     // 5. PENALTIES
+    
+    // Penalty for hit rate below 90% in small samples
     if (hitRate < 90 && values.length < 10) {
-      finalScore = Math.max(finalScore - 10, 0);
+      finalScore -= 10;
       factors.push('Small sample size with non-perfect hit rate reduces confidence.');
     }
     
-    const proximityTolerance = (comparison === Comparison.OVER || comparison === Comparison.OR_MORE) 
-        ? avgValue - threshold 
-        : threshold - avgValue;
-        
-    if (proximityTolerance < 0.2 && comparison !== 'binary') { 
-        finalScore = Math.max(finalScore - 20, 15);
-        factors.push('Average value too close to threshold (fragile pattern).');
+    // 🎯 FIXED: MARKET-AWARE PROXIMITY PENALTY
+    if (comparison !== 'binary' && threshold > 0) {
+      const { fragile, risky } = this.getMarketSpecificProximityThresholds(market);
+
+      // Calculate margin as PERCENTAGE of threshold
+      const marginPercent = (comparison === Comparison.OVER || comparison === Comparison.OR_MORE) 
+        ? ((avgValue - threshold) / threshold) * 100
+        : ((threshold - avgValue) / threshold) * 100;
+      
+      if (marginPercent < fragile) {
+        // CRITICAL: Pattern is extremely fragile
+        const penalty = 25;
+        finalScore = Math.max(finalScore - penalty, 15);
+        factors.push(`⚠️ FRAGILE: Average is only ${marginPercent.toFixed(1)}% margin. High variance risk.`);
+      } 
+      else if (marginPercent < risky) {
+        // MODERATE: Pattern is somewhat risky
+        const penalty = 10;
+        finalScore = Math.max(finalScore - penalty, 25);
+        factors.push(`Moderate risk: Average is ${marginPercent.toFixed(1)}% margin.`);
+      } else {
+        factors.push(`✓ Safe margin: ${marginPercent.toFixed(1)}% ${comparison === Comparison.OVER ? 'above' : 'below'} threshold.`);
+      }
     }
 
     let level: Confidence['level'];
