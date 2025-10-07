@@ -25,7 +25,7 @@ import { fbrefFixtureService } from '../fixtures/fbrefFixtureService';
 import { getDisplayTeamName, normalizeTeamName } from '../../utils/teamUtils';
 
 // 🚀 NEW, EFFICIENT IMPORT
-import { supabaseTeamService } from '../team/supabaseTeamService';
+import { supabaseTeamService } from '../stats/supabaseTeamService';
 // --- END: UPDATED IMPORTS ---
 
 
