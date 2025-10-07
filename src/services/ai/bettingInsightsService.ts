@@ -59,7 +59,7 @@ export enum BettingMarket {
   CORNERS = 'corners',
   FOULS = 'fouls',
   TEAM_GOALS = 'team_goals', // Team-specific goals
-  GOALS = 'goals', // Total Match Goals
+  // ❌ REMOVED: GOALS market (Total Match Goals)
   SHOTS_ON_TARGET = 'shots_on_target',
   TOTAL_SHOTS = 'total_shots',
   BOTH_TEAMS_TO_SCORE = 'both_teams_to_score',
@@ -131,7 +131,7 @@ interface MarketConfig {
   useOrMore?: boolean;
 }
 
-const MARKET_CONFIGS: Record<Exclude<BettingMarket, BettingMarket.MATCH_RESULT | BettingMarket.GOALS>, MarketConfig> = {
+const MARKET_CONFIGS: Record<Exclude<BettingMarket, BettingMarket.MATCH_RESULT>, MarketConfig> = {
   [BettingMarket.CARDS]: {
     thresholds: [0.5, 1.5, 2.5, 3.5],
     minValue: 0,
@@ -182,7 +182,7 @@ type AllMarketConfigs =
     | MarketAnalysisConfig<CardsMatchDetail>
     | MarketAnalysisConfig<CornersMatchDetail>
     | MarketAnalysisConfig<FoulsMatchDetail>
-    | MarketAnalysisConfig<GoalsDetail> // 🎯 FIX: Using updated GoalsDetail
+    | MarketAnalysisConfig<GoalsDetail> 
     | MarketAnalysisConfig<ShotsMatchDetail>;
 
 
@@ -313,9 +313,10 @@ export class BettingInsightsService {
       config => this.analyzeGenericMarket(config as any)
     );
     
+    // 🧹 CLEANUP: Only analyze BTTS and Match Result (no Total Goals)
     marketAnalyses.push(this.analyzeBTTSMarket()); 
     marketAnalyses.push(this.analyzeMatchResultMarket()); 
-    marketAnalyses.push(this.analyzeTotalMatchGoalsMarket()); 
+    // ❌ analyzeTotalMatchGoalsMarket() is removed
 
     try {
         const results = await Promise.all(marketAnalyses);
@@ -369,8 +370,9 @@ export class BettingInsightsService {
     console.log(`[BettingInsights] 📊 Analyzing ${config.label} market...`);
     const insights: BettingInsight[] = [];
     
+    // ❌ Removed BettingMarket.GOALS from the MARKET_CONFIGS typing, so we can safely use Exclude
     const allStats = await config.service.getStatistics();
-    const marketConfig = MARKET_CONFIGS[config.market as Exclude<BettingMarket, BettingMarket.GOALS | BettingMarket.MATCH_RESULT>];
+    const marketConfig = MARKET_CONFIGS[config.market as Exclude<BettingMarket, BettingMarket.MATCH_RESULT>];
 
     for (const [teamName, stats] of allStats.entries()) {
       if (stats.matches < this.ROLLING_WINDOW) continue;
@@ -424,71 +426,8 @@ export class BettingInsightsService {
   }
   
   /**
-   * FIX: Analyzes the total goals scored in a match (Fixture-level insight).
+   * ❌ DELETED: analyzeTotalMatchGoalsMarket() is removed as per Option 1.
    */
-  private async analyzeTotalMatchGoalsMarket(): Promise<BettingInsight[]> {
-      console.log('[BettingInsights] ⚽ Analyzing Total Match Goals market (Fixture-Level)...');
-      const insights: BettingInsight[] = [];
-      const allStats = await supabaseGoalsService.getGoalStatistics(); 
-
-      const totalGoalsThresholds = [1.5, 2.5, 3.5, 4.5];
-      const market = BettingMarket.GOALS;
-      const label = 'Total Match Goals';
-
-      // Use a flag to ensure the fixture-level analysis runs only once.
-      const firstTeamName = allStats.keys().next().value;
-      if (!firstTeamName) return [];
-      
-      const stats = allStats.get(firstTeamName);
-      if (!stats || stats.matches < this.ROLLING_WINDOW) return [];
-      
-      // 🎯 CRITICAL FIX: Calculate the sum using the atomic fields (goalsFor + goalsAgainst).
-      // This ensures we are basing the analysis on the goals scored in the match, 
-      // regardless of the redundant `totalGoals` field that exists in the source data.
-      const allMatchDetails = stats.matchDetails as GoalsDetail[];
-      const allValues = allMatchDetails.map(m => m.goalsFor + m.goalsAgainst);
-
-      for (const threshold of totalGoalsThresholds) {
-          const baseOutcome = `${label}`;
-          
-          // --- OVER Pattern ---
-          const overPattern = this.detectPattern(
-              allValues,
-              threshold,
-              "Fixture", // Assign to "Fixture" to mark it as non-team-specific
-              market,
-              `${Comparison.OVER} ${threshold} ${baseOutcome}`,
-              allMatchDetails,
-              Comparison.OVER
-          );
-          if (overPattern) {
-            // Modify the output to look like a match bet
-            overPattern.outcome = `${Comparison.OVER} ${threshold} ${baseOutcome}`; 
-            overPattern.team = "Fixture";
-            insights.push(overPattern);
-          }
-          
-          // --- UNDER Pattern ---
-          const underPattern = this.detectPattern(
-              allValues,
-              threshold,
-              "Fixture", // Assign to "Fixture"
-              market,
-              `${Comparison.UNDER} ${threshold} ${baseOutcome}`,
-              allMatchDetails,
-              Comparison.UNDER
-          );
-          if (underPattern) {
-            // Modify the output to look like a match bet
-            underPattern.outcome = `${Comparison.UNDER} ${threshold} ${baseOutcome}`;
-            underPattern.team = "Fixture";
-            insights.push(underPattern);
-          }
-      }
-
-      console.log(`[BettingInsights] Found ${insights.length} ${label} patterns`);
-      return insights;
-  }
   
   private async analyzeBTTSMarket(): Promise<BettingInsight[]> {
     console.log('[BettingInsights] 📊 Analyzing Both Teams to Score market...');
