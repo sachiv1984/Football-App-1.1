@@ -107,9 +107,8 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
       });
   
   // Memoize counts 
-  const { tierCounts, accumulatorBets, bestBet, homeCount, awayCount } = useMemo(() => {
+  const { tierCounts, accumulatorBets } = useMemo(() => {
     const accumulatorBets = rankedBets.filter(b => b.accumulatorSafe);
-    const bestBet = rankedBets.length > 0 ? rankedBets[0] : null;
 
     return {
         tierCounts: {
@@ -120,10 +119,7 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
             [BetTier.AVOID]: rankedBets.filter(b => b.tier === BetTier.AVOID).length,
         },
         accumulatorBets,
-        bestBet,
-        // Using canonical comparison here, excluding 'Fixture'
-        homeCount: rankedBets.filter(b => b.team === homeTeamName).length,
-        awayCount: rankedBets.filter(b => b.team === awayTeamName).length,
+        // Removed bestBet, homeCount, awayCount as they are not used in the final display/logic
     };
   }, [rankedBets, homeTeamName, awayTeamName]);
   
@@ -230,27 +226,7 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
       {/* Content */}
       <div className="p-4 sm:p-6 space-y-6">
         
-        {/* Best Bet Highlight */}
-        {bestBet && !showAccasOnly && selectedTab === 'all' && selectedTeam === 'all' && bestBet.betScore >= 75 && (
-          <div className="bg-white border-4 border-yellow-400 rounded-xl p-6 shadow-md -mt-4">
-            <div className="flex items-center gap-3 mb-4">
-              <Trophy className="w-10 h-10 text-yellow-600" />
-              <div>
-                <h3 className="text-2xl font-extrabold text-gray-900">
-                  🏆 TOP PICK - Highest Ranked Bet
-                </h3>
-                <p className="text-sm text-gray-600">This is statistically the strongest opportunity in this match</p>
-              </div>
-            </div>
-            <BetCard 
-              bet={bestBet} 
-              isHighlight={true} 
-              rank={1}
-              homeTeam={homeTeam} 
-              awayTeam={awayTeam}
-            />
-          </div>
-        )}
+        {/* REMOVED: Best Bet Highlight (Top Pick) */}
         
         {/* Bet List: RESPONSIVE GRID */}
         <div>
@@ -306,9 +282,9 @@ const BetCard: React.FC<{
   awayTeam: Team;
 }> = ({ bet, rank, isHighlight = false, homeTeam, awayTeam }) => {
   
-  const isCompactGridItem = !isHighlight && rank === undefined;
+  // NOTE: isHighlight will always be false now since the 'Top Pick' card was removed from the parent.
+  const isCompactGridItem = !isHighlight && rank === undefined; 
   const [expanded, setExpanded] = useState(isHighlight);
-  // NEW STATE: Control visibility of the Recent Form section
   const [formExpanded, setFormExpanded] = useState(false); 
 
   // Helper functions (Light Mode Colors - UNCHANGED)
@@ -330,13 +306,14 @@ const BetCard: React.FC<{
     }
   };
   
+  // NOTE: getMarketColor is now only used for the small badge in the compact view.
   const getMarketColor = (market: string) => {
     const colors: Record<string, string> = {
       cards: 'bg-yellow-100 text-yellow-800',
       corners: 'bg-blue-100 text-blue-800',
       fouls: 'bg-red-100 text-red-800',
-      team_goals: 'bg-green-100 text-green-800', // Note the change from 'goals' to 'team_goals' (ensure consistent use)
-      goals: 'bg-lime-100 text-lime-800', // New color for Total Match Goals
+      team_goals: 'bg-green-100 text-green-800',
+      goals: 'bg-lime-100 text-lime-800', 
       shots_on_target: 'bg-purple-100 text-purple-800',
       total_shots: 'bg-violet-100 text-violet-800',
       both_teams_to_score: 'bg-indigo-100 text-indigo-800',
@@ -345,7 +322,7 @@ const BetCard: React.FC<{
     return colors[market] || 'bg-gray-100 text-gray-800';
   };
   
-  // --- NEW LOGIC FOR FIXTURE BETS ---
+  // --- LOGIC FOR FIXTURE BETS ---
   const isFixtureBet = bet.team === 'Fixture';
   
   // Determine the team object for display
@@ -358,17 +335,14 @@ const BetCard: React.FC<{
   // Neutral colors for Fixture Bet, or team colors otherwise
   const teamColor = isFixtureBet ? 'text-purple-700' : (isHomeTeam ? 'text-green-700' : 'text-orange-700'); 
   const teamBg = isFixtureBet ? 'bg-purple-50' : (isHomeTeam ? 'bg-green-50' : 'bg-orange-50'); 
-  // --- END NEW LOGIC ---
 
   // Renders the simplified view for grid items
   const renderCompactGridCard = () => {
       
-      // Data required for the new footer elements
       const showStreakBadge = bet.isStreak && (bet.streakLength ?? 0) >= 7;
       const homeVenueData = bet.context?.homeAwaySupportForSample?.home;
       const awayVenueData = bet.context?.homeAwaySupportForSample?.away;
       
-      // Crucial: Only show venue split for team-specific bets
       const showVenueSplit = !isFixtureBet && homeVenueData && awayVenueData && (homeVenueData.matches > 0 || awayVenueData.matches > 0);
 
       return (
@@ -459,20 +433,19 @@ const BetCard: React.FC<{
         ${isCompactGridItem ? 'hover:scale-[1.01] transition-transform duration-150 cursor-pointer' : ''} 
         ${expanded ? 'shadow-lg border-opacity-70' : ''}
       `}
-      // ADDED: Click handler for the whole card when it's a compact grid item
+      // Click handler for the whole card when it's a compact grid item
       onClick={isCompactGridItem ? () => setExpanded(!expanded) : undefined} 
     >
       {isCompactGridItem && !expanded ? ( // Only render compact if it's a grid item AND not expanded
         // Render the compact version for the grid
         renderCompactGridCard()
       ) : (
-        // Render the full, expandable version for the TOP PICK highlight OR when the compact card is expanded
+        // Render the full, expandable version
         <>
           <div 
             className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
-            // If it's the highlight, we use the original logic to collapse/expand. 
-            // If it was the compact card, it is already expanded, so clicking this internal area collapses it.
-            onClick={isHighlight ? () => setExpanded(!expanded) : (isCompactGridItem ? () => setExpanded(false) : undefined)}
+            // Clicking the header collapses the card.
+            onClick={() => setExpanded(false)}
           >
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-4 flex-1">
@@ -490,9 +463,8 @@ const BetCard: React.FC<{
                     <div className={`px-3 py-1 rounded-full ${teamBg} ${teamColor} font-bold text-sm flex items-center gap-1`}>
                       {isFixtureBet ? 'FIXTURE' : (teamObject.shortName || teamObject.name)}
                     </div>
-                    <span className={`px-2 py-1 rounded text-xs font-semibold ${getMarketColor(bet.market)}`}>
-                      {bet.market.replace(/_/g, ' ').toUpperCase()}
-                    </span>
+                    {/* REMOVED: Market Badge (e.g., TOTAL SHOTS) */}
+                    
                     {bet.isStreak && bet.streakLength && (
                       <span className="px-2 py-1 rounded bg-purple-100 text-purple-800 text-xs font-bold flex items-center gap-1">
                         <TrendingUp className="w-3 h-3" />
@@ -530,13 +502,13 @@ const BetCard: React.FC<{
           {expanded && (
             <div className="border-t-2 border-gray-100 p-6 space-y-6 bg-gray-50">
               
-              {/* Recommendation Box */}
-              <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
-                <h5 className="font-bold text-blue-900 mb-2 flex items-center gap-2">
-                  <Award className="w-5 h-5" />
-                  Match Analysis & Recommendation
+              {/* UPDATED: Match Analysis & Recommendation (Now integrated) */}
+              <div>
+                <h5 className="font-bold text-gray-900 mb-2 flex items-center gap-2 text-base">
+                  <Award className="w-5 h-5 text-purple-600" />
+                  AI Match Analysis & Recommendation
                 </h5>
-                <p className="text-sm text-blue-800 leading-relaxed">
+                <p className="text-sm text-gray-700 leading-relaxed bg-white p-3 rounded border border-gray-200">
                   {bet.matchContext.recommendation}
                 </p>
               </div>
