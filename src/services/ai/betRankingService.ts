@@ -16,6 +16,7 @@ export interface RankedBet extends MatchContextInsight {
   reasoning: string[];
   redFlags: string[];
   accumulatorSafe: boolean; // Safe for accas?
+  stylizedAnalysis: string; // The fully formatted, bolded, and emoji-rich analysis string
 }
 
 export class BetRankingService {
@@ -234,7 +235,74 @@ export class BetRankingService {
     
     return redFlags;
   }
-  
+
+  /**
+   * Generate the final, stylized single-line analysis string.
+   * NOTE: This string uses Markdown bolding (**) and emojis.
+   */
+  private generateStylizedAnalysis(rankedBet: RankedBet): string {
+    const { 
+      team, outcome, threshold, comparison, 
+      averageValue, betScore, 
+      matchContext, context 
+    } = rankedBet;
+    
+    // 1. Determine the core selection phrase
+    let selectionPhrase = `${team}'s pattern: **${outcome}** (${averageValue} avg)`;
+    if (team === 'Fixture') {
+        selectionPhrase = `Fixture-level bet: **${outcome}** (${averageValue} avg)`;
+    }
+
+    // 2. Determine the matchup analysis
+    const oppositionAllows = matchContext.oppositionAllows;
+    let matchupAnalysis = `An **${matchContext.strengthOfMatch} Matchup** as the opposition allows **${oppositionAllows} avg**`;
+    
+    // 3. Comparison to the threshold (only for Over/Under)
+    const isOverUnder = comparison === 'Over' || comparison === 'Or More' || comparison === 'Under';
+    if (isOverUnder) {
+        const comparisonWord = comparison === 'Under' ? 'below' : 'above';
+        matchupAnalysis += `, which is significantly **${comparisonWord} the ${threshold} threshold**`;
+        
+        if (matchContext.venueSpecific) {
+             matchupAnalysis += ` when playing ${matchContext.isHome ? 'at home' : 'away'}.`;
+        } else {
+             matchupAnalysis += `.`;
+        }
+    } else {
+        matchupAnalysis += `.`;
+    }
+    
+    // 4. Initial assessment & opportunity
+    const assessment = this.determineTier(betScore);
+    let finalAssessment = `This is a high-confidence, high-value opportunity.`;
+
+    if (assessment === BetTier.POOR || assessment === BetTier.AVOID) {
+        finalAssessment = `A low-value opportunity due to significant risks.`;
+    }
+
+    // 5. Build the final string (using the suggested order: Assessment -> Confidence -> Warning)
+    
+    // Emojis based on tier
+    const tierEmoji = rankedBet.tier === BetTier.EXCELLENT ? '✅' : 
+                      rankedBet.tier === BetTier.GOOD ? '📈' : '💡';
+    
+    // Construct the initial line
+    const initialLine = `${tierEmoji} **${assessment.toUpperCase()} SELECTION**: ${selectionPhrase}. ${matchupAnalysis}`;
+    
+    // Confidence and Data Warning 
+    const confidenceScore = context?.confidence?.score ?? 0;
+    const dataQuality = matchContext.dataQuality;
+    const opponentMatches = matchContext.oppositionMatches;
+    
+    let warningLine = ` 🔥 **Confidence: ${confidenceScore}/100**.`;
+    
+    if (dataQuality === 'Poor' || dataQuality === 'Insufficient') {
+        warningLine += ` 📊 **Data Warning: ${dataQuality} Quality** (${opponentMatches} venue-specific matches).`;
+    }
+    
+    return `${initialLine} ${finalAssessment} ${warningLine}`;
+  }
+
   /**
    * Determine if bet is safe for accumulators
    */
@@ -284,13 +352,22 @@ export class BetRankingService {
       const redFlags = this.identifyRedFlags(insight);
       const accumulatorSafe = this.isAccumulatorSafe(insight, betScore);
       
+      const tempRankedBet: RankedBet = { // Temporarily create the object to pass to formatter
+          ...insight,
+          betScore,
+          tier,
+          reasoning,
+          redFlags,
+          accumulatorSafe,
+          stylizedAnalysis: '' // Placeholder
+      };
+
+      // 🆕 Calculate the final stylized analysis string
+      const stylizedAnalysis = this.generateStylizedAnalysis(tempRankedBet);
+      
       return {
-        ...insight,
-        betScore,
-        tier,
-        reasoning,
-        redFlags,
-        accumulatorSafe
+        ...tempRankedBet, // Return the full object
+        stylizedAnalysis // Use the newly generated string
       };
     });
     
