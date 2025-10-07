@@ -308,7 +308,7 @@ const BetCard: React.FC<{
   
   const isCompactGridItem = !isHighlight && rank === undefined;
   const [expanded, setExpanded] = useState(isHighlight);
-  // 🆕 ADDED STATE FOR COLLAPSIBLE RECENT FORM
+  // NEW STATE: Control visibility of the Recent Form section
   const [formExpanded, setFormExpanded] = useState(false); 
 
   // Helper functions (Light Mode Colors - UNCHANGED)
@@ -456,18 +456,23 @@ const BetCard: React.FC<{
       className={`
         bg-white rounded-xl border-2 ${getTierBorderColor(bet.tier)} border-opacity-30 shadow-sm overflow-hidden transition-all 
         ${isHighlight ? 'ring-4 ring-yellow-200' : 'hover:shadow-md'}
-        ${isCompactGridItem ? 'hover:scale-[1.01] transition-transform duration-150' : ''}
+        ${isCompactGridItem ? 'hover:scale-[1.01] transition-transform duration-150 cursor-pointer' : ''} 
+        ${expanded ? 'shadow-lg border-opacity-70' : ''}
       `}
+      // ADDED: Click handler for the whole card when it's a compact grid item
+      onClick={isCompactGridItem ? () => setExpanded(!expanded) : undefined} 
     >
-      {isCompactGridItem ? (
+      {isCompactGridItem && !expanded ? ( // Only render compact if it's a grid item AND not expanded
         // Render the compact version for the grid
         renderCompactGridCard()
       ) : (
-        // Render the full, expandable version for the TOP PICK highlight
+        // Render the full, expandable version for the TOP PICK highlight OR when the compact card is expanded
         <>
           <div 
             className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
-            onClick={() => setExpanded(!expanded)}
+            // If it's the highlight, we use the original logic to collapse/expand. 
+            // If it was the compact card, it is already expanded, so clicking this internal area collapses it.
+            onClick={isHighlight ? () => setExpanded(!expanded) : (isCompactGridItem ? () => setExpanded(false) : undefined)}
           >
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-4 flex-1">
@@ -623,7 +628,7 @@ const BetCard: React.FC<{
                 </div>
               )}
               
-              {/* 🆕 COLLAPSIBLE RECENT FORM SECTION */}
+              {/* COLLAPSIBLE RECENT FORM SECTION */}
               <div>
                 <button 
                   onClick={(e) => {
