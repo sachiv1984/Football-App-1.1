@@ -143,6 +143,8 @@ export class MatchContextService {
     }
 
     try {
+      // NOTE: This hits all services to check existence. It is inefficient but necessary 
+      // without a dedicated team lookup service.
       const [cardsStats, cornersStats, foulsStats, goalsStats, shootingStats] = await Promise.all([
         supabaseCardsService.getCardStatistics(),
         supabaseCornersService.getCornerStatistics(),
@@ -228,8 +230,9 @@ export class MatchContextService {
             opponentIsHome
           );
           
+          // 🎯 FIX: Changed m.cardsFor to m.cardsAgainst to track opponent's concessions (defensive stat)
           const totalCardsAllowed = matchesToUse.reduce(
-            (sum, m) => sum + (m.cardsFor || 0), 0 
+            (sum, m) => sum + (m.cardsAgainst || 0), 0 
           );
           
           const matchCount = matchesToUse.length;
@@ -884,7 +887,7 @@ export class MatchContextService {
       let finalRecommendation = `${ratingPrefix}: ${base} ${mainContext}`;
       
       if (dataQuality === 'Poor' || dataQuality === 'Fair' || dataQuality === 'Insufficient') {
-          const matchesNote = `(${oppositionMatches} ${venueSpecific ? 'venue-specific' : 'total'} matches).`; 
+          const matchesNote = `(${(oppositionMatches)} ${venueSpecific ? 'venue-specific' : 'total'} matches).`; 
           finalRecommendation += ` 📊 **Data Warning: ${dataQuality} Quality** ${matchesNote}`;
       }
       
@@ -916,7 +919,7 @@ export class MatchContextService {
       let finalRecommendation = `${ratingPrefix}: ${base} ${mainContext}`;
       
       if (dataQuality === 'Poor' || dataQuality === 'Fair' || dataQuality === 'Insufficient') {
-          const matchesNote = `(${oppositionMatches} ${venueSpecific ? 'venue-specific' : 'total'} matches).`; 
+          const matchesNote = `(${(oppositionMatches)} ${venueSpecific ? 'venue-specific' : 'total'} matches).`; 
           finalRecommendation += ` 📊 **Data Warning: ${dataQuality} Quality** ${matchesNote}`;
       }
       
