@@ -475,64 +475,116 @@ export class BettingInsightsService {
   }
 
   /**
-   * Dedicated method for Match Result (Win/Draw/Loss) analysis.
+   * Dedicated method for Match Result (Home Win, Away Win, Draw, Double Chance) analysis.
+   * FIX: Replaced original implementation with fixture-centric logic.
    */
   private async analyzeMatchResultMarket(): Promise<BettingInsight[]> {
-    console.log('[BettingInsights] 🏆 Analyzing Match Result market...');
+    console.log('[BettingInsights] 🏆 Analyzing Match Result and Double Chance markets...');
     const insights: BettingInsight[] = [];
     
     // Get all team names (using a reliable service key set)
     const allStats = await supabaseCardsService.getCardStatistics(); 
     const teamNames = Array.from(allStats.keys());
 
-    // NOTE: This is where we could parallelize the fetching of match results per team.
-    // However, for consistency and simplicity, we keep the iteration synchronous here.
     for (const teamName of teamNames) {
       
       const allMatchResults = await fbrefFixtureService.getTeamMatchResultsByVenue(teamName);
 
       if (allMatchResults.length < this.ROLLING_WINDOW) continue;
       
-      // WIN
-      const winPattern = this._detectBinaryPattern(
+      // ----------------------------------------------------------------------
+      // Helper function to map team-relative result (Win/Draw/Loss) 
+      // to the FIXTURE outcome (Home Win, Away Win, Draw)
+      // ----------------------------------------------------------------------
+      
+      const getFixtureOutcome = (m: MatchResultDetail): 'HomeWin' | 'AwayWin' | 'Draw' => {
+          if (m.outcome === 'Draw') return 'Draw';
+          if (m.outcome === 'Win') {
+              return m.isHome ? 'HomeWin' : 'AwayWin';
+          }
+          // If the team analyzed lost
+          return m.isHome ? 'AwayWin' : 'HomeWin';
+      };
+
+      const fixtureOutcomes = allMatchResults.map(getFixtureOutcome);
+      
+      // Reusable context formatter: (H/A vs Opponent Score-AgainstScore)
+      const contextFormatter = (m: MatchResultDetail) => 
+          `${m.isHome ? 'H' : 'A'} vs ${m.opponent} (${m.scoreFor}-${m.scoreAgainst})`;
+
+      // ----------------------------------------------------------------------
+      // 1. HOME WIN
+      // ----------------------------------------------------------------------
+      const homeWinPattern = this._detectBinaryPattern(
           allMatchResults,
-          allMatchResults.map(m => m.outcome === 'Win' ? 1 : 0),
+          fixtureOutcomes.map(o => o === 'HomeWin' ? 1 : 0),
           teamName,
           BettingMarket.MATCH_RESULT,
-          'Match Result - Win',
-          (m: MatchResultDetail) => `(${m.scoreFor}-${m.scoreAgainst})` // Explicit MatchResultDetail context
+          'Match Result - Home Win',
+          contextFormatter
       );
-      if (winPattern) insights.push(winPattern);
+      if (homeWinPattern) insights.push(homeWinPattern);
 
-      // DRAW
+      // ----------------------------------------------------------------------
+      // 2. AWAY WIN
+      // ----------------------------------------------------------------------
+      const awayWinPattern = this._detectBinaryPattern(
+          allMatchResults,
+          fixtureOutcomes.map(o => o === 'AwayWin' ? 1 : 0),
+          teamName,
+          BettingMarket.MATCH_RESULT,
+          'Match Result - Away Win',
+          contextFormatter
+      );
+      if (awayWinPattern) insights.push(awayWinPattern);
+      
+      // ----------------------------------------------------------------------
+      // 3. DRAW
+      // ----------------------------------------------------------------------
       const drawPattern = this._detectBinaryPattern(
           allMatchResults,
-          allMatchResults.map(m => m.outcome === 'Draw' ? 1 : 0),
+          fixtureOutcomes.map(o => o === 'Draw' ? 1 : 0),
           teamName,
           BettingMarket.MATCH_RESULT,
           'Match Result - Draw',
-          (m: MatchResultDetail) => `(${m.scoreFor}-${m.scoreAgainst})`
+          contextFormatter
       );
       if (drawPattern) insights.push(drawPattern);
-      
-      // LOSS
-      const lossPattern = this._detectBinaryPattern(
+
+      // ----------------------------------------------------------------------
+      // 4. DOUBLE CHANCE - Home or Draw (1X)
+      // ----------------------------------------------------------------------
+      const homeOrDrawPattern = this._detectBinaryPattern(
           allMatchResults,
-          allMatchResults.map(m => m.outcome === 'Loss' ? 1 : 0),
+          fixtureOutcomes.map(o => (o === 'HomeWin' || o === 'Draw') ? 1 : 0),
+          teamName,
+          BettingMarket.MATCH_RESULT, 
+          'Double Chance - Home or Draw',
+          contextFormatter
+      );
+      if (homeOrDrawPattern) insights.push(homeOrDrawPattern);
+      
+      // ----------------------------------------------------------------------
+      // 5. DOUBLE CHANCE - Away or Draw (X2)
+      // ----------------------------------------------------------------------
+      const awayOrDrawPattern = this._detectBinaryPattern(
+          allMatchResults,
+          fixtureOutcomes.map(o => (o === 'AwayWin' || o === 'Draw') ? 1 : 0),
           teamName,
           BettingMarket.MATCH_RESULT,
-          'Match Result - Loss',
-          (m: MatchResultDetail) => `(${m.scoreFor}-${m.scoreAgainst})`
+          'Double Chance - Away or Draw',
+          contextFormatter
       );
-      if (lossPattern) insights.push(lossPattern);
+      if (awayOrDrawPattern) insights.push(awayOrDrawPattern);
+
     }
 
-    console.log(`[BettingInsights] Found ${insights.length} match result patterns`);
+    console.log(`[BettingInsights] Found ${insights.length} fixture result patterns`);
     return insights;
   }
 
   // -----------------------------------------------------------
-  // 🔍 CORE DETECTION LOGIC
+  // 🔍 CORE DETECTION LOGIC (REMAINS UNCHANGED)
   // -----------------------------------------------------------
 
   /**
@@ -750,7 +802,7 @@ export class BettingInsightsService {
 
 
   // -----------------------------------------------------------
-  // 🔨 HELPER METHODS
+  // 🔨 HELPER METHODS (REMAIN UNCHANGED)
   // -----------------------------------------------------------
 
   /**
