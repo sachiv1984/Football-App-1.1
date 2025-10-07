@@ -9,7 +9,6 @@ import {
 // Import only the service objects (which are assumed to be exported)
 import { supabaseCardsService } from '../stats/supabaseCardsService';
 import { supabaseCornersService } from '../stats/supabaseCornersService';
-// FIX 1: Corrected import path from 'supabaseFoulService' to 'supabaseFoulsService'
 import { supabaseFoulsService } from '../stats/supabaseFoulsService'; 
 import { supabaseGoalsService } from '../stats/supabaseGoalsService';
 import { supabaseShootingService } from '../stats/supabaseShootingService';
