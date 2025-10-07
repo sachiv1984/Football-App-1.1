@@ -13,7 +13,7 @@ import { supabaseGoalsService } from '../stats/supabaseGoalsService';
 import { supabaseShootingService } from '../stats/supabaseShootingService';
 import { fbrefFixtureService } from '../fixtures/fbrefFixtureService'; 
 import { getDisplayTeamName, normalizeTeamName } from '../../utils/teamUtils';
-import { supabaseTeamService } from '../stats/supabaseTeamService';
+import { supabaseTeamService } from '../stats/SupabaseTeamService';
 
 
 // --- ROBUST DYNAMIC TYPE INFERENCE ---
