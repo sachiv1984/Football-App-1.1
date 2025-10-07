@@ -17,17 +17,17 @@ interface BaseMatchDetail {
   isHome?: boolean; 
 }
 
+// 🎯 FIX: Updated GoalsDetail to match the SupabaseGoalsService output.
+// We must include totalGoals, but we will ignore it in the analysis logic.
 interface GoalsDetail extends BaseMatchDetail {
-  totalGoals: number; // This is the goals SCORED BY THE TEAM being analyzed.
+  totalGoals: number; // Redundant, but required to match source interface
+  goalsFor: number;   // Goals SCORED BY THE TEAM being analyzed.
+  goalsAgainst: number;
   bothTeamsScored: boolean;
-  goalsAgainst?: number;
 }
 
-// Custom interface for Match-level analysis (requires both home/away goals)
-interface MatchGoalsDetail extends BaseMatchDetail {
-    goalsFor: number;
-    goalsAgainst: number;
-}
+// ❌ REMOVED: MatchGoalsDetail is no longer needed/used.
+// The analysis will use GoalsDetail and calculate the sum explicitly.
 
 interface CardsMatchDetail extends BaseMatchDetail {
   cardsFor: number;
@@ -182,7 +182,7 @@ type AllMarketConfigs =
     | MarketAnalysisConfig<CardsMatchDetail>
     | MarketAnalysisConfig<CornersMatchDetail>
     | MarketAnalysisConfig<FoulsMatchDetail>
-    | MarketAnalysisConfig<GoalsDetail>
+    | MarketAnalysisConfig<GoalsDetail> // 🎯 FIX: Using updated GoalsDetail
     | MarketAnalysisConfig<ShotsMatchDetail>;
 
 
@@ -218,7 +218,8 @@ export class BettingInsightsService {
     {
       market: BettingMarket.TEAM_GOALS, 
       service: { getStatistics: () => supabaseGoalsService.getGoalStatistics() },
-      valueExtractor: (m: GoalsDetail) => m.totalGoals, // Goals *for* the analyzed team
+      // 🎯 FIX: Explicitly use goalsFor (Goals scored by the team being analyzed)
+      valueExtractor: (m: GoalsDetail) => m.goalsFor, 
       label: 'team goals' 
     },
     {
@@ -435,16 +436,17 @@ export class BettingInsightsService {
       const label = 'Total Match Goals';
 
       // Use a flag to ensure the fixture-level analysis runs only once.
-      // We will analyze the match data from the perspective of the first team in the map.
       const firstTeamName = allStats.keys().next().value;
       if (!firstTeamName) return [];
       
       const stats = allStats.get(firstTeamName);
       if (!stats || stats.matches < this.ROLLING_WINDOW) return [];
       
-      // Crucial: Calculate the sum of goals (for + against) for the total match goals
-      const allMatchDetails = stats.matchDetails as MatchGoalsDetail[];
-      const allValues = allMatchDetails.map(m => (m.goalsFor || 0) + (m.goalsAgainst || 0));
+      // 🎯 CRITICAL FIX: Calculate the sum using the atomic fields (goalsFor + goalsAgainst).
+      // This ensures we are basing the analysis on the goals scored in the match, 
+      // regardless of the redundant `totalGoals` field that exists in the source data.
+      const allMatchDetails = stats.matchDetails as GoalsDetail[];
+      const allValues = allMatchDetails.map(m => m.goalsFor + m.goalsAgainst);
 
       for (const threshold of totalGoalsThresholds) {
           const baseOutcome = `${label}`;
@@ -496,6 +498,7 @@ export class BettingInsightsService {
     for (const [teamName, stats] of allStats.entries()) {
       if (stats.matches < this.ROLLING_WINDOW) continue;
       
+      // Value extraction is simple (1 or 0) based on the boolean flag
       const allValues = stats.matchDetails.map(m => m.bothTeamsScored ? 1 : 0);
       
       const homeAwaySupportOverall = this.calculateHomeAwaySupport(
@@ -504,6 +507,7 @@ export class BettingInsightsService {
           (value) => value === 1 
       );
 
+      // 🎯 FIX: Cast is safe using the updated GoalsDetail interface
       const yesPattern = this.detectBTTSPattern(
         stats.matchDetails as GoalsDetail[], 
         teamName, 
@@ -513,6 +517,7 @@ export class BettingInsightsService {
       );
       if (yesPattern) insights.push(yesPattern);
       
+      // 🎯 FIX: Cast is safe using the updated GoalsDetail interface
       const noPattern = this.detectBTTSPattern(
         stats.matchDetails as GoalsDetail[], 
         teamName, 
@@ -733,7 +738,7 @@ export class BettingInsightsService {
       isStreak,
       streakLength: isStreak ? streakLength : undefined,
       threshold: 0.5,
-      averageValue: targetHit ? 1 : 0,
+      averageValue: targetHit ? 1 : 0, // 🎯 NOTE: Consider changing to `actualHitRate! / 100` for more meaning in binary markets.
       comparison: 'binary',
       recentMatches: analyzedMatches!.map(m => ({
         opponent: m.opponent,
@@ -829,7 +834,7 @@ export class BettingInsightsService {
       isStreak,
       streakLength: isStreak ? streakLength : undefined,
       threshold: 0.5, 
-      averageValue: targetOutcome === 'Win' ? 1 : 0, 
+      averageValue: targetOutcome === 'Win' ? 1 : 0, // 🎯 NOTE: Consider changing to `actualHitRate! / 100` for more meaning in binary markets.
       comparison: 'binary',
       recentMatches: analyzedMatches!.map(m => ({
         opponent: m.opponent,
