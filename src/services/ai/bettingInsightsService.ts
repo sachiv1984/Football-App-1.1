@@ -200,7 +200,7 @@ export class BettingInsightsService {
   private readonly ROLLING_WINDOW = 5;
   private readonly STREAK_THRESHOLD = 7;
   
-  // NEW CONFIGURATION CONSTANTS
+  // NEW CONFIGURATION CONSTANTS for 80%+ patterns
   private readonly MIN_HIT_RATE = 80; // Detect patterns with 80%+ hit rate
   private readonly MIN_SAMPLE_SIZE = 8; // Minimum matches for non-100% patterns
   
@@ -248,7 +248,9 @@ export class BettingInsightsService {
   ];
 
   /**
-   * Helper function to filter out redundant patterns (Max Specificity Principle).
+   * CORRECTED: Helper function to filter out redundant patterns (Max Specificity Principle).
+   * It ensures that for any given market/team/comparison, only the most specific/highest
+   * quality insight (prioritizing Hit Rate, then Threshold, then Sample Size) is kept.
    */
   private filterRedundantInsights(insights: BettingInsight[]): BettingInsight[] {
     const mostSpecificInsights = new Map<string, BettingInsight>();
@@ -258,23 +260,23 @@ export class BettingInsightsService {
         ? insight.outcome.includes('Yes') ? 'YES' : 'NO'
         : insight.comparison;
       
-      // Use the hitRate in the key to allow different hit rates for the same market/threshold
-      const key = `${insight.team}_${insight.market}_${comparisonType}_${insight.threshold}_${insight.hitRate}`;
-      
+      // ✅ FIX: Use the genericKey consistently for map operations
       const genericKey = `${insight.team}_${insight.market}_${comparisonType}`;
       const existingInsight = mostSpecificInsights.get(genericKey);
 
       if (!existingInsight) {
+        // If no insight for this team/market/comparison exists, set the current one
         mostSpecificInsights.set(genericKey, insight);
       } else {
-        // TIE-BREAKING LOGIC: Prioritize by (1) Hit Rate, (2) Threshold, (3) Sample Size
+        // Tie-breaking logic: Prioritize by (1) Hit Rate, (2) Threshold, (3) Sample Size
         let shouldReplace = false;
         
         // 1. Prioritize higher Hit Rate
         if (insight.hitRate > existingInsight.hitRate) {
             shouldReplace = true;
         } else if (insight.hitRate === existingInsight.hitRate) {
-            // 2. Prioritize more specific Threshold (Over: higher, Under: lower, OR_MORE: higher)
+            
+            // 2. Prioritize more specific Threshold (Over/Or More: higher, Under: lower)
             if (insight.comparison === Comparison.OR_MORE || insight.comparison === Comparison.OVER) {
                 if (insight.threshold > existingInsight.threshold) {
                     shouldReplace = true;
@@ -302,6 +304,7 @@ export class BettingInsightsService {
         }
 
         if (shouldReplace) {
+          // Replace the existing insight with the more specific/higher quality one
           mostSpecificInsights.set(genericKey, insight);
         }
       }
@@ -332,7 +335,7 @@ export class BettingInsightsService {
         throw new Error('Failed to complete all market analyses.');
     }
     
-    // NOTE: The filterRedundantInsights method has been updated to handle the new hit rates.
+    
     const finalInsights = this.filterRedundantInsights(allInsights);
 
     const uniqueTeams = new Set(finalInsights.map(i => i.team));
@@ -656,7 +659,7 @@ export class BettingInsightsService {
     const homeAwaySupportForSample = this.calculateHomeAwaySupport(
         analyzedMatches!,
         sampleValues,
-        (value) => value === 1
+        (value) => value === 1 // BTTS Yes (value 1)
     );
     
     const confidence = this.calculateConfidenceScore(
