@@ -106,13 +106,18 @@ export class BetRankingService {
     const threshold = insight.threshold;
     const comparison = insight.comparison;
     
-    if (comparison === 'Over' || comparison === 'Or More') {
-      if (oppositionAllows < threshold) {
-        score -= 15; // Opposition is strong defensively
-      }
-    } else if (comparison === 'Under') {
-      if (oppositionAllows > threshold) {
-        score -= 15; // Opposition is weak defensively
+    // 🛡️ IMPROVEMENT: Check that it is an Over/Under bet AND not a Fixture-Level bet
+    const isOverUnder = comparison === 'Over' || comparison === 'Or More' || comparison === 'Under';
+    
+    if (isOverUnder && !isFixtureLevelBet) {
+      if (comparison === 'Over' || comparison === 'Or More') {
+        if (oppositionAllows < threshold) {
+          score -= 15; // Opposition is strong defensively
+        }
+      } else if (comparison === 'Under') {
+        if (oppositionAllows > threshold) {
+          score -= 15; // Opposition is weak defensively
+        }
       }
     }
     
