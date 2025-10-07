@@ -244,7 +244,9 @@ export class BettingInsightsService {
     for (const insight of insights) {
       // Key now considers the team name AND the market/comparison
       const comparisonType = insight.market === BettingMarket.MATCH_RESULT 
-        ? insight.outcome.split(' - ')[1] 
+        ? insight.outcome.includes('Win or Draw') ? 'WIN_OR_DRAW' 
+        : insight.outcome.includes('Win') ? 'WIN'
+        : insight.outcome.includes('Draw') ? 'DRAW' : 'OTHER_RESULT'
         : insight.comparison === 'binary' 
             ? insight.outcome.includes('Yes') || insight.outcome.includes('Win') ? 'YES' : 'NO'
             : insight.comparison;
@@ -475,8 +477,9 @@ export class BettingInsightsService {
   }
 
   /**
-   * Dedicated method for Match Result (Home Win, Away Win, Draw, Double Chance) analysis.
-   * FIX: Replaced original implementation with fixture-centric logic.
+   * Dedicated method for Match Result (Win/Draw) analysis.
+   * * 🔥 FIX APPLIED HERE: Only generates success patterns for the analyzed team (Win, Win/Draw, Draw).
+   * This prevents negative bets (like "Away or Draw") from being tagged to the team's insights.
    */
   private async analyzeMatchResultMarket(): Promise<BettingInsight[]> {
     console.log('[BettingInsights] 🏆 Analyzing Match Result and Double Chance markets...');
@@ -488,62 +491,50 @@ export class BettingInsightsService {
 
     for (const teamName of teamNames) {
       
+      // allMatchResults are the results of teamName's matches, relative to teamName
       const allMatchResults = await fbrefFixtureService.getTeamMatchResultsByVenue(teamName);
 
       if (allMatchResults.length < this.ROLLING_WINDOW) continue;
-      
-      // ----------------------------------------------------------------------
-      // Helper function to map team-relative result (Win/Draw/Loss) 
-      // to the FIXTURE outcome (Home Win, Away Win, Draw)
-      // ----------------------------------------------------------------------
-      
-      const getFixtureOutcome = (m: MatchResultDetail): 'HomeWin' | 'AwayWin' | 'Draw' => {
-          if (m.outcome === 'Draw') return 'Draw';
-          if (m.outcome === 'Win') {
-              return m.isHome ? 'HomeWin' : 'AwayWin';
-          }
-          // If the team analyzed lost
-          return m.isHome ? 'AwayWin' : 'HomeWin';
-      };
-
-      const fixtureOutcomes = allMatchResults.map(getFixtureOutcome);
       
       // Reusable context formatter: (H/A vs Opponent Score-AgainstScore)
       const contextFormatter = (m: MatchResultDetail) => 
           `${m.isHome ? 'H' : 'A'} vs ${m.opponent} (${m.scoreFor}-${m.scoreAgainst})`;
 
       // ----------------------------------------------------------------------
-      // 1. HOME WIN
+      // 1. ANALYZED TEAM TO WIN (Win)
+      //    Pattern: The analyzed team (teamName) won the match.
       // ----------------------------------------------------------------------
-      const homeWinPattern = this._detectBinaryPattern(
+      const teamWinPattern = this._detectBinaryPattern(
           allMatchResults,
-          fixtureOutcomes.map(o => o === 'HomeWin' ? 1 : 0),
+          allMatchResults.map(m => m.outcome === 'Win' ? 1 : 0), // Pattern of the team winning
           teamName,
           BettingMarket.MATCH_RESULT,
-          'Match Result - Home Win',
+          'Match Result - Team Win', 
           contextFormatter
       );
-      if (homeWinPattern) insights.push(homeWinPattern);
+      if (teamWinPattern) insights.push(teamWinPattern);
 
       // ----------------------------------------------------------------------
-      // 2. AWAY WIN
+      // 2. ANALYZED TEAM DOUBLE CHANCE (Win or Draw)
+      //    Pattern: The analyzed team (teamName) did not lose the match.
       // ----------------------------------------------------------------------
-      const awayWinPattern = this._detectBinaryPattern(
+      const teamOrDrawPattern = this._detectBinaryPattern(
           allMatchResults,
-          fixtureOutcomes.map(o => o === 'AwayWin' ? 1 : 0),
+          allMatchResults.map(m => (m.outcome === 'Win' || m.outcome === 'Draw') ? 1 : 0), // Pattern of the team not losing
           teamName,
-          BettingMarket.MATCH_RESULT,
-          'Match Result - Away Win',
+          BettingMarket.MATCH_RESULT, 
+          'Double Chance - Team Win or Draw',
           contextFormatter
       );
-      if (awayWinPattern) insights.push(awayWinPattern);
+      if (teamOrDrawPattern) insights.push(teamOrDrawPattern);
       
       // ----------------------------------------------------------------------
       // 3. DRAW
+      //    Pattern: The analyzed team (teamName) drew the match.
       // ----------------------------------------------------------------------
       const drawPattern = this._detectBinaryPattern(
           allMatchResults,
-          fixtureOutcomes.map(o => o === 'Draw' ? 1 : 0),
+          allMatchResults.map(m => m.outcome === 'Draw' ? 1 : 0),
           teamName,
           BettingMarket.MATCH_RESULT,
           'Match Result - Draw',
@@ -552,31 +543,9 @@ export class BettingInsightsService {
       if (drawPattern) insights.push(drawPattern);
 
       // ----------------------------------------------------------------------
-      // 4. DOUBLE CHANCE - Home or Draw (1X)
+      // OMISSION: We explicitly DO NOT generate patterns for Loss, 
+      // Opponent Win, or Opponent Win/Draw (e.g., Away or Draw).
       // ----------------------------------------------------------------------
-      const homeOrDrawPattern = this._detectBinaryPattern(
-          allMatchResults,
-          fixtureOutcomes.map(o => (o === 'HomeWin' || o === 'Draw') ? 1 : 0),
-          teamName,
-          BettingMarket.MATCH_RESULT, 
-          'Double Chance - Home or Draw',
-          contextFormatter
-      );
-      if (homeOrDrawPattern) insights.push(homeOrDrawPattern);
-      
-      // ----------------------------------------------------------------------
-      // 5. DOUBLE CHANCE - Away or Draw (X2)
-      // ----------------------------------------------------------------------
-      const awayOrDrawPattern = this._detectBinaryPattern(
-          allMatchResults,
-          fixtureOutcomes.map(o => (o === 'AwayWin' || o === 'Draw') ? 1 : 0),
-          teamName,
-          BettingMarket.MATCH_RESULT,
-          'Double Chance - Away or Draw',
-          contextFormatter
-      );
-      if (awayOrDrawPattern) insights.push(awayOrDrawPattern);
-
     }
 
     console.log(`[BettingInsights] Found ${insights.length} fixture result patterns`);
