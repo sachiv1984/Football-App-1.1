@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Trophy, TrendingUp, AlertTriangle, CheckCircle, XCircle, Target, Home, Plane, Info, Zap, Award, Filter, ChevronDown } from 'lucide-react';
+import { Trophy, TrendingUp, AlertTriangle, CheckCircle, XCircle, Target, Home, Plane, Info, Zap, Award, ChevronDown } from 'lucide-react';
 
 // NOTE: You must ensure 'betRankingService' and 'MatchContextInsight' 
 // are correctly imported from their respective paths in your project.
@@ -47,10 +47,14 @@ const StatsTeamLogo: React.FC<{ team: Team, size?: 'sm' | 'md' }> = ({ team, siz
   }
 
   // Fallback for missing logo
+  // Use a neutral color for the dummy 'Fixture' team
+  const isFixture = team.name === 'Fixture';
+  const bgColor = isFixture ? 'from-purple-500 to-purple-700' : 'from-blue-500 to-blue-700';
+
   return (
     <div className={`
       ${sizeClasses[size]} rounded-full 
-      bg-gradient-to-br from-blue-500 to-blue-700 
+      bg-gradient-to-br ${bgColor}
       text-white font-semibold shadow-sm
       flex items-center justify-center flex-shrink-0
     `}>
@@ -63,7 +67,7 @@ const StatsTeamLogo: React.FC<{ team: Team, size?: 'sm' | 'md' }> = ({ team, siz
 
 
 // ----------------------------------------------------------------------
-// UNIFIED BETTING INSIGHTS COMPONENT (Main Component - UNCHANGED)
+// UNIFIED BETTING INSIGHTS COMPONENT (Main Component)
 // ----------------------------------------------------------------------
 
 const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({ 
@@ -91,10 +95,13 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
     ? rankedBets 
     : rankedBets.filter(bet => bet.tier === selectedTab);
   
-  // Filtering uses the canonical names
+  // Filtering uses the canonical names, allowing 'Fixture' bets to always show unless filtered by a specific team
   const finalFiltered = selectedTeam === 'all'
     ? tabFiltered
     : tabFiltered.filter(bet => {
+        // Fixture bets do not belong to a team and are filtered out when a specific team is selected
+        if (bet.team === 'Fixture') return false; 
+        
         const isHomeTeam = bet.team === homeTeamName;
         return selectedTeam === 'home' ? isHomeTeam : !isHomeTeam;
       });
@@ -114,7 +121,7 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
         },
         accumulatorBets,
         bestBet,
-        // Using canonical comparison here
+        // Using canonical comparison here, excluding 'Fixture'
         homeCount: rankedBets.filter(b => b.team === homeTeamName).length,
         awayCount: rankedBets.filter(b => b.team === awayTeamName).length,
     };
@@ -132,7 +139,7 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
       
       {/* HEADER BLOCK (Tabs and Secondary Filter) */}
       <div className="w-full">
-        {/* TABS (UNCHANGED) */}
+        {/* TABS */}
         <div className="bg-gray-50 border-b border-gray-200 w-full flex">
           {tabs.map((tab) => {
             const isActive = selectedTab === tab.key;
@@ -163,7 +170,7 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
           })}
         </div>
 
-        {/* SECONDARY FILTER (Team/Acca Toggle - UNCHANGED) */}
+        {/* SECONDARY FILTER (Team/Acca Toggle) */}
         <div className="p-4 sm:p-6 bg-gray-50 border-b border-gray-100 flex flex-wrap justify-between items-center gap-4">
           
           {/* Team Filter Buttons */}
@@ -220,7 +227,7 @@ const UnifiedBettingInsights: React.FC<UnifiedBettingInsightsProps> = ({
         </div>
       </div>
 
-      {/* Content (UNCHANGED) */}
+      {/* Content */}
       <div className="p-4 sm:p-6 space-y-6">
         
         {/* Best Bet Highlight */}
@@ -326,24 +333,32 @@ const BetCard: React.FC<{
       cards: 'bg-yellow-100 text-yellow-800',
       corners: 'bg-blue-100 text-blue-800',
       fouls: 'bg-red-100 text-red-800',
-      goals: 'bg-green-100 text-green-800',
+      team_goals: 'bg-green-100 text-green-800', // Note the change from 'goals' to 'team_goals' (ensure consistent use)
+      goals: 'bg-lime-100 text-lime-800', // New color for Total Match Goals
       shots_on_target: 'bg-purple-100 text-purple-800',
       total_shots: 'bg-violet-100 text-violet-800',
       both_teams_to_score: 'bg-indigo-100 text-indigo-800',
-      total_match_corners: 'bg-cyan-100 text-cyan-800',
-      total_match_cards: 'bg-amber-100 text-amber-800'
+      match_result: 'bg-teal-100 text-teal-800'
     };
     return colors[market] || 'bg-gray-100 text-gray-800';
   };
   
-  // Determine which team object belongs to the bet
-  const teamObject = bet.team === homeTeam.name ? homeTeam : awayTeam;
+  // --- NEW LOGIC FOR FIXTURE BETS ---
+  const isFixtureBet = bet.team === 'Fixture';
+  
+  // Determine the team object for display
+  const teamObject = isFixtureBet 
+    ? { name: 'Fixture', shortName: 'M', logo: undefined } // Neutral/Dummy team for display
+    : (bet.team === homeTeam.name ? homeTeam : awayTeam);
+    
   const isHomeTeam = teamObject.name === homeTeam.name;
 
-  const teamColor = isHomeTeam ? 'text-green-700' : 'text-orange-700'; 
-  const teamBg = isHomeTeam ? 'bg-green-50' : 'bg-orange-50'; 
-  
-  // Renders the simplified view for grid items (FINAL UPDATED FUNCTION)
+  // Neutral colors for Fixture Bet, or team colors otherwise
+  const teamColor = isFixtureBet ? 'text-purple-700' : (isHomeTeam ? 'text-green-700' : 'text-orange-700'); 
+  const teamBg = isFixtureBet ? 'bg-purple-50' : (isHomeTeam ? 'bg-green-50' : 'bg-orange-50'); 
+  // --- END NEW LOGIC ---
+
+  // Renders the simplified view for grid items
   const renderCompactGridCard = () => {
       
       // Data required for the new footer elements
@@ -351,8 +366,8 @@ const BetCard: React.FC<{
       const homeVenueData = bet.context?.homeAwaySupportForSample?.home;
       const awayVenueData = bet.context?.homeAwaySupportForSample?.away;
       
-      // Determine which venue data to show (if applicable)
-      const showVenueSplit = homeVenueData && awayVenueData && (homeVenueData.matches > 0 || awayVenueData.matches > 0);
+      // Crucial: Only show venue split for team-specific bets
+      const showVenueSplit = !isFixtureBet && homeVenueData && awayVenueData && (homeVenueData.matches > 0 || awayVenueData.matches > 0);
 
       return (
         <div className="p-3">
@@ -363,17 +378,13 @@ const BetCard: React.FC<{
                         <StatsTeamLogo team={teamObject} size="sm" /> 
 
                         <div className={`px-2 py-0.5 rounded-full ${teamBg} ${teamColor} font-bold text-xs flex items-center gap-1`}>
-                            {teamObject.shortName || teamObject.name}
+                            {/* Display 'FIXTURE' or the team's name */}
+                            {isFixtureBet ? 'FIXTURE' : (teamObject.shortName || teamObject.name)}
                         </div>
                         
                     </div>
                     
                     <h4 className="text-base font-extrabold text-gray-900 truncate mt-1">{bet.outcome}</h4>
-                    
-                    {/* ❌ REMOVED: Small hint of the market type */}
-                    {/* <p className="text-xs text-gray-500 capitalize">{bet.market.replace(/_/g, ' ')}</p> */}
-                    
-
                 </div>
 
                 {/* Score Circle (smaller for grid view) */}
@@ -411,10 +422,9 @@ const BetCard: React.FC<{
                 </div>
 
 
-                {/* RIGHT SIDE: VENUE CONSISTENCY - REMOVED "Venue:" TEXT */}
+                {/* RIGHT SIDE: VENUE CONSISTENCY - HIDDEN FOR FIXTURE BETS */}
                 {showVenueSplit && (
                     <div className="flex items-center gap-2">
-                        {/* ❌ REMOVED: <span className="text-gray-500 font-medium">Venue:</span> */}
                         
                         {/* Home Venue Consistency */}
                         {homeVenueData && homeVenueData.matches > 0 && (
@@ -438,7 +448,7 @@ const BetCard: React.FC<{
       );
   };
   
-  // Main Render (UNCHANGED)
+  // Main Render (Full/Highlight View)
   return (
     <div 
       className={`
@@ -451,7 +461,7 @@ const BetCard: React.FC<{
         // Render the compact version for the grid
         renderCompactGridCard()
       ) : (
-        // Render the full, expandable version for the TOP PICK highlight (UNCHANGED)
+        // Render the full, expandable version for the TOP PICK highlight
         <>
           <div 
             className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
@@ -471,7 +481,7 @@ const BetCard: React.FC<{
                     <StatsTeamLogo team={teamObject} size="sm" /> 
                     
                     <div className={`px-3 py-1 rounded-full ${teamBg} ${teamColor} font-bold text-sm flex items-center gap-1`}>
-                      {teamObject.shortName || teamObject.name}
+                      {isFixtureBet ? 'FIXTURE' : (teamObject.shortName || teamObject.name)}
                     </div>
                     <span className={`px-2 py-1 rounded text-xs font-semibold ${getMarketColor(bet.market)}`}>
                       {bet.market.replace(/_/g, ' ').toUpperCase()}
@@ -509,7 +519,7 @@ const BetCard: React.FC<{
             </div>
           </div>
           
-          {/* Expanded Details (UNCHANGED) */}
+          {/* Expanded Details */}
           {expanded && (
             <div className="border-t-2 border-gray-100 p-6 space-y-6 bg-gray-50">
               
@@ -582,8 +592,8 @@ const BetCard: React.FC<{
                 </div>
               </div>
               
-              {/* Home/Away Venue Split */}
-              {bet.context?.homeAwaySupportForSample && (
+              {/* Home/Away Venue Split - HIDDEN FOR FIXTURE BETS */}
+              {bet.context?.homeAwaySupportForSample && !isFixtureBet && (
                 <div className="bg-white rounded-lg p-4 border border-gray-200">
                   <h5 className="font-bold text-gray-900 mb-3 text-sm">Venue Consistency (Pattern Sample)</h5>
                   <div className="grid grid-cols-2 gap-3">
