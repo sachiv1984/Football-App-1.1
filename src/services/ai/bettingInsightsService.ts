@@ -448,22 +448,20 @@ export class BettingInsightsService {
       const allDetails = stats.matchDetails as GoalsDetail[];
       const allValues = allDetails.map(m => m.bothTeamsScored ? 1 : 0);
       
-      const yesPattern = this._detectBinaryPattern(
+      const yesPattern = this._detectBinaryPattern<GoalsDetail>(
           allDetails,
           allValues,
           teamName,
           BettingMarket.BOTH_TEAMS_TO_SCORE,
-          true,
           'Both Teams to Score - Yes'
       );
       if (yesPattern) insights.push(yesPattern);
       
-      const noPattern = this._detectBinaryPattern(
+      const noPattern = this._detectBinaryPattern<GoalsDetail>(
           allDetails,
-          allValues,
+          allDetails.map(m => m.bothTeamsScored ? 0 : 1), // Invert for "No"
           teamName,
           BettingMarket.BOTH_TEAMS_TO_SCORE,
-          false,
           'Both Teams to Score - No'
       );
       if (noPattern) insights.push(noPattern);
@@ -489,38 +487,32 @@ export class BettingInsightsService {
 
       if (allMatchResults.length < this.ROLLING_WINDOW) continue;
       
-      const winPattern = this._detectBinaryPattern(
+      const winPattern = this._detectBinaryPattern<MatchResultDetail>(
           allMatchResults,
           allMatchResults.map(m => m.outcome === 'Win' ? 1 : 0),
           teamName,
           BettingMarket.MATCH_RESULT,
-          true,
           'Match Result - Win',
-          (m: MatchResultDetail) => m.outcome === 'Win',
           (m: MatchResultDetail) => `(${m.scoreFor}-${m.scoreAgainst})`
       );
       if (winPattern) insights.push(winPattern);
 
-      const drawPattern = this._detectBinaryPattern(
+      const drawPattern = this._detectBinaryPattern<MatchResultDetail>(
           allMatchResults,
           allMatchResults.map(m => m.outcome === 'Draw' ? 1 : 0),
           teamName,
           BettingMarket.MATCH_RESULT,
-          true,
           'Match Result - Draw',
-          (m: MatchResultDetail) => m.outcome === 'Draw',
           (m: MatchResultDetail) => `(${m.scoreFor}-${m.scoreAgainst})`
       );
       if (drawPattern) insights.push(drawPattern);
       
-      const lossPattern = this._detectBinaryPattern(
+      const lossPattern = this._detectBinaryPattern<MatchResultDetail>(
           allMatchResults,
           allMatchResults.map(m => m.outcome === 'Loss' ? 1 : 0),
           teamName,
           BettingMarket.MATCH_RESULT,
-          true,
           'Match Result - Loss',
-          (m: MatchResultDetail) => m.outcome === 'Loss',
           (m: MatchResultDetail) => `(${m.scoreFor}-${m.scoreAgainst})`
       );
       if (lossPattern) insights.push(lossPattern);
@@ -622,10 +614,8 @@ export class BettingInsightsService {
     allValues: number[], // 1 (hit) or 0 (miss)
     teamName: string,
     market: BettingMarket.BOTH_TEAMS_TO_SCORE | BettingMarket.MATCH_RESULT,
-    targetHitValue: boolean, // true for 'Yes'/'Win', false for 'No'/'Draw'/'Loss' (used for BTTS only)
     outcomeLabel: string,
-    isDetailHit?: (m: T) => boolean, // Optional for MatchResult
-    getContext?: (m: T) => string // Optional context for MatchResult
+    getContext?: (m: T extends MatchResultDetail ? MatchResultDetail : BaseMatchDetail) => string // Use intersection for specific context
   ): BettingInsight | null {
     
     const isHit = (value: number) => value === 1; // Always check for value 1 (a hit)
@@ -707,12 +697,14 @@ export class BettingInsightsService {
       comparison: 'binary',
       recentMatches: analyzedDetails!.map((m, idx) => ({
         opponent: m.opponent,
-        // For BTTS, value is 1/0 from allValues. For MatchResult, it's 1/0 from allValues
+        // The value is 1/0 from allValues
         value: analyzedValues![idx], 
         hit: analyzedValues![idx] === 1,
         date: m.date,
         isHome: m.isHome,
-        context: getContext ? getContext(m) : undefined
+        // Context is only available for MatchResultDetail, ensuring type safety here
+        context: market === BettingMarket.MATCH_RESULT && getContext ? 
+                 getContext(m as any) : undefined 
       })),
       context: {
         homeAwaySupportForSample,
