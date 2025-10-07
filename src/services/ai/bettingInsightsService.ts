@@ -25,7 +25,6 @@ interface GoalsDetail extends BaseMatchDetail {
 
 // Custom interface for Match-level analysis (requires both home/away goals)
 interface MatchGoalsDetail extends BaseMatchDetail {
-    // We will calculate totalGoals in the analysis step, but we need the raw data.
     goalsFor: number;
     goalsAgainst: number;
 }
@@ -59,8 +58,8 @@ export enum BettingMarket {
   CARDS = 'cards',
   CORNERS = 'corners',
   FOULS = 'fouls',
-  TEAM_GOALS = 'team_goals', // NEW MARKET
-  GOALS = 'goals', // RENAME/REPURPOSE TO TOTAL_MATCH_GOALS
+  TEAM_GOALS = 'team_goals', // Team-specific goals
+  GOALS = 'goals', // Total Match Goals
   SHOTS_ON_TARGET = 'shots_on_target',
   TOTAL_SHOTS = 'total_shots',
   BOTH_TEAMS_TO_SCORE = 'both_teams_to_score',
@@ -88,7 +87,7 @@ export type HomeAwaySupport = {
 };
 
 export interface BettingInsight {
-  team: string;
+  team: string; // This can be a specific team or "Fixture" for match-level bets
   market: BettingMarket;
   outcome: string;
   hitRate: number;
@@ -132,7 +131,6 @@ interface MarketConfig {
   useOrMore?: boolean;
 }
 
-// UPDATED MARKET CONFIGS
 const MARKET_CONFIGS: Record<Exclude<BettingMarket, BettingMarket.MATCH_RESULT | BettingMarket.GOALS>, MarketConfig> = {
   [BettingMarket.CARDS]: {
     thresholds: [0.5, 1.5, 2.5, 3.5],
@@ -149,12 +147,11 @@ const MARKET_CONFIGS: Record<Exclude<BettingMarket, BettingMarket.MATCH_RESULT |
     minValue: 0,
     label: 'Team Fouls Committed'
   },
-  [BettingMarket.TEAM_GOALS]: { // NEW CONFIG
+  [BettingMarket.TEAM_GOALS]: { 
     thresholds: [0.5, 1.5, 2.5],
     minValue: 0,
     label: 'Team Goals'
   },
-  // GOALS market is handled separately below (Match Total Goals)
   [BettingMarket.SHOTS_ON_TARGET]: {
     thresholds: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
     minValue: 0,
@@ -199,7 +196,6 @@ export class BettingInsightsService {
   private readonly MIN_HIT_RATE = 80; 
   private readonly MIN_SAMPLE_SIZE = 8; 
   
-  // UPDATED MARKET ANALYSIS CONFIGS
   private readonly MARKET_ANALYSIS_CONFIGS: AllMarketConfigs[] = [
     {
       market: BettingMarket.CARDS,
@@ -220,7 +216,6 @@ export class BettingInsightsService {
       label: 'fouls'
     },
     {
-      // TEAM_GOALS: This is the old GOALS market logic, now correctly labeled as Team Goals.
       market: BettingMarket.TEAM_GOALS, 
       service: { getStatistics: () => supabaseGoalsService.getGoalStatistics() },
       valueExtractor: (m: GoalsDetail) => m.totalGoals, // Goals *for* the analyzed team
@@ -247,6 +242,7 @@ export class BettingInsightsService {
     const mostSpecificInsights = new Map<string, BettingInsight>();
 
     for (const insight of insights) {
+      // Key now considers the team name AND the market/comparison
       const comparisonType = insight.market === BettingMarket.MATCH_RESULT 
         ? insight.outcome.split(' - ')[1] 
         : insight.comparison === 'binary' 
@@ -318,7 +314,7 @@ export class BettingInsightsService {
     
     marketAnalyses.push(this.analyzeBTTSMarket()); 
     marketAnalyses.push(this.analyzeMatchResultMarket()); 
-    marketAnalyses.push(this.analyzeTotalMatchGoalsMarket()); // NEW: Total Match Goals Market
+    marketAnalyses.push(this.analyzeTotalMatchGoalsMarket()); 
 
     try {
         const results = await Promise.all(marketAnalyses);
@@ -331,7 +327,7 @@ export class BettingInsightsService {
     
     const finalInsights = this.filterRedundantInsights(allInsights);
 
-    const uniqueTeams = new Set(finalInsights.map(i => i.team));
+    const uniqueTeams = new Set(finalInsights.map(i => i.team).filter(t => t !== "Fixture"));
 
     console.log('[BettingInsights] ✅ Analysis complete:', {
       totalInsights: finalInsights.length,
@@ -352,7 +348,7 @@ export class BettingInsightsService {
   async getTeamInsights(teamName: string): Promise<BettingInsight[]> {
     const allInsights = await this.getAllInsights();
     return allInsights.insights.filter(
-      insight => insight.team.toLowerCase() === teamName.toLowerCase()
+      insight => insight.team.toLowerCase() === teamName.toLowerCase() || insight.team === "Fixture"
     );
   }
 
@@ -373,7 +369,6 @@ export class BettingInsightsService {
     const insights: BettingInsight[] = [];
     
     const allStats = await config.service.getStatistics();
-    // Use MARKET_CONFIGS key, or default to the Team Goals config for the new market.
     const marketConfig = MARKET_CONFIGS[config.market as Exclude<BettingMarket, BettingMarket.GOALS | BettingMarket.MATCH_RESULT>];
 
     for (const [teamName, stats] of allStats.entries()) {
@@ -428,49 +423,64 @@ export class BettingInsightsService {
   }
   
   /**
-   * NEW MARKET: Analyzes the total goals scored in a match.
+   * FIX: Analyzes the total goals scored in a match (Fixture-level insight).
    */
   private async analyzeTotalMatchGoalsMarket(): Promise<BettingInsight[]> {
-      console.log('[BettingInsights] ⚽ Analyzing Total Match Goals market...');
+      console.log('[BettingInsights] ⚽ Analyzing Total Match Goals market (Fixture-Level)...');
       const insights: BettingInsight[] = [];
-      const allStats = await supabaseGoalsService.getGoalStatistics(); // Uses same data
+      const allStats = await supabaseGoalsService.getGoalStatistics(); 
 
       const totalGoalsThresholds = [1.5, 2.5, 3.5, 4.5];
       const market = BettingMarket.GOALS;
       const label = 'Total Match Goals';
 
-      for (const [teamName, stats] of allStats.entries()) {
-          if (stats.matches < this.ROLLING_WINDOW) continue;
+      // Use a flag to ensure the fixture-level analysis runs only once.
+      // We will analyze the match data from the perspective of the first team in the map.
+      const firstTeamName = allStats.keys().next().value;
+      if (!firstTeamName) return [];
+      
+      const stats = allStats.get(firstTeamName);
+      if (!stats || stats.matches < this.ROLLING_WINDOW) return [];
+      
+      // Crucial: Calculate the sum of goals (for + against) for the total match goals
+      const allMatchDetails = stats.matchDetails as MatchGoalsDetail[];
+      const allValues = allMatchDetails.map(m => (m.goalsFor || 0) + (m.goalsAgainst || 0));
 
-          // Crucial: Calculate the sum of goals (for + against) for the total match goals
-          // Note: This relies on goalsAgainst being present, which is standard in goals service
-          const allMatchDetails = stats.matchDetails as MatchGoalsDetail[];
-          const allValues = allMatchDetails.map(m => (m.goalsFor || 0) + (m.goalsAgainst || 0));
-
-          for (const threshold of totalGoalsThresholds) {
-              const baseOutcome = `${label}`;
-
-              const overPattern = this.detectPattern(
-                  allValues,
-                  threshold,
-                  teamName,
-                  market,
-                  `${Comparison.OVER} ${threshold} ${baseOutcome}`,
-                  allMatchDetails,
-                  Comparison.OVER
-              );
-              if (overPattern) insights.push(overPattern);
-              
-              const underPattern = this.detectPattern(
-                  allValues,
-                  threshold,
-                  teamName,
-                  market,
-                  `${Comparison.UNDER} ${threshold} ${baseOutcome}`,
-                  allMatchDetails,
-                  Comparison.UNDER
-              );
-              if (underPattern) insights.push(underPattern);
+      for (const threshold of totalGoalsThresholds) {
+          const baseOutcome = `${label}`;
+          
+          // --- OVER Pattern ---
+          const overPattern = this.detectPattern(
+              allValues,
+              threshold,
+              "Fixture", // Assign to "Fixture" to mark it as non-team-specific
+              market,
+              `${Comparison.OVER} ${threshold} ${baseOutcome}`,
+              allMatchDetails,
+              Comparison.OVER
+          );
+          if (overPattern) {
+            // Modify the output to look like a match bet
+            overPattern.outcome = `${Comparison.OVER} ${threshold} ${baseOutcome}`; 
+            overPattern.team = "Fixture";
+            insights.push(overPattern);
+          }
+          
+          // --- UNDER Pattern ---
+          const underPattern = this.detectPattern(
+              allValues,
+              threshold,
+              "Fixture", // Assign to "Fixture"
+              market,
+              `${Comparison.UNDER} ${threshold} ${baseOutcome}`,
+              allMatchDetails,
+              Comparison.UNDER
+          );
+          if (underPattern) {
+            // Modify the output to look like a match bet
+            underPattern.outcome = `${Comparison.UNDER} ${threshold} ${baseOutcome}`;
+            underPattern.team = "Fixture";
+            insights.push(underPattern);
           }
       }
 
@@ -511,6 +521,27 @@ export class BettingInsightsService {
         homeAwaySupportOverall
       );
       if (noPattern) insights.push(noPattern);
+    }
+
+    // FIX: BTTS is technically a fixture-level market, but depends on team stats.
+    // We should only keep the one with the highest confidence/hit rate to represent the fixture.
+    if (insights.length > 0) {
+        const bttsYesInsights = insights.filter(i => i.outcome.includes('Yes'));
+        const bttsNoInsights = insights.filter(i => i.outcome.includes('No'));
+        
+        const bestYes = bttsYesInsights.sort((a, b) => (b.context?.confidence?.score ?? 0) - (a.context?.confidence?.score ?? 0))[0];
+        const bestNo = bttsNoInsights.sort((a, b) => (b.context?.confidence?.score ?? 0) - (a.context?.confidence?.score ?? 0))[0];
+        
+        const filteredInsights: BettingInsight[] = [];
+        if (bestYes) {
+            bestYes.team = "Fixture";
+            filteredInsights.push(bestYes);
+        }
+        if (bestNo) {
+            bestNo.team = "Fixture";
+            filteredInsights.push(bestNo);
+        }
+        return filteredInsights;
     }
 
     return insights;
@@ -853,7 +884,6 @@ export class BettingInsightsService {
     const hits = sampleValues.filter(isHit).length;
     const actualHitRate = Math.round((hits / sampleValues.length) * 100);
 
-    // This was the line with the 'values' error, now fixed to 'sampleValues'
     const homeAwaySupportForSample = this.calculateHomeAwaySupport(
         sampleMatchDetails, sampleValues, isHit
     );
