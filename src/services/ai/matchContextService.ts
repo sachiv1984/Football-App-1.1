@@ -23,7 +23,7 @@ type CardsStats = Awaited<ReturnType<typeof supabaseCardsService.getCardStatisti
 type CornersStats = Awaited<ReturnType<typeof supabaseCornersService.getCornerStatistics>>;
 type FoulsStats = Awaited<ReturnType<typeof supabaseFoulsService.getFoulStatistics>>;
 type GoalsStats = Awaited<ReturnType<typeof supabaseGoalsService.getGoalStatistics>>;
-type ShootingStats = Awaited<ReturnType<typeof supabaseShootingService.getShootingStatistics>>;
+type ShootingStats = Awaited<ReturnType<typeof supabaseShootingService.getShotStatistics>>;
 
 // 2. DYNAMICALLY INFERRED MATCH DETAIL TYPES 
 type ExtractMatchDetail<T> = T extends Map<string, infer V> 
@@ -333,7 +333,7 @@ export class MatchContextService {
           };
         }
 
-        case BettingMarket.GOALS: {
+        case BettingMarket.TEAM_GOALS: {
             const oppStats = stats.goals.get(opponent);
             if (!oppStats) return null;
             
@@ -361,7 +361,9 @@ export class MatchContextService {
               venueSpecific
             };
         }
-
+        
+        // ❌ REMOVED: BettingMarket.GOALS (Total Match Goals) is no longer a valid market.
+        
         case BettingMarket.BOTH_TEAMS_TO_SCORE: {
             // No direct opposition 'allows' metric for BTTS, so return default/zero.
             return { average: 0, matches: 0, venueSpecific: false };
