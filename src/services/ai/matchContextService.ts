@@ -6,27 +6,14 @@ import {
   Comparison 
 } from './bettingInsightsService';
 
-// --- START: UPDATED IMPORTS ---
-// REMOVE: Direct imports of stats services for verification purposes
-// import { supabaseCardsService } from '../stats/supabaseCardsService';
-// import { supabaseCornersService } from '../stats/supabaseCornersService';
-// import { supabaseFoulsService } from '../stats/supabaseFoulsService'; 
-// import { supabaseGoalsService } from '../stats/supabaseGoalsService';
-// import { supabaseShootingService } from '../stats/supabaseShootingService';
-
-// PRESERVE: Direct imports of stats services for actual data compilation
 import { supabaseCardsService } from '../stats/supabaseCardsService';
 import { supabaseCornersService } from '../stats/supabaseCornersService';
 import { supabaseFoulsService } from '../stats/supabaseFoulsService'; 
 import { supabaseGoalsService } from '../stats/supabaseGoalsService';
 import { supabaseShootingService } from '../stats/supabaseShootingService';
-
 import { fbrefFixtureService } from '../fixtures/fbrefFixtureService'; 
 import { getDisplayTeamName, normalizeTeamName } from '../../utils/teamUtils';
-
-// 🚀 NEW, EFFICIENT IMPORT
 import { supabaseTeamService } from '../stats/supabaseTeamService';
-// --- END: UPDATED IMPORTS ---
 
 
 // --- ROBUST DYNAMIC TYPE INFERENCE ---
