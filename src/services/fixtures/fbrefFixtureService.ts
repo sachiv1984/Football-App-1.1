@@ -3,14 +3,13 @@ import type { FeaturedFixtureWithImportance } from '../../types';
 import { supabase } from '../supabaseClient'; // your Supabase client
 import { normalizeTeamName, getDisplayTeamName, getTeamLogo, getCompetitionLogo } from '../../utils/teamUtils';
 
-// ----------------- NEW INTERFACE -----------------
+// ----------------- EXISTING INTERFACES -----------------
 export interface TeamFixtureDisplay {
     opponent: string;
     venueStatus: 'Home' | 'Plane'; // 'Plane' is used for away games based on your UI
     matchId: string;
     dateTime: string;
 }
-// -------------------------------------------------
 
 export interface TeamSeasonStats {
   team: string;
@@ -32,6 +31,25 @@ interface SupabaseFixture {
   matchweek?: number;
   venue?: string;
 }
+
+// Re-defining a BaseMatchDetail locally for clarity, assuming it exists elsewhere, 
+// but defining it here to prevent errors in MatchResultDetail definition.
+interface BaseMatchDetail {
+  opponent: string;
+  date?: string;
+  isHome?: boolean; // Track home/away context
+}
+
+// ----------------- NEW INTERFACE FOR BETTING INSIGHTS -----------------
+export interface MatchResultDetail extends BaseMatchDetail { 
+    // The outcome for the team being analyzed
+    outcome: 'Win' | 'Draw' | 'Loss';
+    // The exact score (optional, but useful for context)
+    scoreFor?: number;
+    scoreAgainst?: number;
+}
+// ----------------------------------------------------------------------
+
 
 export class SupabaseFixtureService {
   private fixturesCache: FeaturedFixtureWithImportance[] = [];
@@ -336,7 +354,57 @@ private async refreshCache(): Promise<void> {
     return upcoming.slice(0, limit);
   }
 
-  // ---------------- NEW METHOD FOR FIXING UI ----------------
+  /**
+   * NEW METHOD: Gets historical match results for a team by venue.
+   * This is used by the BettingInsightsService for the MATCH_RESULT market.
+   * @param teamName The name of the team.
+   * @returns An array of MatchResultDetail for finished games, sorted by date (most recent first).
+   */
+  async getTeamMatchResultsByVenue(teamName: string): Promise<MatchResultDetail[]> {
+    if (!this.isCacheValid()) await this.refreshCache();
+    
+    const normalizedTargetTeam = normalizeTeamName(teamName);
+    const fixtures = await this.fetchFixturesFromSupabase(); // Use the raw fixtures
+    
+    // Sort by date descending (most recent first)
+    fixtures.sort((a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime());
+    
+    const matchResults: MatchResultDetail[] = [];
+
+    for (const f of fixtures) {
+      // Only process finished matches involving the target team
+      if (f.status !== 'finished' || (f.hometeam !== normalizedTargetTeam && f.awayteam !== normalizedTargetTeam)) {
+        continue;
+      }
+      
+      const isHomeGame = f.hometeam === normalizedTargetTeam;
+      const scoreFor = isHomeGame ? f.homescore! : f.awayscore!;
+      const scoreAgainst = isHomeGame ? f.awayscore! : f.homescore!;
+
+      let outcome: MatchResultDetail['outcome'];
+      if (scoreFor > scoreAgainst) {
+        outcome = 'Win';
+      } else if (scoreFor < scoreAgainst) {
+        outcome = 'Loss';
+      } else {
+        outcome = 'Draw';
+      }
+
+      matchResults.push({
+        // opponent's normalized name (since it's internal data)
+        opponent: isHomeGame ? f.awayteam : f.hometeam,
+        date: f.datetime,
+        isHome: isHomeGame,
+        outcome: outcome,
+        scoreFor: scoreFor,
+        scoreAgainst: scoreAgainst,
+      });
+    }
+
+    return matchResults;
+  }
+
+  // ---------------- EXISTING METHOD FOR FIXING UI ----------------
   /**
    * Retrieves a team's next 'limit' number of scheduled fixtures and determines
    * the opponent and venue status (Home or Plane).
