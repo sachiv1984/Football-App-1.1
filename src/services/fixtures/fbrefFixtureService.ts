@@ -131,7 +131,7 @@ export class SupabaseFixtureService {
   }
 }
 
-  // ---------------- Calculate recent form ----------------
+  // ---------------- Calculate recent form (FIXED) ----------------
 private calculateForm(fixtures: SupabaseFixture[]): Map<string, TeamSeasonStats> {
   const stats = new Map<string, TeamSeasonStats>();
 
@@ -160,7 +160,9 @@ private calculateForm(fixtures: SupabaseFixture[]): Map<string, TeamSeasonStats>
   });
 
   const finishedFixtures = fixtures.filter(f => f.status === 'finished');
-  finishedFixtures.sort((a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime());
+  
+  // 🔥 FIX 1: Sort finished fixtures by date ASCENDING (OLDEST first) to process in chronological order
+  finishedFixtures.sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime());
 
   finishedFixtures.forEach(f => {
     const homeStats = stats.get(f.hometeam)!;
@@ -186,11 +188,17 @@ private calculateForm(fixtures: SupabaseFixture[]): Map<string, TeamSeasonStats>
     else awayStats.lost++;
 
     // Update recent form (last 5 games)
-    homeStats.recentForm.unshift(homeResult);
-    if (homeStats.recentForm.length > 5) homeStats.recentForm.pop();
+    // 🔥 FIX 2: Use push and shift to maintain the last 5 results in chronological order
+    homeStats.recentForm.push(homeResult);
+    if (homeStats.recentForm.length > 5) homeStats.recentForm.shift(); // Remove the oldest result
 
-    awayStats.recentForm.unshift(awayResult);
-    if (awayStats.recentForm.length > 5) awayStats.recentForm.pop();
+    awayStats.recentForm.push(awayResult);
+    if (awayStats.recentForm.length > 5) awayStats.recentForm.shift(); // Remove the oldest result
+  });
+
+  // 🔥 FIX 3: Reverse the recentForm array so the MOST RECENT game is first
+  stats.forEach(teamStats => {
+    teamStats.recentForm.reverse();
   });
 
   return stats;
