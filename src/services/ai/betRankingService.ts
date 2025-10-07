@@ -32,8 +32,12 @@ export class BetRankingService {
     const homeAwaySupport = insight.context?.homeAwaySupportForSample;
     const venueSpecific = insight.matchContext.venueSpecific;
     
-    // Check if the bet is Fixture-Level (like Total Goals or BTTS)
-    const isFixtureLevelBet = insight.team === 'Fixture';
+    // Check if the bet is Fixture-Level (like Match Result, Double Chance, or BTTS)
+    // NOTE: Match Result/Double Chance bets are team-relative insights in bettingInsightsService 
+    // but are essentially fixture-level outcomes, so we'll check the market type here instead of team name.
+    const isFixtureLevelBet = 
+        insight.market === 'match_result' || 
+        insight.market === 'both_teams_to_score';
     
     // 1. Base Confidence Score (40 points max)
     score += confidence * 0.4;
@@ -57,7 +61,7 @@ export class BetRankingService {
     };
     score += dataQualityPoints[dataQuality] || 0;
     
-    // 4. Venue Consistency Bonus (10 points max) - APPLIES ONLY TO TEAM-LEVEL BETS
+    // 4. Venue Consistency Bonus (10 points max) - APPLIES ONLY TO TEAM-LEVEL STATS (non-Fixture)
     if (!isFixtureLevelBet && homeAwaySupport) { 
       const upcomingVenue = insight.matchContext.isHome ? 'home' : 'away';
       const venueData = upcomingVenue === 'home' 
@@ -84,7 +88,7 @@ export class BetRankingService {
     
     // 6. PENALTIES for red flags
     
-    // Penalty for venue inconsistency - APPLIES ONLY TO TEAM-LEVEL BETS
+    // Penalty for venue inconsistency - APPLIES ONLY TO TEAM-LEVEL STATS (non-Fixture)
     if (!isFixtureLevelBet && homeAwaySupport && !venueSpecific) {
       const upcomingVenue = insight.matchContext.isHome ? 'home' : 'away';
       const venueData = upcomingVenue === 'home' 
@@ -107,7 +111,7 @@ export class BetRankingService {
     const threshold = insight.threshold;
     const comparison = insight.comparison;
     
-    // 🛡️ IMPROVEMENT: Check that it is an Over/Under bet AND not a Fixture-Level bet
+    // Check that it is an Over/Under bet AND not a Fixture-Level bet
     const isOverUnder = comparison === 'Over' || comparison === 'Or More' || comparison === 'Under';
     
     if (isOverUnder && !isFixtureLevelBet) {
@@ -144,7 +148,9 @@ export class BetRankingService {
     const confidence = insight.context?.confidence;
     const matchStrength = insight.matchContext.strengthOfMatch;
     const homeAwaySupport = insight.context?.homeAwaySupportForSample;
-    const isFixtureLevelBet = insight.team === 'Fixture';
+    const isFixtureLevelBet = 
+        insight.market === 'match_result' || 
+        insight.market === 'both_teams_to_score';
     
     // Positive factors
     if (confidence && confidence.score >= 80) {
@@ -159,7 +165,7 @@ export class BetRankingService {
       reasons.push(`Strong ${insight.streakLength}-match streak`);
     }
     
-    // Venue consistency - APPLIES ONLY TO TEAM-LEVEL BETS
+    // Venue consistency - APPLIES ONLY TO TEAM-LEVEL STATS (non-Fixture)
     if (!isFixtureLevelBet && homeAwaySupport) { 
       const upcomingVenue = insight.matchContext.isHome ? 'home' : 'away';
       const venueData = upcomingVenue === 'home' 
@@ -177,7 +183,7 @@ export class BetRankingService {
     
     // Average proximity to threshold
     const marginRatio = Math.abs(insight.averageValue - insight.threshold) / insight.threshold;
-    if (marginRatio > 0.15) {
+    if (marginRatio > 0.15 && insight.comparison !== 'binary') {
       reasons.push(`Team average is ${Math.round(marginRatio * 100)}% ${insight.comparison === 'Under' ? 'below' : 'above'} threshold`);
     }
     
@@ -193,7 +199,9 @@ export class BetRankingService {
     const matchStrength = insight.matchContext.strengthOfMatch;
     const dataQuality = insight.matchContext.dataQuality;
     const homeAwaySupport = insight.context?.homeAwaySupportForSample;
-    const isFixtureLevelBet = insight.team === 'Fixture';
+    const isFixtureLevelBet = 
+        insight.market === 'match_result' || 
+        insight.market === 'both_teams_to_score';
 
     // Low confidence
     if (confidence && confidence.score < 60) {
@@ -210,7 +218,7 @@ export class BetRankingService {
       redFlags.push(`${dataQuality} data quality (${insight.matchContext.oppositionMatches} matches)`);
     }
     
-    // Venue inconsistency - APPLIES ONLY TO TEAM-LEVEL BETS
+    // Venue inconsistency - APPLIES ONLY TO TEAM-LEVEL STATS (non-Fixture)
     if (!isFixtureLevelBet && homeAwaySupport) {
       const upcomingVenue = insight.matchContext.isHome ? 'home' : 'away';
       const venueData = upcomingVenue === 'home' 
@@ -248,38 +256,30 @@ export class BetRankingService {
     } = rankedBet;
     
     // 1. Determine the core selection phrase
-    let selectionPhrase = `${team}'s pattern: **${outcome}** (${averageValue} avg)`;
-    if (team === 'Fixture') {
-        selectionPhrase = `Fixture-level bet: **${outcome}** (${averageValue} avg)`;
-    }
-
+    let selectionPhrase = `${team}'s pattern: **${outcome}** (${Math.round(averageValue * 10) / 10} avg)`;
+    
     // 2. Determine the matchup analysis
     const oppositionAllows = matchContext.oppositionAllows;
-    let matchupAnalysis = `An **${matchContext.strengthOfMatch} Matchup** as the opposition allows **${oppositionAllows} avg**`;
+    let matchupAnalysis = `An **${matchContext.strengthOfMatch} Matchup**`;
     
     // 3. Comparison to the threshold (only for Over/Under)
     const isOverUnder = comparison === 'Over' || comparison === 'Or More' || comparison === 'Under';
     if (isOverUnder) {
         const comparisonWord = comparison === 'Under' ? 'below' : 'above';
-        matchupAnalysis += `, which is significantly **${comparisonWord} the ${threshold} threshold**`;
+        matchupAnalysis += ` as the opposition allows **${Math.round(oppositionAllows * 10) / 10} avg** which is ${oppositionAllows > threshold ? comparisonWord : comparisonWord} the **${threshold} threshold**.`;
         
-        if (matchContext.venueSpecific) {
-             matchupAnalysis += ` when playing ${matchContext.isHome ? 'at home' : 'away'}.`;
-        } else {
-             matchupAnalysis += `.`;
-        }
+    } else if (matchContext.recommendation.includes('Double Chance') || matchContext.recommendation.includes('Win')) {
+        // Use the MatchContextService's embedded recommendation for Match Result/Double Chance/BTTS
+        matchupAnalysis = matchContext.recommendation
+            .replace(/(\*\*)/g, '*') // Remove existing double bolding for cleaner integration
+            .replace(/^(✅|🔵|🟡|🛑) /, ''); // Remove the initial emoji/prefix
     } else {
         matchupAnalysis += `.`;
     }
     
     // 4. Initial assessment & opportunity
     const assessment = this.determineTier(betScore);
-    let finalAssessment = `This is a high-confidence, high-value opportunity.`;
-
-    if (assessment === BetTier.POOR || assessment === BetTier.AVOID) {
-        finalAssessment = `A low-value opportunity due to significant risks.`;
-    }
-
+    
     // 5. Build the final string (using the suggested order: Assessment -> Confidence -> Warning)
     
     // Emojis based on tier
@@ -287,7 +287,7 @@ export class BetRankingService {
                       rankedBet.tier === BetTier.GOOD ? '📈' : '💡';
     
     // Construct the initial line
-    const initialLine = `${tierEmoji} **${assessment.toUpperCase()} SELECTION**: ${selectionPhrase}. ${matchupAnalysis}`;
+    const initialLine = `${tierEmoji} **${assessment.toUpperCase()} SELECTION** [Score: ${betScore}]: ${selectionPhrase}. Matchup Analysis: ${matchupAnalysis}`;
     
     // Confidence and Data Warning 
     const confidenceScore = context?.confidence?.score ?? 0;
@@ -300,7 +300,7 @@ export class BetRankingService {
         warningLine += ` 📊 **Data Warning: ${dataQuality} Quality** (${opponentMatches} venue-specific matches).`;
     }
     
-    return `${initialLine} ${finalAssessment} ${warningLine}`;
+    return `${initialLine} ${warningLine}`;
   }
 
   /**
@@ -311,7 +311,9 @@ export class BetRankingService {
     const matchStrength = insight.matchContext.strengthOfMatch;
     const dataQuality = insight.matchContext.dataQuality;
     const homeAwaySupport = insight.context?.homeAwaySupportForSample;
-    const isFixtureLevelBet = insight.team === 'Fixture';
+    const isFixtureLevelBet = 
+        insight.market === 'match_result' || 
+        insight.market === 'both_teams_to_score';
     
     // Must meet ALL criteria
     const hasHighConfidence = confidence >= 70;
@@ -320,9 +322,9 @@ export class BetRankingService {
     const hasSufficientSample = insight.matchesAnalyzed >= 7;
     const hasHighScore = score >= 70;
     
-    // Check venue consistency - REQUIRED ONLY FOR TEAM-LEVEL BETS
+    // Check venue consistency - REQUIRED ONLY FOR TEAM-LEVEL STATS (non-Fixture)
     let hasVenueConsistency = true;
-    if (!isFixtureLevelBet && homeAwaySupport) { // MODIFIED CONDITION
+    if (!isFixtureLevelBet && homeAwaySupport) { 
       const upcomingVenue = insight.matchContext.isHome ? 'home' : 'away';
       const venueData = upcomingVenue === 'home' 
         ? homeAwaySupport.home 
@@ -362,7 +364,7 @@ export class BetRankingService {
           stylizedAnalysis: '' // Placeholder
       };
 
-      // 🆕 Calculate the final stylized analysis string
+      // Calculate the final stylized analysis string
       const stylizedAnalysis = this.generateStylizedAnalysis(tempRankedBet);
       
       return {
