@@ -31,6 +31,9 @@ export class BetRankingService {
     const homeAwaySupport = insight.context?.homeAwaySupportForSample;
     const venueSpecific = insight.matchContext.venueSpecific;
     
+    // Check if the bet is Fixture-Level (like Total Goals or BTTS)
+    const isFixtureLevelBet = insight.team === 'Fixture';
+    
     // 1. Base Confidence Score (40 points max)
     score += confidence * 0.4;
     
@@ -53,8 +56,8 @@ export class BetRankingService {
     };
     score += dataQualityPoints[dataQuality] || 0;
     
-    // 4. Venue Consistency Bonus (10 points max)
-    if (homeAwaySupport) {
+    // 4. Venue Consistency Bonus (10 points max) - APPLIES ONLY TO TEAM-LEVEL BETS
+    if (!isFixtureLevelBet && homeAwaySupport) { 
       const upcomingVenue = insight.matchContext.isHome ? 'home' : 'away';
       const venueData = upcomingVenue === 'home' 
         ? homeAwaySupport.home 
@@ -80,8 +83,8 @@ export class BetRankingService {
     
     // 6. PENALTIES for red flags
     
-    // Penalty for venue inconsistency
-    if (homeAwaySupport && !venueSpecific) {
+    // Penalty for venue inconsistency - APPLIES ONLY TO TEAM-LEVEL BETS
+    if (!isFixtureLevelBet && homeAwaySupport && !venueSpecific) {
       const upcomingVenue = insight.matchContext.isHome ? 'home' : 'away';
       const venueData = upcomingVenue === 'home' 
         ? homeAwaySupport.home 
@@ -135,6 +138,7 @@ export class BetRankingService {
     const confidence = insight.context?.confidence;
     const matchStrength = insight.matchContext.strengthOfMatch;
     const homeAwaySupport = insight.context?.homeAwaySupportForSample;
+    const isFixtureLevelBet = insight.team === 'Fixture';
     
     // Positive factors
     if (confidence && confidence.score >= 80) {
@@ -149,7 +153,8 @@ export class BetRankingService {
       reasons.push(`Strong ${insight.streakLength}-match streak`);
     }
     
-    if (homeAwaySupport) {
+    // Venue consistency - APPLIES ONLY TO TEAM-LEVEL BETS
+    if (!isFixtureLevelBet && homeAwaySupport) { 
       const upcomingVenue = insight.matchContext.isHome ? 'home' : 'away';
       const venueData = upcomingVenue === 'home' 
         ? homeAwaySupport.home 
@@ -182,7 +187,8 @@ export class BetRankingService {
     const matchStrength = insight.matchContext.strengthOfMatch;
     const dataQuality = insight.matchContext.dataQuality;
     const homeAwaySupport = insight.context?.homeAwaySupportForSample;
-    
+    const isFixtureLevelBet = insight.team === 'Fixture';
+
     // Low confidence
     if (confidence && confidence.score < 60) {
       redFlags.push(`Low confidence score (${confidence.score}/100)`);
@@ -198,8 +204,8 @@ export class BetRankingService {
       redFlags.push(`${dataQuality} data quality (${insight.matchContext.oppositionMatches} matches)`);
     }
     
-    // Venue inconsistency
-    if (homeAwaySupport) {
+    // Venue inconsistency - APPLIES ONLY TO TEAM-LEVEL BETS
+    if (!isFixtureLevelBet && homeAwaySupport) {
       const upcomingVenue = insight.matchContext.isHome ? 'home' : 'away';
       const venueData = upcomingVenue === 'home' 
         ? homeAwaySupport.home 
@@ -228,11 +234,11 @@ export class BetRankingService {
    * Determine if bet is safe for accumulators
    */
   private isAccumulatorSafe(insight: MatchContextInsight, score: number): boolean {
-    // Strict criteria for accas
     const confidence = insight.context?.confidence?.score ?? 0;
     const matchStrength = insight.matchContext.strengthOfMatch;
     const dataQuality = insight.matchContext.dataQuality;
     const homeAwaySupport = insight.context?.homeAwaySupportForSample;
+    const isFixtureLevelBet = insight.team === 'Fixture';
     
     // Must meet ALL criteria
     const hasHighConfidence = confidence >= 70;
@@ -241,9 +247,9 @@ export class BetRankingService {
     const hasSufficientSample = insight.matchesAnalyzed >= 7;
     const hasHighScore = score >= 70;
     
-    // Check venue consistency
+    // Check venue consistency - REQUIRED ONLY FOR TEAM-LEVEL BETS
     let hasVenueConsistency = true;
-    if (homeAwaySupport) {
+    if (!isFixtureLevelBet && homeAwaySupport) { // MODIFIED CONDITION
       const upcomingVenue = insight.matchContext.isHome ? 'home' : 'away';
       const venueData = upcomingVenue === 'home' 
         ? homeAwaySupport.home 
