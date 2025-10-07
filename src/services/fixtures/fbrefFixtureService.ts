@@ -131,7 +131,7 @@ export class SupabaseFixtureService {
   }
 }
 
-  // ---------------- Calculate recent form (FIXED) ----------------
+  // ---------------- Calculate recent form (REVISED) ----------------
 private calculateForm(fixtures: SupabaseFixture[]): Map<string, TeamSeasonStats> {
   const stats = new Map<string, TeamSeasonStats>();
 
@@ -161,7 +161,7 @@ private calculateForm(fixtures: SupabaseFixture[]): Map<string, TeamSeasonStats>
 
   const finishedFixtures = fixtures.filter(f => f.status === 'finished');
   
-  // 🔥 FIX 1: Sort finished fixtures by date ASCENDING (OLDEST first) to process in chronological order
+  // Sort finished fixtures by date ASCENDING (OLDEST first) to process in chronological order
   finishedFixtures.sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime());
 
   finishedFixtures.forEach(f => {
@@ -188,7 +188,7 @@ private calculateForm(fixtures: SupabaseFixture[]): Map<string, TeamSeasonStats>
     else awayStats.lost++;
 
     // Update recent form (last 5 games)
-    // 🔥 FIX 2: Use push and shift to maintain the last 5 results in chronological order
+    // Use push and shift to maintain the last 5 results in chronological order (OLD-NEW)
     homeStats.recentForm.push(homeResult);
     if (homeStats.recentForm.length > 5) homeStats.recentForm.shift(); // Remove the oldest result
 
@@ -196,16 +196,15 @@ private calculateForm(fixtures: SupabaseFixture[]): Map<string, TeamSeasonStats>
     if (awayStats.recentForm.length > 5) awayStats.recentForm.shift(); // Remove the oldest result
   });
 
-  // 🔥 FIX 3: Reverse the recentForm array so the MOST RECENT game is first
-  stats.forEach(teamStats => {
-    teamStats.recentForm.reverse();
-  });
+  // 🔥 REMOVED: The final reverse() call. 
+  // The 'recentForm' array is now in chronological order (5, 4, 3, 2, 1)
 
   return stats;
 }
 
   // ---------------- Transform ----------------
 private transformFixture(f: SupabaseFixture): FeaturedFixtureWithImportance {
+  // homeForm and awayForm are now chronological (oldest to newest: 5, 4, 3, 2, 1)
   const homeForm = this.teamStatsCache.get(f.hometeam)?.recentForm || [];
   const awayForm = this.teamStatsCache.get(f.awayteam)?.recentForm || [];
 
@@ -219,7 +218,7 @@ private transformFixture(f: SupabaseFixture): FeaturedFixtureWithImportance {
       id: f.hometeam.replace(/\s+/g, '-').toLowerCase(),
       name: f.hometeam,
       shortName: getDisplayTeamName(f.hometeam),
-      form: homeForm,
+      form: homeForm, // This is now 5, 4, 3, 2, 1
       logo: getTeamLogo({ name: f.hometeam }).logoPath,
       colors: {},
     },
@@ -227,7 +226,7 @@ private transformFixture(f: SupabaseFixture): FeaturedFixtureWithImportance {
       id: f.awayteam.replace(/\s+/g, '-').toLowerCase(),
       name: f.awayteam,
       shortName: getDisplayTeamName(f.awayteam),
-      form: awayForm,
+      form: awayForm, // This is also 5, 4, 3, 2, 1
       logo: getTeamLogo({ name: f.awayteam }).logoPath,
       colors: {},
     },
