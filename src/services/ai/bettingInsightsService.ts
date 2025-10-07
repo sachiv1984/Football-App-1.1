@@ -5,20 +5,16 @@ import { supabaseCornersService } from '../stats/supabaseCornersService';
 import { supabaseFoulsService } from '../stats/supabaseFoulsService';
 import { supabaseGoalsService } from '../stats/supabaseGoalsService';
 import { supabaseShootingService } from '../stats/supabaseShootingService';
-// 👇 NEW IMPORT for Match Result data
 import { fbrefFixtureService, MatchResultDetail } from '../fixtures/fbrefFixtureService'; 
 
 // ----------------------------------------------------------------------
 // Interfaces and Enums 
 // ----------------------------------------------------------------------
 
-// NOTE: These interfaces are typically defined in a shared types file, 
-// but are included here for completeness based on your provided context.
-
 interface BaseMatchDetail {
   opponent: string;
   date?: string;
-  isHome?: boolean; // Track home/away context
+  isHome?: boolean; 
 }
 
 interface GoalsDetail extends BaseMatchDetail {
@@ -60,7 +56,7 @@ export enum BettingMarket {
   SHOTS_ON_TARGET = 'shots_on_target',
   TOTAL_SHOTS = 'total_shots',
   BOTH_TEAMS_TO_SCORE = 'both_teams_to_score',
-  MATCH_RESULT = 'match_result' // 🏆 NEW MARKET
+  MATCH_RESULT = 'match_result'
 }
 
 /**
@@ -100,7 +96,7 @@ export interface BettingInsight {
     hit: boolean;
     date?: string;
     isHome?: boolean;
-    context?: string; // Added for Match Result score context
+    context?: string;
   }>;
   context?: {
     homeAwaySupportForSample?: HomeAwaySupport; 
@@ -190,8 +186,8 @@ type AllMarketConfigs =
 export class BettingInsightsService {
   private readonly ROLLING_WINDOW = 5;
   private readonly STREAK_THRESHOLD = 7;
-  private readonly MIN_HIT_RATE = 80; // Detect patterns with 80%+ hit rate
-  private readonly MIN_SAMPLE_SIZE = 8; // Minimum matches for non-100% patterns
+  private readonly MIN_HIT_RATE = 80; 
+  private readonly MIN_SAMPLE_SIZE = 8; 
   
   private readonly MARKET_ANALYSIS_CONFIGS: AllMarketConfigs[] = [
     {
@@ -234,29 +230,23 @@ export class BettingInsightsService {
 
   /**
    * CORRECTED: Helper function to filter out redundant patterns (Max Specificity Principle).
-   * It ensures that for any given market/team/comparison, only the most specific/highest
-   * quality insight (prioritizing Hit Rate, then Threshold, then Sample Size) is kept.
    */
   private filterRedundantInsights(insights: BettingInsight[]): BettingInsight[] {
     const mostSpecificInsights = new Map<string, BettingInsight>();
 
     for (const insight of insights) {
-      // Handle the key generation for non-threshold markets
       const comparisonType = insight.market === BettingMarket.MATCH_RESULT 
-        ? insight.outcome.split(' - ')[1] // Use Win/Draw/Loss
+        ? insight.outcome.split(' - ')[1] 
         : insight.comparison === 'binary' 
             ? insight.outcome.includes('Yes') ? 'YES' : 'NO'
             : insight.comparison;
       
-      // ✅ FIX: Use the genericKey consistently for map operations
       const genericKey = `${insight.team}_${insight.market}_${comparisonType}`;
       const existingInsight = mostSpecificInsights.get(genericKey);
 
       if (!existingInsight) {
-        // If no insight for this team/market/comparison exists, set the current one
         mostSpecificInsights.set(genericKey, insight);
       } else {
-        // Tie-breaking logic: Prioritize by (1) Hit Rate, (2) Threshold, (3) Sample Size
         let shouldReplace = false;
         
         // 1. Prioritize higher Hit Rate
@@ -294,7 +284,6 @@ export class BettingInsightsService {
         }
 
         if (shouldReplace) {
-          // Replace the existing insight with the more specific/higher quality one
           mostSpecificInsights.set(genericKey, insight);
         }
       }
@@ -316,7 +305,7 @@ export class BettingInsightsService {
     );
     
     marketAnalyses.push(this.analyzeBTTSMarket()); 
-    marketAnalyses.push(this.analyzeMatchResultMarket()); // 🏆 ADDED NEW MARKET
+    marketAnalyses.push(this.analyzeMatchResultMarket()); 
 
     try {
         const results = await Promise.all(marketAnalyses);
@@ -344,10 +333,26 @@ export class BettingInsightsService {
     };
   }
 
-  // ... (getTeamInsights, getMarketInsights remain the same) ...
+  /**
+   * Get insights for a specific team
+   */
+  async getTeamInsights(teamName: string): Promise<BettingInsight[]> {
+    const allInsights = await this.getAllInsights();
+    return allInsights.insights.filter(
+      insight => insight.team.toLowerCase() === teamName.toLowerCase()
+    );
+  }
+
+  /**
+   * Get insights for a specific market across all teams
+   */
+  async getMarketInsights(market: BettingMarket): Promise<BettingInsight[]> {
+    const allInsights = await this.getAllInsights();
+    return allInsights.insights.filter(insight => insight.market === market);
+  }
 
   // -----------------------------------------------------------
-  // 📊 EXISTING MARKET ANALYZERS
+  // 📊 MARKET ANALYZERS
   // -----------------------------------------------------------
   
   private async analyzeGenericMarket<T extends BaseMatchDetail>(config: MarketAnalysisConfig<T>): Promise<BettingInsight[]> {
@@ -424,7 +429,6 @@ export class BettingInsightsService {
           (value) => value === 1 
       );
 
-      // Detect Yes pattern
       const yesPattern = this.detectBTTSPattern(
         stats.matchDetails, 
         teamName, 
@@ -434,7 +438,6 @@ export class BettingInsightsService {
       );
       if (yesPattern) insights.push(yesPattern);
       
-      // Detect No pattern
       const noPattern = this.detectBTTSPattern(
         stats.matchDetails, 
         teamName, 
@@ -447,10 +450,6 @@ export class BettingInsightsService {
 
     return insights;
   }
-
-  // -----------------------------------------------------------
-  // 🏆 NEW MARKET ANALYZER: MATCH RESULT (WIN/DRAW/LOSS)
-  // -----------------------------------------------------------
 
   /**
    * Dedicated method for Match Result (Win/Draw/Loss) analysis.
@@ -469,7 +468,6 @@ export class BettingInsightsService {
 
       if (allMatchResults.length < this.ROLLING_WINDOW) continue;
       
-      // We analyze three patterns: 'Win', 'Draw', 'Loss'
       const winPattern = this.detectMatchResultPattern(allMatchResults, teamName, 'Win');
       if (winPattern) insights.push(winPattern);
 
@@ -484,127 +482,12 @@ export class BettingInsightsService {
     return insights;
   }
 
-  /**
-   * Detects patterns for a specific match result outcome (Win, Draw, Loss).
-   */
-  private detectMatchResultPattern(
-    allMatchDetails: MatchResultDetail[],
-    teamName: string,
-    targetOutcome: 'Win' | 'Draw' | 'Loss',
-  ): BettingInsight | null {
-    
-    const isHit = (m: MatchResultDetail) => m.outcome === targetOutcome;
-    
-    // Convert outcomes to binary values (1 for hit, 0 for miss) for confidence calculation
-    const allValues = allMatchDetails.map(m => isHit(m) ? 1 : 0);
-    
-    // 1. Check for streak (Tier 1)
-    let streakLength = 0;
-    for (const match of allMatchDetails) {
-      if (isHit(match)) {
-        streakLength++;
-      } else {
-        break;
-      }
-    }
-
-    // 2. Check rolling 5 for 100% (Tier 2)
-    const rolling = allMatchDetails.slice(0, this.ROLLING_WINDOW);
-    const rollingHits = rolling.filter(isHit).length;
-    const rollingHitRate = (rollingHits / rolling.length) * 100;
-
-    // 3. Check larger sample for 80%+ (Tier 3, Max 20 matches)
-    const extendedSampleCount = Math.min(20, allMatchDetails.length);
-    let analyzedMatches: MatchResultDetail[] | undefined;
-    let actualHitRate: number | undefined;
-    let isStreak = false;
-    
-    if (streakLength >= this.STREAK_THRESHOLD) {
-      // Streak found
-      analyzedMatches = allMatchDetails.slice(0, streakLength);
-      actualHitRate = 100;
-      isStreak = true;
-    } else if (rollingHitRate === 100) {
-      // Perfect recent form
-      analyzedMatches = rolling;
-      actualHitRate = 100;
-    } else if (extendedSampleCount >= this.MIN_SAMPLE_SIZE) {
-      // Check extended sample
-      const sample = allMatchDetails.slice(0, extendedSampleCount);
-      const hits = sample.filter(isHit).length;
-      const hitRate = (hits / sample.length) * 100;
-      
-      if (hitRate >= this.MIN_HIT_RATE) {
-        analyzedMatches = sample;
-        actualHitRate = Math.round(hitRate);
-      } else {
-        return null; // No pattern
-      }
-    } else {
-      return null; // No pattern
-    }
-    
-    // Build the insight
-    const sampleValues = analyzedMatches!.map(m => isHit(m) ? 1 : 0);
-    
-    // Calculate Home/Away Support for the SAMPLE
-    const homeAwaySupportForSample = this.calculateHomeAwaySupport(
-        analyzedMatches!,
-        sampleValues,
-        (value) => value === 1 
-    );
-    
-    // Calculate Home/Away Support for ALL GAMES (using the full dataset)
-    const homeAwaySupportOverall = this.calculateHomeAwaySupport(
-        allMatchDetails,
-        allValues,
-        (value) => value === 1 
-    );
-    
-    // Confidence calculation uses 'binary' comparison
-    const confidence = this.calculateConfidenceScore(
-        sampleValues,
-        0.5, 
-        'binary',
-        homeAwaySupportForSample,
-        actualHitRate! 
-    );
-
-    return {
-      team: teamName,
-      market: BettingMarket.MATCH_RESULT,
-      outcome: `Match Result - ${targetOutcome}`, 
-      hitRate: actualHitRate!,
-      matchesAnalyzed: analyzedMatches!.length,
-      isStreak,
-      streakLength: isStreak ? streakLength : undefined,
-      threshold: 0.5, 
-      averageValue: targetOutcome === 'Win' ? 1 : 0, 
-      comparison: 'binary',
-      recentMatches: analyzedMatches!.map(m => ({
-        opponent: m.opponent,
-        value: isHit(m) ? 1 : 0, 
-        hit: isHit(m),
-        date: m.date,
-        isHome: m.isHome,
-        // Add score context to the recent matches list
-        context: `(${m.scoreFor}-${m.scoreAgainst})` 
-      })),
-      context: {
-        homeAwaySupportForSample,
-        homeAwaySupportOverall,
-        confidence
-      }
-    };
-  }
-
   // -----------------------------------------------------------
-  // 🔨 HELPER METHODS (Mostly unchanged, but included for completeness)
+  // 🔍 CORE DETECTION LOGIC
   // -----------------------------------------------------------
 
-
   /**
-   * UPDATED: Core pattern detection logic for numerical thresholds
+   * Core pattern detection logic for numerical thresholds
    */
   private detectPattern(
     allValues: number[],
@@ -627,7 +510,7 @@ export class BettingInsightsService {
       return false;
     };
 
-    // ===== TIER 1: Check for STREAKS (7+ consecutive) - 100% hit rate required by definition =====
+    // TIER 1: Check for STREAKS
     let streakLength = 0;
     for (const value of allValues) {
       if (isHit(value)) {
@@ -638,51 +521,31 @@ export class BettingInsightsService {
     }
     
     if (streakLength >= this.STREAK_THRESHOLD) {
-      // STREAK PATTERN FOUND
       const sampleValues = allValues.slice(0, streakLength);
       const sampleMatchDetails = allMatchDetails.slice(0, streakLength);
       
       return this.buildInsight(
-        sampleValues,
-        threshold,
-        teamName,
-        market,
-        outcome,
-        sampleMatchDetails,
-        allValues,
-        allMatchDetails,
-        true, // isStreak
-        comparison,
-        streakLength
+        sampleValues, threshold, teamName, market, outcome, sampleMatchDetails,
+        allValues, allMatchDetails, true, comparison, streakLength
       );
     }
     
-    // ===== TIER 2: Check ROLLING 5 for 100% hit rate =====
+    // TIER 2: Check ROLLING 5 for 100%
     const rolling5 = allValues.slice(0, this.ROLLING_WINDOW);
     const rolling5Hits = rolling5.filter(isHit).length;
     const rolling5HitRate = (rolling5Hits / rolling5.length) * 100;
     
     if (rolling5HitRate === 100) {
-      // PERFECT RECENT FORM
       const sampleValues = rolling5;
       const sampleMatchDetails = allMatchDetails.slice(0, this.ROLLING_WINDOW);
       
       return this.buildInsight(
-        sampleValues,
-        threshold,
-        teamName,
-        market,
-        outcome,
-        sampleMatchDetails,
-        allValues,
-        allMatchDetails,
-        false, // not a streak
-        comparison,
-        undefined
+        sampleValues, threshold, teamName, market, outcome, sampleMatchDetails,
+        allValues, allMatchDetails, false, comparison, undefined
       );
     }
     
-    // ===== TIER 3: Check LARGER SAMPLE for 80%+ hit rate (Max 20 matches) =====
+    // TIER 3: Check LARGER SAMPLE for 80%+
     const extendedSampleCount = Math.min(20, allValues.length);
     
     if (extendedSampleCount >= this.MIN_SAMPLE_SIZE) {
@@ -691,31 +554,20 @@ export class BettingInsightsService {
       const hitRate = (sampleHits / sampleValues.length) * 100;
       
       if (hitRate >= this.MIN_HIT_RATE) {
-        // HIGH CONSISTENCY PATTERN (80%+)
         const sampleMatchDetails = allMatchDetails.slice(0, extendedSampleCount);
         
         return this.buildInsight(
-          sampleValues,
-          threshold,
-          teamName,
-          market,
-          outcome,
-          sampleMatchDetails,
-          allValues,
-          allMatchDetails,
-          false, // not a streak
-          comparison,
-          undefined
+          sampleValues, threshold, teamName, market, outcome, sampleMatchDetails,
+          allValues, allMatchDetails, false, comparison, undefined
         );
       }
     }
     
-    // No pattern found
     return null;
   }
 
   /**
-   * UPDATED: Detect Both Teams to Score patterns (Yes/No)
+   * Detect Both Teams to Score patterns (Yes/No)
    */
   private detectBTTSPattern(
     allMatchDetails: GoalsDetail[],
@@ -727,7 +579,6 @@ export class BettingInsightsService {
     
     const isHit = (m: GoalsDetail) => m.bothTeamsScored === targetHit;
     
-    // 1. Check for streak
     let streakLength = 0;
     for (const match of allMatchDetails) {
       if (isHit(match)) {
@@ -737,28 +588,23 @@ export class BettingInsightsService {
       }
     }
 
-    // 2. Check rolling 5 for 100%
     const rolling = allMatchDetails.slice(0, this.ROLLING_WINDOW);
     const rollingHits = rolling.filter(isHit).length;
     const rollingHitRate = (rollingHits / rolling.length) * 100;
 
-    // 3. Check larger sample for 80%+ (Max 15 matches for BTTS)
     const extendedSampleCount = Math.min(15, allMatchDetails.length);
     let analyzedMatches: GoalsDetail[] | undefined;
     let actualHitRate: number | undefined;
     let isStreak = false;
     
     if (streakLength >= this.STREAK_THRESHOLD) {
-      // Streak found
       analyzedMatches = allMatchDetails.slice(0, streakLength);
       actualHitRate = 100;
       isStreak = true;
     } else if (rollingHitRate === 100) {
-      // Perfect recent form
       analyzedMatches = rolling;
       actualHitRate = 100;
     } else if (extendedSampleCount >= this.MIN_SAMPLE_SIZE) {
-      // Check extended sample
       const sample = allMatchDetails.slice(0, extendedSampleCount);
       const hits = sample.filter(isHit).length;
       const hitRate = (hits / sample.length) * 100;
@@ -767,26 +613,19 @@ export class BettingInsightsService {
         analyzedMatches = sample;
         actualHitRate = Math.round(hitRate);
       } else {
-        return null; // No pattern
+        return null; 
       }
     } else {
-      return null; // No pattern
+      return null; 
     }
     
-    // Build the insight
     const sampleValues = analyzedMatches!.map(m => m.bothTeamsScored ? 1 : 0);
     const homeAwaySupportForSample = this.calculateHomeAwaySupport(
-        analyzedMatches!,
-        sampleValues,
-        (value) => value === 1 // BTTS Yes (value 1)
+        analyzedMatches!, sampleValues, (value) => value === 1 
     );
     
     const confidence = this.calculateConfidenceScore(
-        sampleValues,
-        0.5,
-        'binary',
-        homeAwaySupportForSample,
-        actualHitRate! 
+        sampleValues, 0.5, 'binary', homeAwaySupportForSample, actualHitRate! 
     );
 
     return {
@@ -816,10 +655,112 @@ export class BettingInsightsService {
   }
 
   /**
-   * UPDATED: Build insight object with all relevant data
+   * Detects patterns for a specific match result outcome (Win, Draw, Loss).
+   */
+  private detectMatchResultPattern(
+    allMatchDetails: MatchResultDetail[],
+    teamName: string,
+    targetOutcome: 'Win' | 'Draw' | 'Loss',
+  ): BettingInsight | null {
+    
+    const isHit = (m: MatchResultDetail) => m.outcome === targetOutcome;
+    
+    const allValues = allMatchDetails.map(m => isHit(m) ? 1 : 0);
+    
+    // 1. Check for streak 
+    let streakLength = 0;
+    for (const match of allMatchDetails) {
+      if (isHit(match)) {
+        streakLength++;
+      } else {
+        break;
+      }
+    }
+
+    // 2. Check rolling 5 for 100%
+    const rolling = allMatchDetails.slice(0, this.ROLLING_WINDOW);
+    const rollingHits = rolling.filter(isHit).length;
+    const rollingHitRate = (rollingHits / rolling.length) * 100;
+
+    // 3. Check larger sample for 80%+ (Max 20 matches)
+    const extendedSampleCount = Math.min(20, allMatchDetails.length);
+    let analyzedMatches: MatchResultDetail[] | undefined;
+    let actualHitRate: number | undefined;
+    let isStreak = false;
+    
+    if (streakLength >= this.STREAK_THRESHOLD) {
+      analyzedMatches = allMatchDetails.slice(0, streakLength);
+      actualHitRate = 100;
+      isStreak = true;
+    } else if (rollingHitRate === 100) {
+      analyzedMatches = rolling;
+      actualHitRate = 100;
+    } else if (extendedSampleCount >= this.MIN_SAMPLE_SIZE) {
+      const sample = allMatchDetails.slice(0, extendedSampleCount);
+      const hits = sample.filter(isHit).length;
+      const hitRate = (hits / sample.length) * 100;
+      
+      if (hitRate >= this.MIN_HIT_RATE) {
+        analyzedMatches = sample;
+        actualHitRate = Math.round(hitRate);
+      } else {
+        return null; 
+      }
+    } else {
+      return null; 
+    }
+    
+    const sampleValues = analyzedMatches!.map(m => isHit(m) ? 1 : 0);
+    
+    const homeAwaySupportForSample = this.calculateHomeAwaySupport(
+        analyzedMatches!, sampleValues, (value) => value === 1 
+    );
+    
+    const homeAwaySupportOverall = this.calculateHomeAwaySupport(
+        allMatchDetails, allValues, (value) => value === 1 
+    );
+    
+    const confidence = this.calculateConfidenceScore(
+        sampleValues, 0.5, 'binary', homeAwaySupportForSample, actualHitRate! 
+    );
+
+    return {
+      team: teamName,
+      market: BettingMarket.MATCH_RESULT,
+      outcome: `Match Result - ${targetOutcome}`, 
+      hitRate: actualHitRate!,
+      matchesAnalyzed: analyzedMatches!.length,
+      isStreak,
+      streakLength: isStreak ? streakLength : undefined,
+      threshold: 0.5, 
+      averageValue: targetOutcome === 'Win' ? 1 : 0, 
+      comparison: 'binary',
+      recentMatches: analyzedMatches!.map(m => ({
+        opponent: m.opponent,
+        value: isHit(m) ? 1 : 0, 
+        hit: isHit(m),
+        date: m.date,
+        isHome: m.isHome,
+        context: `(${m.scoreFor}-${m.scoreAgainst})` 
+      })),
+      context: {
+        homeAwaySupportForSample,
+        homeAwaySupportOverall,
+        confidence
+      }
+    };
+  }
+
+
+  // -----------------------------------------------------------
+  // 🔨 HELPER METHODS
+  // -----------------------------------------------------------
+
+  /**
+   * Build insight object with all relevant data
    */
   private buildInsight(
-    sampleValues: number[],
+    sampleValues: number[], 
     threshold: number,
     teamName: string,
     market: BettingMarket,
@@ -848,23 +789,15 @@ export class BettingInsightsService {
     const actualHitRate = Math.round((hits / sampleValues.length) * 100);
 
     const homeAwaySupportForSample = this.calculateHomeAwaySupport(
-        sampleMatchDetails,
-        sampleValues,
-        isHit
+        sampleMatchDetails, values, isHit
     );
 
     const homeAwaySupportOverall = this.calculateHomeAwaySupport(
-        allMatchDetails,
-        allValues,
-        isHit
+        allMatchDetails, allValues, isHit
     );
 
     const confidence = this.calculateConfidenceScore(
-        sampleValues,
-        threshold,
-        comparison,
-        homeAwaySupportForSample, 
-        actualHitRate
+        sampleValues, threshold, comparison, homeAwaySupportForSample, actualHitRate
     );
 
     return {
@@ -894,7 +827,7 @@ export class BettingInsightsService {
   }
 
   /**
-   * Helper to calculate Home/Away Support for a given set of match details (full or sample).
+   * Helper to calculate Home/Away Support for a given set of match details.
    */
   private calculateHomeAwaySupport(
     matchDetails: Array<{ opponent: string; date?: string; isHome?: boolean }>,
@@ -934,7 +867,7 @@ export class BettingInsightsService {
   }
 
   /**
-   * UPDATED: Calculates a detailed confidence score.
+   * Calculates a detailed confidence score.
    */
   private calculateConfidenceScore(
     values: number[],
@@ -986,7 +919,7 @@ export class BettingInsightsService {
         if (avgValue <= threshold - 1.5) {
             factors.push(`Team average (${avgValue.toFixed(1)}) is well below threshold.`);
         }
-    } else if (comparison === 'binary') { // BTTS and MATCH_RESULT
+    } else if (comparison === 'binary') { 
         baseScore += 20;
     }
 
@@ -1007,17 +940,14 @@ export class BettingInsightsService {
     if (homeAwaySupportForSample) {
         const { home, away } = homeAwaySupportForSample;
         
-        // Both venues strong
         if (home.matches > 0 && away.matches > 0 && home.hitRate >= 80 && away.hitRate >= 80) {
             homeAwayBonus = 15;
             factors.push('Strong consistency at both home and away venues.');
         } 
-        // One venue excellent
         else if (home.matches > 0 && home.hitRate >= 90 || away.matches > 0 && away.hitRate >= 90) {
              homeAwayBonus = 10;
              factors.push(`Excellent hit rate at ${home.hitRate >= 90 ? 'Home' : 'Away'} venue.`);
         }
-        // One venue good
         else if (home.matches > 0 && home.hitRate >= 80 || away.matches > 0 && away.hitRate >= 80) {
              homeAwayBonus = 5;
              factors.push(`Good hit rate at ${home.hitRate >= 80 ? 'Home' : 'Away'} venue.`);
@@ -1028,14 +958,11 @@ export class BettingInsightsService {
     let finalScore = Math.min(100, Math.max(0, baseScore));
 
     // 5. PENALTIES
-    
-    // Penalty for hit rate below 90% in small samples (rolling 5-9)
     if (hitRate < 90 && values.length < 10) {
       finalScore -= 10;
       factors.push('Small sample size with non-perfect hit rate reduces confidence.');
     }
     
-    // Penalty for proximity to threshold
     const proximityTolerance = (comparison === Comparison.OVER || comparison === Comparison.OR_MORE) 
         ? avgValue - threshold 
         : threshold - avgValue;
@@ -1058,7 +985,30 @@ export class BettingInsightsService {
     };
   }
   
-  // ... (filterByStreak, filterByMarket, sortByStreak, getCacheStatus remain the same) ...
+  /**
+   * Filter insights by minimum streak length
+   */
+  filterByStreak(insights: BettingInsight[], minStreak: number = 7): BettingInsight[] {
+    return insights.filter(i => i.isStreak && (i.streakLength ?? 0) >= minStreak);
+  }
+
+  /**
+   * Filter insights by market
+   */
+  filterByMarket(insights: BettingInsight[], market: BettingMarket): BettingInsight[] {
+    return insights.filter(i => i.market === market);
+  }
+
+  /**
+   * Sort insights by streak length (longest first)
+   */
+  sortByStreak(insights: BettingInsight[]): BettingInsight[] {
+    return [...insights].sort((a, b) => {
+      const aStreak = a.streakLength ?? 0;
+      const bStreak = b.streakLength ?? 0;
+      return bStreak - aStreak;
+    });
+  }
 
   /**
    * Get cache status from all services
@@ -1070,7 +1020,6 @@ export class BettingInsightsService {
       fouls: supabaseFoulsService.getCacheStatus(),
       goals: supabaseGoalsService.getCacheStatus(),
       shooting: supabaseShootingService.getCacheStatus(),
-      // Add fixture service cache status if available/needed
     };
   }
 }
