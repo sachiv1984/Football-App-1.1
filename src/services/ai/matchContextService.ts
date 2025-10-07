@@ -1,1124 +1,1271 @@
-// src/services/ai/bettingInsightsService.ts
+// src/services/ai/matchContextService.ts
+
+import { 
+  BettingInsight, 
+  BettingMarket, 
+  Comparison 
+} from './bettingInsightsService';
 
 import { supabaseCardsService } from '../stats/supabaseCardsService';
 import { supabaseCornersService } from '../stats/supabaseCornersService';
-import { supabaseFoulsService } from '../stats/supabaseFoulsService';
+import { supabaseFoulsService } from '../stats/supabaseFoulsService'; 
 import { supabaseGoalsService } from '../stats/supabaseGoalsService';
 import { supabaseShootingService } from '../stats/supabaseShootingService';
-import { fbrefFixtureService, MatchResultDetail } from '../fixtures/fbrefFixtureService'; 
+import { fbrefFixtureService } from '../fixtures/fbrefFixtureService'; 
+import { getDisplayTeamName, normalizeTeamName } from '../../utils/teamUtils';
+import { supabaseTeamService } from '../stats/SupabaseTeamService';
 
-// ----------------------------------------------------------------------
-// Interfaces and Enums 
-// ----------------------------------------------------------------------
 
-interface BaseMatchDetail {
-  opponent: string;
-  date?: string;
-  isHome?: boolean; 
+// --- ROBUST DYNAMIC TYPE INFERENCE ---
+// (All types preserved exactly as in the original file)
+
+// 1. INFERRED STATS MAP TYPES (The key is the team name string)
+type CardsStats = Awaited<ReturnType<typeof supabaseCardsService.getCardStatistics>>;
+type CornersStats = Awaited<ReturnType<typeof supabaseCornersService.getCornerStatistics>>;
+type FoulsStats = Awaited<ReturnType<typeof supabaseFoulsService.getFoulStatistics>>;
+type GoalsStats = Awaited<ReturnType<typeof supabaseGoalsService.getGoalStatistics>>;
+type ShootingStats = Awaited<ReturnType<typeof supabaseShootingService.getShootingStatistics>>;
+
+// 2. DYNAMICALLY INFERRED MATCH DETAIL TYPES 
+type ExtractMatchDetail<T> = T extends Map<string, infer V> 
+  ? V extends { matchDetails: (infer D)[] }
+    ? D 
+    : never
+  : never;
+
+// Now, we define the individual match detail types based on the inferred map types
+type CardsMatchDetail = ExtractMatchDetail<CardsStats>;
+type CornersMatchDetail = ExtractMatchDetail<CornersStats>;
+type FoulsMatchDetail = ExtractMatchDetail<FoulsStats>;
+type GoalsMatchDetail = ExtractMatchDetail<GoalsStats>; 
+type ShootingMatchDetail = ExtractMatchDetail<ShootingStats>;
+
+// 3. UNION TYPE for getVenueSpecificMatches
+type MatchDetailType = 
+  | CardsMatchDetail
+  | CornersMatchDetail
+  | FoulsMatchDetail
+  | GoalsMatchDetail
+  | ShootingMatchDetail;
+
+// 4. ALL STATS INTERFACE
+interface AllStats {
+    goals: GoalsStats;
+    cards: CardsStats;
+    corners: CornersStats;
+    fouls: FoulsStats;
+    shooting: ShootingStats;
 }
 
-interface GoalsDetail extends BaseMatchDetail {
-  totalGoals: number; // Redundant, but required to match source interface
-  goalsFor: number;   // Goals SCORED BY THE TEAM being analyzed.
-  goalsAgainst: number;
-  bothTeamsScored: boolean;
-}
-
-interface CardsMatchDetail extends BaseMatchDetail {
-  cardsFor: number;
-  cardsAgainst?: number;
-}
-
-interface CornersMatchDetail extends BaseMatchDetail {
-  cornersFor: number;
-  cornersAgainst?: number;
-}
-
-interface FoulsMatchDetail extends BaseMatchDetail {
-  foulsCommittedFor: number;
-  foulsCommittedAgainst?: number;
-}
-
-interface ShotsMatchDetail extends BaseMatchDetail {
-  shotsOnTargetFor: number;
-  shotsFor: number;
-  shotsOnTargetAgainst?: number;
-  shotsAgainst?: number;
-}
-
-/**
- * Betting market categories mapped to available data
- */
-export enum BettingMarket {
-  CARDS = 'cards',
-  CORNERS = 'corners',
-  FOULS = 'fouls',
-  TEAM_GOALS = 'team_goals', // Team-specific goals
-  SHOTS_ON_TARGET = 'shots_on_target',
-  TOTAL_SHOTS = 'total_shots',
-  BOTH_TEAMS_TO_SCORE = 'both_teams_to_score',
-  MATCH_RESULT = 'match_result',
-  GOALS = 'goals' // Added for the proximity helper only
-}
-
-/**
- * Defines the comparison type for a threshold bet
- */
-export enum Comparison {
-    OVER = 'Over',
-    UNDER = 'Under',
-    OR_MORE = 'Or More'
-}
-
-interface Confidence {
-    level: 'Low' | 'Medium' | 'High' | 'Very High';
-    score: number;
-    factors: string[];
-}
-
-export type HomeAwaySupport = {
-    home: { hitRate: number; matches: number; average: number };
-    away: { hitRate: number; matches: number; average: number };
-};
-
-export interface BettingInsight {
-  team: string; // This can be a specific team or "Fixture" for match-level bets
-  market: BettingMarket;
-  outcome: string;
-  hitRate: number;
-  matchesAnalyzed: number;
-  isStreak: boolean;
-  streakLength?: number;
-  threshold: number;
-  averageValue: number;
-  comparison: Comparison | 'binary';
-  recentMatches: Array<{
-    opponent: string;
-    value: number;
-    hit: boolean;
-    date?: string;
-    isHome?: boolean;
-    context?: string;
-  }>;
-  context?: {
-    homeAwaySupportForSample?: HomeAwaySupport; 
-    homeAwaySupportOverall?: HomeAwaySupport;   
-    headToHeadSupport?: {
-      opponent: string;
-      hitRate: number;
-      matches: number;
+// Defining the specific match context structure
+interface MatchContext {
+    oppositionAllows: number;
+    oppositionMatches: number;
+    isHome: boolean;
+    strengthOfMatch: 'Poor' | 'Fair' | 'Good' | 'Excellent';
+    recommendation: string;
+    venueSpecific: boolean;
+    dataQuality: 'Excellent' | 'Good' | 'Fair' | 'Poor' | 'Insufficient';
+    // BTTS-specific fields
+    bttsContext?: {
+      homeExpectedGoals: number;
+      awayExpectedGoals: number;
+      homeGoalsFor: number;
+      awayGoalsAgainst: number;
+      awayGoalsFor: number;
+      homeGoalsAgainst: number;
     };
-    confidence?: Confidence;
-  };
 }
 
-export interface InsightsResponse {
-  insights: BettingInsight[];
-  timestamp: string;
-  teamsAnalyzed: number;
-  totalPatterns: number;
-}
-
-interface MarketConfig {
-  thresholds: number[];
-  minValue: number;
-  label: string;
-  useOrMore?: boolean;
-}
-
-const MARKET_CONFIGS: Record<Exclude<BettingMarket, BettingMarket.MATCH_RESULT | BettingMarket.GOALS>, MarketConfig> = {
-  [BettingMarket.CARDS]: {
-    thresholds: [0.5, 1.5, 2.5, 3.5],
-    minValue: 0,
-    label: 'Team Cards'
-  },
-  [BettingMarket.CORNERS]: {
-    thresholds: [3.5, 4.5, 5.5, 6.5],
-    minValue: 0,
-    label: 'Team Corners'
-  },
-  [BettingMarket.FOULS]: {
-    thresholds: [8.5, 9.5, 10.5, 11.5],
-    minValue: 0,
-    label: 'Team Fouls Committed'
-  },
-  [BettingMarket.TEAM_GOALS]: { 
-    thresholds: [0.5, 1.5, 2.5],
-    minValue: 0,
-    label: 'Team Goals'
-  },
-  [BettingMarket.SHOTS_ON_TARGET]: {
-    thresholds: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
-    minValue: 0,
-    label: 'Team Shots on Target',
-    useOrMore: true
-  },
-  [BettingMarket.TOTAL_SHOTS]: {
-    thresholds: [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25],
-    minValue: 0,
-    label: 'Team Total Shots',
-    useOrMore: true
-  },
-  [BettingMarket.BOTH_TEAMS_TO_SCORE]: {
-    thresholds: [0.5],
-    minValue: 0,
-    label: 'Both Teams to Score'
-  }
+// Defining the enriched insight as an intersection type 
+export type MatchContextInsight = BettingInsight & {
+    matchContext: MatchContext;
 };
 
-interface MarketAnalysisConfig<T> {
-  market: BettingMarket;
-  service: { getStatistics: () => Promise<Map<string, { matches: number, matchDetails: T[] }>> };
-  valueExtractor: (detail: T) => number;
-  label: string;
-}
+// Define the exact keys used for dynamic access in the Shooting market
+type ShootingFieldKey = 'shotsAgainst' | 'shotsOnTargetAgainst';
 
-type AllMarketConfigs = 
-    | MarketAnalysisConfig<CardsMatchDetail>
-    | MarketAnalysisConfig<CornersMatchDetail>
-    | MarketAnalysisConfig<FoulsMatchDetail>
-    | MarketAnalysisConfig<GoalsDetail> 
-    | MarketAnalysisConfig<ShotsMatchDetail>;
-
-
-// ----------------------------------------------------------------------
-// BettingInsightsService Implementation
-// ----------------------------------------------------------------------
-
-export class BettingInsightsService {
-  private readonly ROLLING_WINDOW = 5;
-  private readonly STREAK_THRESHOLD = 7;
-  private readonly MIN_HIT_RATE = 80; 
-  private readonly MIN_SAMPLE_SIZE = 8; 
-  private readonly CACHE_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
+/**
+ * Service to enrich betting insights with match-specific context
+ */
+export class MatchContextService {
   
-  // 1. Caching Layer Implementation
-  private cache: { data: InsightsResponse, timestamp: number } | null = null;
-  
-  private readonly MARKET_ANALYSIS_CONFIGS: AllMarketConfigs[] = [
-    {
-      market: BettingMarket.CARDS,
-      service: { getStatistics: () => supabaseCardsService.getCardStatistics() },
-      valueExtractor: (m: CardsMatchDetail) => m.cardsFor,
-      label: 'cards'
-    },
-    {
-      market: BettingMarket.CORNERS,
-      service: { getStatistics: () => supabaseCornersService.getCornerStatistics() },
-      valueExtractor: (m: CornersMatchDetail) => m.cornersFor,
-      label: 'corners'
-    },
-    {
-      market: BettingMarket.FOULS,
-      service: { getStatistics: () => supabaseFoulsService.getFoulStatistics() },
-      valueExtractor: (m: FoulsMatchDetail) => m.foulsCommittedFor,
-      label: 'fouls'
-    },
-    {
-      market: BettingMarket.TEAM_GOALS, 
-      service: { getStatistics: () => supabaseGoalsService.getGoalStatistics() },
-      // 🎯 FIX: Explicitly use goalsFor (Goals scored by the team being analyzed)
-      valueExtractor: (m: GoalsDetail) => m.goalsFor, 
-      label: 'team goals' 
-    },
-    {
-      market: BettingMarket.SHOTS_ON_TARGET,
-      service: { getStatistics: () => supabaseShootingService.getShootingStatistics() },
-      valueExtractor: (m: ShotsMatchDetail) => m.shotsOnTargetFor,
-      label: 'shots on target'
-    },
-    {
-      market: BettingMarket.TOTAL_SHOTS,
-      service: { getStatistics: () => supabaseShootingService.getShootingStatistics() },
-      valueExtractor: (m: ShotsMatchDetail) => m.shotsFor,
-      label: 'total shots'
-    }
-  ];
+  // Minimum number of matches required for reliable analysis
+  private readonly MIN_MATCHES_FOR_ANALYSIS = 3;
+  private readonly MIN_VENUE_MATCHES = 3; 
+
+  // In-memory cache for team existence verification (Memoization)
+  private teamExistsCache = new Map<string, boolean>(); 
 
   /**
-   * Helper function to filter out redundant patterns (Max Specificity Principle).
+   * Clears the in-memory cache used for verifying team existence.
    */
-  private filterRedundantInsights(insights: BettingInsight[]): BettingInsight[] {
-    const mostSpecificInsights = new Map<string, BettingInsight>();
+  public clearTeamExistsCache(): void {
+    const sizeBefore = this.teamExistsCache.size;
+    this.teamExistsCache.clear();
+    console.log(`[MatchContextService] 🧹 Team exists cache cleared. Entries removed: ${sizeBefore}`);
+  }
 
-    for (const insight of insights) {
-      // Key now considers the team name AND the market/comparison
-      const comparisonType = insight.market === BettingMarket.MATCH_RESULT 
-        ? insight.outcome.split(' - ')[1] 
-        : insight.comparison === 'binary' 
-            ? insight.outcome.includes('Yes') || insight.outcome.includes('Win') ? 'YES' : 'NO'
-            : insight.comparison;
-      
-      // NOTE: BTTS insights should remain team-specific; they do not get grouped under "Fixture"
-      const genericKey = `${insight.team}_${insight.market}_${comparisonType}`;
-      const existingInsight = mostSpecificInsights.get(genericKey);
+  /**
+   * Helper function to abstract the venue filtering and fallback logic.
+   */
+  private getVenueSpecificMatches<T extends MatchDetailType>(
+    allMatches: T[],
+    opponentIsHome: boolean
+  ): { matches: T[]; venueSpecific: boolean } {
+    
+    // 1. Filter for matches where the opposition played at the required venue
+    const venueMatches = allMatches.filter(m => m.isHome === opponentIsHome);
+    
+    // 2. Determine if the filtered data set is sufficient
+    const useVenueSpecific = venueMatches.length >= this.MIN_VENUE_MATCHES;
+    
+    // 3. Select the data set: filtered if sufficient, otherwise allMatches as fallback
+    const matchesToUse = useVenueSpecific
+      ? venueMatches 
+      : allMatches;
+    
+    // 4. Set the flag: Only true if we successfully met the venue threshold AND have data.
+    const venueSpecificFlag = useVenueSpecific && matchesToUse.length > 0;
+    
+    return {
+      matches: matchesToUse,
+      venueSpecific: venueSpecificFlag
+    };
+  }
 
-      if (!existingInsight) {
-        mostSpecificInsights.set(genericKey, insight);
-      } else {
-        let shouldReplace = false;
+  /**
+   * 🚀 REWRITTEN FOR EFFICIENCY
+   * Verify that a team exists using the new lightweight service (Memoized).
+   */
+  private async verifyTeamExists(teamName: string): Promise<boolean> {
+    const normalizedTeamName = normalizeTeamName(teamName); 
+
+    // 1. Check local memoization cache first
+    if (this.teamExistsCache.has(normalizedTeamName)) {
+        console.log(`[MatchContextService] Team existence cache hit for: ${normalizedTeamName}`);
+        return this.teamExistsCache.get(normalizedTeamName)!;
+    }
+
+    // 2. Use the dedicated, efficient service call
+    console.log(`[MatchContextService] Checking team existence for: ${normalizedTeamName} via SupabaseTeamService`);
+    try {
+        // 🚀 This single, lightweight call replaces the five heavy Promise.all checks.
+        const exists = await supabaseTeamService.teamExists(normalizedTeamName);
         
-        // 1. Prioritize higher Hit Rate
-        if (insight.hitRate > existingInsight.hitRate) {
-            shouldReplace = true;
-        } else if (insight.hitRate === existingInsight.hitRate) {
-            
-            // 2. Prioritize more specific Threshold (Only applies to threshold markets)
-            if (insight.market !== BettingMarket.MATCH_RESULT && insight.comparison !== 'binary') {
-                if (insight.comparison === Comparison.OR_MORE || insight.comparison === Comparison.OVER) {
-                    if (insight.threshold > existingInsight.threshold) {
-                        shouldReplace = true;
-                    } else if (insight.threshold === existingInsight.threshold) {
-                        // 3. Prioritize larger Sample Size
-                        if (insight.matchesAnalyzed > existingInsight.matchesAnalyzed) {
-                            shouldReplace = true;
-                        }
-                    }
-                } else if (insight.comparison === Comparison.UNDER) {
-                    if (insight.threshold < existingInsight.threshold) {
-                        shouldReplace = true;
-                    } else if (insight.threshold === existingInsight.threshold) {
-                        // 3. Prioritize larger Sample Size
-                        if (insight.matchesAnalyzed > existingInsight.matchesAnalyzed) {
-                            shouldReplace = true;
-                        }
-                    }
-                }
-            } else {
-                 // 3. Prioritize larger Sample Size for binary/match_result markets
-                if (insight.matchesAnalyzed > existingInsight.matchesAnalyzed) {
-                    shouldReplace = true;
-                }
-            }
+        // 3. Update local memoization cache
+        this.teamExistsCache.set(normalizedTeamName, exists);
+        
+        return exists;
+    } catch (error) {
+        console.error(`[MatchContextService] Error verifying team existence for ${normalizedTeamName}:`, error);
+        this.teamExistsCache.set(normalizedTeamName, false);
+        return false;
+    }
+  }
+
+  /**
+   * Calculate data quality based on sample size and venue-specificity
+   */
+  private calculateDataQuality(
+    matches: number, 
+    venueSpecific: boolean
+  ): 'Excellent' | 'Good' | 'Fair' | 'Poor' | 'Insufficient' {
+    if (matches === 0) return 'Insufficient';
+    if (matches < this.MIN_MATCHES_FOR_ANALYSIS) return 'Insufficient';
+    
+    if (venueSpecific) {
+      if (matches >= 10) return 'Excellent';
+      if (matches >= 7) return 'Good';
+      if (matches >= 5) return 'Fair';
+      return 'Poor';
+    } else {
+      // Non-venue-specific (fallback to league-wide)
+      if (matches >= 15) return 'Good';
+      if (matches >= 10) return 'Fair';
+      return 'Poor';
+    }
+  }
+
+  /**
+   * Helper to generate confidence text with emoji.
+   */
+  private getConfidenceContext(confidenceScore: number): string {
+      const confidenceEmoji = confidenceScore >= 80 ? '🔥' : 
+                              confidenceScore >= 60 ? '✅' : 
+                              confidenceScore >= 40 ? '⚠️' : '🚨';
+
+      return `${confidenceEmoji} Confidence: ${confidenceScore}/100`;
+  }
+  
+  /**
+   * Get opposition's defensive stats for a specific market
+   */
+  private async getOppositionDefensiveStats(
+    opponent: string,
+    market: BettingMarket,
+    opponentIsHome: boolean,
+    stats: AllStats
+  ): Promise<{ average: number; matches: number; venueSpecific: boolean } | null> {
+    
+    try {
+      switch (market) {
+        case BettingMarket.CARDS: {
+          const oppStats = stats.cards.get(opponent);
+          if (!oppStats) return null;
+          
+          if (oppStats.matches < this.MIN_MATCHES_FOR_ANALYSIS) {
+            console.warn(`[Data Warning] ⚠️ Team ${opponent} (Cards) has only ${oppStats.matches} total matches. Proceeding with low sample size.`);
+          }
+
+          const matchDetails = oppStats.matchDetails as CardsMatchDetail[];
+          
+          const { matches: matchesToUse, venueSpecific } = this.getVenueSpecificMatches(
+            matchDetails, 
+            opponentIsHome
+          );
+          
+          // 🎯 FIX: Changed m.cardsFor to m.cardsAgainst to track opponent's concessions (defensive stat)
+          const totalCardsAllowed = matchesToUse.reduce(
+            (sum, m) => sum + (m.cardsAgainst || 0), 0 
+          );
+          
+          const matchCount = matchesToUse.length;
+          
+          return {
+            average: matchCount > 0 ? totalCardsAllowed / matchCount : 0,
+            matches: matchCount,
+            venueSpecific
+          };
         }
 
-        if (shouldReplace) {
-          mostSpecificInsights.set(genericKey, insight);
+        case BettingMarket.CORNERS: {
+          const oppStats = stats.corners.get(opponent);
+          if (!oppStats) return null;
+          
+          if (oppStats.matches < this.MIN_MATCHES_FOR_ANALYSIS) {
+            console.warn(`[Data Warning] ⚠️ Team ${opponent} (Corners) has only ${oppStats.matches} total matches. Proceeding with low sample size.`);
+          }
+
+          const matchDetails = oppStats.matchDetails as CornersMatchDetail[];
+
+          const { matches: matchesToUse, venueSpecific } = this.getVenueSpecificMatches(
+            matchDetails, 
+            opponentIsHome
+          );
+          
+          // Opposition's goals/corners/shots allowed is the 'Against' stat in the opponent's perspective
+          const totalCornersAgainst = matchesToUse.reduce(
+            (sum, m) => sum + (m.cornersAgainst || 0), 0 
+          );
+
+          const matchCount = matchesToUse.length;
+          
+          return {
+            average: matchCount > 0 ? totalCornersAgainst / matchCount : 0,
+            matches: matchCount,
+            venueSpecific
+          };
         }
+
+        case BettingMarket.FOULS: {
+          const oppStats = stats.fouls.get(opponent);
+          if (!oppStats) return null;
+          
+          if (oppStats.matches < this.MIN_MATCHES_FOR_ANALYSIS) {
+            console.warn(`[Data Warning] ⚠️ Team ${opponent} (Fouls) has only ${oppStats.matches} total matches. Proceeding with low sample size.`);
+          }
+
+          const matchDetails = oppStats.matchDetails as FoulsMatchDetail[];
+
+          const { matches: matchesToUse, venueSpecific } = this.getVenueSpecificMatches(
+            matchDetails, 
+            opponentIsHome
+          );
+          
+          const totalFoulsAgainst = matchesToUse.reduce(
+            (sum, m) => sum + (m.foulsCommittedAgainst || 0), 0 
+          );
+
+          const matchCount = matchesToUse.length;
+          
+          return {
+            average: matchCount > 0 ? totalFoulsAgainst / matchCount : 0,
+            matches: matchCount,
+            venueSpecific
+          };
+        }
+
+        case BettingMarket.SHOTS_ON_TARGET:
+        case BettingMarket.TOTAL_SHOTS: {
+          const oppStats = stats.shooting.get(opponent);
+          if (!oppStats) return null;
+          
+          if (oppStats.matches < this.MIN_MATCHES_FOR_ANALYSIS) {
+            console.warn(`[Data Warning] ⚠️ Team ${opponent} (Shots) has only ${oppStats.matches} total matches. Proceeding with low sample size.`);
+          }
+
+          // Define and assert the field name
+          const field = (market === BettingMarket.SHOTS_ON_TARGET 
+            ? 'shotsOnTargetAgainst' 
+            : 'shotsAgainst') as ShootingFieldKey;
+          
+          const matchDetails = oppStats.matchDetails as ShootingMatchDetail[];
+
+          const { matches: matchesToUse, venueSpecific } = this.getVenueSpecificMatches(
+            matchDetails, 
+            opponentIsHome
+          );
+          
+          const totalAgainst = matchesToUse.reduce(
+            (sum, m) => sum + (m[field] || 0), 0 
+          );
+          
+          const matchCount = matchesToUse.length;
+
+          return {
+            average: matchCount > 0 ? totalAgainst / matchCount : 0,
+            matches: matchCount,
+            venueSpecific
+          };
+        }
+
+        case BettingMarket.TEAM_GOALS: {
+            const oppStats = stats.goals.get(opponent);
+            if (!oppStats) return null;
+            
+            if (oppStats.matches < this.MIN_MATCHES_FOR_ANALYSIS) {
+              console.warn(`[Data Warning] ⚠️ Team ${opponent} (Goals) has only ${oppStats.matches} total matches. Proceeding with low sample size.`);
+            }
+            
+            const matchDetails = oppStats.matchDetails as GoalsMatchDetail[];
+
+            const { matches: matchesToUse, venueSpecific } = this.getVenueSpecificMatches(
+              matchDetails, 
+              opponentIsHome
+            );
+            
+            // Calculate average goals CONCEDED (goalsAgainst) at this venue
+            const totalGoalsAgainst = matchesToUse.reduce(
+              (sum, m) => sum + (m.goalsAgainst || 0), 0 
+            );
+            
+            const matchCount = matchesToUse.length;
+
+            return {
+              average: matchCount > 0 ? totalGoalsAgainst / matchCount : 0,
+              matches: matchCount,
+              venueSpecific
+            };
+        }
+
+        case BettingMarket.BOTH_TEAMS_TO_SCORE: {
+            // No direct opposition 'allows' metric for BTTS, so return default/zero.
+            return { average: 0, matches: 0, venueSpecific: false };
+        }
+
+        // 🏆 ADDITION: Handle Match Result market gracefully
+        case BettingMarket.MATCH_RESULT: {
+            // Match Result analysis is self-contained in bettingInsightsService 
+            // and does not rely on opposition defensive averages here.
+            return { average: 0, matches: 0, venueSpecific: false };
+        }
+
+        default:
+          return null;
+      }
+    } catch (error) {
+      console.error(`[MatchContextService] Error fetching defensive stats for ${opponent} on ${market}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Evaluate Match Result context based on opposition's form
+   */
+  private async evaluateMatchResultContext(
+    insight: BettingInsight,
+    homeTeam: string,
+    awayTeam: string,
+    isHome: boolean
+  ): Promise<{
+    strength: 'Poor' | 'Fair' | 'Good' | 'Excellent';
+    recommendation: string;
+    venueSpecific: boolean; // Added venueSpecific flag to return type
+  }> {
+    
+    const opponent = isHome ? awayTeam : homeTeam;
+    const opponentIsHome = !isHome;
+    
+    // 🏆 FIX: Parse the full outcome label to determine the betting market
+    const fullOutcomeLabel = insight.outcome.split(' - ')[1]; // e.g., "Home Win", "Draw", "Home or Draw"
+    
+    try {
+      // Get opposition's results
+      const oppResults = await fbrefFixtureService.getTeamMatchResultsByVenue(opponent);
+      
+      const venue = isHome ? 'home' : 'away';
+      const oppVenue = opponentIsHome ? 'home' : 'away';
+      const confidenceScore = insight.context?.confidence?.score ?? 0;
+      const confidenceText = this.getConfidenceContext(confidenceScore);
+
+      if (oppResults.length < this.MIN_MATCHES_FOR_ANALYSIS) {
+        return {
+          strength: 'Fair',
+          recommendation: `🟡 **Fair Selection**: ${insight.team} has a ${insight.hitRate}% ${fullOutcomeLabel} rate. Insufficient opposition data (${oppResults.length} total matches) for deeper analysis. ${confidenceText}`,
+          venueSpecific: false
+        };
+      }
+      
+      // Filter for relevant venue
+      const oppVenueResults = oppResults.filter(r => r.isHome === opponentIsHome);
+      
+      const venueSpecific = oppVenueResults.length >= this.MIN_VENUE_MATCHES;
+      const resultsToUse = venueSpecific ? oppVenueResults : oppResults;
+      
+      if (resultsToUse.length < this.MIN_MATCHES_FOR_ANALYSIS) {
+          return {
+              strength: 'Fair',
+              recommendation: `🟡 **Fair Selection**: ${insight.team} has a ${insight.hitRate}% ${fullOutcomeLabel} rate. Insufficient opposition data (${resultsToUse.length} total matches) for reliable analysis. ${confidenceText}`,
+              venueSpecific: false
+          };
+      }
+
+      // Calculate opposition's defensive strength at this venue
+      const matchCount = resultsToUse.length;
+      
+      // Calculate opposition's *team-relative* outcomes at the match venue (oppVenue)
+      const oppLosses = resultsToUse.filter(r => r.outcome === 'Loss').length;
+      const oppWins = resultsToUse.filter(r => r.outcome === 'Win').length;
+      const oppDraws = resultsToUse.filter(r => r.outcome === 'Draw').length;
+      
+      const oppLossRate = (oppLosses / matchCount) * 100;
+      const oppWinRate = (oppWins / matchCount) * 100;
+      const oppDrawRate = (oppDraws / matchCount) * 100;
+      
+      let strength: 'Poor' | 'Fair' | 'Good' | 'Excellent' = 'Fair';
+      let recommendation = '';
+      
+      // Analyze based on target outcome
+      
+      // --- SINGLE OUTCOMES ---
+      if (fullOutcomeLabel.includes('Win')) {
+        // Team is betting on a win (Home Win or Away Win)
+        
+        // This is a fixture win (Home Win or Away Win), check if opposition is weak (high loss rate)
+        if (oppLossRate >= 60) {
+          strength = 'Excellent';
+          recommendation = `✅ **STRONG SELECTION**: ${insight.team} has a **${insight.hitRate}% ${fullOutcomeLabel} rate**. The opposition, ${opponent}, loses **${Math.round(oppLossRate)}% of their ${oppVenue} matches**. This is an excellent matchup. ${confidenceText}`;
+        } else if (oppLossRate >= 40) {
+          strength = 'Good';
+          recommendation = `🔵 **Recommended**: ${insight.team} has a **${insight.hitRate}% ${fullOutcomeLabel} rate**. ${opponent} loses **${Math.round(oppLossRate)}%** ${oppVenue}, suggesting a vulnerable side. Good betting opportunity. ${confidenceText}`;
+        } else if (oppWinRate >= 60) {
+          strength = 'Poor';
+          recommendation = `🛑 **CAUTION ADVISED**: ${insight.team}'s ${insight.hitRate}% ${fullOutcomeLabel} pattern meets a strong ${opponent} who wins **${Math.round(oppWinRate)}% ${oppVenue}**. This is a tough matchup despite recent form. ${confidenceText}`;
+        } else {
+          strength = 'Fair';
+          recommendation = `🟡 **Fair Selection**: ${insight.team} has ${insight.hitRate}% ${fullOutcomeLabel} rate. ${opponent}'s ${oppVenue} form is moderate (${Math.round(oppWinRate)}% wins, ${Math.round(oppLossRate)}% losses). Bet relies on ${insight.team}'s form continuing. ${confidenceText}`;
+        }
+      } else if (fullOutcomeLabel === 'Draw') {
+        // Draw patterns
+        if (oppDrawRate >= 30) {
+          strength = 'Good';
+          recommendation = `🔵 **Recommended**: ${insight.team} has ${insight.hitRate}% Draw rate. ${opponent} draws **${Math.round(oppDrawRate)}%** ${oppVenue}, increasing likelihood. ${confidenceText}`;
+        } else {
+          strength = 'Fair';
+          recommendation = `🟡 **Fair Selection**: ${insight.team} shows ${insight.hitRate}% Draw pattern. ${opponent}'s ${oppVenue} form doesn't strongly favor draws. Moderate confidence. ${confidenceText}`;
+        }
+      } 
+      
+      // --- DOUBLE CHANCE OUTCOMES ---
+      else if (fullOutcomeLabel.includes('Home or Draw')) {
+        // Double Chance: Home or Draw (1X)
+        // Opponent must not win away (i.e., their win rate away must be low)
+        // If the insight team is Home, the opponent winning means the opponent won away (r.outcome === 'Loss' for the insight team).
+        // If the insight team is Away, the opponent winning means the opponent won home (r.outcome === 'Loss' for the insight team).
+        // The most critical stat here is the opponent's *Win* rate at their relevant venue.
+        const oppAwayWinRate = opponentIsHome ? oppWinRate : oppLossRate; // If opponent is Home, their "Win" means Home Win (Away Loss for the fixture)
+        
+        if (oppAwayWinRate <= 20) {
+            strength = 'Excellent';
+            recommendation = `✅ **STRONG SELECTION (Double Chance)**: ${insight.team} has a **${insight.hitRate}% Home or Draw rate**. The opposition, ${opponent}, rarely wins away (**${Math.round(oppAwayWinRate)}% ${oppVenue} Win rate**). This significantly increases confidence. ${confidenceText}`;
+        } else if (oppAwayWinRate <= 30) {
+            strength = 'Good';
+            recommendation = `🔵 **Recommended (Double Chance)**: ${insight.team} has a ${insight.hitRate}% Home or Draw rate. The opposition has a low-to-moderate ${Math.round(oppAwayWinRate)}% ${oppVenue} Win rate, providing a solid foundation for this bet. ${confidenceText}`;
+        } else {
+            strength = 'Fair';
+            recommendation = `🟡 **Fair Selection (Double Chance)**: The opposition's ${oppVenue} Win rate is ${Math.round(oppAwayWinRate)}%. While the team's form is strong, the opposition carries a risk of winning the fixture. ${confidenceText}`;
+        }
+
+      } else if (fullOutcomeLabel.includes('Away or Draw')) {
+        // Double Chance: Away or Draw (X2)
+        // Opponent must not win at home (i.e., their home win rate must be low)
+        const oppHomeWinRate = opponentIsHome ? oppLossRate : oppWinRate; 
+
+        if (oppHomeWinRate <= 20) {
+            strength = 'Excellent';
+            recommendation = `✅ **STRONG SELECTION (Double Chance)**: ${insight.team} has a **${insight.hitRate}% Away or Draw rate**. The opposition, ${opponent}, rarely wins at home (**${Math.round(oppHomeWinRate)}% ${oppVenue} Win rate**). This significantly increases confidence. ${confidenceText}`;
+        } else if (oppHomeWinRate <= 30) {
+            strength = 'Good';
+            recommendation = `🔵 **Recommended (Double Chance)**: ${insight.team} has a ${insight.hitRate}% Away or Draw rate. The opposition has a low-to-moderate ${Math.round(oppHomeWinRate)}% ${oppVenue} Win rate, providing a solid foundation for this bet. ${confidenceText}`;
+        } else {
+            strength = 'Fair';
+            recommendation = `🟡 **Fair Selection (Double Chance)**: The opposition's ${oppVenue} Win rate is ${Math.round(oppHomeWinRate)}%. While the team's form is strong, the opposition carries a risk of winning the fixture. ${confidenceText}`;
+        }
+      }
+      
+      // Fallback for unexpected label
+      if (!recommendation) {
+        strength = 'Poor';
+        recommendation = `❌ **UNRECOGNIZED MARKET**: Cannot process context for ${fullOutcomeLabel}. Bet relies solely on recent form. ${confidenceText}`;
+      }
+      
+      return { strength, recommendation, venueSpecific };
+      
+    } catch (error) {
+      console.error('[MatchContextService] Error evaluating match result context:', error);
+      return {
+        strength: 'Poor',
+        recommendation: `❌ **ERROR**: Unable to process Match Result context due to system error. ${this.getConfidenceContext(insight.context?.confidence?.score ?? 0)}`,
+        venueSpecific: false
+      };
+    }
+  }
+
+  /**
+   * Evaluates the strength of the matchup based on the pattern and opposition stats.
+   */
+  private evaluateMatchStrength(
+    patternAvg: number,
+    threshold: number,
+    oppAllowsAvg: number,
+    confidenceScore: number,
+    comparison: Comparison
+  ): { 
+    strength: 'Poor' | 'Fair' | 'Good' | 'Excellent';
+    dominanceOverride: boolean;
+    dominanceRatio?: number;
+  } {
+    
+    const isOverBet = comparison === Comparison.OVER || comparison === Comparison.OR_MORE;
+    
+    let strength: 'Poor' | 'Fair' | 'Good' | 'Excellent' = 'Poor';
+    let dominanceOverride = false;
+    let dominanceRatio: number | undefined;
+
+    // --- Logic for OVER/OR_MORE Bets (Looking for high values) ---
+    if (isOverBet) {
+      if (patternAvg < threshold) return { strength: 'Poor', dominanceOverride: false }; 
+
+      const teamMargin = patternAvg - threshold;
+      const oppMargin = oppAllowsAvg - threshold;
+      const teamMarginRatio = threshold > 0 ? teamMargin / threshold : (teamMargin > 0 ? 1 : 0);
+      const oppMarginRatio = threshold > 0 ? oppMargin / threshold : (oppMargin > 0 ? 1 : 0);
+
+      dominanceRatio = threshold > 0 ? patternAvg / threshold : undefined;
+
+      if (teamMarginRatio >= 0.15 && oppMarginRatio >= 0.15) {
+        strength = 'Excellent';
+      }
+      else if (teamMarginRatio >= 0.10 && oppMarginRatio >= 0.05) {
+        strength = 'Good';
+      }
+      else if (teamMargin > 0 && oppAllowsAvg >= threshold) {
+        strength = 'Fair';
+      }
+      else if (oppAllowsAvg < threshold) {
+        strength = 'Poor';
+        
+        // 🎯 DOMINANCE OVERRIDE
+        if (dominanceRatio !== undefined && dominanceRatio >= 1.8 && teamMarginRatio >= 0.25) {
+          strength = 'Good';
+          dominanceOverride = true;
+          console.log(`[MatchContext] Dominance override: Poor → Good (ratio: ${dominanceRatio.toFixed(2)})`);
+        } else if (dominanceRatio !== undefined && dominanceRatio >= 1.5) {
+          strength = 'Fair';
+          dominanceOverride = true;
+          console.log(`[MatchContext] Dominance override: Poor → Fair (ratio: ${dominanceRatio.toFixed(2)})`);
+        }
+      } else {
+          strength = 'Fair';
+      }
+    } 
+    
+    // --- Logic for UNDER Bets (Looking for low values) ---
+    else { // Comparison.UNDER
+      if (patternAvg > threshold) return { strength: 'Poor', dominanceOverride: false }; 
+
+      const teamMargin = threshold - patternAvg; 
+      const oppMargin = threshold - oppAllowsAvg; 
+      const teamMarginRatio = threshold > 0 ? teamMargin / threshold : (teamMargin > 0 ? 1 : 0);
+      const oppMarginRatio = threshold > 0 ? oppMargin / threshold : (oppMargin > 0 ? 1 : 0);
+      
+      if (teamMarginRatio >= 0.15 && oppMarginRatio >= 0.15) {
+        strength = 'Excellent';
+      }
+      else if (teamMarginRatio >= 0.10 && oppMarginRatio >= 0.05) {
+        strength = 'Good';
+      }
+      else if (teamMargin > 0 && oppAllowsAvg <= threshold) {
+        strength = 'Fair';
+      }
+      else if (oppAllowsAvg > threshold) {
+        strength = 'Poor';
+        // No dominance override for UNDER bets
+      } else {
+          strength = 'Fair';
       }
     }
 
-    return Array.from(mostSpecificInsights.values());
+    // --- Logic Gate for Confidence Score ---
+    if (confidenceScore < 60 && (strength === 'Good' || strength === 'Excellent')) {
+        return { strength: 'Fair', dominanceOverride, dominanceRatio }; 
+    }
+    if (confidenceScore < 40 && strength !== 'Poor') {
+        return { strength: 'Poor', dominanceOverride: false, dominanceRatio }; 
+    }
+    
+    return { strength, dominanceOverride, dominanceRatio };
   }
 
   /**
-   * Main method: Get all betting insights for all teams
+   * Generates a text recommendation based on the context and match strength.
    */
-  async getAllInsights(): Promise<InsightsResponse> {
-    const now = Date.now();
+  private generateRecommendation(
+    teamName: string,
+    outcome: string,
+    strength: 'Poor' | 'Fair' | 'Good' | 'Excellent',
+    patternAvg: number,
+    oppAllowsAvg: number,
+    threshold: number,
+    isHome: boolean,
+    confidenceScore: number,
+    venueSpecific: boolean,
+    dominanceOverride: boolean,
+    dominanceRatio?: number,
+    dataQuality?: 'Excellent' | 'Good' | 'Fair' | 'Poor' | 'Insufficient', 
+    oppositionMatches?: number 
+  ): string {
+    const displayTeamName = getDisplayTeamName(teamName);
+    const isUnderBet = outcome.startsWith('Under');
     
-    // 1. Caching Check
-    if (this.cache && (now - this.cache.timestamp) < this.CACHE_TIMEOUT_MS) {
-      console.log('[BettingInsights] ♻️ Returning cached insights.');
-      return this.cache.data;
-    }
+    const venue = isHome ? 'home' : 'away';
+    const oppVenue = isHome ? 'away' : 'home';
+    const venueNote = venueSpecific 
+      ? ` when playing ${oppVenue}` 
+      : '';
+    
+    const confidenceText = this.getConfidenceContext(confidenceScore);
+    const roundedPatternAvg = Math.round(patternAvg * 10) / 10;
+    const roundedOppAllowsAvg = Math.round(oppAllowsAvg * 10) / 10;
+    
+    let baseRecommendation = `${displayTeamName}'s pattern: **${outcome} (${roundedPatternAvg} avg)**.`;
+    let mainContext = '';
+    let ratingPrefix = '';
+    
+    // --- Determine Rating Prefix and Main Context ---
+    
+    if (dominanceOverride && !isUnderBet && dominanceRatio) {
+      const dominancePercent = Math.round((dominanceRatio - 1) * 100);
+      ratingPrefix = strength === 'Good' ? '🔵 **Recommended (Dominance)**' : '🟡 **Fair Selection (Dominance)**';
       
-    console.log('[BettingInsights] 🎯 Starting insights analysis...');
+      mainContext = `Despite facing a defensively strong opponent${venueNote} (${roundedOppAllowsAvg} avg, **below the ${threshold} threshold**), ${displayTeamName}'s exceptional form is **${dominancePercent}% above the threshold**. Their elite quality in this market suggests they can transcend the matchup difficulty.`;
+      
+    } else if (isUnderBet) {
+        // Text for UNDER Bets
+        const oppStrength = roundedOppAllowsAvg <= threshold ? 'complements' : 'hinders';
+        
+        switch (strength) {
+            case 'Excellent':
+              ratingPrefix = '✅ **STRONG SELECTION**';
+              mainContext = `An **Excellent Matchup** as the opposition's low allowance rate${venueNote} (${roundedOppAllowsAvg} avg, **below the ${threshold} threshold**) ${oppStrength} this under bet. Both teams show restraint, making this a high-confidence opportunity.`;
+              break;
+            case 'Good':
+              ratingPrefix = '🔵 **Recommended**';
+              mainContext = `A **Good Matchup** because the opposition allows under the threshold${venueNote} (${roundedOppAllowsAvg} avg). This is a solid pick, backed by both team form and opposition weakness in this market.`;
+              break;
+            case 'Fair':
+              ratingPrefix = '🟡 **Fair Selection**';
+              mainContext = `The opposition's concession rate${venueNote} (${roundedOppAllowsAvg} avg) is near or at the ${threshold} threshold. The success of this bet relies mainly on **${displayTeamName}'s ability to maintain their discipline**.`;
+              break;
+            case 'Poor':
+              ratingPrefix = '🛑 **CAUTION ADVISED**';
+              mainContext = `The opposition is **not a clean-sheet side**${venueNote}, allowing **${roundedOppAllowsAvg} avg** which is **above** the ${threshold} threshold. This is a difficult ${venue} matchup despite recent form.`;
+              break;
+        }
+    } else {
+        // Text for OVER/OR_MORE Bets
+        const oppWeakness = roundedOppAllowsAvg > threshold ? 'vulnerable' : 'strong';
+        
+        switch (strength) {
+          case 'Excellent':
+            ratingPrefix = '✅ **STRONG SELECTION**';
+            mainContext = `An **Excellent Matchup** as the opposition allows **${roundedOppAllowsAvg} avg**, which is significantly **above the ${threshold} threshold**${venueNote}. This is a high-confidence, high-value opportunity.`;
+            break;
+          case 'Good':
+            ratingPrefix = '🔵 **Recommended**';
+            mainContext = `A **Good Matchup** because the opposition allows above the threshold${venueNote} (${roundedOppAllowsAvg} avg), suggesting their defense is ${oppWeakness} to this market.`;
+            break;
+          case 'Fair':
+            ratingPrefix = '🟡 **Fair Selection**';
+            mainContext = `The opposition's concession rate${venueNote} (${roundedOppAllowsAvg} avg) is near the ${threshold} threshold. The success of this bet relies mainly on **${displayTeamName}'s strong current form**.`;
+            break;
+          case 'Poor':
+            ratingPrefix = '🛑 **CAUTION ADVISED**';
+            mainContext = `The opposition is defensively ${oppWeakness} when playing ${oppVenue}, allowing only ${roundedOppAllowsAvg} avg, which is **below** the ${threshold} threshold. This is a difficult ${venue} matchup despite recent form.`;
+            break;
+        }
+    }
     
-    const allInsights: BettingInsight[] = [];
+    // --- CONSOLIDATE FINAL OUTPUT ---
     
-    // Parallelize market analysis
-    const marketAnalyses = [
-        ...this.MARKET_ANALYSIS_CONFIGS.map(config => this.analyzeGenericMarket(config as any)),
-        this.analyzeBTTSMarket(), 
-        this.analyzeMatchResultMarket() 
+    let finalRecommendation = `${ratingPrefix}: ${baseRecommendation} ${mainContext}`;
+    
+    // Append Data Quality Warning (Consolidated into one line)
+    if (dataQuality === 'Poor' || dataQuality === 'Fair' || dataQuality === 'Insufficient') {
+        const matchesNote = `(${(oppositionMatches ?? 0)} ${venueSpecific ? 'venue-specific' : 'total'} matches).`; 
+        finalRecommendation += ` 📊 **Data Warning: ${dataQuality} Quality** ${matchesNote}`;
+    }
+    
+    // Append Confidence Score (Always last for visual closure)
+    finalRecommendation += ` ${confidenceText}`;
+    
+    return finalRecommendation;
+  }
+
+  /**
+   * Evaluate BTTS (Both Teams To Score) matchup
+   */
+  private async evaluateBTTSMatchup(
+    homeTeam: string,
+    awayTeam: string,
+    bttsExpectation: 'Yes' | 'No',
+    goalsStats: GoalsStats // Accept goalsStats
+  ): Promise<{
+    strength: 'Poor' | 'Fair' | 'Good' | 'Excellent';
+    homeExpectedGoals: number;
+    awayExpectedGoals: number;
+    homeGoalsFor: number;
+    awayGoalsAgainst: number;
+    awayGoalsFor: number;
+    homeGoalsAgainst: number;
+    venueSpecific: boolean;
+  } | null> {
+    
+    try {
+      const homeStats = goalsStats.get(homeTeam);
+      const awayStats = goalsStats.get(awayTeam);
+      
+      if (!homeStats || !awayStats) return null;
+
+      const homeMatchDetails = homeStats.matchDetails as GoalsMatchDetail[];
+      const awayMatchDetails = awayStats.matchDetails as GoalsMatchDetail[];
+
+      // Determine venue-specific matches for both home team (at home) and away team (away)
+      const { matches: homeHomeMatches, venueSpecific: homeVenueSpecific } = this.getVenueSpecificMatches(
+          homeMatchDetails, 
+          true // Home team's perspective
+      );
+      const { matches: awayAwayMatches, venueSpecific: awayVenueSpecific } = this.getVenueSpecificMatches(
+          awayMatchDetails, 
+          false // Away team's perspective
+      );
+      
+      const venueSpecific = homeVenueSpecific && awayVenueSpecific; 
+      
+      const homeHomeMatchCount = homeHomeMatches.length;
+      const awayAwayMatchCount = awayAwayMatches.length;
+      
+      // Calculate home team's home offensive output (Goals For at Home)
+      let homeGoalsFor: number = homeHomeMatchCount > 0 
+        ? homeHomeMatches.reduce((sum, m) => sum + (m.goalsFor || 0), 0) / homeHomeMatchCount
+        : 0;
+      
+      // Calculate away team's away defensive weakness (Goals Against Away)
+      let awayGoalsAgainst: number = awayAwayMatchCount > 0 
+        ? awayAwayMatches.reduce((sum, m) => sum + (m.goalsAgainst || 0), 0) / awayAwayMatchCount
+        : 0;
+      
+      // Calculate away team's away offensive output (Goals For Away)
+      let awayGoalsFor: number = awayAwayMatchCount > 0 
+        ? awayAwayMatches.reduce((sum, m) => sum + (m.goalsFor || 0), 0) / awayAwayMatchCount
+        : 0;
+      
+      // Calculate home team's home defensive weakness (Goals Against Home)
+      let homeGoalsAgainst: number = homeHomeMatchCount > 0 
+        ? homeHomeMatches.reduce((sum, m) => sum + (m.goalsAgainst || 0), 0) / homeHomeMatchCount
+        : 0;
+      
+      // Calculate expected goals (average of offensive output and defensive weakness)
+      const homeExpectedGoals = (homeGoalsFor + awayGoalsAgainst) / 2;
+      const awayExpectedGoals = (awayGoalsFor + homeGoalsAgainst) / 2;
+      
+      // Threshold: 0.8 expected goals ≈ 55% probability of scoring (Poisson approximation)
+      const expectedGoalsThreshold = 0.8;
+      const homeLikelyToScore = homeExpectedGoals > expectedGoalsThreshold;
+      const awayLikelyToScore = awayExpectedGoals > expectedGoalsThreshold;
+      
+      let strength: 'Poor' | 'Fair' | 'Good' | 'Excellent' = 'Poor';
+      
+      if (bttsExpectation === 'Yes') {
+        // BTTS YES: Both teams need to score
+        if (homeLikelyToScore && awayLikelyToScore) {
+          const minExpectedGoals = Math.min(homeExpectedGoals, awayExpectedGoals);
+          const avgExpectedGoals = (homeExpectedGoals + awayExpectedGoals) / 2;
+          
+          if (minExpectedGoals >= 1.5 && avgExpectedGoals >= 2.0) {
+            strength = 'Excellent';
+          }
+          else if (minExpectedGoals >= 1.2 && avgExpectedGoals >= 1.5) {
+            strength = 'Good';
+          }
+          else if (minExpectedGoals >= 0.8) {
+            strength = 'Fair';
+          }
+          else {
+            strength = 'Poor';
+          }
+        } else {
+          strength = 'Poor';
+        }
+      } else {
+        // BTTS NO: At least one team needs to NOT score
+        const homeUnlikelyToScore = homeExpectedGoals <= 0.8;
+        const awayUnlikelyToScore = awayExpectedGoals <= 0.8;
+        
+        if (homeUnlikelyToScore || awayUnlikelyToScore) {
+          const minExpectedGoals = Math.min(homeExpectedGoals, awayExpectedGoals);
+          
+          if (minExpectedGoals <= 0.5) {
+            strength = 'Excellent';
+          }
+          else if (minExpectedGoals <= 0.7) {
+            strength = 'Good';
+          }
+          else {
+            strength = 'Fair';
+          }
+        } else {
+          strength = 'Poor';
+        }
+      }
+      
+      return {
+        strength,
+        homeExpectedGoals,
+        awayExpectedGoals,
+        homeGoalsFor,
+        awayGoalsAgainst,
+        awayGoalsFor,
+        homeGoalsAgainst,
+        venueSpecific
+      };
+      
+    } catch (error) {
+      console.error(`[MatchContextService] Error evaluating BTTS matchup:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Generate BTTS-specific recommendation text
+   */
+  private generateBTTSRecommendation(
+    teamName: string,
+    outcome: string, // "BTTS Yes" or "BTTS No"
+    strength: 'Poor' | 'Fair' | 'Good' | 'Excellent',
+    isHome: boolean,
+    confidenceScore: number,
+    bttsContext: {
+      homeExpectedGoals: number;
+      awayExpectedGoals: number;
+      homeGoalsFor: number;
+      awayGoalsAgainst: number;
+      awayGoalsFor: number;
+      homeGoalsAgainst: number;
+    },
+    venueSpecific: boolean,
+    dataQuality: 'Excellent' | 'Good' | 'Fair' | 'Poor' | 'Insufficient', 
+    oppositionMatches: number 
+  ): string {
+    const displayTeamName = getDisplayTeamName(teamName);
+    const isBTTSYes = outcome.includes('Yes');
+    const venueNote = venueSpecific ? ' (venue-specific analysis)' : '';
+    
+    const homeExpected = Math.round(bttsContext.homeExpectedGoals * 10) / 10;
+    const awayExpected = Math.round(bttsContext.awayExpectedGoals * 10) / 10;
+    const confidenceText = this.getConfidenceContext(confidenceScore);
+    
+    let ratingPrefix = '';
+    let mainContext = '';
+
+    if (isBTTSYes) {
+      // BTTS YES recommendations
+      let base = `${displayTeamName}'s pattern: **${outcome}${venueNote}**. Home expected goals: ${homeExpected}, Away expected goals: ${awayExpected}.`;
+      
+      switch (strength) {
+        case 'Excellent':
+          ratingPrefix = '✅ **STRONG SELECTION**';
+          mainContext = `An **Excellent Matchup** - both teams demonstrate strong offensive output combined with defensive vulnerability. Both sides are highly likely to find the net. This is a high-confidence BTTS Yes opportunity.`;
+          break;
+        case 'Good':
+          ratingPrefix = '🔵 **Recommended**';
+          mainContext = `A **Good Matchup** - both teams show good scoring capability and their opponents have defensive weaknesses. Strong indicators for both teams to score.`;
+          break;
+        case 'Fair':
+          ratingPrefix = '🟡 **Fair Selection**';
+          mainContext = `Both teams have moderate expected goal outputs. While the indicators lean toward BTTS Yes, there's less margin for error.`;
+          break;
+        case 'Poor':
+          ratingPrefix = '🛑 **CAUTION ADVISED**';
+          mainContext = `At least one team shows weak expected goal output or faces a strong defense. BTTS Yes carries significant risk in this matchup.`;
+          break;
+      }
+      
+      let finalRecommendation = `${ratingPrefix}: ${base} ${mainContext}`;
+      
+      if (dataQuality === 'Poor' || dataQuality === 'Fair' || dataQuality === 'Insufficient') {
+          const matchesNote = `(${(oppositionMatches)} ${venueSpecific ? 'venue-specific' : 'total'} matches).`; 
+          finalRecommendation += ` 📊 **Data Warning: ${dataQuality} Quality** ${matchesNote}`;
+      }
+      
+      return finalRecommendation + ` ${confidenceText}`;
+
+    } else {
+      // BTTS NO recommendations
+      let base = `${displayTeamName}'s pattern: **${outcome}${venueNote}**. Home expected goals: ${homeExpected}, Away expected goals: ${awayExpected}.`;
+      
+      switch (strength) {
+        case 'Excellent':
+          ratingPrefix = '✅ **STRONG SELECTION**';
+          mainContext = `An **Excellent Matchup** - at least one team shows very low expected goal output. Strong indicators for a clean sheet scenario.`;
+          break;
+        case 'Good':
+          ratingPrefix = '🔵 **Recommended**';
+          mainContext = `A **Good Matchup** - one team has weak offensive output or faces a strong defense. Good probability of at least one team failing to score.`;
+          break;
+        case 'Fair':
+          ratingPrefix = '🟡 **Fair Selection**';
+          mainContext = `One team has moderate scoring difficulty, suggesting a possible clean sheet. However, the margin is narrow.`;
+          break;
+        case 'Poor':
+          ratingPrefix = '🛑 **CAUTION ADVISED**';
+          mainContext = `Both teams demonstrate strong expected goal outputs. BTTS No is high-risk as both sides are likely to find the net.`;
+          break;
+      }
+      
+      let finalRecommendation = `${ratingPrefix}: ${base} ${mainContext}`;
+      
+      if (dataQuality === 'Poor' || dataQuality === 'Fair' || dataQuality === 'Insufficient') {
+          const matchesNote = `(${(oppositionMatches)} ${venueSpecific ? 'venue-specific' : 'total'} matches).`; 
+          finalRecommendation += ` 📊 **Data Warning: ${dataQuality} Quality** ${matchesNote}`;
+      }
+      
+      return finalRecommendation + ` ${confidenceText}`;
+    }
+  }
+
+  /**
+   * Main function to enrich all insights with match-specific context (Step 2).
+   */
+  public async enrichMatchInsights(
+    homeTeam: string,
+    awayTeam: string,
+    homeInsights: BettingInsight[],
+    awayInsights: BettingInsight[]
+  ): Promise<MatchContextInsight[]> {
+    
+    const startTime = performance.now(); 
+    const enrichedInsights: MatchContextInsight[] = [];
+
+    // ===== 1. PARALLEL DATA FETCHING (OPTIMIZATION) =====
+    // NOTE: This initial fetch of all stats maps is still necessary for context calculation,
+    // but the expensive *verification* step has been removed.
+    const [goalsStats, cardsStats, cornersStats, foulsStats, shootingStats] = 
+        await Promise.all([
+          supabaseGoalsService.getGoalStatistics(),
+          supabaseCardsService.getCardStatistics(),
+          supabaseCornersService.getCornerStatistics(),
+          supabaseFoulsService.getFoulStatistics(),
+          supabaseShootingService.getShootingStatistics() 
+        ]);
+
+    const allStats: AllStats = { 
+        goals: goalsStats, 
+        cards: cardsStats, 
+        corners: cornersStats, 
+        fouls: foulsStats, 
+        shooting: shootingStats 
+    };
+
+    // ===== INPUT VALIDATION & TEAM NORMALIZATION =====
+    if (!homeTeam?.trim() || !awayTeam?.trim()) {
+      console.error('[MatchContextService] ❌ Invalid team name: empty or undefined');
+      return [];
+    }
+    
+    const normalizedHome = normalizeTeamName(homeTeam);
+    const normalizedAway = normalizeTeamName(awayTeam);
+    
+    if (normalizedHome === normalizedAway) {
+      console.error(`[MatchContextService] ❌ Home and away teams cannot be the same: "${homeTeam}"`);
+      return [];
+    }
+    
+    // --- TEAM EXISTENCE CHECK (Now much faster) ---
+    const [homeExists, awayExists] = await Promise.all([
+        this.verifyTeamExists(normalizedHome),
+        this.verifyTeamExists(normalizedAway),
+    ]);
+
+    if (!homeExists || !awayExists) {
+        console.error(`[MatchContextService] ❌ One or both teams not found in data: Home: ${homeExists}, Away: ${awayExists}`);
+        return [];
+    }
+    // --- END TEAM EXISTENCE CHECK ---
+
+    if (!homeInsights?.length && !awayInsights?.length) {
+      console.warn('[MatchContextService] ⚠️ No insights provided for enrichment');
+      return [];
+    }
+
+    // ===== PROCESS INSIGHTS =====
+    const allInsights = [
+      ...homeInsights.map(i => ({ 
+        insight: i, 
+        isHome: true, 
+        opponent: normalizedAway,
+        opponentIsHome: false
+      })),
+      ...awayInsights.map(i => ({ 
+        insight: i, 
+        isHome: false, 
+        opponent: normalizedHome,
+        opponentIsHome: true
+      }))
     ];
 
-    try {
-        const results = await Promise.all(marketAnalyses);
-        allInsights.push(...results.flat()); 
-    } catch (error) {
-        console.error('[BettingInsights] Error during market analysis:', error);
-        throw new Error('Failed to complete all market analyses.');
-    }
-    
-    
-    const finalInsights = this.filterRedundantInsights(allInsights);
-
-    const uniqueTeams = new Set(finalInsights.map(i => i.team).filter(t => t !== "Fixture"));
-
-    console.log('[BettingInsights] ✅ Analysis complete:', {
-      totalInsights: finalInsights.length,
-      teamsAnalyzed: uniqueTeams.size
-    });
-
-    const response: InsightsResponse = {
-        insights: finalInsights,
-        timestamp: new Date().toISOString(),
-        teamsAnalyzed: uniqueTeams.size,
-        totalPatterns: finalInsights.length
-    };
-    
-    // 1. Cache the result
-    this.cache = { data: response, timestamp: now };
-
-    return response;
-  }
-
-  /**
-   * Get insights for a specific team
-   */
-  async getTeamInsights(teamName: string): Promise<BettingInsight[]> {
-    const allInsights = await this.getAllInsights();
-    return allInsights.insights.filter(
-      insight => insight.team.toLowerCase() === teamName.toLowerCase() || insight.team === "Fixture"
-    );
-  }
-
-  /**
-   * Get insights for a specific market across all teams
-   */
-  async getMarketInsights(market: BettingMarket): Promise<BettingInsight[]> {
-    const allInsights = await this.getAllInsights();
-    return allInsights.insights.filter(insight => insight.market === market);
-  }
-
-  // -----------------------------------------------------------
-  // 📊 MARKET ANALYZERS
-  // -----------------------------------------------------------
-  
-  private async analyzeGenericMarket<T extends BaseMatchDetail>(config: MarketAnalysisConfig<T>): Promise<BettingInsight[]> {
-    console.log(`[BettingInsights] 📊 Analyzing ${config.label} market...`);
-    const insights: BettingInsight[] = [];
-    
-    // This call fetches stats for ALL teams in one go. Cannot parallelize here.
-    const allStats = await config.service.getStatistics(); 
-    const marketConfig = MARKET_CONFIGS[config.market as Exclude<BettingMarket, BettingMarket.MATCH_RESULT | BettingMarket.GOALS>];
-
-    // NOTE: If the data structure allowed, we would map the team iteration and use Promise.all here
-    // But since `allStats.entries()` is a generator/iterator, we process teams sequentially.
-    for (const [teamName, stats] of allStats.entries()) {
-      if (stats.matches < this.ROLLING_WINDOW) continue;
-
-      const allValues = stats.matchDetails.map(config.valueExtractor); 
-      const allMatchDetails = stats.matchDetails; 
-      
-      for (const threshold of marketConfig.thresholds) {
+    for (const { insight, isHome, opponent, opponentIsHome } of allInsights) {
+      try {
+        const insightTeamName = isHome ? normalizedHome : normalizedAway;
         
-        if (marketConfig.useOrMore) {
-          const orMorePattern = this.detectPattern(
-            allValues,
-            threshold,
-            teamName,
-            config.market,
-            `${threshold}+ ${marketConfig.label}`,
-            allMatchDetails,
-            Comparison.OR_MORE
-          );
-          if (orMorePattern) insights.push(orMorePattern);
-        } else {
-          const baseOutcome = `${marketConfig.label}`;
-          
-          const overPattern = this.detectPattern(
-            allValues,
-            threshold,
-            teamName,
-            config.market,
-            `${Comparison.OVER} ${threshold} ${baseOutcome}`,
-            allMatchDetails,
-            Comparison.OVER
-          );
-          if (overPattern) insights.push(overPattern);
-          
-          const underPattern = this.detectPattern(
-            allValues,
-            threshold,
-            teamName,
-            config.market,
-            `${Comparison.UNDER} ${threshold} ${baseOutcome}`,
-            allMatchDetails,
-            Comparison.UNDER
-          );
-          if (underPattern) insights.push(underPattern);
-        }
-      }
-    }
-
-    console.log(`[BettingInsights] Found ${insights.length} ${config.label} patterns`);
-    return insights;
-  }
-  
-  
-  private async analyzeBTTSMarket(): Promise<BettingInsight[]> {
-    console.log('[BettingInsights] 📊 Analyzing Both Teams to Score market...');
-    const insights: BettingInsight[] = [];
-    const allStats = await supabaseGoalsService.getGoalStatistics();
-
-    for (const [teamName, stats] of allStats.entries()) {
-      if (stats.matches < this.ROLLING_WINDOW) continue;
-      
-      const allDetails = stats.matchDetails as GoalsDetail[];
-      
-      // BTTS - YES
-      const yesPattern = this._detectBinaryPattern<GoalsDetail>(
-          allDetails,
-          allDetails.map(m => m.bothTeamsScored ? 1 : 0),
-          teamName,
-          BettingMarket.BOTH_TEAMS_TO_SCORE,
-          'Both Teams to Score - Yes'
-          // No getContext needed for BTTS
-      );
-      if (yesPattern) insights.push(yesPattern);
-      
-      // BTTS - NO
-      const noPattern = this._detectBinaryPattern<GoalsDetail>(
-          allDetails,
-          allDetails.map(m => m.bothTeamsScored ? 0 : 1), // Invert for "No"
-          teamName,
-          BettingMarket.BOTH_TEAMS_TO_SCORE,
-          'Both Teams to Score - No'
-      );
-      if (noPattern) insights.push(noPattern);
-    }
-
-    return insights; 
-  }
-
-  /**
-   * Dedicated method for Match Result (Home Win, Away Win, Draw, Double Chance) analysis.
-   * FIX: Replaced original implementation with fixture-centric logic.
-   */
-  private async analyzeMatchResultMarket(): Promise<BettingInsight[]> {
-    console.log('[BettingInsights] 🏆 Analyzing Match Result and Double Chance markets...');
-    const insights: BettingInsight[] = [];
-    
-    // Get all team names (using a reliable service key set)
-    const allStats = await supabaseCardsService.getCardStatistics(); 
-    const teamNames = Array.from(allStats.keys());
-
-    for (const teamName of teamNames) {
-      
-      const allMatchResults = await fbrefFixtureService.getTeamMatchResultsByVenue(teamName);
-
-      if (allMatchResults.length < this.ROLLING_WINDOW) continue;
-      
-      // ----------------------------------------------------------------------
-      // Helper function to map team-relative result (Win/Draw/Loss) 
-      // to the FIXTURE outcome (Home Win, Away Win, Draw)
-      // ----------------------------------------------------------------------
-      
-      const getFixtureOutcome = (m: MatchResultDetail): 'HomeWin' | 'AwayWin' | 'Draw' => {
-          if (m.outcome === 'Draw') return 'Draw';
-          if (m.outcome === 'Win') {
-              return m.isHome ? 'HomeWin' : 'AwayWin';
-          }
-          // If the team analyzed lost
-          return m.isHome ? 'AwayWin' : 'HomeWin';
-      };
-
-      const fixtureOutcomes = allMatchResults.map(getFixtureOutcome);
-      
-      // Reusable context formatter: (H/A vs Opponent Score-AgainstScore)
-      const contextFormatter = (m: MatchResultDetail) => 
-          `${m.isHome ? 'H' : 'A'} vs ${m.opponent} (${m.scoreFor}-${m.scoreAgainst})`;
-
-      // ----------------------------------------------------------------------
-      // 1. HOME WIN
-      // ----------------------------------------------------------------------
-      const homeWinPattern = this._detectBinaryPattern(
-          allMatchResults,
-          fixtureOutcomes.map(o => o === 'HomeWin' ? 1 : 0),
-          teamName,
-          BettingMarket.MATCH_RESULT,
-          'Match Result - Home Win',
-          contextFormatter
-      );
-      if (homeWinPattern) insights.push(homeWinPattern);
-
-      // ----------------------------------------------------------------------
-      // 2. AWAY WIN
-      // ----------------------------------------------------------------------
-      const awayWinPattern = this._detectBinaryPattern(
-          allMatchResults,
-          fixtureOutcomes.map(o => o === 'AwayWin' ? 1 : 0),
-          teamName,
-          BettingMarket.MATCH_RESULT,
-          'Match Result - Away Win',
-          contextFormatter
-      );
-      if (awayWinPattern) insights.push(awayWinPattern);
-      
-      // ----------------------------------------------------------------------
-      // 3. DRAW
-      // ----------------------------------------------------------------------
-      const drawPattern = this._detectBinaryPattern(
-          allMatchResults,
-          fixtureOutcomes.map(o => o === 'Draw' ? 1 : 0),
-          teamName,
-          BettingMarket.MATCH_RESULT,
-          'Match Result - Draw',
-          contextFormatter
-      );
-      if (drawPattern) insights.push(drawPattern);
-
-      // ----------------------------------------------------------------------
-      // 4. DOUBLE CHANCE - Home or Draw (1X)
-      // ----------------------------------------------------------------------
-      const homeOrDrawPattern = this._detectBinaryPattern(
-          allMatchResults,
-          fixtureOutcomes.map(o => (o === 'HomeWin' || o === 'Draw') ? 1 : 0),
-          teamName,
-          BettingMarket.MATCH_RESULT, 
-          'Double Chance - Home or Draw',
-          contextFormatter
-      );
-      if (homeOrDrawPattern) insights.push(homeOrDrawPattern);
-      
-      // ----------------------------------------------------------------------
-      // 5. DOUBLE CHANCE - Away or Draw (X2)
-      // ----------------------------------------------------------------------
-      const awayOrDrawPattern = this._detectBinaryPattern(
-          allMatchResults,
-          fixtureOutcomes.map(o => (o === 'AwayWin' || o === 'Draw') ? 1 : 0),
-          teamName,
-          BettingMarket.MATCH_RESULT,
-          'Double Chance - Away or Draw',
-          contextFormatter
-      );
-      if (awayOrDrawPattern) insights.push(awayOrDrawPattern);
-
-    }
-
-    console.log(`[BettingInsights] Found ${insights.length} fixture result patterns`);
-    return insights;
-  }
-
-  // -----------------------------------------------------------
-  // 🔍 CORE DETECTION LOGIC (REMAINS UNCHANGED)
-  // -----------------------------------------------------------
-
-  /**
-   * Core pattern detection logic for numerical thresholds
-   */
-  private detectPattern(
-    allValues: number[],
-    threshold: number,
-    teamName: string,
-    market: BettingMarket,
-    outcome: string,
-    allMatchDetails: Array<{ opponent: string; date?: string; isHome?: boolean }>,
-    comparison: Comparison
-  ): BettingInsight | null {
-    
-    const isHit = (value: number) => {
-      if (comparison === Comparison.OVER) {
-        return value > threshold;
-      } else if (comparison === Comparison.UNDER) {
-        return value < threshold;
-      } else if (comparison === Comparison.OR_MORE) {
-        return value >= threshold;
-      }
-      return false;
-    };
-
-    // TIER 1: Check for STREAKS
-    let streakLength = 0;
-    for (const value of allValues) {
-      if (isHit(value)) {
-        streakLength++;
-      } else {
-        break;
-      }
-    }
-    
-    if (streakLength >= this.STREAK_THRESHOLD) {
-      const sampleValues = allValues.slice(0, streakLength);
-      const sampleMatchDetails = allMatchDetails.slice(0, streakLength);
-      
-      return this.buildInsight(
-        sampleValues, threshold, teamName, market, outcome, sampleMatchDetails,
-        allValues, allMatchDetails, true, comparison, streakLength
-      );
-    }
-    
-    // TIER 2: Check ROLLING 5 for 100%
-    const rolling5 = allValues.slice(0, this.ROLLING_WINDOW);
-    const rolling5Hits = rolling5.filter(isHit).length;
-    const rolling5HitRate = (rolling5Hits / rolling5.length) * 100;
-    
-    if (rolling5HitRate === 100) {
-      const sampleValues = rolling5;
-      const sampleMatchDetails = allMatchDetails.slice(0, this.ROLLING_WINDOW);
-      
-      return this.buildInsight(
-        sampleValues, threshold, teamName, market, outcome, sampleMatchDetails,
-        allValues, allMatchDetails, false, comparison, undefined
-      );
-    }
-    
-    // TIER 3: Check LARGER SAMPLE for 80%+
-    const extendedSampleCount = Math.min(20, allValues.length);
-    
-    if (extendedSampleCount >= this.MIN_SAMPLE_SIZE) {
-      const sampleValues = allValues.slice(0, extendedSampleCount);
-      const sampleHits = sampleValues.filter(isHit).length;
-      const hitRate = (sampleHits / sampleValues.length) * 100;
-      
-      if (hitRate >= this.MIN_HIT_RATE) {
-        const sampleMatchDetails = allMatchDetails.slice(0, extendedSampleCount);
-        
-        return this.buildInsight(
-          sampleValues, threshold, teamName, market, outcome, sampleMatchDetails,
-          allValues, allMatchDetails, false, comparison, undefined
+        // 1. Get Opposition Stats (used for non-BTTS/non-Match Result)
+        const oppStats = await this.getOppositionDefensiveStats(
+          opponent, 
+          insight.market, 
+          opponentIsHome,
+          allStats 
         );
-      }
-    }
-    
-    return null;
-  }
+        
+        // ===== INITIAL DATA & FLAG SETUP =====
+        const isMatchResult = insight.market === BettingMarket.MATCH_RESULT;
+        const isBTTS = insight.market === BettingMarket.BOTH_TEAMS_TO_SCORE;
 
-  // ------------------------------------------------------------------
-  // 3. TYPE OVERLOADED BINARY DETECTION (BTTS and Match Result)
-  // ------------------------------------------------------------------
+        const oppositionAllows = oppStats?.average ?? 0;
+        const oppositionMatches = oppStats?.matches ?? 0;
+        const venueSpecific = oppStats?.venueSpecific ?? false;
+        const confidenceScore = insight.context?.confidence?.score ?? 0;
 
-  /**
-   * Overload 1: For MatchResultDetail (requires a context formatter function)
-   */
-  private _detectBinaryPattern(
-    allMatchDetails: MatchResultDetail[],
-    allValues: number[],
-    teamName: string,
-    market: BettingMarket.MATCH_RESULT,
-    outcomeLabel: string,
-    getContext: (m: MatchResultDetail) => string
-  ): BettingInsight | null;
-  
-  /**
-   * Overload 2: Generic for other binary markets like BTTS (does not require a context formatter)
-   */
-  private _detectBinaryPattern<T extends BaseMatchDetail>(
-    allMatchDetails: T[],
-    allValues: number[],
-    teamName: string,
-    market: BettingMarket.BOTH_TEAMS_TO_SCORE,
-    outcomeLabel: string,
-  ): BettingInsight | null;
+        // Use insight's sample size for Match Result quality, otherwise use opposition's sample size
+        const dataQualitySourceMatches = isMatchResult ? insight.matchesAnalyzed : oppositionMatches;
+        const dataQuality = this.calculateDataQuality(dataQualitySourceMatches, venueSpecific);
 
-  /**
-   * Implementation signature for the private helper.
-   */
-  private _detectBinaryPattern<T extends BaseMatchDetail>(
-    allMatchDetails: T[],
-    allValues: number[], // 1 (hit) or 0 (miss)
-    teamName: string,
-    market: BettingMarket.BOTH_TEAMS_TO_SCORE | BettingMarket.MATCH_RESULT,
-    outcomeLabel: string,
-    getContext?: (m: T) => string // getContext is optional here
-  ): BettingInsight | null {
-    
-    const isHit = (value: number) => value === 1; // Always check for value 1 (a hit)
-    
-    let streakLength = 0;
-    for (const value of allValues) {
-      if (isHit(value)) {
-        streakLength++;
-      } else {
-        break;
-      }
-    }
+        let strengthOfMatch: MatchContext['strengthOfMatch'] = 'Fair';
+        let recommendation: string = `No specific match context generated for ${insight.market} ${insight.comparison} pattern.`;
+        let roundedOppositionAllows = 0;
+        let bttsContext: MatchContext['bttsContext'];
 
-    const rolling = allValues.slice(0, this.ROLLING_WINDOW);
-    const rollingHitRate = (rolling.filter(isHit).length / rolling.length) * 100;
-
-    const extendedSampleCount = Math.min(
-        market === BettingMarket.MATCH_RESULT ? 20 : 15,
-        allValues.length
-    );
-    
-    let analyzedValues: number[] | undefined;
-    let analyzedDetails: T[] | undefined;
-    let actualHitRate: number | undefined;
-    let isStreak = false;
-    
-    if (streakLength >= this.STREAK_THRESHOLD) {
-      analyzedValues = allValues.slice(0, streakLength);
-      analyzedDetails = allMatchDetails.slice(0, streakLength);
-      actualHitRate = 100;
-      isStreak = true;
-    } else if (rollingHitRate === 100) {
-      analyzedValues = rolling;
-      analyzedDetails = allMatchDetails.slice(0, this.ROLLING_WINDOW);
-      actualHitRate = 100;
-    } else if (extendedSampleCount >= this.MIN_SAMPLE_SIZE) {
-      const sample = allValues.slice(0, extendedSampleCount);
-      const hits = sample.filter(isHit).length;
-      const hitRate = (hits / sample.length) * 100;
-      
-      if (hitRate >= this.MIN_HIT_RATE) {
-        analyzedValues = sample;
-        analyzedDetails = allMatchDetails.slice(0, extendedSampleCount);
-        actualHitRate = Math.round(hitRate);
-      } else {
-        return null; 
-      }
-    } else {
-      return null; 
-    }
-    
-    const homeAwaySupportForSample = this.calculateHomeAwaySupport(
-        analyzedDetails!, analyzedValues!, isHit 
-    );
-    
-    const homeAwaySupportOverall = this.calculateHomeAwaySupport(
-        allMatchDetails, allValues, isHit 
-    );
-    
-    const confidence = this.calculateConfidenceScore(
-        analyzedValues!, 
-        0.5, 
-        'binary', 
-        market, 
-        homeAwaySupportForSample, 
-        actualHitRate! 
-    );
-
-    return {
-      team: teamName,
-      market: market,
-      outcome: outcomeLabel,
-      hitRate: actualHitRate!, 
-      matchesAnalyzed: analyzedDetails!.length,
-      isStreak,
-      streakLength: isStreak ? streakLength : undefined,
-      threshold: 0.5,
-      averageValue: actualHitRate! / 100, // Use hitRate as the average for binary markets
-      comparison: 'binary',
-      recentMatches: analyzedDetails!.map((m, idx) => ({
-        opponent: m.opponent,
-        value: analyzedValues![idx], 
-        hit: analyzedValues![idx] === 1,
-        date: m.date,
-        isHome: m.isHome,
-        // The getContext check is now much cleaner thanks to the overloads
-        context: getContext ? getContext(m) : undefined
-      })),
-      context: {
-        homeAwaySupportForSample,
-        homeAwaySupportOverall,
-        confidence
-      }
-    };
-  }
-
-
-  // -----------------------------------------------------------
-  // 🔨 HELPER METHODS (REMAIN UNCHANGED)
-  // -----------------------------------------------------------
-
-  /**
-   * Build insight object with all relevant data
-   */
-  private buildInsight(
-    sampleValues: number[], 
-    threshold: number,
-    teamName: string,
-    market: BettingMarket,
-    outcome: string,
-    sampleMatchDetails: Array<{ opponent: string; date?: string; isHome?: boolean }>, 
-    allValues: number[], 
-    allMatchDetails: Array<{ opponent: string; date?: string; isHome?: boolean }>, 
-    isStreak: boolean,
-    comparison: Comparison,
-    streakLength?: number
-  ): BettingInsight {
-    const avgValue = sampleValues.reduce((sum, v) => sum + v, 0) / sampleValues.length;
-    
-    const isHit = (value: number) => {
-      if (comparison === Comparison.OVER) {
-        return value > threshold;
-      } else if (comparison === Comparison.UNDER) {
-        return value < threshold;
-      } else if (comparison === Comparison.OR_MORE) {
-        return value >= threshold;
-      }
-      return false;
-    };
-
-    const hits = sampleValues.filter(isHit).length;
-    const actualHitRate = Math.round((hits / sampleValues.length) * 100);
-
-    const homeAwaySupportForSample = this.calculateHomeAwaySupport(
-        sampleMatchDetails, sampleValues, isHit
-    );
-
-    const homeAwaySupportOverall = this.calculateHomeAwaySupport(
-        allMatchDetails, allValues, isHit
-    );
-
-    const confidence = this.calculateConfidenceScore(
-        sampleValues, 
-        threshold, 
-        comparison, 
-        market, // Pass market type
-        homeAwaySupportForSample, 
-        actualHitRate
-    );
-
-    return {
-      team: teamName,
-      market,
-      outcome,
-      hitRate: actualHitRate,
-      matchesAnalyzed: sampleValues.length,
-      isStreak,
-      streakLength,
-      threshold,
-      comparison,
-      averageValue: Math.round(avgValue * 100) / 100,
-      recentMatches: sampleValues.map((value, idx) => ({
-        opponent: sampleMatchDetails[idx]?.opponent || 'Unknown',
-        value,
-        hit: isHit(value),
-        date: sampleMatchDetails[idx]?.date,
-        isHome: sampleMatchDetails[idx]?.isHome, 
-      })),
-      context: {
-          homeAwaySupportForSample: homeAwaySupportForSample,
-          homeAwaySupportOverall: homeAwaySupportOverall,
-          confidence: confidence 
-      }
-    };
-  }
-  
-  /**
-   * Defines market-specific proximity thresholds for the penalty logic.
-   * Values represent the *minimum required percentage margin* over/under the threshold.
-   */
-  private getMarketSpecificProximityThresholds(market: BettingMarket): { fragile: number; risky: number } {
-      // fragile: Below this percent margin -> CRITICAL penalty
-      // risky: Below this percent margin -> MODERATE penalty
-      const thresholds: Record<BettingMarket, { fragile: number; risky: number }> = {
-          [BettingMarket.CARDS]: { fragile: 15, risky: 30 },
-          [BettingMarket.CORNERS]: { fragile: 12, risky: 25 },
-          [BettingMarket.FOULS]: { fragile: 8, risky: 15 },
-          [BettingMarket.TEAM_GOALS]: { fragile: 15, risky: 30 },
-          [BettingMarket.SHOTS_ON_TARGET]: { fragile: 8, risky: 15 },
-          [BettingMarket.TOTAL_SHOTS]: { fragile: 5, risky: 10 },
+        // ===== HANDLE MISSING/INSUFFICIENT DATA (Only for non-Match Result/non-BTTS markets) =====
+        if (!isMatchResult && !isBTTS && (!oppStats || oppositionMatches < this.MIN_MATCHES_FOR_ANALYSIS)) {
+          const matchCount = oppositionMatches;
+          const oppDisplayName = getDisplayTeamName(opponent);
+          const confidenceText = this.getConfidenceContext(confidenceScore);
           
-          // Binary/Match markets
-          [BettingMarket.BOTH_TEAMS_TO_SCORE]: { fragile: 0, risky: 0 }, 
-          [BettingMarket.MATCH_RESULT]: { fragile: 0, risky: 0 },
-          [BettingMarket.GOALS]: { fragile: 15, risky: 30 }, // Default for total goals if implemented later
-      };
-      
-      return thresholds[market] || { fragile: 10, risky: 20 }; // Default fallback
-  }
-
-  /**
-   * Helper to calculate Home/Away Support for a given set of match details.
-   */
-  private calculateHomeAwaySupport(
-    matchDetails: Array<{ opponent: string; date?: string; isHome?: boolean }>,
-    values: number[],
-    isHit: (value: number) => boolean
-  ): HomeAwaySupport | undefined {
-
-    const combinedData = matchDetails.map((detail, idx) => ({
-      ...detail,
-      value: values[idx],
-      hit: isHit(values[idx]!)
-    })).filter(d => d.isHome !== undefined); 
-
-    const homeHits = combinedData.filter(d => d.isHome && d.hit).length;
-    const awayHits = combinedData.filter(d => !d.isHome && d.hit).length;
-    const totalHome = combinedData.filter(d => d.isHome).length;
-    const totalAway = combinedData.filter(d => !d.isHome).length;
-    
-    const homeValues = combinedData.filter(d => d.isHome).map(d => d.value!);
-    const awayValues = combinedData.filter(d => !d.isHome).map(d => d.value!);
-
-    const avgHome = homeValues.length > 0 ? homeValues.reduce((s, v) => s + v, 0) / homeValues.length : 0;
-    const avgAway = awayValues.length > 0 ? awayValues.reduce((s, v) => s + v, 0) / awayValues.length : 0;
-    
-    return (totalHome > 0 || totalAway > 0) ? {
-      home: { 
-        hitRate: totalHome > 0 ? Math.round((homeHits / totalHome) * 100) : 0, 
-        matches: totalHome,
-        average: Math.round(avgHome * 100) / 100
-      },
-      away: { 
-        hitRate: totalAway > 0 ? Math.round((awayHits / totalAway) * 100) : 0, 
-        matches: totalAway,
-        average: Math.round(avgAway * 100) / 100
-      }
-    } : undefined;
-  }
-
-  /**
-   * Calculates a detailed confidence score.
-   */
-  private calculateConfidenceScore(
-    values: number[],
-    threshold: number,
-    comparison: Comparison | 'binary',
-    market: BettingMarket, // Added for market-specific thresholds
-    homeAwaySupportForSample?: HomeAwaySupport,
-    hitRate: number = 100 
-  ): Confidence {
-    const avgValue = values.reduce((sum, v) => sum + v, 0) / values.length;
-    
-    let baseScore = 0;
-    let factors: string[] = [];
-
-    // 1. HIT RATE SCORE (30 points max)
-    if (hitRate === 100) {
-      baseScore += 30;
-      factors.push('Perfect Hit Rate (100%) in sample.');
-    } else if (hitRate >= 90) {
-      baseScore += 25;
-      factors.push(`Excellent Hit Rate (${hitRate}%) in sample.`);
-    } else if (hitRate >= 85) {
-      baseScore += 20;
-      factors.push(`Very Good Hit Rate (${hitRate}%) in sample.`);
-    } else if (hitRate >= 80) {
-      baseScore += 15;
-      factors.push(`Good Hit Rate (${hitRate}%) in sample.`);
-    } else {
-      baseScore += 10;
-      factors.push(`Moderate Hit Rate (${hitRate}%) in sample.`);
-    }
-
-    // 2. Base Score based on Average Value proximity (40 points max)
-    if (comparison === Comparison.OVER || comparison === Comparison.OR_MORE) {
-        const valueDifference = avgValue - threshold;
-        const maxExpectedDifference = 3.0; // Standardize max scaling difference
-        
-        baseScore += Math.min(40, Math.round((valueDifference / maxExpectedDifference) * 40));
-
-        if (avgValue >= threshold + 1.5) {
-            factors.push(`Team average (${avgValue.toFixed(1)}) significantly exceeds threshold.`);
+          enrichedInsights.push({
+            ...insight,
+            matchContext: {
+              oppositionAllows: 0,
+              oppositionMatches: matchCount,
+              isHome,
+              strengthOfMatch: 'Poor',
+              recommendation: `🛑 **DATA WARNING**: Insufficient opposition data for ${oppDisplayName} in ${insight.market} market (only ${matchCount} matches available). Minimum ${this.MIN_MATCHES_FOR_ANALYSIS} matches required. **Proceed with extreme caution**. ${confidenceText}`,
+              venueSpecific: false,
+              dataQuality: 'Insufficient'
+            }
+          });
+          
+          continue; 
         }
-    } 
-    else if (comparison === Comparison.UNDER) {
-        const valueDifference = threshold - avgValue;
-        const maxExpectedDifference = 3.0;
+
+        // --- CORE MARKET EVALUATION ---
         
-        baseScore += Math.min(40, Math.round((valueDifference / maxExpectedDifference) * 40));
+        // 🎯 NEW: Handle Match Result using dedicated context function
+        if (isMatchResult) {
+            const matchResultContext = await this.evaluateMatchResultContext(
+              insight,
+              normalizedHome,
+              normalizedAway,
+              isHome
+            );
+            
+            strengthOfMatch = matchResultContext.strength;
+            recommendation = matchResultContext.recommendation;
+            // Overriding venueSpecific and dataQuality based on MatchResult evaluation
+            // NOTE: DataQuality calculation for MatchResult is based on insight.matchesAnalyzed (the team's form)
+            // The recommendation text itself handles the opposition data quality warning.
+            roundedOppositionAllows = 0;
+        }
+        // Handle BTTS separately
+        else if (isBTTS) {
+          const bttsExpectation = insight.outcome.includes('Yes') ? 'Yes' : 'No';
+          const bttsEval = await this.evaluateBTTSMatchup(
+            normalizedHome,
+            normalizedAway,
+            bttsExpectation,
+            allStats.goals 
+          );
+          
+          if (bttsEval) {
+            strengthOfMatch = bttsEval.strength;
+            bttsContext = {
+              homeExpectedGoals: bttsEval.homeExpectedGoals,
+              awayExpectedGoals: bttsEval.awayExpectedGoals,
+              homeGoalsFor: bttsEval.homeGoalsFor,
+              awayGoalsAgainst: bttsEval.awayGoalsAgainst,
+              awayGoalsFor: bttsEval.awayGoalsFor,
+              homeGoalsAgainst: bttsEval.homeGoalsAgainst
+            };
+            
+            recommendation = this.generateBTTSRecommendation(
+              insightTeamName,
+              insight.outcome,
+              strengthOfMatch,
+              isHome,
+              confidenceScore,
+              bttsContext,
+              bttsEval.venueSpecific,
+              dataQuality,
+              oppositionMatches 
+            );
+          } else {
+            const confidenceText = this.getConfidenceContext(confidenceScore);
+            recommendation = `⚠️ **DATA WARNING**: Unable to evaluate BTTS matchup due to insufficient goal data for one or both teams. Cannot reliably assess this market. ${confidenceText}`;
+            strengthOfMatch = 'Poor';
+          }
+        }
+        // Handle standard markets (Goals, Cards, Corners, Shots)
+        else if (insight.comparison !== 'binary') {
+          // 2. Evaluate Match Strength
+          const matchEvaluation = this.evaluateMatchStrength(
+            insight.averageValue,
+            insight.threshold,
+            oppositionAllows,
+            confidenceScore,
+            insight.comparison as Comparison
+          );
+          
+          strengthOfMatch = matchEvaluation.strength;
+          const dominanceOverride = matchEvaluation.dominanceOverride;
+          const dominanceRatio = matchEvaluation.dominanceRatio;
+
+          // 3. Generate Recommendation (Using enhanced text generator)
+          recommendation = this.generateRecommendation(
+            insightTeamName,
+            insight.outcome,
+            strengthOfMatch,
+            insight.averageValue,
+            oppositionAllows,
+            insight.threshold,
+            isHome,
+            confidenceScore,
+            venueSpecific,
+            dominanceOverride,
+            dominanceRatio,
+            dataQuality, 
+            oppositionMatches
+          );
+          
+          roundedOppositionAllows = Math.round(oppositionAllows * 10) / 10;
+        }
+
+        // 4. Build Enriched Insight
+        enrichedInsights.push({
+          ...insight,
+          matchContext: {
+            oppositionAllows: roundedOppositionAllows,
+            oppositionMatches,
+            isHome,
+            strengthOfMatch,
+            recommendation,
+            venueSpecific,
+            dataQuality,
+            bttsContext
+          }
+        });
         
-        if (avgValue <= threshold - 1.5) {
-            factors.push(`Team average (${avgValue.toFixed(1)}) is well below threshold.`);
-        }
-    } else if (comparison === 'binary') { 
-        baseScore += 20;
-    }
-
-    // 3. Match Volume Bonus (15 points max)
-    if (values.length >= 15) {
-      baseScore += 15;
-      factors.push(`Large sample size (${values.length} matches).`);
-    } else if (values.length >= 10) {
-      baseScore += 10;
-      factors.push(`Good sample size (${values.length} matches).`);
-    } else if (values.length >= 7) {
-      baseScore += 5;
-      factors.push(`Adequate sample size (${values.length} matches).`);
-    }
-
-    // 4. Home/Away Support (15 points max)
-    let homeAwayBonus = 0;
-    if (homeAwaySupportForSample) {
-        const { home, away } = homeAwaySupportForSample;
+      } catch (error) {
+        // Catch any errors during processing of individual insights
+        console.error(`[MatchContextService] 💥 Error processing insight for ${insight.team} - ${insight.market}:`, error);
         
-        if (home.matches > 0 && away.matches > 0 && home.hitRate >= 80 && away.hitRate >= 80) {
-            homeAwayBonus = 15;
-            factors.push('Strong consistency at both home and away venues.');
-        } 
-        else if (home.matches > 0 && home.hitRate >= 90 || away.matches > 0 && away.hitRate >= 90) {
-             homeAwayBonus = 10;
-             factors.push(`Excellent hit rate at ${home.hitRate >= 90 ? 'Home' : 'Away'} venue.`);
-        }
-        else if (home.matches > 0 && home.hitRate >= 80 || away.matches > 0 && away.hitRate >= 80) {
-             homeAwayBonus = 5;
-             factors.push(`Good hit rate at ${home.hitRate >= 80 ? 'Home' : 'Away'} venue.`);
-        }
-    }
-    baseScore += homeAwayBonus;
-
-    let finalScore = Math.min(100, Math.max(0, baseScore));
-
-    // 5. PENALTIES
-    
-    // Penalty for hit rate below 90% in small samples
-    if (hitRate < 90 && values.length < 10) {
-      finalScore -= 10;
-      factors.push('Small sample size with non-perfect hit rate reduces confidence.');
-    }
-    
-    // 🎯 FIXED: MARKET-AWARE PROXIMITY PENALTY
-    if (comparison !== 'binary' && threshold > 0) {
-      const { fragile, risky } = this.getMarketSpecificProximityThresholds(market);
-
-      // Calculate margin as PERCENTAGE of threshold
-      const marginPercent = (comparison === Comparison.OVER || comparison === Comparison.OR_MORE) 
-        ? ((avgValue - threshold) / threshold) * 100
-        : ((threshold - avgValue) / threshold) * 100;
-      
-      if (marginPercent < fragile) {
-        // CRITICAL: Pattern is extremely fragile
-        const penalty = 25;
-        finalScore = Math.max(finalScore - penalty, 15);
-        factors.push(`⚠️ FRAGILE: Average is only ${marginPercent.toFixed(1)}% margin. High variance risk.`);
-      } 
-      else if (marginPercent < risky) {
-        // MODERATE: Pattern is somewhat risky
-        const penalty = 10;
-        finalScore = Math.max(finalScore - penalty, 25);
-        factors.push(`Moderate risk: Average is ${marginPercent.toFixed(1)}% margin.`);
-      } else {
-        factors.push(`✓ Safe margin: ${marginPercent.toFixed(1)}% ${comparison === Comparison.OVER ? 'above' : 'below'} threshold.`);
+        const confidenceText = this.getConfidenceContext(insight.context?.confidence?.score ?? 0);
+        
+        enrichedInsights.push({
+          ...insight,
+          matchContext: {
+            oppositionAllows: 0,
+            oppositionMatches: 0,
+            isHome,
+            strengthOfMatch: 'Poor',
+            recommendation: `❌ **ERROR**: Unable to process match context due to system error. This bet cannot be reliably evaluated. ${confidenceText}`,
+            venueSpecific: false,
+            dataQuality: 'Insufficient'
+          }
+        });
       }
     }
 
-    let level: Confidence['level'];
-    if (finalScore >= 80) level = 'Very High';
-    else if (finalScore >= 60) level = 'High';
-    else if (finalScore >= 40) level = 'Medium';
-    else level = 'Low';
-
-    return {
-        level,
-        score: finalScore,
-        factors: Array.from(new Set(factors))
-    };
-  }
-  
-  /**
-   * Filter insights by minimum streak length
-   */
-  filterByStreak(insights: BettingInsight[], minStreak: number = 7): BettingInsight[] {
-    return insights.filter(i => i.isStreak && (i.streakLength ?? 0) >= minStreak);
+    const duration = Math.round(performance.now() - startTime); 
+    console.log(`[MatchContextService] ✅ Enrichment complete in ${duration}ms. ${enrichedInsights.length} insights processed.`);
+    return enrichedInsights;
   }
 
   /**
-   * Filter insights by market
+   * Optional: Returns the top opportunities (e.g., for an accumulator builder).
    */
-  filterByMarket(insights: BettingInsight[], market: BettingMarket): BettingInsight[] {
-    return insights.filter(i => i.market === market);
-  }
+  public async getBestMatchBets(
+    homeTeam: string,
+    awayTeam: string,
+    allInsights: BettingInsight[]
+  ): Promise<MatchContextInsight[]> {
+    
+    const homeInsights = allInsights.filter(i => i.team.toLowerCase() === homeTeam.toLowerCase());
+    const awayInsights = allInsights.filter(i => i.team.toLowerCase() === awayTeam.toLowerCase());
 
-  /**
-   * Sort insights by streak length (longest first)
-   */
-  sortByStreak(insights: BettingInsight[]): BettingInsight[] {
-    return [...insights].sort((a, b) => {
-      const aStreak = a.streakLength ?? 0;
-      const bStreak = b.streakLength ?? 0;
-      return bStreak - aStreak;
+    const enriched = await this.enrichMatchInsights(homeTeam, awayTeam, homeInsights, awayInsights);
+
+    const bestBets = enriched.filter(e => {
+      const confidence = e.context?.confidence?.level;
+      const strength = e.matchContext.strengthOfMatch;
+
+      const isHighConfidence = confidence === 'High' || confidence === 'Very High';
+      const isGoodMatchup = strength === 'Excellent' || strength === 'Good';
+
+      return isHighConfidence && isGoodMatchup;
     });
+
+    return bestBets.sort((a, b) => 
+      (b.context?.confidence?.score ?? 0) - (a.context?.confidence?.score ?? 0)
+    );
   }
 
   /**
-   * Get cache status from all services
+   * Returns the current status of in-memory caches.
    */
-  getCacheStatus() {
+  public getCacheStatus() {
     return {
-      cards: supabaseCardsService.getCacheStatus(),
-      corners: supabaseCornersService.getCacheStatus(),
-      fouls: supabaseFoulsService.getCacheStatus(),
-      goals: supabaseGoalsService.getCacheStatus(),
-      shooting: supabaseShootingService.getCacheStatus(),
+      teamExistsCacheSize: this.teamExistsCache.size,
     };
   }
 }
 
-export const bettingInsightsService = new BettingInsightsService();
+export const matchContextService = new MatchContextService();
