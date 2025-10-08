@@ -505,7 +505,8 @@ export class MatchContextService {
 
         if (oppHomeWinRate <= 20) {
             strength = 'Excellent';
-            recommendation = `✅ **STRONG SELECTION (Double Chance)**: ${insight.team} has a **${insight.hitRate}% Away or Draw rate**. The opposition, ${opponent}, rarely wins at home (**${Math.Round(oppHomeWinRate)}% ${oppVenue} Win rate**). This significantly increases confidence. ${confidenceText}`;
+            // 🎯 FIX: Corrected Math.Round to Math.round
+            recommendation = `✅ **STRONG SELECTION (Double Chance)**: ${insight.team} has a **${insight.hitRate}% Away or Draw rate**. The opposition, ${opponent}, rarely wins at home (**${Math.round(oppHomeWinRate)}% ${oppVenue} Win rate**). This significantly increases confidence. ${confidenceText}`;
         } else if (oppHomeWinRate <= 30) {
             strength = 'Good';
             recommendation = `🔵 **Recommended (Double Chance)**: ${insight.team} has a ${insight.hitRate}% Away or Draw rate. The opposition has a low-to-moderate ${Math.round(oppHomeWinRate)}% ${oppVenue} Win rate, providing a solid foundation for this bet. ${confidenceText}`;
@@ -931,6 +932,10 @@ export class MatchContextService {
     const awayExpected = Math.round(bttsContext.awayExpectedGoals * 10) / 10;
     const confidenceText = this.getConfidenceContext(confidenceScore);
     
+    // 🎯 FIX: Define missing local variables for clean sheet context
+    const oppExpected = isHome ? awayExpected : homeExpected;
+    const favExpected = isHome ? homeExpected : awayExpected;
+    
     let ratingPrefix = '';
     let mainContext = '';
     
@@ -989,19 +994,19 @@ export class MatchContextService {
       switch (strength) {
         case 'Excellent':
           ratingPrefix = '✅ **STRONG SELECTION**';
-          mainContext = `An **Excellent Matchup** - the ${opp} team has very low expected goals (${oppExpected}), making a clean sheet highly probable.`;
+          mainContext = `An **Excellent Matchup** - the ${opp} team has very low expected goals (**${oppExpected}**), making a clean sheet highly probable.`;
           break;
         case 'Good':
           ratingPrefix = '🔵 **Recommended**';
-          mainContext = `A **Good Matchup** - the ${opp} team struggles to score (${oppExpected}), giving the favored team a strong chance for a clean sheet.`;
+          mainContext = `A **Good Matchup** - the ${opp} team struggles to score (**${oppExpected}**), giving the favored team a strong chance for a clean sheet.`;
           break;
         case 'Fair':
           ratingPrefix = '🟡 **Fair Selection**';
-          mainContext = `The ${opp} team's expected goals (${oppExpected}) is moderate. The success of this bet relies on the favored team's strong defense.`;
+          mainContext = `The ${opp} team's expected goals (**${oppExpected}**) is moderate. The success of this bet relies on the favored team's strong defense.`;
           break;
         case 'Poor':
           ratingPrefix = '🛑 **CAUTION ADVISED**';
-          mainContext = `The opposition has strong scoring potential (${oppExpected}). This is a difficult clean sheet proposition.`;
+          mainContext = `The opposition has strong scoring potential (**${oppExpected}**). This is a difficult clean sheet proposition.`;
           break;
       }
     }
@@ -1011,19 +1016,19 @@ export class MatchContextService {
       switch (strength) {
         case 'Excellent':
           ratingPrefix = '✅ **STRONG SELECTION**';
-          mainContext = `An **Excellent Matchup** - the ${fav} team has very low expected goals (${favExpected}), making a nil-score-for highly probable.`;
+          mainContext = `An **Excellent Matchup** - the ${fav} team has very low expected goals (**${favExpected}**), making a nil-score-for highly probable.`;
           break;
         case 'Good':
           ratingPrefix = '🔵 **Recommended**';
-          mainContext = `A **Good Matchup** - the ${fav} team struggles to score (${favExpected}), giving the opponent a strong chance for a clean sheet against them.`;
+          mainContext = `A **Good Matchup** - the ${fav} team struggles to score (**${favExpected}**), giving the opponent a strong chance for a clean sheet against them.`;
           break;
         case 'Fair':
           ratingPrefix = '🟡 **Fair Selection**';
-          mainContext = `The ${fav} team's expected goals (${favExpected}) is moderate. Success relies on the opponent's strong defense continuing.`;
+          mainContext = `The ${fav} team's expected goals (**${favExpected}**) is moderate. Success relies on the opponent's strong defense continuing.`;
           break;
         case 'Poor':
           ratingPrefix = '🛑 **CAUTION ADVISED**';
-          mainContext = `The favored team has strong scoring potential (${favExpected}). This is a difficult 'fail-to-score' proposition.`;
+          mainContext = `The favored team has strong scoring potential (**${favExpected}**). This is a difficult 'fail-to-score' proposition.`;
           break;
       }
     }
