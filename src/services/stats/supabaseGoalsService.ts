@@ -26,6 +26,8 @@ export interface DetailedGoalStats {
     date?: string;
     matchweek?: number;
     isHome?: boolean;            // NEW: Track if match was at home
+    teamCleanSheet: boolean;     // 👈 FIX: ADDED
+    opponentCleanSheet: boolean; // 👈 FIX: ADDED
   }>;
 }
 
@@ -137,6 +139,10 @@ export class SupabaseGoalsService {
         // FIX: Convert raw venue to lowercase for reliable comparison
         const venueLower = match.venue?.toLowerCase(); 
 
+        // 🎯 FIX: Calculate Clean Sheet flags
+        const teamCleanSheet = match.goals_against === 0;
+        const opponentCleanSheet = match.goals_for === 0;
+
         return {
           opponent: match.opponent,
           totalGoals: match.goals_for + match.goals_against,
@@ -145,7 +151,9 @@ export class SupabaseGoalsService {
           bothTeamsScored: match.goals_for > 0 && match.goals_against > 0,
           date: match.match_date,
           matchweek: match.matchweek,
-          isHome: venueLower === 'home' // ✅ FIXED: Case-insensitive check
+          isHome: venueLower === 'home', // ✅ Fixed: Case-insensitive check
+          teamCleanSheet,                // 👈 FIX: Added to match interface
+          opponentCleanSheet             // 👈 FIX: Added to match interface
         };
       });
 
