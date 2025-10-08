@@ -302,7 +302,7 @@ class DebugScraper {
    * Enhanced table parsing that extracts both team and opponent stats
    */
   parseMatchLogsTable(html: string, statType: any, teamName: string): any[] {
-    const cleanHtml = html.replace(//g, ''); 
+    const cleanHtml = html.replace(/<!--[\s\S]*?-->/g, '');
     const $ = cheerio.load(cleanHtml);
 
 
