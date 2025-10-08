@@ -226,7 +226,7 @@ export class BettingInsightsService {
       // 🎯 FIX: Explicitly use goalsFor (Goals scored by the team being analyzed)
       valueExtractor: (m: GoalsDetail) => m.goalsFor, 
       label: 'team goals' 
-    },
+    } as MarketAnalysisConfig<GoalsDetail>, // <--- 🌟 FIX APPLIED HERE 🌟
     {
       market: BettingMarket.SHOTS_ON_TARGET,
       service: { getStatistics: () => supabaseShootingService.getShootingStatistics() },
