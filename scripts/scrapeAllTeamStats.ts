@@ -301,7 +301,7 @@ class DebugScraper {
    */
   parseMatchLogsTable(html: string, statType: any, teamName: string): any[] {
     // Remove HTML comments to reveal hidden tables
-    const cleanHtml = html.replace(/<!--/g, '').replace(/-->/g, '');
+    const cleanHtml = html.replace(//g, '');
     const $ = cheerio.load(cleanHtml);
 
     // Find the main matchlogs table
@@ -561,8 +561,8 @@ class ScraperManager {
       const teamsToScrape = SCRAPE_MODE === SCRAPE_MODES.ALL ? AVAILABLE_TEAMS : [AVAILABLE_TEAMS[SINGLE_TEAM_INDEX]];
       console.log(`📋 Total teams to scrape: ${teamsToScrape.length}`);
       
-      // FIXED: Create fresh results array for each stat type - MOVED INSIDE THE LOOP
-      const statResults: any[] = [];
+      // 🚩 FIX 1 IMPLEMENTED: Changed to a unique variable name 'currentStatResults'
+      const currentStatResults: any[] = [];
       let supabaseSuccessCount = 0;
       
       for (let j = 0; j < teamsToScrape.length; j++) {
@@ -574,7 +574,7 @@ class ScraperManager {
         while (!success && attempts <= RATE_LIMIT.maxRetries) {
           try {
             const result = await this.scraper.debugScrape(team, stat);
-            statResults.push(result);
+            currentStatResults.push(result); // Pushed to the new variable
             success = true;
             if (result.supabaseSuccess) supabaseSuccessCount++;
 
@@ -608,7 +608,7 @@ class ScraperManager {
         if (!success) {
           console.error(`❌ Failed to scrape ${team.name} after ${RATE_LIMIT.maxRetries} retries`);
           // Add empty result to maintain consistency
-          statResults.push({
+          currentStatResults.push({ // Used the new variable here too
             teamId: team.id,
             teamName: team.name,
             statType: stat.key,
@@ -631,9 +631,9 @@ class ScraperManager {
 
       // Save local JSON file - statResults now only contains current stat type data
       const filename = `Team${stat.name.replace(/\s+/g, '')}Stats.json`;
-      this.scraper.saveFile(filename, JSON.stringify(statResults, null, 2));
+      this.scraper.saveFile(filename, JSON.stringify(currentStatResults, null, 2)); // Saved the new variable
       console.log(`\n💾 ${stat.name} data saved to data/${filename}`);
-      console.log(`📈 Records in this file: ${statResults.length}`);
+      console.log(`📈 Records in this file: ${currentStatResults.length}`); // Logged the new variable
       console.log(`📤 Supabase exports successful: ${supabaseSuccessCount}/${teamsToScrape.length}`);
 
       // Add delay before next stat scrape
