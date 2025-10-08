@@ -22,6 +22,9 @@ interface GoalsDetail extends BaseMatchDetail {
   goalsFor: number;   // Goals SCORED BY THE TEAM being analyzed.
   goalsAgainst: number;
   bothTeamsScored: boolean;
+  // 👇 ADDED: Clean Sheet Flags
+  teamCleanSheet: boolean;     // The team being analyzed did not concede (goalsAgainst === 0)
+  opponentCleanSheet: boolean; // The team being analyzed failed to score (goalsFor === 0)
 }
 
 interface CardsMatchDetail extends BaseMatchDetail {
@@ -58,6 +61,8 @@ export enum BettingMarket {
   TOTAL_SHOTS = 'total_shots',
   BOTH_TEAMS_TO_SCORE = 'both_teams_to_score',
   MATCH_RESULT = 'match_result',
+  // 👇 ADDED: Clean Sheet Market
+  CLEAN_SHEET_MARKET = 'clean_sheet_market', 
   GOALS = 'goals' // Added for the proximity helper only
 }
 
@@ -126,7 +131,8 @@ interface MarketConfig {
   useOrMore?: boolean;
 }
 
-const MARKET_CONFIGS: Record<Exclude<BettingMarket, BettingMarket.MATCH_RESULT | BettingMarket.GOALS>, MarketConfig> = {
+// 🎯 UPDATED: Exclude the new binary market from threshold configs
+const MARKET_CONFIGS: Record<Exclude<BettingMarket, BettingMarket.MATCH_RESULT | BettingMarket.GOALS | BettingMarket.CLEAN_SHEET_MARKET>, MarketConfig> = {
   [BettingMarket.CARDS]: {
     thresholds: [0.5, 1.5, 2.5, 3.5],
     minValue: 0,
@@ -323,7 +329,8 @@ export class BettingInsightsService {
     const marketAnalyses = [
         ...this.MARKET_ANALYSIS_CONFIGS.map(config => this.analyzeGenericMarket(config as any)),
         this.analyzeBTTSMarket(), 
-        this.analyzeMatchResultMarket() 
+        this.analyzeMatchResultMarket(),
+        this.analyzeCleanSheetMarket() // 👇 ADDED: Clean Sheet Market Analysis
     ];
 
     try {
@@ -385,7 +392,7 @@ export class BettingInsightsService {
     
     // This call fetches stats for ALL teams in one go. Cannot parallelize here.
     const allStats = await config.service.getStatistics(); 
-    const marketConfig = MARKET_CONFIGS[config.market as Exclude<BettingMarket, BettingMarket.MATCH_RESULT | BettingMarket.GOALS>];
+    const marketConfig = MARKET_CONFIGS[config.market as Exclude<BettingMarket, BettingMarket.MATCH_RESULT | BettingMarket.GOALS | BettingMarket.CLEAN_SHEET_MARKET>];
 
     // NOTE: If the data structure allowed, we would map the team iteration and use Promise.all here
     // But since `allStats.entries()` is a generator/iterator, we process teams sequentially.
@@ -471,6 +478,51 @@ export class BettingInsightsService {
           'Both Teams to Score - No'
       );
       if (noPattern) insights.push(noPattern);
+    }
+
+    return insights; 
+  }
+
+  /**
+   * 🆕 ADDED: Dedicated method for Clean Sheet analysis.
+   */
+  private async analyzeCleanSheetMarket(): Promise<BettingInsight[]> {
+    console.log('[BettingInsights] 🥅 Analyzing Clean Sheet market...');
+    const insights: BettingInsight[] = [];
+    const allStats = await supabaseGoalsService.getGoalStatistics();
+
+    for (const [teamName, stats] of allStats.entries()) {
+      if (stats.matches < this.ROLLING_WINDOW) continue;
+      
+      const allDetails = stats.matchDetails as GoalsDetail[];
+      
+      // ----------------------------------------------------------------------
+      // 1. TEAM Clean Sheet (GA = 0)
+      //    Pattern: The analyzed team did not concede a goal.
+      // ----------------------------------------------------------------------
+      const teamCsPattern = this._detectBinaryPattern<GoalsDetail>(
+          allDetails,
+          // Value is 1 if the team being analyzed kept a clean sheet
+          allDetails.map(m => m.teamCleanSheet ? 1 : 0),
+          teamName,
+          BettingMarket.CLEAN_SHEET_MARKET,
+          'Team Clean Sheet - Yes'
+      );
+      if (teamCsPattern) insights.push(teamCsPattern);
+      
+      // ----------------------------------------------------------------------
+      // 2. OPPONENT Clean Sheet (GF = 0 for the analyzed team)
+      //    Pattern: The analyzed team failed to score.
+      // ----------------------------------------------------------------------
+      const oppCsPattern = this._detectBinaryPattern<GoalsDetail>(
+          allDetails,
+          // Value is 1 if the opponent kept a clean sheet (i.e., the analyzed team scored 0)
+          allDetails.map(m => m.opponentCleanSheet ? 1 : 0),
+          teamName,
+          BettingMarket.CLEAN_SHEET_MARKET,
+          'Opponent Clean Sheet (Team Fails to Score)'
+      );
+      if (oppCsPattern) insights.push(oppCsPattern);
     }
 
     return insights; 
@@ -637,7 +689,7 @@ export class BettingInsightsService {
   }
 
   // ------------------------------------------------------------------
-  // 3. TYPE OVERLOADED BINARY DETECTION (BTTS and Match Result)
+  // 3. TYPE OVERLOADED BINARY DETECTION (BTTS, Match Result, Clean Sheet)
   // ------------------------------------------------------------------
 
   /**
@@ -653,13 +705,13 @@ export class BettingInsightsService {
   ): BettingInsight | null;
   
   /**
-   * Overload 2: Generic for other binary markets like BTTS (does not require a context formatter)
+   * Overload 2: Generic for other binary markets (BTTS, Clean Sheet)
    */
   private _detectBinaryPattern<T extends BaseMatchDetail>(
     allMatchDetails: T[],
     allValues: number[],
     teamName: string,
-    market: BettingMarket.BOTH_TEAMS_TO_SCORE,
+    market: BettingMarket.BOTH_TEAMS_TO_SCORE | BettingMarket.CLEAN_SHEET_MARKET, // 🎯 UPDATED
     outcomeLabel: string,
   ): BettingInsight | null;
 
@@ -670,7 +722,7 @@ export class BettingInsightsService {
     allMatchDetails: T[],
     allValues: number[], // 1 (hit) or 0 (miss)
     teamName: string,
-    market: BettingMarket.BOTH_TEAMS_TO_SCORE | BettingMarket.MATCH_RESULT,
+    market: BettingMarket.BOTH_TEAMS_TO_SCORE | BettingMarket.MATCH_RESULT | BettingMarket.CLEAN_SHEET_MARKET, // 🎯 UPDATED
     outcomeLabel: string,
     getContext?: (m: T) => string // getContext is optional here
   ): BettingInsight | null {
@@ -866,6 +918,7 @@ export class BettingInsightsService {
           
           // Binary/Match markets
           [BettingMarket.BOTH_TEAMS_TO_SCORE]: { fragile: 0, risky: 0 }, 
+          [BettingMarket.CLEAN_SHEET_MARKET]: { fragile: 0, risky: 0 }, // 🎯 ADDED
           [BettingMarket.MATCH_RESULT]: { fragile: 0, risky: 0 },
           [BettingMarket.GOALS]: { fragile: 15, risky: 30 }, // Default for total goals if implemented later
       };
