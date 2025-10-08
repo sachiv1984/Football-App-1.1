@@ -359,8 +359,9 @@ export class MatchContextService {
             };
         }
 
-        case BettingMarket.BOTH_TEAMS_TO_SCORE: {
-            // No direct opposition 'allows' metric for BTTS, so return default/zero.
+        case BettingMarket.BOTH_TEAMS_TO_SCORE: 
+        case BettingMarket.CLEAN_SHEET_MARKET: { // 🎯 FIX: Added CLEAN_SHEET_MARKET
+            // No direct opposition 'allows' metric for BTTS/Clean Sheet, so return default/zero.
             return { average: 0, matches: 0, venueSpecific: false };
         }
 
@@ -398,7 +399,7 @@ export class MatchContextService {
     const opponentIsHome = !isHome;
     
     // 🏆 FIX: Parse the full outcome label to determine the betting market
-    const fullOutcomeLabel = insight.outcome.split(' - ')[1]; // e.g., "Home Win", "Draw", "Home or Draw"
+    const fullOutcomeLabel = insight.outcome.includes(' - ') ? insight.outcome.split(' - ')[1] : insight.outcome;
     
     try {
       // Get opposition's results
@@ -504,7 +505,7 @@ export class MatchContextService {
 
         if (oppHomeWinRate <= 20) {
             strength = 'Excellent';
-            recommendation = `✅ **STRONG SELECTION (Double Chance)**: ${insight.team} has a **${insight.hitRate}% Away or Draw rate**. The opposition, ${opponent}, rarely wins at home (**${Math.round(oppHomeWinRate)}% ${oppVenue} Win rate**). This significantly increases confidence. ${confidenceText}`;
+            recommendation = `✅ **STRONG SELECTION (Double Chance)**: ${insight.team} has a **${insight.hitRate}% Away or Draw rate**. The opposition, ${opponent}, rarely wins at home (**${Math.Round(oppHomeWinRate)}% ${oppVenue} Win rate**). This significantly increases confidence. ${confidenceText}`;
         } else if (oppHomeWinRate <= 30) {
             strength = 'Good';
             recommendation = `🔵 **Recommended (Double Chance)**: ${insight.team} has a ${insight.hitRate}% Away or Draw rate. The opposition has a low-to-moderate ${Math.round(oppHomeWinRate)}% ${oppVenue} Win rate, providing a solid foundation for this bet. ${confidenceText}`;
@@ -739,7 +740,8 @@ export class MatchContextService {
   private async evaluateBTTSMatchup(
     homeTeam: string,
     awayTeam: string,
-    bttsExpectation: 'Yes' | 'No',
+    // 🎯 FIX: Added Clean Sheet market outcomes
+    outcome: 'BTTS-Yes' | 'BTTS-No' | 'CleanSheet-Team' | 'CleanSheet-Opponent',
     goalsStats: GoalsStats // Accept goalsStats
   ): Promise<{
     strength: 'Poor' | 'Fair' | 'Good' | 'Excellent';
@@ -807,7 +809,8 @@ export class MatchContextService {
       
       let strength: 'Poor' | 'Fair' | 'Good' | 'Excellent' = 'Poor';
       
-      if (bttsExpectation === 'Yes') {
+      // --- BTTS YES/NO LOGIC ---
+      if (outcome === 'BTTS-Yes') {
         // BTTS YES: Both teams need to score
         if (homeLikelyToScore && awayLikelyToScore) {
           const minExpectedGoals = Math.min(homeExpectedGoals, awayExpectedGoals);
@@ -828,7 +831,8 @@ export class MatchContextService {
         } else {
           strength = 'Poor';
         }
-      } else {
+      } 
+      else if (outcome === 'BTTS-No') {
         // BTTS NO: At least one team needs to NOT score
         const homeUnlikelyToScore = homeExpectedGoals <= 0.8;
         const awayUnlikelyToScore = awayExpectedGoals <= 0.8;
@@ -850,6 +854,38 @@ export class MatchContextService {
         }
       }
       
+      // --- CLEAN SHEET LOGIC ---
+      else if (outcome === 'CleanSheet-Team') {
+        // Team (e.g., Home) Clean Sheet: Home must score, Away must NOT score
+        if (homeLikelyToScore && !awayLikelyToScore) {
+          // Strongest when Home is high and Away is very low
+          if (homeExpectedGoals >= 1.5 && awayExpectedGoals <= 0.5) {
+            strength = 'Excellent';
+          } else if (homeExpectedGoals >= 1.2 && awayExpectedGoals <= 0.7) {
+            strength = 'Good';
+          } else {
+            strength = 'Fair';
+          }
+        } else {
+          strength = 'Poor';
+        }
+      }
+      else if (outcome === 'CleanSheet-Opponent') {
+        // Opponent (e.g., Away) Clean Sheet: Away must score, Home must NOT score
+        if (awayLikelyToScore && !homeLikelyToScore) {
+           // Strongest when Away is high and Home is very low
+          if (awayExpectedGoals >= 1.5 && homeExpectedGoals <= 0.5) {
+            strength = 'Excellent';
+          } else if (awayExpectedGoals >= 1.2 && homeExpectedGoals <= 0.7) {
+            strength = 'Good';
+          } else {
+            strength = 'Fair';
+          }
+        } else {
+          strength = 'Poor';
+        }
+      }
+      
       return {
         strength,
         homeExpectedGoals,
@@ -862,17 +898,17 @@ export class MatchContextService {
       };
       
     } catch (error) {
-      console.error(`[MatchContextService] Error evaluating BTTS matchup:`, error);
+      console.error(`[MatchContextService] Error evaluating BTTS/Clean Sheet matchup:`, error);
       return null;
     }
   }
 
   /**
-   * Generate BTTS-specific recommendation text
+   * Generate BTTS/Clean Sheet specific recommendation text
    */
-  private generateBTTSRecommendation(
+  private generateBinaryGoalsRecommendation(
     teamName: string,
-    outcome: string, // "BTTS Yes" or "BTTS No"
+    outcome: string, // Full outcome label (e.g., "Both Teams to Score - Yes", "Team Clean Sheet - Yes")
     strength: 'Poor' | 'Fair' | 'Good' | 'Excellent',
     isHome: boolean,
     confidenceScore: number,
@@ -889,7 +925,6 @@ export class MatchContextService {
     oppositionMatches: number 
   ): string {
     const displayTeamName = getDisplayTeamName(teamName);
-    const isBTTSYes = outcome.includes('Yes');
     const venueNote = venueSpecific ? ' (venue-specific analysis)' : '';
     
     const homeExpected = Math.round(bttsContext.homeExpectedGoals * 10) / 10;
@@ -898,43 +933,37 @@ export class MatchContextService {
     
     let ratingPrefix = '';
     let mainContext = '';
+    
+    const isBTTSYes = outcome.includes('Both Teams to Score - Yes');
+    const isBTTSNo = outcome.includes('Both Teams to Score - No');
+    const isTeamCS = outcome.includes('Team Clean Sheet');
+    const isOppCS = outcome.includes('Opponent Clean Sheet');
 
+    let base = `${displayTeamName}'s pattern: **${outcome}${venueNote}**. Home expected goals: ${homeExpected}, Away expected goals: ${awayExpected}.`;
+
+    // --- BTTS YES ---
     if (isBTTSYes) {
-      // BTTS YES recommendations
-      let base = `${displayTeamName}'s pattern: **${outcome}${venueNote}**. Home expected goals: ${homeExpected}, Away expected goals: ${awayExpected}.`;
-      
       switch (strength) {
         case 'Excellent':
           ratingPrefix = '✅ **STRONG SELECTION**';
-          mainContext = `An **Excellent Matchup** - both teams demonstrate strong offensive output combined with defensive vulnerability. Both sides are highly likely to find the net. This is a high-confidence BTTS Yes opportunity.`;
+          mainContext = `An **Excellent Matchup** - both teams demonstrate strong offensive output combined with defensive vulnerability. Both sides are highly likely to find the net.`;
           break;
         case 'Good':
           ratingPrefix = '🔵 **Recommended**';
-          mainContext = `A **Good Matchup** - both teams show good scoring capability and their opponents have defensive weaknesses. Strong indicators for both teams to score.`;
+          mainContext = `A **Good Matchup** - strong indicators for both teams to score.`;
           break;
         case 'Fair':
           ratingPrefix = '🟡 **Fair Selection**';
-          mainContext = `Both teams have moderate expected goal outputs. While the indicators lean toward BTTS Yes, there's less margin for error.`;
+          mainContext = `Both teams have moderate expected goal outputs. Narrow margin for error.`;
           break;
         case 'Poor':
           ratingPrefix = '🛑 **CAUTION ADVISED**';
-          mainContext = `At least one team shows weak expected goal output or faces a strong defense. BTTS Yes carries significant risk in this matchup.`;
+          mainContext = `At least one team shows weak expected goal output or faces a strong defense. High risk for BTTS Yes.`;
           break;
       }
-      
-      let finalRecommendation = `${ratingPrefix}: ${base} ${mainContext}`;
-      
-      if (dataQuality === 'Poor' || dataQuality === 'Fair' || dataQuality === 'Insufficient') {
-          const matchesNote = `(${(oppositionMatches)} ${venueSpecific ? 'venue-specific' : 'total'} matches).`; 
-          finalRecommendation += ` 📊 **Data Warning: ${dataQuality} Quality** ${matchesNote}`;
-      }
-      
-      return finalRecommendation + ` ${confidenceText}`;
-
-    } else {
-      // BTTS NO recommendations
-      let base = `${displayTeamName}'s pattern: **${outcome}${venueNote}**. Home expected goals: ${homeExpected}, Away expected goals: ${awayExpected}.`;
-      
+    }
+    // --- BTTS NO ---
+    else if (isBTTSNo) {
       switch (strength) {
         case 'Excellent':
           ratingPrefix = '✅ **STRONG SELECTION**';
@@ -942,7 +971,7 @@ export class MatchContextService {
           break;
         case 'Good':
           ratingPrefix = '🔵 **Recommended**';
-          mainContext = `A **Good Matchup** - one team has weak offensive output or faces a strong defense. Good probability of at least one team failing to score.`;
+          mainContext = `A **Good Matchup** - good probability of at least one team failing to score.`;
           break;
         case 'Fair':
           ratingPrefix = '🟡 **Fair Selection**';
@@ -950,20 +979,65 @@ export class MatchContextService {
           break;
         case 'Poor':
           ratingPrefix = '🛑 **CAUTION ADVISED**';
-          mainContext = `Both teams demonstrate strong expected goal outputs. BTTS No is high-risk as both sides are likely to find the net.`;
+          mainContext = `Both teams demonstrate strong expected goal outputs. High risk for BTTS No.`;
           break;
       }
-      
-      let finalRecommendation = `${ratingPrefix}: ${base} ${mainContext}`;
-      
-      if (dataQuality === 'Poor' || dataQuality === 'Fair' || dataQuality === 'Insufficient') {
-          const matchesNote = `(${(oppositionMatches)} ${venueSpecific ? 'venue-specific' : 'total'} matches).`; 
-          finalRecommendation += ` 📊 **Data Warning: ${dataQuality} Quality** ${matchesNote}`;
-      }
-      
-      return finalRecommendation + ` ${confidenceText}`;
     }
+    // --- TEAM CLEAN SHEET ---
+    else if (isTeamCS) {
+      const opp = isHome ? 'Away' : 'Home';
+      switch (strength) {
+        case 'Excellent':
+          ratingPrefix = '✅ **STRONG SELECTION**';
+          mainContext = `An **Excellent Matchup** - the ${opp} team has very low expected goals (${oppExpected}), making a clean sheet highly probable.`;
+          break;
+        case 'Good':
+          ratingPrefix = '🔵 **Recommended**';
+          mainContext = `A **Good Matchup** - the ${opp} team struggles to score (${oppExpected}), giving the favored team a strong chance for a clean sheet.`;
+          break;
+        case 'Fair':
+          ratingPrefix = '🟡 **Fair Selection**';
+          mainContext = `The ${opp} team's expected goals (${oppExpected}) is moderate. The success of this bet relies on the favored team's strong defense.`;
+          break;
+        case 'Poor':
+          ratingPrefix = '🛑 **CAUTION ADVISED**';
+          mainContext = `The opposition has strong scoring potential (${oppExpected}). This is a difficult clean sheet proposition.`;
+          break;
+      }
+    }
+    // --- OPPONENT CLEAN SHEET ---
+    else if (isOppCS) {
+      const fav = isHome ? 'Home' : 'Away';
+      switch (strength) {
+        case 'Excellent':
+          ratingPrefix = '✅ **STRONG SELECTION**';
+          mainContext = `An **Excellent Matchup** - the ${fav} team has very low expected goals (${favExpected}), making a nil-score-for highly probable.`;
+          break;
+        case 'Good':
+          ratingPrefix = '🔵 **Recommended**';
+          mainContext = `A **Good Matchup** - the ${fav} team struggles to score (${favExpected}), giving the opponent a strong chance for a clean sheet against them.`;
+          break;
+        case 'Fair':
+          ratingPrefix = '🟡 **Fair Selection**';
+          mainContext = `The ${fav} team's expected goals (${favExpected}) is moderate. Success relies on the opponent's strong defense continuing.`;
+          break;
+        case 'Poor':
+          ratingPrefix = '🛑 **CAUTION ADVISED**';
+          mainContext = `The favored team has strong scoring potential (${favExpected}). This is a difficult 'fail-to-score' proposition.`;
+          break;
+      }
+    }
+
+    let finalRecommendation = `${ratingPrefix}: ${base} ${mainContext}`;
+    
+    if (dataQuality === 'Poor' || dataQuality === 'Fair' || dataQuality === 'Insufficient') {
+        const matchesNote = `(${(oppositionMatches)} ${venueSpecific ? 'venue-specific' : 'total'} matches).`; 
+        finalRecommendation += ` 📊 **Data Warning: ${dataQuality} Quality** ${matchesNote}`;
+    }
+    
+    return finalRecommendation + ` ${confidenceText}`;
   }
+
 
   /**
    * Main function to enrich all insights with match-specific context (Step 2).
@@ -979,8 +1053,6 @@ export class MatchContextService {
     const enrichedInsights: MatchContextInsight[] = [];
 
     // ===== 1. PARALLEL DATA FETCHING (OPTIMIZATION) =====
-    // NOTE: This initial fetch of all stats maps is still necessary for context calculation,
-    // but the expensive *verification* step has been removed.
     const [goalsStats, cardsStats, cornersStats, foulsStats, shootingStats] = 
         await Promise.all([
           supabaseGoalsService.getGoalStatistics(),
@@ -1059,7 +1131,8 @@ export class MatchContextService {
         
         // ===== INITIAL DATA & FLAG SETUP =====
         const isMatchResult = insight.market === BettingMarket.MATCH_RESULT;
-        const isBTTS = insight.market === BettingMarket.BOTH_TEAMS_TO_SCORE;
+        // 🎯 FIX: Group BTTS and CLEAN_SHEET as binary goal markets
+        const isBinaryGoals = insight.market === BettingMarket.BOTH_TEAMS_TO_SCORE || insight.market === BettingMarket.CLEAN_SHEET_MARKET; 
 
         const oppositionAllows = oppStats?.average ?? 0;
         const oppositionMatches = oppStats?.matches ?? 0;
@@ -1075,8 +1148,9 @@ export class MatchContextService {
         let roundedOppositionAllows = 0;
         let bttsContext: MatchContext['bttsContext'];
 
-        // ===== HANDLE MISSING/INSUFFICIENT DATA (Only for non-Match Result/non-BTTS markets) =====
-        if (!isMatchResult && !isBTTS && (!oppStats || oppositionMatches < this.MIN_MATCHES_FOR_ANALYSIS)) {
+        // ===== HANDLE MISSING/INSUFFICIENT DATA (Only for non-Match Result/non-Binary Goals markets) =====
+        // 🎯 FIX: Changed check from !isBTTS to !isBinaryGoals
+        if (!isMatchResult && !isBinaryGoals && (!oppStats || oppositionMatches < this.MIN_MATCHES_FOR_ANALYSIS)) {
           const matchCount = oppositionMatches;
           const oppDisplayName = getDisplayTeamName(opponent);
           const confidenceText = this.getConfidenceContext(confidenceScore);
@@ -1115,13 +1189,25 @@ export class MatchContextService {
             // The recommendation text itself handles the opposition data quality warning.
             roundedOppositionAllows = 0;
         }
-        // Handle BTTS separately
-        else if (isBTTS) {
-          const bttsExpectation = insight.outcome.includes('Yes') ? 'Yes' : 'No';
+        // Handle BTTS/CleanSheet separately
+        // 🎯 FIX: Changed check from isBTTS to isBinaryGoals
+        else if (isBinaryGoals) {
+          
+          // Determine the specific binary outcome label for evaluation
+          let binaryOutcome: 'BTTS-Yes' | 'BTTS-No' | 'CleanSheet-Team' | 'CleanSheet-Opponent';
+          if (insight.market === BettingMarket.BOTH_TEAMS_TO_SCORE) {
+              binaryOutcome = insight.outcome.includes('Yes') ? 'BTTS-Yes' : 'BTTS-No';
+          } else { // BettingMarket.CLEAN_SHEET_MARKET
+              // Must figure out if the insight is for the team's CS or opponent's CS
+              // The insight team is the team in `insight.team` (normalizedHome or normalizedAway)
+              // The `insight.outcome` is "Team Clean Sheet - Yes" or "Opponent Clean Sheet (Team Fails to Score)"
+              binaryOutcome = insight.outcome.includes('Team Clean Sheet') ? 'CleanSheet-Team' : 'CleanSheet-Opponent';
+          }
+          
           const bttsEval = await this.evaluateBTTSMatchup(
             normalizedHome,
             normalizedAway,
-            bttsExpectation,
+            binaryOutcome,
             allStats.goals 
           );
           
@@ -1136,7 +1222,7 @@ export class MatchContextService {
               homeGoalsAgainst: bttsEval.homeGoalsAgainst
             };
             
-            recommendation = this.generateBTTSRecommendation(
+            recommendation = this.generateBinaryGoalsRecommendation(
               insightTeamName,
               insight.outcome,
               strengthOfMatch,
@@ -1149,7 +1235,7 @@ export class MatchContextService {
             );
           } else {
             const confidenceText = this.getConfidenceContext(confidenceScore);
-            recommendation = `⚠️ **DATA WARNING**: Unable to evaluate BTTS matchup due to insufficient goal data for one or both teams. Cannot reliably assess this market. ${confidenceText}`;
+            recommendation = `⚠️ **DATA WARNING**: Unable to evaluate ${insight.market} matchup due to insufficient goal data for one or both teams. Cannot reliably assess this market. ${confidenceText}`;
             strengthOfMatch = 'Poor';
           }
         }
