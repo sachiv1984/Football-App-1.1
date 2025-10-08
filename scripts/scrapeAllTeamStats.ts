@@ -296,13 +296,16 @@ class DebugScraper {
     return null;
   }
 
+  // scripts/scrapeAllTeamStats.ts (DebugScraper.parseMatchLogsTable)
+
   /**
    * Enhanced table parsing that extracts both team and opponent stats
    */
   parseMatchLogsTable(html: string, statType: any, teamName: string): any[] {
-    // Remove HTML comments to reveal hidden tables
-    const cleanHtml = html.replace(//g, '');
+    const cleanHtml = html.replace(//g, ''); 
     const $ = cheerio.load(cleanHtml);
+
+
 
     // Find the main matchlogs table
     const tableSelectors = [
