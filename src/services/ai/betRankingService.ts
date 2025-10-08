@@ -1,6 +1,7 @@
 // src/services/ai/betRankingService.ts
 
 import { MatchContextInsight } from './matchContextService';
+import { BettingMarket } from './bettingInsightsService'; // 💡 Import BettingMarket enum for clarity and robust checks
 
 export enum BetTier {
   EXCELLENT = 'Excellent',
@@ -22,6 +23,18 @@ export interface RankedBet extends MatchContextInsight {
 export class BetRankingService {
   
   /**
+   * Helper to check if a market is a Fixture-Level Bet (Match Result, BTTS, Clean Sheet).
+   * These markets are evaluated based on the interaction of both teams, not just one team's venue stats.
+   */
+  private isFixtureLevelBet(market: BettingMarket): boolean {
+    return (
+      market === BettingMarket.MATCH_RESULT || 
+      market === BettingMarket.BOTH_TEAMS_TO_SCORE ||
+      market === BettingMarket.CLEAN_SHEET_MARKET // 🎯 FIX: Added CLEAN_SHEET_MARKET
+    );
+  }
+
+  /**
    * Calculate a comprehensive bet score (0-100)
    */
   private calculateBetScore(insight: MatchContextInsight): number {
@@ -32,12 +45,8 @@ export class BetRankingService {
     const homeAwaySupport = insight.context?.homeAwaySupportForSample;
     const venueSpecific = insight.matchContext.venueSpecific;
     
-    // Check if the bet is Fixture-Level (like Match Result, Double Chance, or BTTS)
-    // NOTE: Match Result/Double Chance bets are team-relative insights in bettingInsightsService 
-    // but are essentially fixture-level outcomes, so we'll check the market type here instead of team name.
-    const isFixtureLevelBet = 
-        insight.market === 'match_result' || 
-        insight.market === 'both_teams_to_score';
+    // Check if the bet is Fixture-Level
+    const isFixtureLevelBet = this.isFixtureLevelBet(insight.market); // 🎯 FIX: Used helper method
     
     // 1. Base Confidence Score (40 points max)
     score += confidence * 0.4;
@@ -114,7 +123,7 @@ export class BetRankingService {
     // Check that it is an Over/Under bet AND not a Fixture-Level bet
     const isOverUnder = comparison === 'Over' || comparison === 'Or More' || comparison === 'Under';
     
-    if (isOverUnder && !isFixtureLevelBet) {
+    if (isOverUnder && !isFixtureLevelBet) { // 🎯 FIX: Used helper method
       if (comparison === 'Over' || comparison === 'Or More') {
         if (oppositionAllows < threshold) {
           score -= 15; // Opposition is strong defensively
@@ -128,6 +137,8 @@ export class BetRankingService {
     
     return Math.max(0, Math.min(100, Math.round(score)));
   }
+  
+  // --- Rest of the class methods (determineTier, generateReasoning, identifyRedFlags, etc.) ---
   
   /**
    * Determine bet tier based on score
@@ -148,9 +159,7 @@ export class BetRankingService {
     const confidence = insight.context?.confidence;
     const matchStrength = insight.matchContext.strengthOfMatch;
     const homeAwaySupport = insight.context?.homeAwaySupportForSample;
-    const isFixtureLevelBet = 
-        insight.market === 'match_result' || 
-        insight.market === 'both_teams_to_score';
+    const isFixtureLevelBet = this.isFixtureLevelBet(insight.market); // 🎯 FIX: Used helper method
     
     // Positive factors
     if (confidence && confidence.score >= 80) {
@@ -199,9 +208,7 @@ export class BetRankingService {
     const matchStrength = insight.matchContext.strengthOfMatch;
     const dataQuality = insight.matchContext.dataQuality;
     const homeAwaySupport = insight.context?.homeAwaySupportForSample;
-    const isFixtureLevelBet = 
-        insight.market === 'match_result' || 
-        insight.market === 'both_teams_to_score';
+    const isFixtureLevelBet = this.isFixtureLevelBet(insight.market); // 🎯 FIX: Used helper method
 
     // Low confidence
     if (confidence && confidence.score < 60) {
@@ -264,12 +271,15 @@ export class BetRankingService {
     
     // 3. Comparison to the threshold (only for Over/Under)
     const isOverUnder = comparison === 'Over' || comparison === 'Or More' || comparison === 'Under';
+    const isBinaryGoals = this.isFixtureLevelBet(rankedBet.market) && rankedBet.market !== BettingMarket.MATCH_RESULT;
+    
     if (isOverUnder) {
         const comparisonWord = comparison === 'Under' ? 'below' : 'above';
         matchupAnalysis += ` as the opposition allows **${Math.round(oppositionAllows * 10) / 10} avg** which is ${oppositionAllows > threshold ? comparisonWord : comparisonWord} the **${threshold} threshold**.`;
         
-    } else if (matchContext.recommendation.includes('Double Chance') || matchContext.recommendation.includes('Win')) {
-        // Use the MatchContextService's embedded recommendation for Match Result/Double Chance/BTTS
+    } else if (this.isFixtureLevelBet(rankedBet.market)) {
+        // Use the MatchContextService's embedded recommendation for Match Result/Double Chance/BTTS/Clean Sheet
+        // The embedded recommendation already contains the full analysis and context.
         matchupAnalysis = matchContext.recommendation
             .replace(/(\*\*)/g, '*') // Remove existing double bolding for cleaner integration
             .replace(/^(✅|🔵|🟡|🛑) /, ''); // Remove the initial emoji/prefix
@@ -311,9 +321,7 @@ export class BetRankingService {
     const matchStrength = insight.matchContext.strengthOfMatch;
     const dataQuality = insight.matchContext.dataQuality;
     const homeAwaySupport = insight.context?.homeAwaySupportForSample;
-    const isFixtureLevelBet = 
-        insight.market === 'match_result' || 
-        insight.market === 'both_teams_to_score';
+    const isFixtureLevelBet = this.isFixtureLevelBet(insight.market); // 🎯 FIX: Used helper method
     
     // Must meet ALL criteria
     const hasHighConfidence = confidence >= 70;
