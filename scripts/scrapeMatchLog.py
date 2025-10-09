@@ -516,4 +516,3 @@ if __name__ == "__main__":
     
     scraper = FBrefScraper(delay=delay)
     scraper.process_all_matches()
-    
