@@ -8,8 +8,8 @@ from datetime import datetime
 
 # Initialize Supabase client
 SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_SERVICE_ROLE_KEY  = os.getenv("SUPABASE_SERVICE_ROLE_KEY ")
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY )
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 class FBrefScraper:
     def __init__(self, delay=3):
@@ -183,30 +183,31 @@ class FBrefScraper:
         Main method to process all unscraped matches from database
         """
         try:
-            # Get all match URLs from database
-            response = supabase.table('matches').select('match_report_url').execute()
-            match_urls = [row['match_report_url'] for row in response.data if row.get('match_report_url')]
+            # Get all match URLs and IDs from fixtures table
+            response = supabase.table('fixtures').select('id, matchurl').execute()
+            fixtures = [(row['id'], row['matchurl']) for row in response.data if row.get('matchurl')]
             
-            print(f"Found {len(match_urls)} matches in database")
+            print(f"Found {len(fixtures)} fixtures in database")
             
             scraped_count = 0
             skipped_count = 0
             
-            for url in match_urls:
+            for fixture_id, url in fixtures:
                 # Check if already scraped
                 if self.check_if_scraped(url):
                     print(f"Skipping already scraped: {url}")
                     skipped_count += 1
                     continue
                 
-                print(f"Scraping: {url}")
+                print(f"Scraping fixture {fixture_id}: {url}")
                 data = self.scrape_match_page(url)
                 
                 if data:
-                    # Combine all dataframes
+                    # Combine all dataframes and add fixture_id
                     all_dfs = []
                     for key, df in data.items():
                         if df is not None and not df.empty:
+                            df['fixture_id'] = fixture_id
                             all_dfs.append(df)
                     
                     if all_dfs:
@@ -214,11 +215,11 @@ class FBrefScraper:
                         self.save_to_supabase(combined_df)
                         self.mark_as_scraped(url)
                         scraped_count += 1
-                        print(f"Successfully scraped and saved: {url}")
+                        print(f"Successfully scraped and saved fixture {fixture_id}")
                     else:
-                        print(f"No data found for: {url}")
+                        print(f"No data found for fixture {fixture_id}: {url}")
                 else:
-                    print(f"Failed to scrape: {url}")
+                    print(f"Failed to scrape fixture {fixture_id}: {url}")
             
             print(f"\nScraping complete!")
             print(f"Newly scraped: {scraped_count}")
