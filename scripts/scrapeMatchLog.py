@@ -5,6 +5,7 @@ import time
 from supabase import create_client, Client
 import os
 from datetime import datetime
+import random
 
 # Initialize Supabase client
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -21,8 +22,21 @@ class FBrefScraper:
         """
         self.delay = delay
         self.headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Cache-Control': 'max-age=0'
         }
+        self.session = requests.Session()
+        self.session.headers.update(self.headers)
+        self.retry_count = 0
+        self.max_retries = 3
     
     def check_if_scraped(self, match_url):
         """
@@ -51,24 +65,28 @@ class FBrefScraper:
         except Exception as e:
             print(f"Error marking as scraped: {e}")
     
-    def scrape_match_page(self, url):
+    def scrape_match_page(self, url, retry_attempt=0):
         """
         Scrape player stats from a match report URL
         
         Args:
             url: FBref match report URL
+            retry_attempt: Current retry attempt number
             
         Returns:
             dict: Contains home/away player stats and goalkeeper stats
         """
-        if not url or url == 'null':
-            print(f"Skipping invalid URL: {url}")
+        # Skip invalid/dummy URLs
+        if not url or url == 'null' or 'YYYY-MM-DD' in url or url.endswith('/en/matches/'):
+            print(f"Skipping invalid/dummy URL: {url}")
             return None
-            
-        time.sleep(self.delay)
+        
+        # Add random jitter to delay to appear more human
+        wait_time = self.delay + random.uniform(0.5, 2.0)
+        time.sleep(wait_time)
         
         try:
-            response = requests.get(url, headers=self.headers)
+            response = self.session.get(url, timeout=30)
             response.raise_for_status()
             soup = BeautifulSoup(response.content, 'html.parser')
             
@@ -112,6 +130,25 @@ class FBrefScraper:
             
             return data
             
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 403:
+                print(f"403 Forbidden for {url}")
+                
+                # Retry with exponential backoff
+                if retry_attempt < self.max_retries:
+                    wait_time = (2 ** retry_attempt) * 5 + random.uniform(1, 5)
+                    print(f"Retrying in {wait_time:.1f} seconds... (attempt {retry_attempt + 1}/{self.max_retries})")
+                    time.sleep(wait_time)
+                    return self.scrape_match_page(url, retry_attempt + 1)
+                else:
+                    print(f"Max retries reached for {url}. Skipping.")
+                    return None
+            else:
+                print(f"HTTP Error {e.response.status_code} for {url}: {e}")
+            return None
+        except requests.exceptions.RequestException as e:
+            print(f"Request error for {url}: {e}")
+            return None
         except Exception as e:
             print(f"Error scraping {url}: {e}")
             import traceback
@@ -248,5 +285,9 @@ class FBrefScraper:
 
 # Usage example
 if __name__ == "__main__":
-    scraper = FBrefScraper(delay=3)
+    # Get delay from environment variable or use default
+    delay = int(os.getenv('SCRAPER_DELAY', 5))
+    print(f"Using delay of {delay} seconds between requests")
+    
+    scraper = FBrefScraper(delay=delay)
     scraper.process_all_matches()
