@@ -1,0 +1,59 @@
+# .github/workflows/scrape-match-logs.yml
+name: Scrape FBref Match Logs
+
+on:
+  # Run on schedule (every day at 2 AM UTC)
+  schedule:
+    - cron: '0 2 * * *'
+  
+  # Allow manual trigger from GitHub Actions tab
+  workflow_dispatch:
+  
+  # Run when new fixtures are added (optional)
+  # Uncomment if you have a workflow that updates fixtures
+  # workflow_run:
+  #   workflows: ["Scrape Fixtures"]
+  #   types:
+  #     - completed
+
+jobs:
+  scrape-player-stats:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests beautifulsoup4 pandas supabase
+      
+      - name: Run match log scraper
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          python scripts/scrapeMatchLog.py
+      
+      - name: Upload logs (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scraper-logs
+          path: |
+            *.log
+            *.txt
+          retention-days: 7
+      
+      - name: Notify on completion (optional)
+        if: success()
+        run: |
+          echo "✅ Match log scraping completed successfully"
+          # Add notification service here if needed (Slack, Discord, etc.)
