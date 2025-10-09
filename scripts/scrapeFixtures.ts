@@ -1,14 +1,12 @@
 // scripts/scrapeFixtures.ts
 /**
  * ===============================================================
- * Production-ready FBref Fixtures Scraper - FIXED VERSION
+ * Production-ready FBref Fixtures Scraper - UPDATED VERSION
  *
- * Key fixes:
- * 1. Proper datetime parsing and formatting for PostgreSQL
- * 2. Better HTML table parsing with debugging
- * 3. Enhanced data validation and error handling
- * 4. More robust column mapping
- * 5. Fixed table variable scoping issue
+ * Key updates:
+ * 1. Correct match report URL extraction from score column
+ * 2. URL validation to ensure it's a match report link
+ * 3. Better debugging for URL extraction
  * ===============================================================
  */
 
@@ -38,7 +36,7 @@ type RawRow = (string | CellData)[];
 
 interface Fixture {
   id: string;
-  datetime: string; // Will be converted to ISO string for PostgreSQL
+  datetime: string;
   hometeam: string;
   awayteam: string;
   homescore: number | null;
@@ -53,30 +51,24 @@ interface Fixture {
 
 /**
  * Parse FBref date format to ISO string
- * Expected formats: "2024-08-17", "2024-08-17 15:00", etc.
  */
 function parseDateTime(dateStr: string, timeStr?: string): string {
   try {
     let fullDateStr = dateStr.trim();
     
-    // If we have a separate time string, combine them
     if (timeStr && timeStr.trim()) {
       fullDateStr += ` ${timeStr.trim()}`;
     }
     
-    // Handle various FBref date formats
     const date = new Date(fullDateStr);
     
-    // If date is invalid, try different parsing
     if (isNaN(date.getTime())) {
-      // Try parsing just the date part and assume 15:00 UTC
       const dateOnly = new Date(dateStr.trim());
       if (!isNaN(dateOnly.getTime())) {
-        dateOnly.setUTCHours(15, 0, 0, 0); // Default to 3 PM UTC
+        dateOnly.setUTCHours(15, 0, 0, 0);
         return dateOnly.toISOString();
       }
       
-      // Fallback to current date if all parsing fails
       console.warn(`Failed to parse date: ${dateStr}, using current date`);
       return new Date().toISOString();
     }
@@ -107,20 +99,50 @@ function extractCellData(cell: cheerio.Cheerio<any>): string | CellData {
  * Determine match status based on available data
  */
 function determineStatus(homescore: number | null, awayscore: number | null, dateTime: string): string {
-  // If scores are available, match is finished
   if (homescore !== null && awayscore !== null) {
     return 'finished';
   }
   
-  // Check if match date has passed (rough estimate)
   const matchDate = new Date(dateTime);
   const now = new Date();
   
   if (matchDate < now) {
-    return 'finished'; // Could also be 'postponed' but we'll default to finished
+    return 'finished';
   }
   
   return 'scheduled';
+}
+
+/**
+ * Extract match report URL from row
+ */
+function extractMatchReportUrl(row: RawRow, rowIndex: number): string | null {
+  // The Score column (row[6]) typically has the link to match report
+  const scoreCell = row[6];
+  
+  if (typeof scoreCell === 'object' && scoreCell.link) {
+    const url = scoreCell.link;
+    
+    // Validate it's actually a match report URL (contains '/matches/')
+    if (url.includes('/matches/')) {
+      if (rowIndex < 5) {
+        console.log(`Row ${rowIndex}: Found match report URL: ${url}`);
+      }
+      return url;
+    } else {
+      if (rowIndex < 5) {
+        console.warn(`Row ${rowIndex}: Score cell link doesn't look like match report: ${url}`);
+      }
+    }
+  }
+  
+  // Fallback: check date cell
+  const dateCell = row[2];
+  if (typeof dateCell === 'object' && dateCell.link && dateCell.link.includes('/matches/')) {
+    return dateCell.link;
+  }
+  
+  return null;
 }
 
 /* ------------------ Enhanced Data Cleaning Function ------------------ */
@@ -130,20 +152,6 @@ function cleanRow(row: RawRow, rowIndex: number): Fixture | null {
     if (rowIndex < 5) {
       console.log(`Row ${rowIndex} structure:`, row.map((cell, i) => `${i}: ${typeof cell === 'object' ? cell.text : cell}`));
     }
-    
-    // FBref table typically has these columns (may vary):
-    // 0: Wk (matchweek)
-    // 1: Day
-    // 2: Date
-    // 3: Time
-    // 4: Home team
-    // 5: xG (home)
-    // 6: Score
-    // 7: xG (away)
-    // 8: Away team
-    // 9: Attendance
-    // 10: Venue
-    // 11: Referee
     
     // Extract and validate required fields
     const matchweekStr = typeof row[0] === 'object' ? row[0].text : (row[0] as string);
@@ -192,18 +200,13 @@ function cleanRow(row: RawRow, rowIndex: number): Fixture | null {
     // Extract venue
     const venue = venueStr && venueStr !== 'Venue' ? venueStr : null;
     
-    // Extract match URL if available
-    let matchurl: string | null = null;
-    if (typeof row[2] === 'object' && row[2].link) {
-      matchurl = row[2].link;
-    } else if (typeof homeCell === 'object' && homeCell.link) {
-      matchurl = homeCell.link;
-    }
+    // Extract match URL using the new function
+    const matchurl = extractMatchReportUrl(row, rowIndex);
     
     // Generate unique ID
     const cleanHometeam = hometeam.replace(/\s+/g, '_');
     const cleanAwayteam = awayteam.replace(/\s+/g, '_');
-    const dateId = datetime.split('T')[0]; // Use date part only for ID
+    const dateId = datetime.split('T')[0];
     const id = `${cleanHometeam}_${dateId}_${cleanAwayteam}`;
     
     const fixture: Fixture = {
@@ -251,7 +254,7 @@ async function scrapeAndUpload() {
     console.log('Parsing HTML with Cheerio...');
     const $ = cheerio.load(html);
 
-    // ----------------- Dynamic Table Inspection -----------------
+    // Dynamic Table Inspection
     const allTables = $('table');
     console.log(`Found ${allTables.length} tables on the page:`);
 
@@ -261,8 +264,7 @@ async function scrapeAndUpload() {
       console.log(`  Table ${i + 1}: ID='${tableId}', rows=${rowCount}`);
     });
 
-    // ----------------- Table Selection -----------------
-    // Fixed: Single declaration and proper scoping
+    // Table Selection
     let selectedTable = $('table#sched_2025-2026_9_1');
 
     if (selectedTable.length === 0) {
@@ -279,7 +281,7 @@ async function scrapeAndUpload() {
 
     console.log(`Using table ID: '${selectedTable.attr('id')}', with ${selectedTable.find('tbody tr').length} rows`);
 
-    // ----------------- Extract Table Data -----------------
+    // Extract Table Data
     const rows: RawRow[] = [];
     selectedTable.find('tbody tr').each((index, tr) => {
       const row: RawRow = [];
@@ -300,15 +302,19 @@ async function scrapeAndUpload() {
       });
     }
 
-    // ----------------- Process and Clean Fixtures -----------------
+    // Process and Clean Fixtures
     console.log('Processing and cleaning fixture data...');
     const fixtures: Fixture[] = rows
       .map((row, index) => cleanRow(row, index))
       .filter(Boolean) as Fixture[];
 
     console.log(`Successfully processed ${fixtures.length} valid fixtures`);
+    
+    // Count fixtures with match URLs
+    const fixturesWithUrls = fixtures.filter(f => f.matchurl !== null).length;
+    console.log(`Fixtures with match report URLs: ${fixturesWithUrls}`);
 
-    // ----------------- Save to JSON -----------------
+    // Save to JSON
     console.log(`Saving fixtures to ${JSON_PATH}...`);
     fs.mkdirSync(path.dirname(JSON_PATH), { recursive: true });
     fs.writeFileSync(JSON_PATH, JSON.stringify(fixtures, null, 2), 'utf-8');
@@ -319,16 +325,16 @@ async function scrapeAndUpload() {
     const parsedSaved = JSON.parse(savedJson);
     console.log(`✅ JSON verification: ${parsedSaved.length} fixtures saved to file`);
     
-    console.log('Sample fixtures:');
+    console.log('\nSample fixtures:');
     fixtures.slice(0, 3).forEach((fixture, i) => {
       console.log(`${i + 1}:`, JSON.stringify(fixture, null, 2));
     });
 
     // Upload to Supabase
     if (fixtures.length > 0) {
-      console.log('Uploading to Supabase...');
+      console.log('\nUploading to Supabase...');
       
-      // First, let's test the connection
+      // Test connection
       const { data: testData, error: testError } = await supabase
         .from('fixtures')
         .select('id')
@@ -347,7 +353,7 @@ async function scrapeAndUpload() {
           onConflict: 'id',
           defaultToNull: false,
         })
-        .select(); // This will return the upserted data
+        .select();
 
       if (error) {
         console.error('Supabase upsert error:', error);
@@ -362,7 +368,6 @@ async function scrapeAndUpload() {
   } catch (err) {
     console.error('❌ Script failed:', err);
     
-    // Additional error context
     if (err instanceof Error) {
       console.error('Error name:', err.name);
       console.error('Error message:', err.message);
