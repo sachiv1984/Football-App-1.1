@@ -4,6 +4,7 @@ import time
 from supabase import create_client, Client
 import os
 from datetime import datetime
+import re # Added for robust URL parsing
 
 # Get environment variables
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -47,28 +48,41 @@ class FBRAPIScraper:
         else:
             print(f"Error generating API key: {response.status_code}")
             return None
-    
+
     def extract_match_id_from_url(self, url):
         """
-        Extract match ID from FBref URL
+        Extract match ID (8-character alphanumeric string) from FBref URL
         
         Args:
-            url: FBref match URL like https://fbref.com/en/matches/abc123/...
+            url: FBref match URL like https://fbref.com/en/matches/abc12345/...
             
         Returns:
             str: 8-character match ID
         """
-        if not url or 'matches/' not in url:
+        if not url:
             return None
         
-        parts = url.split('/')
-        matches_idx = parts.index('matches')
-        if matches_idx + 1 < len(parts):
-            return parts[matches_idx + 1]
+        # Use regex to find the 8-character ID immediately following '/matches/'
+        match = re.search(r'/matches/([a-z0-9]{8})', url)
+        if match:
+            return match.group(1)
         return None
+    
+    def is_valid_fbref_match_url(self, url):
+        """
+        Checks if the URL is a valid FBref match URL by verifying the prefix 
+        and the presence of a valid 8-character match ID.
+        """
+        if not url or not url.startswith('https://fbref.com/'):
+            return False
+        
+        # A URL is valid if we can extract a match ID from it
+        return self.extract_match_id_from_url(url) is not None
     
     def check_if_scraped(self, match_url):
         """Check if match data already exists in database"""
+        # NOTE: This method is now redundant since we are pre-fetching all scraped URLs in process_all_matches
+        # but kept here for potential future use or modularity.
         try:
             response = supabase.table('scraped_matches').select('match_url').eq('match_url', match_url).execute()
             return len(response.data) > 0
@@ -147,7 +161,8 @@ class FBRAPIScraper:
                     'player_name': meta.get('player_name'),
                     'player_country': meta.get('player_country_code'),
                     'player_number': meta.get('player_number'),
-                    'age': meta.get('age'),
+                    # NOTE: Ensure 'age' column exists in 'player_match_stats' Supabase table!
+                    'age': meta.get('age'), 
                 }
                 
                 # Add all stat categories
@@ -183,30 +198,59 @@ class FBRAPIScraper:
             print(f"Error saving to Supabase: {e}")
     
     def process_all_matches(self):
-        """Main method to process all unscraped matches"""
+        """Main method to process all unscraped matches with upfront planning."""
         try:
-            # Get all fixtures with match URLs
+            print("="*50)
+            
+            # --- STEP 1: Review fixtures table for URLs ---
             response = supabase.table('fixtures').select('id, matchurl').execute()
-            fixtures = [(row['id'], row['matchurl']) for row in response.data if row.get('matchurl')]
+            all_fixtures = [(row['id'], row['matchurl']) for row in response.data if row.get('matchurl')]
+            total_fixtures = len(all_fixtures)
+            print(f"Step 1: Found {total_fixtures} total fixtures with URLs in 'fixtures' table.")
+
+            # --- STEP 2: How many are valid URLs? ---
+            valid_fixtures = [
+                (fid, url) for fid, url in all_fixtures 
+                if self.is_valid_fbref_match_url(url)
+            ]
+            valid_count = len(valid_fixtures)
+            invalid_count = total_fixtures - valid_count
+            print(f"Step 2: Identified {valid_count} valid FBref match URLs. ({invalid_count} invalid/missing ID)")
+
+            if not valid_fixtures:
+                print("No valid match URLs found to process. Exiting.")
+                return
+
+            # --- STEP 3: Check scraped table to determine which URLs need scraping ---
             
-            print(f"Found {len(fixtures)} fixtures in database")
+            # Get a list of all match URLs that have already been scraped (efficient)
+            scraped_response = supabase.table('scraped_matches').select('match_url').execute()
+            scraped_urls = {row['match_url'] for row in scraped_response.data}
             
-            scraped_count = 0
-            skipped_count = 0
+            # Filter the valid fixtures list to include only those not yet scraped
+            to_scrape = [
+                (fid, url) for fid, url in valid_fixtures 
+                if url not in scraped_urls
+            ]
+            
+            skipped_count = valid_count - len(to_scrape)
+            scrape_count = len(to_scrape)
+            
+            print(f"Step 3: Found {skipped_count} already scraped in 'scraped_matches' table.")
+            print(f"Step 4: Planning to scrape {scrape_count} fixtures.")
+            print("="*50)
+            
+            if not to_scrape:
+                print("All valid fixtures are already scraped. Job complete.")
+                return
+
+            # --- STEP 4: Scrape the remaining list of fixtures ---
+            
+            scraped_success_count = 0
             failed_count = 0
             
-            for fixture_id, url in fixtures:
-                # Check if already scraped
-                if self.check_if_scraped(url):
-                    skipped_count += 1
-                    continue
-                
-                # Extract match ID from URL
+            for fixture_id, url in to_scrape:
                 match_id = self.extract_match_id_from_url(url)
-                if not match_id:
-                    print(f"Could not extract match ID from: {url}")
-                    failed_count += 1
-                    continue
                 
                 print(f"Scraping fixture {fixture_id}, match ID: {match_id}")
                 
@@ -220,20 +264,20 @@ class FBRAPIScraper:
                     if df is not None and not df.empty:
                         self.save_to_supabase(df)
                         self.mark_as_scraped(url)
-                        scraped_count += 1
+                        scraped_success_count += 1
                         print(f"✅ Successfully scraped {len(df)} player records for fixture {fixture_id}")
                     else:
-                        print(f"⚠️ No player data found for fixture {fixture_id}")
+                        print(f"⚠️ No player data found for fixture {fixture_id}. Marking as failed.")
                         failed_count += 1
                 else:
-                    print(f"❌ Failed to fetch data for fixture {fixture_id}")
+                    print(f"❌ Failed to fetch data for fixture {fixture_id}. API call failed.")
                     failed_count += 1
             
             print(f"\n{'='*50}")
             print(f"Scraping complete!")
-            print(f"✅ Newly scraped: {scraped_count}")
+            print(f"✅ Newly scraped: {scraped_success_count}")
             print(f"⏭️  Skipped (already scraped): {skipped_count}")
-            print(f"❌ Failed: {failed_count}")
+            print(f"❌ Failed during scraping: {failed_count}")
             print(f"{'='*50}")
             
         except Exception as e:
@@ -246,21 +290,22 @@ if __name__ == "__main__":
     # Check if API key exists
     if not FBR_API_KEY:
         print("❌ No FBR_API_KEY found in environment variables!")
-        print("\n🔑 Generating a new API key for you...\n")
+        print("\n🔑 Attempting to generate a new API key for you...\n")
         
         # Generate API key
         try:
+            # Note: This is a direct request, separate from the class method
             response = requests.post('https://fbrapi.com/generate_api_key')
             if response.ok:
                 api_key = response.json().get('api_key')
                 print(f"✅ Your FBR API Key: {api_key}")
-                print("\nAdd this to your .env file:")
+                print("\nAdd this to your .env file or GitHub Secrets:")
                 print(f"FBR_API_KEY={api_key}")
                 print("\nThen run this script again.")
             else:
                 print(f"❌ Error generating API key: {response.status_code}")
         except Exception as e:
-            print(f"❌ Error: {e}")
+            print(f"❌ Error during API key generation: {e}")
         
         exit(1)
     
