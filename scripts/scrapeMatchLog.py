@@ -5,7 +5,7 @@ from supabase import create_client, Client
 import os
 from datetime import datetime
 import re
-import sys # Added for graceful exit
+import sys 
 
 # Get environment variables
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -42,27 +42,61 @@ class FBRAPIScraper:
     def get_expected_columns():
         """
         Defines and returns the canonical list of all expected database columns.
-        This list must match the keys created in parse_match_data.
-        
-        NOTE: This list contains common columns and must be manually verified 
-              against the full FBR API response for accuracy.
+        This EXPANDED list includes common metadata and all key statistical fields 
+        flattened from the FBR API 'all-players-match-stats' endpoint.
         """
-        # Base metadata columns
+        # Base metadata columns (10 columns)
         base_columns = [
             'fixture_id', 'match_url', 'team_name', 'team_side', 
             'player_id', 'player_name', 'player_country', 'player_number', 
             'age', 'is_goalkeeper'
         ]
         
-        # Example Stat Columns (based on common FBR API structure)
-        # Type Recommendation: NUMERIC for all stats, TEXT for positions.
+        # Expanded Stat Columns (Must match keys/values generated in parse_match_data)
         stat_columns = [
+            # SUMMARY/STANDARD STATS
             'summary_minutes', 'summary_positions', 'summary_shots', 'summary_tackles', 
-            'passing_cmp', 'passing_att', 'passing_total_dist', 
-            'defense_tackles', 'defense_tackles_won', 'defense_pressures', 
-            'possession_touches', 'possession_carries', 
-            'goals_and_shots_shots_total', 'goals_and_shots_shots_on_target',
-            'misc_fouls', 'misc_cards_yellow', 'misc_cards_red'
+            'summary_goals', 'summary_assists', 'summary_pk', 'summary_pkatt', 
+            'summary_cards_yellow', 'summary_cards_red', 
+            
+            # SHOOTING STATS
+            'shooting_shots_total', 'shooting_shots_on_target', 'shooting_goals', 
+            'shooting_xG', 'shooting_npxG', 'shooting_npxG_per_shot', 
+            
+            # PASSING STATS
+            'passing_cmp', 'passing_att', 'passing_cmp_pct', 'passing_total_dist', 
+            'passing_progressive_dist', 'passing_s_cmp', 'passing_m_cmp', 'passing_l_cmp', 
+            'passing_assists', 'passing_xA', 'passing_key_passes', 'passing_passes_into_final_third',
+            'passing_passes_into_penalty_area', 'passing_crosses_into_penalty_area',
+            'passing_progressive_passes',
+            
+            # PASSING TYPES STATS
+            'passing_types_live', 'passing_types_dead', 'passing_types_fk', 
+            'passing_types_back', 'passing_types_cross', 'passing_types_switch',
+            'passing_types_corner_kick', 'passing_types_throw_ins',
+            
+            # GOAL & SHOT CREATION STATS (GSC)
+            'goal_shot_creation_sca', 'goal_shot_creation_sca_pass_live', 
+            'goal_shot_creation_sca_pass_dead', 'goal_shot_creation_gca', 
+            'goal_shot_creation_gca_pass_live', 'goal_shot_creation_gca_pass_dead',
+            
+            # DEFENSIVE STATS
+            'defense_tackles', 'defense_tackles_won', 'defense_def_3rd', 'defense_mid_3rd', 
+            'defense_att_3rd', 'defense_pressures', 'defense_pressures_successful', 
+            'defense_blocks', 'defense_blocks_shots', 'defense_blocks_passes', 
+            'defense_interceptions', 'defense_tkl_plus_int', 'defense_clearances', 
+            'defense_errors', 
+            
+            # POSSESSION STATS
+            'possession_touches', 'possession_def_pen_area', 'possession_def_3rd', 
+            'possession_mid_3rd', 'possession_att_3rd', 'possession_att_pen_area',
+            'possession_carries', 'possession_carries_dist', 
+            'possession_progressive_carries', 'possession_progressive_dist', 
+            'possession_miscontrols', 'possession_dispossessed', 
+            
+            # MISCELLANEOUS STATS
+            'misc_fouls', 'misc_fouled', 'misc_offsides', 'misc_crosses', 
+            'misc_aerial_duels_won', 'misc_aerial_duels_lost', 'misc_position'
         ]
 
         # Combine, remove duplicates, and return sorted list
@@ -72,9 +106,6 @@ class FBRAPIScraper:
         """
         Validates that all expected columns are present in the Supabase table 
         and prints the full expected list for type verification.
-        
-        Returns:
-            bool: True if all expected columns are present (or table is empty), False otherwise.
         """
         expected_columns = self.get_expected_columns()
         
@@ -84,23 +115,22 @@ class FBRAPIScraper:
         # Always print the expected list first for the user to verify data types
         print("\n✅ Expected Columns List (You must create these in Supabase):")
         print("----------------------------------------------------------------------")
-        print("| Column Name         | Suggested PostgreSQL Type                      |")
+        print("| Column Name                     | Suggested PostgreSQL Type          |")
         print("----------------------------------------------------------------------")
         for col in expected_columns:
             # Simple heuristic for type recommendation
-            if 'id' in col or 'number' in col:
+            if 'id' in col or 'number' in col or 'pkatt' in col or 'cards' in col:
                 type_str = 'INTEGER'
-            elif col in ['match_url', 'team_name', 'team_side', 'player_name', 'player_country', 'summary_positions']:
+            elif col in ['match_url', 'team_name', 'team_side', 'player_name', 'player_country', 'summary_positions', 'misc_position']:
                 type_str = 'TEXT'
             elif col == 'is_goalkeeper':
                 type_str = 'BOOLEAN'
             else:
-                type_str = 'NUMERIC' # Safe choice for all stats and age
-            print(f"| {col:<20}| {type_str:<45}|")
+                type_str = 'NUMERIC' 
+            print(f"| {col:<30}| {type_str:<35}|")
         print("----------------------------------------------------------------------")
 
         try:
-            # Fetch one row to check the existing columns (relies on table having data)
             response = supabase.table(table_name).select('*').limit(1).execute()
             
             if not response.data:
@@ -145,7 +175,6 @@ class FBRAPIScraper:
         if not url:
             return None
         
-        # Use regex to find the 8-character ID immediately following '/matches/'
         match = re.search(r'/matches/([a-z0-9]{8})', url)
         if match:
             return match.group(1)
@@ -202,7 +231,7 @@ class FBRAPIScraper:
                 meta = player_entry.get('meta_data', {})
                 stats = player_entry.get('stats', {})
                 
-                # Base metadata (must match get_expected_columns)
+                # Base metadata 
                 player_data = {
                     'fixture_id': fixture_id,
                     'match_url': match_url,
@@ -215,10 +244,11 @@ class FBRAPIScraper:
                     'age': meta.get('age'), 
                 }
                 
-                # Add all flattened stat categories (must match get_expected_columns)
+                # Add all flattened stat categories
                 for category, category_stats in stats.items():
                     if isinstance(category_stats, dict):
                         for stat_name, stat_value in category_stats.items():
+                            # The key generation MUST match the list in get_expected_columns
                             player_data[f"{category}_{stat_name}"] = stat_value
                 
                 # Check if goalkeeper based on position
@@ -273,11 +303,9 @@ class FBRAPIScraper:
 
             # --- STEP 3: Check scraped table to determine which URLs need scraping ---
             
-            # Get a list of all match URLs that have already been scraped (efficient)
             scraped_response = supabase.table('scraped_matches').select('match_url').execute()
             scraped_urls = {row['match_url'] for row in scraped_response.data}
             
-            # Filter the valid fixtures list to include only those not yet scraped
             to_scrape = [
                 (fid, url) for fid, url in valid_fixtures 
                 if url not in scraped_urls
@@ -304,11 +332,9 @@ class FBRAPIScraper:
                 
                 print(f"Scraping fixture {fixture_id}, match ID: {match_id}")
                 
-                # Get player stats from API
                 match_data = self.get_match_players_stats(match_id)
                 
                 if match_data:
-                    # Parse into DataFrame
                     df = self.parse_match_data(match_data, url, fixture_id)
                     
                     if df is not None and not df.empty:
@@ -342,7 +368,6 @@ if __name__ == "__main__":
         print("❌ No FBR_API_KEY found in environment variables!")
         print("\n🔑 Attempting to generate a new API key for you...\n")
         
-        # Generate API key
         try:
             response = requests.post('https://fbrapi.com/generate_api_key')
             if response.ok:
@@ -356,7 +381,7 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"❌ Error during API key generation: {e}")
         
-        sys.exit(1) # Exit if key is missing
+        sys.exit(1)
 
     
     # Get delay from environment variable or use default
