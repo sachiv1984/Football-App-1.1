@@ -8,7 +8,7 @@ from datetime import datetime
 # Get environment variables
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-// FBR_API_KEY = os.getenv("FBR_API_KEY")
+
 
 # Validate required environment variables
 if not SUPABASE_URL:
