@@ -1,54 +1,70 @@
 import requests
-from bs4 import BeautifulSoup
 import pandas as pd
 import time
 from supabase import create_client, Client
 import os
 from datetime import datetime
-import random
-import re
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Initialize Supabase client
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
-class FBrefScraper:
-    def __init__(self, delay=3):
+# FBR API Configuration
+FBR_API_BASE = "https://fbrapi.com"
+FBR_API_KEY = os.getenv("FBR_API_KEY")  # You'll need to generate this
+
+class FBRAPIScraper:
+    def __init__(self, api_key, delay=3):
         """
-        Initialize scraper with rate limiting
+        Initialize FBR API scraper
         
         Args:
-            delay: Seconds to wait between requests (FBref asks for 3+ seconds)
+            api_key: Your FBR API key
+            delay: Seconds to wait between requests (API requires 3+ seconds)
         """
+        self.api_key = api_key
         self.delay = delay
-        self.headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
-            'Sec-Fetch-Dest': 'document',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'none',
-            'Cache-Control': 'max-age=0'
-        }
-        self.session = requests.Session()
-        self.session.headers.update(self.headers)
-        self.retry_count = 0
-        self.max_retries = 3
+        self.headers = {"X-API-Key": self.api_key}
+        self.base_url = FBR_API_BASE
     
-    def check_if_scraped(self, match_url):
+    def generate_api_key(self):
+        """Generate a new API key (run this once)"""
+        response = requests.post(f"{self.base_url}/generate_api_key")
+        if response.ok:
+            api_key = response.json().get('api_key')
+            print(f"Generated API Key: {api_key}")
+            print("Save this to your .env file as FBR_API_KEY")
+            return api_key
+        else:
+            print(f"Error generating API key: {response.status_code}")
+            return None
+    
+    def extract_match_id_from_url(self, url):
         """
-        Check if match data already exists in database
+        Extract match ID from FBref URL
         
         Args:
-            match_url: The match report URL
+            url: FBref match URL like https://fbref.com/en/matches/abc123/...
             
         Returns:
-            bool: True if already scraped, False otherwise
+            str: 8-character match ID
         """
+        if not url or 'matches/' not in url:
+            return None
+        
+        parts = url.split('/')
+        matches_idx = parts.index('matches')
+        if matches_idx + 1 < len(parts):
+            return parts[matches_idx + 1]
+        return None
+    
+    def check_if_scraped(self, match_url):
+        """Check if match data already exists in database"""
         try:
             response = supabase.table('scraped_matches').select('match_url').eq('match_url', match_url).execute()
             return len(response.data) > 0
@@ -66,176 +82,93 @@ class FBrefScraper:
         except Exception as e:
             print(f"Error marking as scraped: {e}")
     
-    def scrape_match_page(self, url, retry_attempt=0):
+    def get_match_players_stats(self, match_id):
         """
-        Scrape player stats from a match report URL
+        Get all player stats for a match using FBR API
         
         Args:
-            url: FBref match report URL
-            retry_attempt: Current retry attempt number
+            match_id: 8-character match ID from FBref
             
         Returns:
-            dict: Contains home/away player stats and goalkeeper stats
+            dict: Player stats for both teams
         """
-        # Skip invalid/dummy URLs
-        if not url or url == 'null' or 'YYYY-MM-DD' in url:
-            print(f"Skipping invalid/dummy URL: {url}")
-            return None
-        
-        # Check if URL ends with just a date (dummy URL pattern)
-        date_pattern = r'/matches/\d{4}-\d{2}-\d{2}/?$'
-        if re.search(date_pattern, url):
-            print(f"Skipping date-only dummy URL: {url}")
-            return None
-        
-        # Check if URL is too short (valid URLs have match ID and team names)
-        url_parts = url.rstrip('/').split('/')
-        if len(url_parts) <= 5:
-            print(f"Skipping incomplete URL: {url}")
-            return None
-        
-        # Add random jitter to delay to appear more human
-        wait_time = self.delay + random.uniform(0.5, 2.0)
-        time.sleep(wait_time)
+        time.sleep(self.delay)
         
         try:
-            response = self.session.get(url, timeout=30)
+            url = f"{self.base_url}/all-players-match-stats"
+            params = {"match_id": match_id}
+            
+            response = requests.get(url, params=params, headers=self.headers, timeout=30)
             response.raise_for_status()
-            soup = BeautifulSoup(response.content, 'html.parser')
             
-            data = {
-                'home_players': None,
-                'away_players': None,
-                'home_gk': None,
-                'away_gk': None
-            }
-            
-            # Find all stat tables
-            tables = soup.find_all('table')
-            print(f"Found {len(tables)} tables on the page")
-            
-            # Track which team we're processing
-            home_summary_found = False
-            home_gk_found = False
-            
-            for table in tables:
-                table_id = table.get('id', '')
-                
-                # Player summary stats (both teams)
-                if '_summary' in table_id and table_id.startswith('stats_'):
-                    if not home_summary_found:
-                        print(f"Found home team summary stats: {table_id}")
-                        data['home_players'] = self._parse_table(table, url, 'home')
-                        home_summary_found = True
-                    else:
-                        print(f"Found away team summary stats: {table_id}")
-                        data['away_players'] = self._parse_table(table, url, 'away')
-                
-                # Goalkeeper stats (both teams)
-                elif 'keeper_stats_' in table_id:
-                    if not home_gk_found:
-                        print(f"Found home goalkeeper stats: {table_id}")
-                        data['home_gk'] = self._parse_table(table, url, 'home', is_gk=True)
-                        home_gk_found = True
-                    else:
-                        print(f"Found away goalkeeper stats: {table_id}")
-                        data['away_gk'] = self._parse_table(table, url, 'away', is_gk=True)
-            
-            return data
+            data = response.json()
+            return data.get('data', [])
             
         except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 403:
-                print(f"403 Forbidden for {url}")
-                
-                # Retry with exponential backoff
-                if retry_attempt < self.max_retries:
-                    wait_time = (2 ** retry_attempt) * 5 + random.uniform(1, 5)
-                    print(f"Retrying in {wait_time:.1f} seconds... (attempt {retry_attempt + 1}/{self.max_retries})")
-                    time.sleep(wait_time)
-                    return self.scrape_match_page(url, retry_attempt + 1)
-                else:
-                    print(f"Max retries reached for {url}. Skipping.")
-                    return None
-            else:
-                print(f"HTTP Error {e.response.status_code} for {url}: {e}")
-            return None
-        except requests.exceptions.RequestException as e:
-            print(f"Request error for {url}: {e}")
+            print(f"HTTP Error {e.response.status_code} for match {match_id}: {e}")
             return None
         except Exception as e:
-            print(f"Error scraping {url}: {e}")
-            import traceback
-            traceback.print_exc()
+            print(f"Error fetching match {match_id}: {e}")
             return None
     
-    def _parse_table(self, table, match_url, team_side, is_gk=False):
+    def parse_match_data(self, match_data, match_url, fixture_id):
         """
-        Parse HTML table into pandas DataFrame
+        Parse API response into DataFrame
         
         Args:
-            table: BeautifulSoup table element
-            match_url: URL of the match for reference
-            team_side: 'home' or 'away'
-            is_gk: Boolean indicating if this is goalkeeper stats
+            match_data: List of team data from API
+            match_url: Original match URL
+            fixture_id: Fixture ID from database
             
         Returns:
             pd.DataFrame: Parsed player statistics
         """
-        rows = []
-        headers = []
+        all_players = []
         
-        # Extract headers
-        thead = table.find('thead')
-        if thead:
-            header_rows = thead.find_all('tr')
-            # Get the last header row (most specific)
-            if header_rows:
-                for th in header_rows[-1].find_all('th'):
-                    headers.append(th.get('data-stat', th.text.strip()))
-        
-        # Extract data rows
-        tbody = table.find('tbody')
-        if tbody:
-            for tr in tbody.find_all('tr'):
-                # Skip header rows within tbody
-                if tr.get('class') and 'thead' in tr.get('class'):
-                    continue
-                    
-                row_data = {}
-                for td in tr.find_all(['th', 'td']):
-                    stat = td.get('data-stat', '')
-                    if stat:
-                        # Get player link if available
-                        if stat == 'player':
-                            link = td.find('a')
-                            if link:
-                                row_data['player_id'] = link.get('href', '').split('/')[-2]
-                        row_data[stat] = td.text.strip()
+        for team in match_data:
+            team_name = team.get('team_name')
+            home_away = team.get('home_away')
+            
+            for player_entry in team.get('players', []):
+                meta = player_entry.get('meta_data', {})
+                stats = player_entry.get('stats', {})
                 
-                if row_data:
-                    row_data['match_url'] = match_url
-                    row_data['team_side'] = team_side
-                    row_data['is_goalkeeper'] = is_gk
-                    rows.append(row_data)
+                # Flatten all stat categories
+                player_data = {
+                    'fixture_id': fixture_id,
+                    'match_url': match_url,
+                    'team_name': team_name,
+                    'team_side': home_away,
+                    'player_id': meta.get('player_id'),
+                    'player_name': meta.get('player_name'),
+                    'player_country': meta.get('player_country_code'),
+                    'player_number': meta.get('player_number'),
+                    'age': meta.get('age'),
+                }
+                
+                # Add all stat categories
+                for category, category_stats in stats.items():
+                    if isinstance(category_stats, dict):
+                        for stat_name, stat_value in category_stats.items():
+                            player_data[f"{category}_{stat_name}"] = stat_value
+                
+                # Check if goalkeeper based on position
+                position = player_data.get('summary_positions', '')
+                player_data['is_goalkeeper'] = 'GK' in str(position)
+                
+                all_players.append(player_data)
         
-        return pd.DataFrame(rows) if rows else None
+        return pd.DataFrame(all_players) if all_players else None
     
     def save_to_supabase(self, df, table_name='player_match_stats'):
-        """
-        Save DataFrame to Supabase
-        
-        Args:
-            df: pandas DataFrame with player stats
-            table_name: Name of the Supabase table
-        """
+        """Save DataFrame to Supabase"""
         if df is None or df.empty:
             return
         
         try:
-            # Convert DataFrame to list of dicts
             records = df.to_dict('records')
             
-            # Insert in batches to avoid timeouts
+            # Insert in batches
             batch_size = 100
             for i in range(0, len(records), batch_size):
                 batch = records[i:i + batch_size]
@@ -246,11 +179,9 @@ class FBrefScraper:
             print(f"Error saving to Supabase: {e}")
     
     def process_all_matches(self):
-        """
-        Main method to process all unscraped matches from database
-        """
+        """Main method to process all unscraped matches"""
         try:
-            # Get all match URLs and IDs from fixtures table
+            # Get all fixtures with match URLs
             response = supabase.table('fixtures').select('id, matchurl').execute()
             fixtures = [(row['id'], row['matchurl']) for row in response.data if row.get('matchurl')]
             
@@ -258,49 +189,80 @@ class FBrefScraper:
             
             scraped_count = 0
             skipped_count = 0
+            failed_count = 0
             
             for fixture_id, url in fixtures:
                 # Check if already scraped
                 if self.check_if_scraped(url):
-                    print(f"Skipping already scraped: {url}")
                     skipped_count += 1
                     continue
                 
-                print(f"Scraping fixture {fixture_id}: {url}")
-                data = self.scrape_match_page(url)
+                # Extract match ID from URL
+                match_id = self.extract_match_id_from_url(url)
+                if not match_id:
+                    print(f"Could not extract match ID from: {url}")
+                    failed_count += 1
+                    continue
                 
-                if data:
-                    # Combine all dataframes and add fixture_id
-                    all_dfs = []
-                    for key, df in data.items():
-                        if df is not None and not df.empty:
-                            df['fixture_id'] = fixture_id
-                            all_dfs.append(df)
+                print(f"Scraping fixture {fixture_id}, match ID: {match_id}")
+                
+                # Get player stats from API
+                match_data = self.get_match_players_stats(match_id)
+                
+                if match_data:
+                    # Parse into DataFrame
+                    df = self.parse_match_data(match_data, url, fixture_id)
                     
-                    if all_dfs:
-                        combined_df = pd.concat(all_dfs, ignore_index=True)
-                        self.save_to_supabase(combined_df)
+                    if df is not None and not df.empty:
+                        self.save_to_supabase(df)
                         self.mark_as_scraped(url)
                         scraped_count += 1
-                        print(f"Successfully scraped and saved fixture {fixture_id}")
+                        print(f"✅ Successfully scraped {len(df)} player records for fixture {fixture_id}")
                     else:
-                        print(f"No data found for fixture {fixture_id}: {url}")
+                        print(f"⚠️ No player data found for fixture {fixture_id}")
+                        failed_count += 1
                 else:
-                    print(f"Failed to scrape fixture {fixture_id}: {url}")
+                    print(f"❌ Failed to fetch data for fixture {fixture_id}")
+                    failed_count += 1
             
-            print(f"\nScraping complete!")
-            print(f"Newly scraped: {scraped_count}")
-            print(f"Skipped (already scraped): {skipped_count}")
+            print(f"\n{'='*50}")
+            print(f"Scraping complete!")
+            print(f"✅ Newly scraped: {scraped_count}")
+            print(f"⏭️  Skipped (already scraped): {skipped_count}")
+            print(f"❌ Failed: {failed_count}")
+            print(f"{'='*50}")
             
         except Exception as e:
             print(f"Error in process_all_matches: {e}")
+            import traceback
+            traceback.print_exc()
 
 
-# Usage example
 if __name__ == "__main__":
-    # Get delay from environment variable or use default
-    delay = int(os.getenv('SCRAPER_DELAY', 5))
-    print(f"Using delay of {delay} seconds between requests")
+    # Check if API key exists
+    if not FBR_API_KEY:
+        print("❌ No FBR_API_KEY found in environment variables!")
+        print("\n🔑 Generating a new API key for you...\n")
+        
+        # Generate API key
+        try:
+            response = requests.post('https://fbrapi.com/generate_api_key')
+            if response.ok:
+                api_key = response.json().get('api_key')
+                print(f"✅ Your FBR API Key: {api_key}")
+                print("\nAdd this to your .env file:")
+                print(f"FBR_API_KEY={api_key}")
+                print("\nThen run this script again.")
+            else:
+                print(f"❌ Error generating API key: {response.status_code}")
+        except Exception as e:
+            print(f"❌ Error: {e}")
+        
+        exit(1)
     
-    scraper = FBrefScraper(delay=delay)
+    # Get delay from environment variable or use default
+    delay = int(os.getenv('SCRAPER_DELAY', 3))
+    print(f"Using FBR API with {delay} second delay between requests")
+    
+    scraper = FBRAPIScraper(api_key=FBR_API_KEY, delay=delay)
     scraper.process_all_matches()
