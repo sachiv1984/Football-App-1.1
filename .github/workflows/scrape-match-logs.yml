@@ -39,6 +39,7 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          FBR_API_KEY: ${{ secrets.FBR_API_KEY }}
           SCRAPER_DELAY: 5  # Increase delay to 5 seconds between requests
         run: |
           python scripts/scrapeMatchLog.py
