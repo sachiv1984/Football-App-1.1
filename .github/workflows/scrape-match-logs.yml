@@ -38,7 +38,7 @@ jobs:
       - name: Run match log scraper
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           SCRAPER_DELAY: 5  # Increase delay to 5 seconds between requests
         run: |
           python scripts/scrapeMatchLog.py
