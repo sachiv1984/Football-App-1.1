@@ -4,19 +4,23 @@ import time
 from supabase import create_client, Client
 import os
 from datetime import datetime
-from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
-
-# Initialize Supabase client
+# Get environment variables
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+FBR_API_KEY = os.getenv("FBR_API_KEY")
+
+# Validate required environment variables
+if not SUPABASE_URL:
+    raise ValueError("SUPABASE_URL environment variable is required")
+if not SUPABASE_SERVICE_ROLE_KEY:
+    raise ValueError("SUPABASE_SERVICE_ROLE_KEY environment variable is required")
+
+# Initialize Supabase client
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
 # FBR API Configuration
 FBR_API_BASE = "https://fbrapi.com"
-FBR_API_KEY = os.getenv("FBR_API_KEY")  # You'll need to generate this
 
 class FBRAPIScraper:
     def __init__(self, api_key, delay=3):
