@@ -2,11 +2,11 @@
 name: Scrape FBref Match Logs
 
 on:
-  # Run on schedule (every day at 2 AM UTC)
-  schedule:
-    - cron: '0 2 * * *'
+  # Disable automatic schedule - FBref blocks GitHub Actions IPs
+  # schedule:
+  #   - cron: '0 2 * * *'
   
-  # Allow manual trigger from GitHub Actions tab
+  # Only allow manual trigger from GitHub Actions tab
   workflow_dispatch:
   
   # Run when new fixtures are added (optional)
@@ -38,7 +38,7 @@ jobs:
       - name: Run match log scraper
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
           SCRAPER_DELAY: 5  # Increase delay to 5 seconds between requests
         run: |
           python scripts/scrapeMatchLog.py
