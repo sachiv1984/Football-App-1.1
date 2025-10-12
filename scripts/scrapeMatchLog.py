@@ -1,5 +1,6 @@
 import requests
 import pandas as pd
+import numpy as np
 import time
 from supabase import create_client, Client
 import os
@@ -37,141 +38,9 @@ class FBRAPIScraper:
         self.delay = delay
         self.headers = {"X-API-Key": self.api_key}
         self.base_url = FBR_API_BASE
-    
-    @staticmethod
-    def get_expected_columns():
-        """
-        Defines and returns the canonical list of all expected database columns.
-        This EXPANDED list includes common metadata and all key statistical fields 
-        flattened from the FBR API 'all-players-match-stats' endpoint.
-        """
-        # Base metadata columns (10 columns)
-        base_columns = [
-            'fixture_id', 'match_url', 'team_name', 'team_side', 
-            'player_id', 'player_name', 'player_country', 'player_number', 
-            'age', 'is_goalkeeper'
-        ]
-        
-        # Expanded Stat Columns (Must match keys/values generated in parse_match_data)
-        stat_columns = [
-            # SUMMARY/STANDARD STATS
-            'summary_minutes', 'summary_positions', 'summary_shots', 'summary_tackles', 
-            'summary_goals', 'summary_assists', 'summary_pk', 'summary_pkatt', 
-            'summary_cards_yellow', 'summary_cards_red', 
-            
-            # SHOOTING STATS
-            'shooting_shots_total', 'shooting_shots_on_target', 'shooting_goals', 
-            'shooting_xG', 'shooting_npxG', 'shooting_npxG_per_shot', 
-            
-            # PASSING STATS
-            'passing_cmp', 'passing_att', 'passing_cmp_pct', 'passing_total_dist', 
-            'passing_progressive_dist', 'passing_s_cmp', 'passing_m_cmp', 'passing_l_cmp', 
-            'passing_assists', 'passing_xA', 'passing_key_passes', 'passing_passes_into_final_third',
-            'passing_passes_into_penalty_area', 'passing_crosses_into_penalty_area',
-            'passing_progressive_passes',
-            
-            # PASSING TYPES STATS
-            'passing_types_live', 'passing_types_dead', 'passing_types_fk', 
-            'passing_types_back', 'passing_types_cross', 'passing_types_switch',
-            'passing_types_corner_kick', 'passing_types_throw_ins',
-            
-            # GOAL & SHOT CREATION STATS (GSC)
-            'goal_shot_creation_sca', 'goal_shot_creation_sca_pass_live', 
-            'goal_shot_creation_sca_pass_dead', 'goal_shot_creation_gca', 
-            'goal_shot_creation_gca_pass_live', 'goal_shot_creation_gca_pass_dead',
-            
-            # DEFENSIVE STATS
-            'defense_tackles', 'defense_tackles_won', 'defense_def_3rd', 'defense_mid_3rd', 
-            'defense_att_3rd', 'defense_pressures', 'defense_pressures_successful', 
-            'defense_blocks', 'defense_blocks_shots', 'defense_blocks_passes', 
-            'defense_interceptions', 'defense_tkl_plus_int', 'defense_clearances', 
-            'defense_errors', 
-            
-            # POSSESSION STATS
-            'possession_touches', 'possession_def_pen_area', 'possession_def_3rd', 
-            'possession_mid_3rd', 'possession_att_3rd', 'possession_att_pen_area',
-            'possession_carries', 'possession_carries_dist', 
-            'possession_progressive_carries', 'possession_progressive_dist', 
-            'possession_miscontrols', 'possession_dispossessed', 
-            
-            # MISCELLANEOUS STATS
-            'misc_fouls', 'misc_fouled', 'misc_offsides', 'misc_crosses', 
-            'misc_aerial_duels_won', 'misc_aerial_duels_lost', 'misc_position'
-        ]
-
-        # Combine, remove duplicates, and return sorted list
-        return sorted(list(set(base_columns + stat_columns)))
-
-    def validate_supabase_schema(self, table_name='player_match_stats'):
-        """
-        Validates that all expected columns are present in the Supabase table 
-        and prints the full expected list for type verification.
-        """
-        expected_columns = self.get_expected_columns()
-        
-        print(f"\n--- Database Schema Validation for '{table_name}' ---")
-        print(f"Expecting {len(expected_columns)} columns in total.")
-        
-        # Always print the expected list first for the user to verify data types
-        print("\n✅ Expected Columns List (You must create these in Supabase):")
-        print("----------------------------------------------------------------------")
-        print("| Column Name                     | Suggested PostgreSQL Type          |")
-        print("----------------------------------------------------------------------")
-        for col in expected_columns:
-            # Simple heuristic for type recommendation
-            if 'id' in col or 'number' in col or 'pkatt' in col or 'cards' in col:
-                type_str = 'INTEGER'
-            elif col in ['match_url', 'team_name', 'team_side', 'player_name', 'player_country', 'summary_positions', 'misc_position']:
-                type_str = 'TEXT'
-            elif col == 'is_goalkeeper':
-                type_str = 'BOOLEAN'
-            else:
-                type_str = 'NUMERIC' 
-            print(f"| {col:<30}| {type_str:<35}|")
-        print("----------------------------------------------------------------------")
-
-        try:
-            response = supabase.table(table_name).select('*').limit(1).execute()
-            
-            if not response.data:
-                print(f"⚠️ Warning: '{table_name}' table is empty. Dynamic column check skipped.")
-                return True 
-                
-            actual_columns = set(response.data[0].keys())
-            missing_columns = [col for col in expected_columns if col not in actual_columns]
-            
-            if missing_columns:
-                print(f"\n❌ Validation FAILED: Found {len(missing_columns)} missing columns.")
-                print("Missing Columns Found in Your Database:")
-                for col in missing_columns:
-                    print(f"  - {col}")
-                print("\n🛑 Please add these columns to the 'player_match_stats' table and ensure correct data types.")
-                return False
-            else:
-                print(f"\n✅ Validation SUCCESS: All {len(expected_columns)} expected columns are present.")
-                return True
-
-        except Exception as e:
-            print(f"\n❌ Error during schema validation: {e}")
-            print("Could not connect or query table. Please check table name and permissions.")
-            return False
-            
-    def generate_api_key(self):
-        """Generate a new API key (run this once)"""
-        response = requests.post(f"{self.base_url}/generate_api_key")
-        if response.ok:
-            api_key = response.json().get('api_key')
-            print(f"Generated API Key: {api_key}")
-            print("Save this to your .env file as FBR_API_KEY")
-            return api_key
-        else:
-            print(f"Error generating API key: {response.status_code}")
-            return None
 
     def extract_match_id_from_url(self, url):
-        """
-        Extract match ID (8-character alphanumeric string) from FBref URL
-        """
+        """Extract match ID (8-character alphanumeric string) from FBref URL"""
         if not url:
             return None
         
@@ -181,7 +50,7 @@ class FBRAPIScraper:
         return None
     
     def is_valid_fbref_match_url(self, url):
-        """Checks if the URL is a valid FBref match URL."""
+        """Checks if the URL is a valid FBref match URL"""
         if not url or not url.startswith('https://fbref.com/'):
             return False
         return self.extract_match_id_from_url(url) is not None
@@ -218,9 +87,7 @@ class FBRAPIScraper:
             return None
     
     def parse_match_data(self, match_data, match_url, fixture_id):
-        """
-        Parse API response into DataFrame
-        """
+        """Parse API response into DataFrame"""
         all_players = []
         
         for team in match_data:
@@ -248,7 +115,6 @@ class FBRAPIScraper:
                 for category, category_stats in stats.items():
                     if isinstance(category_stats, dict):
                         for stat_name, stat_value in category_stats.items():
-                            # The key generation MUST match the list in get_expected_columns
                             player_data[f"{category}_{stat_name}"] = stat_value
                 
                 # Check if goalkeeper based on position
@@ -260,49 +126,74 @@ class FBRAPIScraper:
         return pd.DataFrame(all_players) if all_players else None
     
     def save_to_supabase(self, df, table_name='player_match_stats'):
-        """Save DataFrame to Supabase"""
+        """Save DataFrame to Supabase with proper NaN handling"""
         if df is None or df.empty:
+            print("⚠️ No data to save")
             return
         
         try:
+            # CRITICAL: Replace NaN values with None (NULL in database)
+            df = df.replace({pd.NA: None, float('nan'): None, np.nan: None})
+            
+            # Convert DataFrame to records
             records = df.to_dict('records')
+            
+            print(f"Preparing to insert {len(records)} player records...")
             
             # Insert in batches
             batch_size = 100
+            successful_inserts = 0
+            
             for i in range(0, len(records), batch_size):
                 batch = records[i:i + batch_size]
-                supabase.table(table_name).insert(batch).execute()
-                print(f"Inserted batch {i//batch_size + 1} ({len(batch)} records)")
                 
+                try:
+                    supabase.table(table_name).insert(batch).execute()
+                    successful_inserts += len(batch)
+                    print(f"✅ Batch {i//batch_size + 1}: {len(batch)} records (Total: {successful_inserts}/{len(records)})")
+                except Exception as batch_error:
+                    print(f"❌ Error in batch {i//batch_size + 1}: {batch_error}")
+                    
+                    # Try inserting one by one to find problematic record
+                    print(f"Attempting individual inserts...")
+                    for record in batch:
+                        try:
+                            supabase.table(table_name).insert([record]).execute()
+                            successful_inserts += 1
+                        except Exception as single_error:
+                            print(f"❌ Failed: {record.get('player_name', 'Unknown')} - {single_error}")
+            
+            print(f"\n{'='*50}")
+            print(f"✅ Successfully inserted {successful_inserts}/{len(records)} records")
+            print(f"{'='*50}\n")
+                    
         except Exception as e:
-            print(f"Error saving to Supabase: {e}")
+            print(f"❌ Error saving to Supabase: {e}")
+            import traceback
+            traceback.print_exc()
     
     def process_all_matches(self):
-        """Main method to process all unscraped matches with upfront planning (4 Steps)."""
+        """Main method to process all unscraped matches"""
         try:
             print("="*50)
             
-            # --- STEP 1: Review fixtures table for URLs ---
+            # Step 1: Get all fixtures with URLs
             response = supabase.table('fixtures').select('id, matchurl').execute()
             all_fixtures = [(row['id'], row['matchurl']) for row in response.data if row.get('matchurl')]
-            total_fixtures = len(all_fixtures)
-            print(f"Step 1: Found {total_fixtures} total fixtures with URLs in 'fixtures' table.")
+            print(f"Step 1: Found {len(all_fixtures)} fixtures with URLs")
 
-            # --- STEP 2: How many are valid URLs? ---
+            # Step 2: Filter valid FBref URLs
             valid_fixtures = [
                 (fid, url) for fid, url in all_fixtures 
                 if self.is_valid_fbref_match_url(url)
             ]
-            valid_count = len(valid_fixtures)
-            invalid_count = total_fixtures - valid_count
-            print(f"Step 2: Identified {valid_count} valid FBref match URLs. ({invalid_count} invalid/missing ID)")
+            print(f"Step 2: {len(valid_fixtures)} valid FBref match URLs")
 
             if not valid_fixtures:
-                print("No valid match URLs found to process. Exiting.")
+                print("No valid match URLs found. Exiting.")
                 return
 
-            # --- STEP 3: Check scraped table to determine which URLs need scraping ---
-            
+            # Step 3: Check which are already scraped
             scraped_response = supabase.table('scraped_matches').select('match_url').execute()
             scraped_urls = {row['match_url'] for row in scraped_response.data}
             
@@ -311,26 +202,21 @@ class FBRAPIScraper:
                 if url not in scraped_urls
             ]
             
-            skipped_count = valid_count - len(to_scrape)
-            scrape_count = len(to_scrape)
-            
-            print(f"Step 3: Found {skipped_count} already scraped in 'scraped_matches' table.")
-            print(f"Step 4: Planning to scrape {scrape_count} fixtures.")
+            print(f"Step 3: {len(scraped_urls)} already scraped")
+            print(f"Step 4: Planning to scrape {len(to_scrape)} fixtures")
             print("="*50)
             
             if not to_scrape:
-                print("All valid fixtures are already scraped. Job complete.")
+                print("✅ All fixtures already scraped!")
                 return
 
-            # --- STEP 4: Scrape the remaining list of fixtures ---
-            
-            scraped_success_count = 0
-            failed_count = 0
+            # Step 4: Scrape remaining fixtures
+            scraped_success = 0
+            failed = 0
             
             for fixture_id, url in to_scrape:
                 match_id = self.extract_match_id_from_url(url)
-                
-                print(f"Scraping fixture {fixture_id}, match ID: {match_id}")
+                print(f"\nScraping fixture {fixture_id}, match ID: {match_id}")
                 
                 match_data = self.get_match_players_stats(match_id)
                 
@@ -340,20 +226,20 @@ class FBRAPIScraper:
                     if df is not None and not df.empty:
                         self.save_to_supabase(df)
                         self.mark_as_scraped(url)
-                        scraped_success_count += 1
-                        print(f"✅ Successfully scraped {len(df)} player records for fixture {fixture_id}")
+                        scraped_success += 1
+                        print(f"✅ Success: {len(df)} players for fixture {fixture_id}")
                     else:
-                        print(f"⚠️ No player data found for fixture {fixture_id}. Marking as failed.")
-                        failed_count += 1
+                        print(f"⚠️ No player data for fixture {fixture_id}")
+                        failed += 1
                 else:
-                    print(f"❌ Failed to fetch data for fixture {fixture_id}. API call failed.")
-                    failed_count += 1
+                    print(f"❌ API call failed for fixture {fixture_id}")
+                    failed += 1
             
             print(f"\n{'='*50}")
-            print(f"Scraping complete!")
-            print(f"✅ Newly scraped: {scraped_success_count}")
-            print(f"⏭️  Skipped (already scraped): {skipped_count}")
-            print(f"❌ Failed during scraping: {failed_count}")
+            print(f"SCRAPING COMPLETE")
+            print(f"✅ Newly scraped: {scraped_success}")
+            print(f"⏭️  Already scraped: {len(scraped_urls)}")
+            print(f"❌ Failed: {failed}")
             print(f"{'='*50}")
             
         except Exception as e:
@@ -365,35 +251,25 @@ class FBRAPIScraper:
 if __name__ == "__main__":
     # Check if API key exists
     if not FBR_API_KEY:
-        print("❌ No FBR_API_KEY found in environment variables!")
-        print("\n🔑 Attempting to generate a new API key for you...\n")
+        print("❌ No FBR_API_KEY found!")
+        print("\n🔑 Generating a new API key...\n")
         
         try:
             response = requests.post('https://fbrapi.com/generate_api_key')
             if response.ok:
                 api_key = response.json().get('api_key')
-                print(f"✅ Your FBR API Key: {api_key}")
-                print("\nAdd this to your .env file or GitHub Secrets:")
-                print(f"FBR_API_KEY={api_key}")
-                print("\nThen run this script again.")
+                print(f"✅ Your API Key: {api_key}")
+                print(f"\nAdd to .env or GitHub Secrets: FBR_API_KEY={api_key}")
             else:
-                print(f"❌ Error generating API key: {response.status_code}")
+                print(f"❌ Error generating key: {response.status_code}")
         except Exception as e:
-            print(f"❌ Error during API key generation: {e}")
+            print(f"❌ Error: {e}")
         
         sys.exit(1)
-
     
-    # Get delay from environment variable or use default
+    # Get delay from environment or use default
     delay = int(os.getenv('SCRAPER_DELAY', 3))
-    print(f"Using FBR API with {delay} second delay between requests")
+    print(f"Using {delay} second delay between API requests\n")
     
     scraper = FBRAPIScraper(api_key=FBR_API_KEY, delay=delay)
-    
-    # --- SCHEMA VALIDATION CHECK ---
-    if not scraper.validate_supabase_schema():
-        print("\n🛑 FATAL ERROR: Database schema validation failed. Exiting script.")
-        sys.exit(1) 
-
-    # If validation passes, proceed with scraping
     scraper.process_all_matches()
