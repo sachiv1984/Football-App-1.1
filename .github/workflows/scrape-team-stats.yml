@@ -1,0 +1,69 @@
+# .github/workflows/scrape-team-stats.yml
+name: Scrape Team Stats
+
+on:
+  # Manual trigger only
+  workflow_dispatch:
+    inputs:
+      season:
+        description: 'Season (e.g., 2024-2025)'
+        required: false
+        default: '2024-2025'
+      scraper_delay:
+        description: 'Delay between requests (seconds)'
+        required: false
+        default: '3'
+        type: choice
+        options:
+          - '3'
+          - '5'
+          - '10'
+  
+  # Optional: Schedule to run automatically
+  # schedule:
+  #   - cron: '0 3 * * 1'  # Every Monday at 3 AM UTC
+
+jobs:
+  scrape-team-stats:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Run team stats scraper
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          FBR_API_KEY: ${{ secrets.FBR_API_KEY }}
+          SCRAPER_DELAY: ${{ inputs.scraper_delay || '3' }}
+          SEASON: ${{ inputs.season || '2024-2025' }}
+        run: |
+          python scripts/scrapeTeamStats.py
+      
+      - name: Upload logs (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: team-stats-scraper-logs
+          path: |
+            *.log
+            *.txt
+          retention-days: 7
+      
+      - name: Notify on completion
+        if: success()
+        run: |
+          echo "✅ Team stats scraping completed successfully"
+          echo "📊 Data saved to 7 separate tables in Supabase"
