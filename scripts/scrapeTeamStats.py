@@ -11,7 +11,6 @@ import sys
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 FBR_API_KEY = os.getenv("FBR_API_KEY")
-# --- NEW: Get optional target team ID for single-team scrape ---
 TARGET_TEAM_ID = os.getenv("TARGET_TEAM_ID")
 
 # Validate required environment variables
@@ -27,11 +26,9 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
 # FBR API Configuration
 FBR_API_BASE = "https://fbrapi.com"
-SEASON = os.getenv("SEASON", "2024-2025") # Use SEASON from environment
+SEASON = os.getenv("SEASON", "2024-2025") 
 LEAGUE_ID = 9  # Premier League
 
-# Team Configuration (Only the list structure is shown for brevity)
-# ... [TEAMS list remains the same] ...
 # Team Configuration
 TEAMS = [
     {'id': 'arsenal', 'name': 'Arsenal', 'fbref_id': '18bb7c10'},
@@ -55,7 +52,8 @@ TEAMS = [
     {'id': 'leicester', 'name': 'Leicester City', 'fbref_id': 'a2d435b3'},
     {'id': 'southampton', 'name': 'Southampton', 'fbref_id': '33c895d4'}
 ]
-# ... [TABLE_CONFIGS dictionary remains the same] ...
+
+# Table configurations
 TABLE_CONFIGS = {
     'shooting': {
         'table_name': 'team_shooting_stats',
@@ -303,33 +301,33 @@ class TeamStatsScraper:
         self.headers = {"X-API-Key": self.api_key}
         self.base_url = FBR_API_BASE
     
-    def get_team_match_stats(self, team_id, league_id, season_id):
-        """Get all match stats for a team using FBR API with exponential backoff retries"""
+    # --- NEW FUNCTION FOR NARROWED API REQUESTS ---
+    def get_team_category_stats(self, team_id, league_id, season_id, stat_type):
+        """Get match stats for a team for a SINGLE stat category with retries."""
+        
+        print(f"  Attempting to fetch stat category: {stat_type}")
         
         for attempt in range(self.max_retries):
             
-            # --- Enforce API rate limit BEFORE every request after the first one ---
+            # Enforce API rate limit BEFORE every request after the first one
             if attempt > 0:
-                # Use the standard delay (e.g., 3s) for all retries after the first one.
-                print(f"⏳ Waiting {self.delay} seconds to adhere to API rate limit before attempt {attempt + 1}/{self.max_retries}...")
+                print(f"  ⏳ Waiting {self.delay} seconds to adhere to API rate limit before attempt {attempt + 1}/{self.max_retries}...")
                 time.sleep(self.delay) 
-            # -------------------------------------------------------------
             
             try:
                 url = f"{self.base_url}/team-match-stats"
                 params = {
                     "team_id": team_id,
                     "league_id": league_id,
-                    "season_id": season_id
+                    "season_id": season_id,
+                    "stat_type": stat_type # <-- CRITICAL CHANGE: Request only one stat type
                 }
                 
                 # Use a generous client timeout
                 response = requests.get(url, params=params, headers=self.headers, timeout=60) 
-                
-                # Check for HTTP status codes that are errors (like 504)
                 response.raise_for_status() 
                 
-                # If successful, return data
+                # If successful, return the data
                 data = response.json()
                 return data.get('data', [])
                 
@@ -340,31 +338,32 @@ class TeamStatsScraper:
                     
                     # Exponential backoff: 5s, 10s, 20s, 40s...
                     wait_time = 2 ** attempt * 5 
-                    print(f"⚠️ HTTP Error 504 (Gateway Timeout) for team {team_id}. Applying EXPONENTIAL BACKOFF: waiting {wait_time} seconds (Attempt {attempt + 1}/{self.max_retries} failed).")
+                    print(f"  ⚠️ HTTP Error 504. Applying EXPONENTIAL BACKOFF: waiting {wait_time} seconds...")
                     time.sleep(wait_time)
                     continue 
                 
                 # Log final 504 error or any other non-retriable error (like 4xx)
-                print(f"❌ HTTP Error {e.response.status_code} for team {team_id}: {e}")
+                print(f"  ❌ HTTP Error {e.response.status_code} for stat {stat_type}: {e}")
                 return None
             
             except requests.exceptions.Timeout:
                 # Handle client-side timeout the same way
                 if attempt < self.max_retries - 1:
                     wait_time = 2 ** attempt * 5 
-                    print(f"⚠️ Request timed out (Client Timeout) for team {team_id}. Applying EXPONENTIAL BACKOFF: waiting {wait_time} seconds (Attempt {attempt + 1}/{self.max_retries} failed).")
+                    print(f"  ⚠️ Request timed out. Applying EXPONENTIAL BACKOFF: waiting {wait_time} seconds...")
                     time.sleep(wait_time)
                     continue 
                 
-                print(f"❌ Request Timeout for team {team_id} after {self.max_retries} attempts.")
+                print(f"  ❌ Request Timeout for stat {stat_type} after {self.max_retries} attempts.")
                 return None
                 
             except Exception as e:
-                print(f"❌ Error fetching team {team_id}: {e}")
+                print(f"  ❌ Error fetching stat {stat_type}: {e}")
                 return None
                 
         return None # Return None if all attempts fail
-    
+    # -----------------------------------------------
+
     def transform_match_data(self, match_data, team_id, team_name, stat_type, config):
         """Transform API data to match database schema"""
         records = []
@@ -418,7 +417,7 @@ class TeamStatsScraper:
             df = df.replace({pd.NA: None, float('nan'): None, np.nan: None})
             clean_records = df.to_dict('records')
             
-            print(f"📤 Upserting {len(clean_records)} records to {table_name}...")
+            print(f"  📤 Upserting {len(clean_records)} records to {table_name}...")
             
             # Upsert with conflict resolution
             result = supabase.table(table_name).upsert(
@@ -426,37 +425,46 @@ class TeamStatsScraper:
                 on_conflict='id'
             ).execute()
             
-            print(f"✅ Successfully upserted {len(clean_records)} records to {table_name}")
+            print(f"  ✅ Successfully upserted {len(clean_records)} records to {table_name}")
             return True
             
         except Exception as e:
-            print(f"❌ Error saving to {table_name}: {e}")
+            print(f"  ❌ Error saving to {table_name}: {e}")
             return False
     
+    # --- UPDATED SCRAPE FUNCTION TO HANDLE 7 INDIVIDUAL REQUESTS ---
     def scrape_team_all_stats(self, team):
-        """Scrape all stat types for a single team"""
+        """Scrape all stat types for a single team by requesting each category separately."""
         print(f"\n{'='*60}")
-        print(f"🏆 Scraping {team['name']} ({team['id']})")
+        print(f"🏆 Scraping {team['name']} ({team['id']}) - Breaking request into {len(TABLE_CONFIGS)} categories.")
         print(f"{'='*60}")
         
-        # Fetch data once from API
-        match_data = self.get_team_match_stats(
-            team['fbref_id'],
-            LEAGUE_ID,
-            SEASON
-        )
-        
-        if not match_data:
-            print(f"❌ No data returned for {team['name']}")
-            return {'team': team['name'], 'success': False, 'stats_saved': 0}
-        
-        print(f"✅ Fetched {len(match_data)} matches for {team['name']}")
-        
-        # Process each stat type
         stats_saved = 0
+        total_matches = 0 # Track matches here
+        
+        # Process each stat type individually
         for stat_type, config in TABLE_CONFIGS.items():
-            print(f"\n📊 Processing {stat_type}...")
+            print(f"\n📊 Processing {config['table_name']} ({stat_type} category)...")
             
+            # 1. Fetch data for this specific category
+            match_data = self.get_team_category_stats(
+                team['fbref_id'],
+                LEAGUE_ID,
+                SEASON,
+                stat_type # <-- Pass the stat type to narrow the API call
+            )
+            
+            if not match_data:
+                print(f"  ❌ Failed to fetch data for {stat_type}. Skipping save.")
+                continue
+            
+            # First successful fetch determines total match count for summary
+            if total_matches == 0:
+                total_matches = len(match_data)
+            
+            print(f"  ✅ Fetched {len(match_data)} match records.")
+            
+            # 2. Transform and save
             records = self.transform_match_data(
                 match_data,
                 team['id'],
@@ -469,21 +477,26 @@ class TeamStatsScraper:
                 success = self.save_to_supabase(records, config['table_name'])
                 if success:
                     stats_saved += 1
-            else:
-                print(f"⚠️ No records to save for {stat_type}")
-        
+                
+            # 3. Add delay to respect the global rate limit (3 seconds) between categories
+            # This is CRITICAL now since each category is a separate API call.
+            if stat_type != list(TABLE_CONFIGS.keys())[-1]:
+                print(f"  ⏳ Waiting {self.delay} seconds before next category request...")
+                time.sleep(self.delay)
+
+        # Summary return
         return {
             'team': team['name'],
-            'success': True,
-            'matches': len(match_data),
+            'success': stats_saved > 0, # Success if at least one category was saved
+            'matches': total_matches,
             'stats_saved': stats_saved,
             'total_stat_types': len(TABLE_CONFIGS)
         }
+    # -----------------------------------------------------------------
     
     def scrape_all_teams(self):
         """Scrape all teams for all stat types OR a single target team"""
         
-        # --- NEW: Filter TEAMS list based on environment variable ---
         teams_to_scrape = TEAMS
         if TARGET_TEAM_ID:
             teams_to_scrape = [team for team in TEAMS if team['id'] == TARGET_TEAM_ID]
@@ -491,7 +504,6 @@ class TeamStatsScraper:
                 print(f"❌ Error: Team ID '{TARGET_TEAM_ID}' not found in the configuration.")
                 return []
             print(f"🎯 Running in SINGLE-TEAM mode for: {teams_to_scrape[0]['name']}")
-        # -------------------------------------------------------------
         
         print(f"\n{'='*60}")
         print(f"🚀 Starting Team Stats Scraper")
@@ -501,7 +513,6 @@ class TeamStatsScraper:
         
         results = []
         
-        # Use delay from environment variable or default
         delay = int(os.getenv('SCRAPER_DELAY', 3)) 
 
         for i, team in enumerate(teams_to_scrape, 1):
@@ -513,12 +524,11 @@ class TeamStatsScraper:
             if not TARGET_TEAM_ID and i < len(teams_to_scrape):
                 print(f"\n⏳ Waiting {delay} seconds before next team (API rate limit)..")
                 time.sleep(delay)
-            # If in single-team mode, exit after the first loop. (The loop runs only once)
         
         # Summary
         print(f"\n{'='*60}")
         print(f"📊 SCRAPING SUMMARY")
-        # ... [Summary logic remains the same] ...
+        print(f"{'='*60}")
         successful = sum(1 for r in results if r['success'])
         total_matches = sum(r.get('matches', 0) for r in results)
         total_saves = sum(r.get('stats_saved', 0) for r in results)
@@ -556,4 +566,3 @@ if __name__ == "__main__":
     
     scraper = TeamStatsScraper(api_key=FBR_API_KEY, delay=delay, max_retries=max_retries)
     scraper.scrape_all_teams()
-
