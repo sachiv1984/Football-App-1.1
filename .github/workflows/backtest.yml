@@ -1,0 +1,64 @@
+name: Backtest SOT Model
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  load_data:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+        
+    - name: Execute Data Loader and Save Files
+      # The credentials are provided here for the data_loader.py script
+      env:
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      run: |
+        echo "Running data_loader.py to pull data from Supabase..."
+        python data_loader.py
+        
+    - name: Upload Data Artifacts 📤
+      uses: actions/upload-artifact@v4
+      with:
+        name: raw-backtest-data
+        path: |
+          player_data_raw.parquet
+          team_def_data_raw.parquet
+        # Artifacts expire after 1 day by default
+  
+  # --- Separate Job for Processing ---
+  process_data:
+    needs: load_data # This job will wait for 'load_data' to complete successfully
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+      
+    - name: Download Data Artifacts 📥
+      uses: actions/download-artifact@v4
+      with:
+        name: raw-backtest-data
+        
+    - name: Verify and Run Processor Script
+      run: |
+        echo "Downloaded files: $(ls -l)"
+        echo "Running backtest_processor.py..."
+        python backtest_processor.py # This script will now read the Parquet files
