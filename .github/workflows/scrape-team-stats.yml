@@ -5,12 +5,35 @@ on:
   # Manual trigger only
   workflow_dispatch:
     inputs:
-      # --- NEW INPUT FOR SINGLE-TEAM SCRAPE ---
+      # --- UPDATED INPUT FOR TARGET TEAM SELECTION ---
       target_team_id:
-        description: 'Target team ID (e.g., arsenal, liverpool). Leave blank to scrape ALL teams.'
+        description: 'Target team to scrape (Leave blank for ALL teams)'
         required: false
         default: ''
-      # ----------------------------------------
+        type: choice
+        options:
+          - '' # Option to scrape ALL teams
+          - 'arsenal'
+          - 'aston-villa'
+          - 'bournemouth'
+          - 'brentford'
+          - 'brighton'
+          - 'chelsea'
+          - 'crystal-palace'
+          - 'everton'
+          - 'fulham'
+          - 'liverpool'
+          - 'manchester-city'
+          - 'manchester-united'
+          - 'newcastle-united'
+          - 'nottingham-forest'
+          - 'tottenham'
+          - 'west-ham'
+          - 'wolves'
+          - 'ipswich'
+          - 'leicester'
+          - 'southampton'
+      # ------------------------------------------------
       season:
         description: 'Season (e.g., 2024-2025)'
         required: false
@@ -51,9 +74,7 @@ jobs:
           FBR_API_KEY: ${{ secrets.FBR_API_KEY }}
           SCRAPER_DELAY: ${{ inputs.scraper_delay || '3' }}
           SEASON: ${{ inputs.season || '2024-2025' }}
-          # --- NEW: Pass the team ID to the script ---
           TARGET_TEAM_ID: ${{ inputs.target_team_id || '' }} 
-          # -------------------------------------------
         run: |
           python scripts/scrapeTeamStats.py
       
