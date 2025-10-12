@@ -1,0 +1,64 @@
+# .github/workflows/check-database-columns.yml
+name: Check Database Columns
+
+on:
+  # Manual trigger only
+  workflow_dispatch:
+    inputs:
+      output_format:
+        description: 'Output format'
+        required: true
+        type: choice
+        default: 'table'
+        options:
+          - table
+          - sql
+          - csv
+          - all
+
+jobs:
+  check-columns:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests pandas supabase
+      
+      - name: Generate column list
+        env:
+          OUTPUT_FORMAT: ${{ inputs.output_format }}
+        run: |
+          python scripts/generate_columns.py
+      
+      - name: Save output to file
+        run: |
+          python scripts/generate_columns.py > column_output.txt
+          echo "Column list generated successfully"
+      
+      - name: Upload column list as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: database-column-list
+          path: column_output.txt
+          retention-days: 30
+      
+      - name: Display summary
+        run: |
+          echo "✅ Column list generated successfully!"
+          echo "📥 Download the artifact 'database-column-list' to see the full output"
+          echo ""
+          echo "To create your Supabase table:"
+          echo "1. Download the artifact above"
+          echo "2. Copy the SQL CREATE TABLE statement"
+          echo "3. Run it in Supabase SQL Editor"
