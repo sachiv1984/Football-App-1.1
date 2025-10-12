@@ -1,4 +1,4 @@
-l# data_loader.py
+# data_loader.py
 
 import os
 import pandas as pd
