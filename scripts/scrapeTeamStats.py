@@ -11,6 +11,8 @@ import sys
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 FBR_API_KEY = os.getenv("FBR_API_KEY")
+# --- NEW: Get optional target team ID for single-team scrape ---
+TARGET_TEAM_ID = os.getenv("TARGET_TEAM_ID")
 
 # Validate required environment variables
 if not SUPABASE_URL:
@@ -25,9 +27,11 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
 # FBR API Configuration
 FBR_API_BASE = "https://fbrapi.com"
-SEASON = "2024-2025"
+SEASON = os.getenv("SEASON", "2024-2025") # Use SEASON from environment
 LEAGUE_ID = 9  # Premier League
 
+# Team Configuration (Only the list structure is shown for brevity)
+# ... [TEAMS list remains the same] ...
 # Team Configuration
 TEAMS = [
     {'id': 'arsenal', 'name': 'Arsenal', 'fbref_id': '18bb7c10'},
@@ -51,8 +55,7 @@ TEAMS = [
     {'id': 'leicester', 'name': 'Leicester City', 'fbref_id': 'a2d435b3'},
     {'id': 'southampton', 'name': 'Southampton', 'fbref_id': '33c895d4'}
 ]
-
-# Table configurations - converted from TypeScript config
+# ... [TABLE_CONFIGS dictionary remains the same] ...
 TABLE_CONFIGS = {
     'shooting': {
         'table_name': 'team_shooting_stats',
@@ -220,7 +223,7 @@ TABLE_CONFIGS = {
             'tkl_won': 'opp_tackles_won',
             'tkl_def_third': 'opp_tackles_def_3rd',
             'tkl_mid_third': 'opp_tackles_mid_3rd',
-            'tkl_att_third': 'opp_tackles_att_3rd',
+            'tkl_att_third': 'opp_tackles_att_third',
             'tkl_drb': 'opp_dribblers_tackled',
             'tkl_drb_att': 'opp_dribbles_contested',
             'pct_tkl_drb_suc': 'opp_tackle_pct',
@@ -292,7 +295,7 @@ TABLE_CONFIGS = {
 
 
 class TeamStatsScraper:
-    # Added max_retries default
+    
     def __init__(self, api_key, delay=3, max_retries=5):
         self.api_key = api_key
         self.delay = delay
@@ -303,10 +306,15 @@ class TeamStatsScraper:
     def get_team_match_stats(self, team_id, league_id, season_id):
         """Get all match stats for a team using FBR API with exponential backoff retries"""
         
-        # Initial wait to adhere to API's rate limit before the first request
-        time.sleep(self.delay) 
-        
         for attempt in range(self.max_retries):
+            
+            # --- Enforce API rate limit BEFORE every request after the first one ---
+            if attempt > 0:
+                # Use the standard delay (e.g., 3s) for all retries after the first one.
+                print(f"⏳ Waiting {self.delay} seconds to adhere to API rate limit before attempt {attempt + 1}/{self.max_retries}...")
+                time.sleep(self.delay) 
+            # -------------------------------------------------------------
+            
             try:
                 url = f"{self.base_url}/team-match-stats"
                 params = {
@@ -315,7 +323,7 @@ class TeamStatsScraper:
                     "season_id": season_id
                 }
                 
-                # Increased timeout to 60 seconds to be more patient
+                # Use a generous client timeout
                 response = requests.get(url, params=params, headers=self.headers, timeout=60) 
                 
                 # Check for HTTP status codes that are errors (like 504)
@@ -326,23 +334,25 @@ class TeamStatsScraper:
                 return data.get('data', [])
                 
             except requests.exceptions.HTTPError as e:
-                # Catch 504 and retry
+                
+                # Only retry on 504 if we have attempts left
                 if e.response.status_code == 504 and attempt < self.max_retries - 1:
+                    
                     # Exponential backoff: 5s, 10s, 20s, 40s...
                     wait_time = 2 ** attempt * 5 
-                    print(f"⚠️ HTTP Error 504 (Gateway Timeout) for team {team_id}. Retrying in {wait_time} seconds (Attempt {attempt + 2}/{self.max_retries})...")
+                    print(f"⚠️ HTTP Error 504 (Gateway Timeout) for team {team_id}. Applying EXPONENTIAL BACKOFF: waiting {wait_time} seconds (Attempt {attempt + 1}/{self.max_retries} failed).")
                     time.sleep(wait_time)
-                    continue # Skip to the next attempt
+                    continue 
                 
-                # Re-raise or log for other fatal HTTP errors (e.g., 401, 404, or 504 on the final attempt)
+                # Log final 504 error or any other non-retriable error (like 4xx)
                 print(f"❌ HTTP Error {e.response.status_code} for team {team_id}: {e}")
                 return None
             
             except requests.exceptions.Timeout:
-                # Client-side timeout handling (less likely with timeout=60)
+                # Handle client-side timeout the same way
                 if attempt < self.max_retries - 1:
                     wait_time = 2 ** attempt * 5 
-                    print(f"⚠️ Request timed out (Client Timeout) for team {team_id}. Retrying in {wait_time} seconds (Attempt {attempt + 2}/{self.max_retries})...")
+                    print(f"⚠️ Request timed out (Client Timeout) for team {team_id}. Applying EXPONENTIAL BACKOFF: waiting {wait_time} seconds (Attempt {attempt + 1}/{self.max_retries} failed).")
                     time.sleep(wait_time)
                     continue 
                 
@@ -471,39 +481,51 @@ class TeamStatsScraper:
         }
     
     def scrape_all_teams(self):
-        """Scrape all teams for all stat types"""
+        """Scrape all teams for all stat types OR a single target team"""
+        
+        # --- NEW: Filter TEAMS list based on environment variable ---
+        teams_to_scrape = TEAMS
+        if TARGET_TEAM_ID:
+            teams_to_scrape = [team for team in TEAMS if team['id'] == TARGET_TEAM_ID]
+            if not teams_to_scrape:
+                print(f"❌ Error: Team ID '{TARGET_TEAM_ID}' not found in the configuration.")
+                return []
+            print(f"🎯 Running in SINGLE-TEAM mode for: {teams_to_scrape[0]['name']}")
+        # -------------------------------------------------------------
+        
         print(f"\n{'='*60}")
         print(f"🚀 Starting Team Stats Scraper")
         print(f"Season: {SEASON} | League: Premier League")
-        print(f"Teams: {len(TEAMS)} | Stat Types: {len(TABLE_CONFIGS)}")
+        print(f"Teams: {len(teams_to_scrape)} | Stat Types: {len(TABLE_CONFIGS)}")
         print(f"{'='*60}")
         
         results = []
         
-        # Use delay from environment variable if available
+        # Use delay from environment variable or default
         delay = int(os.getenv('SCRAPER_DELAY', 3)) 
 
-        for i, team in enumerate(TEAMS, 1):
-            print(f"\n[{i}/{len(TEAMS)}] Processing {team['name']}...")
+        for i, team in enumerate(teams_to_scrape, 1):
+            print(f"\n[{i}/{len(teams_to_scrape)}] Processing {team['name']}...")
             result = self.scrape_team_all_stats(team)
             results.append(result)
             
-            # Delay between teams
-            if i < len(TEAMS):
+            # Delay between teams only if scraping multiple teams
+            if not TARGET_TEAM_ID and i < len(teams_to_scrape):
                 print(f"\n⏳ Waiting {delay} seconds before next team (API rate limit)..")
                 time.sleep(delay)
+            # If in single-team mode, exit after the first loop. (The loop runs only once)
         
         # Summary
         print(f"\n{'='*60}")
         print(f"📊 SCRAPING SUMMARY")
-        print(f"{'='*60}")
+        # ... [Summary logic remains the same] ...
         successful = sum(1 for r in results if r['success'])
         total_matches = sum(r.get('matches', 0) for r in results)
         total_saves = sum(r.get('stats_saved', 0) for r in results)
         
-        print(f"✅ Successful teams: {successful}/{len(TEAMS)}")
+        print(f"✅ Successful teams: {successful}/{len(teams_to_scrape)}")
         print(f"📈 Total matches processed: {total_matches}")
-        print(f"💾 Total stat types saved: {total_saves}/{len(TEAMS) * len(TABLE_CONFIGS)}")
+        print(f"💾 Total stat types saved: {total_saves}/{len(teams_to_scrape) * len(TABLE_CONFIGS)}")
         print(f"{'='*60}")
         
         return results
@@ -534,3 +556,4 @@ if __name__ == "__main__":
     
     scraper = TeamStatsScraper(api_key=FBR_API_KEY, delay=delay, max_retries=max_retries)
     scraper.scrape_all_teams()
+
