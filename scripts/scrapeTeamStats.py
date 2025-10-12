@@ -292,36 +292,68 @@ TABLE_CONFIGS = {
 
 
 class TeamStatsScraper:
-    def __init__(self, api_key, delay=3):
+    # Added max_retries default
+    def __init__(self, api_key, delay=3, max_retries=5):
         self.api_key = api_key
         self.delay = delay
+        self.max_retries = max_retries
         self.headers = {"X-API-Key": self.api_key}
         self.base_url = FBR_API_BASE
     
     def get_team_match_stats(self, team_id, league_id, season_id):
-        """Get all match stats for a team using FBR API"""
-        time.sleep(self.delay)
+        """Get all match stats for a team using FBR API with exponential backoff retries"""
         
-        try:
-            url = f"{self.base_url}/team-match-stats"
-            params = {
-                "team_id": team_id,
-                "league_id": league_id,
-                "season_id": season_id
-            }
+        # Initial wait to adhere to API's rate limit before the first request
+        time.sleep(self.delay) 
+        
+        for attempt in range(self.max_retries):
+            try:
+                url = f"{self.base_url}/team-match-stats"
+                params = {
+                    "team_id": team_id,
+                    "league_id": league_id,
+                    "season_id": season_id
+                }
+                
+                # Increased timeout to 60 seconds to be more patient
+                response = requests.get(url, params=params, headers=self.headers, timeout=60) 
+                
+                # Check for HTTP status codes that are errors (like 504)
+                response.raise_for_status() 
+                
+                # If successful, return data
+                data = response.json()
+                return data.get('data', [])
+                
+            except requests.exceptions.HTTPError as e:
+                # Catch 504 and retry
+                if e.response.status_code == 504 and attempt < self.max_retries - 1:
+                    # Exponential backoff: 5s, 10s, 20s, 40s...
+                    wait_time = 2 ** attempt * 5 
+                    print(f"⚠️ HTTP Error 504 (Gateway Timeout) for team {team_id}. Retrying in {wait_time} seconds (Attempt {attempt + 2}/{self.max_retries})...")
+                    time.sleep(wait_time)
+                    continue # Skip to the next attempt
+                
+                # Re-raise or log for other fatal HTTP errors (e.g., 401, 404, or 504 on the final attempt)
+                print(f"❌ HTTP Error {e.response.status_code} for team {team_id}: {e}")
+                return None
             
-            response = requests.get(url, params=params, headers=self.headers, timeout=30)
-            response.raise_for_status()
-            
-            data = response.json()
-            return data.get('data', [])
-            
-        except requests.exceptions.HTTPError as e:
-            print(f"HTTP Error {e.response.status_code} for team {team_id}: {e}")
-            return None
-        except Exception as e:
-            print(f"Error fetching team {team_id}: {e}")
-            return None
+            except requests.exceptions.Timeout:
+                # Client-side timeout handling (less likely with timeout=60)
+                if attempt < self.max_retries - 1:
+                    wait_time = 2 ** attempt * 5 
+                    print(f"⚠️ Request timed out (Client Timeout) for team {team_id}. Retrying in {wait_time} seconds (Attempt {attempt + 2}/{self.max_retries})...")
+                    time.sleep(wait_time)
+                    continue 
+                
+                print(f"❌ Request Timeout for team {team_id} after {self.max_retries} attempts.")
+                return None
+                
+            except Exception as e:
+                print(f"❌ Error fetching team {team_id}: {e}")
+                return None
+                
+        return None # Return None if all attempts fail
     
     def transform_match_data(self, match_data, team_id, team_name, stat_type, config):
         """Transform API data to match database schema"""
@@ -448,6 +480,9 @@ class TeamStatsScraper:
         
         results = []
         
+        # Use delay from environment variable if available
+        delay = int(os.getenv('SCRAPER_DELAY', 3)) 
+
         for i, team in enumerate(TEAMS, 1):
             print(f"\n[{i}/{len(TEAMS)}] Processing {team['name']}...")
             result = self.scrape_team_all_stats(team)
@@ -455,8 +490,8 @@ class TeamStatsScraper:
             
             # Delay between teams
             if i < len(TEAMS):
-                print(f"\n⏳ Waiting {self.delay} seconds before next team...")
-                time.sleep(self.delay)
+                print(f"\n⏳ Waiting {delay} seconds before next team (API rate limit)..")
+                time.sleep(delay)
         
         # Summary
         print(f"\n{'='*60}")
@@ -493,8 +528,9 @@ if __name__ == "__main__":
         
         sys.exit(1)
     
-    # Get delay from environment or use default
+    # Get delay and max_retries from environment or use default
     delay = int(os.getenv('SCRAPER_DELAY', 3))
+    max_retries = int(os.getenv('MAX_RETRIES', 5))
     
-    scraper = TeamStatsScraper(api_key=FBR_API_KEY, delay=delay)
+    scraper = TeamStatsScraper(api_key=FBR_API_KEY, delay=delay, max_retries=max_retries)
     scraper.scrape_all_teams()
