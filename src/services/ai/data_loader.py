@@ -1,121 +1,133 @@
-import pandas as pd
-import os
-from sqlalchemy import create_engine
-from urllib.parse import urlparse
+l# data_loader.py
 
-# --- 1. Load Environment Variables ---
-# Assumes these are set in your environment (or .env file)
+import os
+import pandas as pd
+from supabase import create_client, Client
+from dotenv import load_dotenv
+import logging
+
+# --- Configuration and Setup ---
+
+# Configure logging for clear output in GitHub Actions
+logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
+logger = logging.getLogger(__name__)
+
+# Load environment variables from .env file (useful for local testing, ignored by GitHub Actions)
+load_dotenv() 
+
+# Get environment variables (GitHub Actions must inject these as secrets)
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
-def create_supabase_engine():
-    """
-    Constructs the PostgreSQL connection string using the Supabase URL and Service Role Key.
-    """
-    if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
-        raise ValueError("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables must be set.")
-    
-    # Supabase URL format: https://[PROJECT_REF].supabase.co
-    # We need to extract the host (e.g., db.[PROJECT_REF].supabase.co)
-    parsed_url = urlparse(SUPABASE_URL)
-    
-    # The Supabase host name is usually the main host for the REST API
-    # The direct Postgres host is typically 'db.' + host (you may need to confirm this)
-    # The default Supabase public host is often sufficient when using the service_role key.
-    
-    # We will use the common PostgreSQL connection format for SQLAlchemy:
-    # postgresql://[user]:[password]@[host]:[port]/[database]
-    
-    # In Supabase:
-    # - user: 'postgres' (the default admin user)
-    # - password: SUPABASE_SERVICE_ROLE_KEY (used as the password for the service_role key)
-    # - host: The host from the SUPABASE_URL (e.g., abcdefghijklm.supabase.co)
-    # - port: 5432 (default Postgres port)
-    # - database: 'postgres' (default database name)
+if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+    logger.error("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables must be set.")
+    # Exit script to fail the GitHub Action if credentials are missing
+    exit(1)
 
-    # Note: We are using the SERVICE ROLE KEY as the password for full access.
+# Initialize the Supabase Client
+# The Service Role Key grants full access, bypassing Row Level Security (RLS)
+try:
+    supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+    logger.info("Supabase client initialized successfully with Service Role Key.")
+except Exception as e:
+    logger.error(f"Failed to initialize Supabase client: {e}")
+    exit(1)
+
+# --- Core Fetching Functions ---
+
+def fetch_all_data_from_supabase(table_name: str, select_columns: str = "*", order_by_column: str = "match_date") -> pd.DataFrame:
+    """
+    Fetches all data from a specified Supabase table and converts it to a Pandas DataFrame.
+    """
+    logger.info(f"Fetching data from table: {table_name}")
     
-    # This format is safer for direct database access via Service Role Key
-    # Replace 'rest' with 'db' or use the default host depending on your setup.
-    # We'll use the host directly from the parsed URL for max compatibility.
-    host = parsed_url.netloc
+    # Use the official Supabase-py v2+ client method
+    response = supabase.from_(table_name).select(select_columns).order(order_by_column, desc=False).execute()
     
-    # Construct the DSN (Data Source Name / Connection String)
-    DSN = (
-        f"postgresql://postgres:{SUPABASE_SERVICE_ROLE_KEY}@{host}:5432/postgres"
+    # Supabase-py stores the result data in a tuple (data, count, error) or similar structure.
+    # The actual data is usually accessed via response.data for a standard select()
+    data = response.data
+    
+    if data is None:
+        logger.error(f"Failed to fetch data from table {table_name}.")
+        # logger.error(f"Supabase Error Details: {response.error}") # Uncomment for debugging
+        return pd.DataFrame()
+        
+    if not data:
+        logger.warning(f"No data found in table {table_name}.")
+        return pd.DataFrame()
+
+    df = pd.DataFrame(data)
+    logger.info(f"Successfully fetched {len(df)} records from {table_name}.")
+    return df
+
+def load_data_for_backtest() -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Orchestrates the data loading for player and team defense metrics.
+    """
+    
+    # --- 1. Player Stats (Source for P-Factors) ---
+    player_cols = "player_id, team_name, opponent, match_date, summary_sot, summary_min, summary_sh, fixture_id, venue"
+    df_player = fetch_all_data_from_supabase(
+        table_name="player_match_stats", # <-- Use your actual player match stats table name
+        select_columns=player_cols
     )
-    
-    print("Connecting directly to Supabase PostgreSQL...")
-    return create_engine(DSN)
 
-def load_data_for_backtest():
-    """Fetches all necessary raw data from Supabase into Pandas DataFrames."""
-    
-    try:
-        engine = create_supabase_engine()
-    except ValueError as e:
-        print(f"Error during engine creation: {e}")
-        return None, None
-    except Exception as e:
-        print(f"Could not connect to database: {e}")
-        return None, None
+    if df_player.empty:
+        return pd.DataFrame(), pd.DataFrame()
 
-    # --- 2. Player Stats (P-Factors) ---
-    # Need: Player ID, Team Name, Opponent Name, Match Date, SOT, Mins
-    sql_player = """
-    SELECT 
-        id, -- Primary key for player match record
-        player_id, 
-        team_name, 
-        opponent, 
-        match_date, 
-        summary_sot, 
-        summary_min,
-        -- Add any other base player stats you might need later
-        summary_sh,
-        fixture_id,
-        venue
-    FROM 
-        player_match_stats -- ASSUMED TABLE NAME
-    ORDER BY 
-        match_date ASC
-    """
-    df_player = pd.read_sql(sql_player, engine)
-    
-    # --- 3. Team Defense Stats (O-Factors) ---
-    # Need: Team Name, Match Date, SOT Conceded, Att 3rd Tackles
-    sql_team_def = """
-    SELECT
-        fixture_id,
-        team_name,
-        match_date,
-        -- SOT Conceded (opp_shots_on_target from shooting table)
-        opp_shots_on_target AS sot_conceded, 
-        -- Tackles in Attacking Third (tackles_att_3rd from misc table)
-        tackles_att_3rd 
-    FROM
-        team_misc_stats -- ASSUMED TABLE NAME (or join multiple team tables here if needed)
-    ORDER BY
-        match_date ASC
-    """
-    df_team_def = pd.read_sql(sql_team_def, engine)
-    
-    # --- 4. Post-Load Cleaning (Standardization) ---
-    # Apply your 'normalizeTeamName' logic here in Python if team names are inconsistent
-    # Example: df_player['team_name'] = df_player['team_name'].str.title() 
+    # CRITICAL: Sort for rolling calculations
+    df_player['match_date'] = pd.to_datetime(df_player['match_date'])
+    df_player = df_player.sort_values(by=['match_date', 'fixture_id', 'player_id']).reset_index(drop=True)
+    logger.info("Player data sorted chronologically.")
 
-    print(f"✅ Successfully loaded {len(df_player)} player match records.")
-    print(f"✅ Successfully loaded {len(df_team_def)} team defense records.")
-    
+
+    # --- 2. Team Defense Stats (Source for O-Factors) ---
+    team_def_cols = "fixture_id, team_name, match_date, tackles_att_3rd, opp_shots_on_target"
+    df_team_def = fetch_all_data_from_supabase(
+        table_name="team_misc_stats", # <-- Use your actual team misc/defense table name
+        select_columns=team_def_cols
+    ).rename(columns={'opp_shots_on_target': 'sot_conceded'}) # Rename for clarity
+
+    if df_team_def.empty:
+        return df_player, pd.DataFrame()
+
+    # CRITICAL: Sort for merging and subsequent rolling calcs
+    df_team_def['match_date'] = pd.to_datetime(df_team_def['match_date'])
+    df_team_def = df_team_def.sort_values(by=['match_date', 'fixture_id']).reset_index(drop=True)
+    logger.info("Team defense data sorted chronologically.")
+
     return df_player, df_team_def
 
+# --- Execution and Saving ---
+
 if __name__ == '__main__':
-    # Add os.environ loading here if you use a .env file (e.g., using python-dotenv)
-    # import dotenv; dotenv.load_dotenv() 
+    logger.info("Starting data loading process...")
     
-    df_player, df_team_def = load_data_for_backtest()
-    if df_player is not None:
-        print("\nPlayer Data Head:")
-        print(df_player.head())
-        print("\nTeam Defense Data Head:")
-        print(df_team_def.head())
+    try:
+        df_player, df_team_def = load_data_for_backtest()
+        
+        if not df_player.empty:
+            
+            # Use Parquet (.parquet) for efficient disk saving and loading
+            # This is key for passing data between sequential Python scripts in GitHub Actions
+            
+            # Player Data
+            output_player_file = "player_data_raw.parquet"
+            df_player.to_parquet(output_player_file, index=False)
+            logger.info(f"✅ Player data saved to {output_player_file}")
+            
+            # Team Defense Data
+            output_team_def_file = "team_def_data_raw.parquet"
+            df_team_def.to_parquet(output_team_def_file, index=False)
+            logger.info(f"✅ Team defense data saved to {output_team_def_file}")
+            
+            logger.info("--- Data loading complete. Ready for backtest_processor.py ---")
+            
+        else:
+            logger.warning("No valid data loaded. Skipping file save.")
+            
+    except Exception as e:
+        logger.critical(f"💥 Fatal error during data loading or saving: {e}")
+        # The exit(1) will cause the GitHub Action step to fail, which is intended
+        exit(1)
