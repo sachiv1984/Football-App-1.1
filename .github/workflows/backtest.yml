@@ -41,7 +41,7 @@ jobs:
 # ---------------------------------------------------------------------
 
   process_data:
-    name: 2. Process and Feature Engineer (O-Factors)
+    name: 2. Feature Engineer (O-Factors)
     needs: load_data
     runs-on: ubuntu-latest
     steps:
@@ -68,7 +68,7 @@ jobs:
     - name: Upload O-Factor Data 📤
       uses: actions/upload-artifact@v4
       with:
-        # This artifact contains the O-Factors (Opponent Factors)
+        # Output from O-Factor calculation
         name: final-feature-set-o-factors
         path: final_feature_set.parquet
 
@@ -95,13 +95,25 @@ jobs:
         name: final-feature-set-o-factors
         
     - name: Run P-Factor Engineer Script
-      # This script loads final_feature_set.parquet and saves final_feature_set_pfactors.parquet
+      # Calculates P-Factors and saves to final_feature_set_pfactors.parquet
       run: |
         echo "Running player_factor_engineer.py to calculate P-Factors..."
         python src/services/ai/player_factor_engineer.py
         
     - name: Run Correlation Analysis (Full Feature Set)
-      # NOTE: We need to ensure correlation_analysis.py is updated to load 'final_feature_set_pfactors.parquet'
+      # Analyzes the statistical relationship of all factors
       run: |
         echo "Running correlation_analysis.py..."
-        python src/services/ai/correlation_analysis.py
+        python src/services/ai/correlation_analysis.py 
+        
+    - name: Run Feature Scaling Script (Standardization)
+      # Scales features and saves to final_feature_set_scaled.parquet
+      run: |
+        echo "Running feature_scaling.py to standardize data..."
+        python src/services/ai/feature_scaling.py
+
+    - name: Upload Final Scaled Feature Set 📤
+      uses: actions/upload-artifact@v4
+      with:
+        name: final-feature-set-scaled
+        path: final_feature_set_scaled.parquet
