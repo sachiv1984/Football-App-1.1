@@ -25,7 +25,8 @@ MODEL_FILE = ARTIFACT_PATH + "poisson_model.pkl"
 SCALER_STATS_FILE = ARTIFACT_PATH + "training_stats.json" 
 PREDICTION_OUTPUT = "gameweek_sot_recommendations.csv"
 MIN_PERIODS = 5
-MIN_EXPECTED_MINUTES = 45 # New Filter: Only predict for players expected to play 45+ minutes
+MIN_EXPECTED_MINUTES = 45 # New Filter 1: Minimum rolling minute average to qualify
+MIN_SOT_MA5 = 0.1          # New Filter 2: Minimum rolling SOT average to qualify (to exclude low-shot players/defenders)
 
 PREDICTOR_COLUMNS = [
     'sot_conceded_MA5_scaled', 'tackles_att_3rd_MA5_scaled', 
@@ -241,7 +242,6 @@ def get_live_gameweek_features(df_processed: pd.DataFrame) -> pd.DataFrame:
     # 1. Filter for all scheduled games
     scheduled_games = df_processed[df_processed['status'] == 'scheduled']
     
-    # --- CONSOLE LOGGING FOR DEBUGGING ---
     if scheduled_games.empty:
         logger.warning("No rows found with status='scheduled'. Check your Supabase data.")
         return pd.DataFrame()
@@ -255,50 +255,53 @@ def get_live_gameweek_features(df_processed: pd.DataFrame) -> pd.DataFrame:
     # 3. Filter for the target gameweek
     df_live = scheduled_games[scheduled_games['matchweek'] == next_gameweek].copy()
     
-    # 4. List the fixtures for the target gameweek (deduplicated)
+    # Log fixtures (for context)
     target_fixtures = df_live[['match_date', 'home_team', 'away_team']].drop_duplicates()
-    
     logger.info(f"Fixtures in Gameweek {next_gameweek}:")
     for _, row in target_fixtures.iterrows():
         match_date_str = row['match_date'].strftime('%Y-%m-%d')
         logger.info(f"  {row['home_team']} vs {row['away_team']} on {match_date_str}")
-    # --- END OF CONSOLE LOGGING ---
 
     REQUIRED_MA5_COLUMNS = [f'{col}_MA5' for col in MA5_METRICS + OPP_METRICS]
     initial_rows = len(df_live)
     
-    # Drop rows where the *calculated* MA5 factors are missing (less than MIN_PERIODS history)
+    # Filter 1: Drop players with insufficient historical data (MA5 factors are NaN)
     df_live.dropna(subset=REQUIRED_MA5_COLUMNS, inplace=True)
-    
     dropped_history_count = initial_rows - len(df_live)
     
-    # 5. Impute the final input column 'summary_min' with the rolling minute average 'min_MA5'
+    # 4. Impute the final input column 'summary_min' with the rolling minute average 'min_MA5'
     df_live['summary_min'] = df_live['min_MA5']
     
-    # 6. NEW FILTER: Filter out players with low expected minutes.
-    # This addresses the Rio Ngumoha issue by ensuring a reasonable amount of playing time.
+    # Filter 2: Drop players with low expected minutes (less than 45 min average)
     initial_rows_after_history = len(df_live)
-    df_live = df_live[df_live['summary_min'] >= MIN_EXPECTED_MINUTES].copy()
-
-    dropped_minutes_count = initial_rows_after_history - len(df_live)
+    df_live_after_min_filter = df_live[df_live['summary_min'] >= MIN_EXPECTED_MINUTES].copy()
+    dropped_minutes_count = initial_rows_after_history - len(df_live_after_min_filter)
+    
+    # Filter 3: Drop players with low offensive intent (SOT MA5 below 0.1)
+    initial_rows_after_min_filter = len(df_live_after_min_filter)
+    df_live_final = df_live_after_min_filter[df_live_after_min_filter['sot_MA5'] >= MIN_SOT_MA5].copy()
+    dropped_sot_count = initial_rows_after_min_filter - len(df_live_final)
+    
     
     logger.info(f"Dropped {dropped_history_count} players with insufficient historical data.")
     logger.info(f"Dropped {dropped_minutes_count} players with expected minutes < {MIN_EXPECTED_MINUTES} (low playing time risk).")
+    logger.info(f"Dropped {dropped_sot_count} players with SOT MA5 < {MIN_SOT_MA5} (low offensive intent, e.g., Mavropanos).")
     
+    # The final working dataframe for prediction is df_live_final
     
     # *** NEW DEBUGGING STEP: Show the input data for the few remaining players ***
-    if not df_live.empty:
+    if not df_live_final.empty:
         # The MA5 columns must reference the name used for calculation ('min_MA5')
         log_cols_ma5 = [f'{col}_MA5' for col in ['sot_conceded', 'tackles_att_3rd', 'sot', 'min']] 
         log_cols = ['player_name', 'summary_min'] + log_cols_ma5
         
         # Check which logging columns exist
-        existing_log_cols = [col for col in log_cols if col in df_live.columns]
+        existing_log_cols = [col for col in log_cols if col in df_live_final.columns]
 
-        logger.info("\nRaw Features for Players Being Predicted (Filtered for 45+ minutes):")
-        logger.info(df_live[existing_log_cols].to_string(index=False))
+        logger.info("\nRaw Features for Players Being Predicted (Filtered for Time & SOT):")
+        logger.info(df_live_final[existing_log_cols].to_string(index=False))
         
-    return df_live
+    return df_live_final
 
 def load_artifacts():
     """Loads the trained model and the required scaling statistics."""
