@@ -12,8 +12,19 @@ def get_expected_columns():
     """
     # Base metadata columns from meta_data object
     base_columns = [
-        'fixture_id',           # Your local fixture ID
+        'fixture_id',           # Your local fixture ID (TEXT)
         'match_url',            # Your match URL
+        'match_id',             # FBref match ID (8-char)
+        'match_date',           # Match date (YYYY-MM-DD)
+        'match_time',           # Kick-off time (HH:MM)
+        'round',                # Match round/week
+        'venue',                # Home/Away
+        'opponent',             # Opponent team name
+        'opponent_id',          # Opponent FBref ID
+        'result',               # W/D/L
+        'goals_for',            # Team's goals
+        'goals_against',        # Opponent's goals
+        'formation',            # Team formation (e.g., "4-3-3")
         'team_name',            # From API response team level
         'team_side',            # home_away from API (home/away)
         'player_id',            # From meta_data
