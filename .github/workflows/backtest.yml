@@ -75,7 +75,7 @@ jobs:
 # ---------------------------------------------------------------------
 
   analyze_and_scale:
-    name: 3. P-Factors, Correlation, and Scaling
+    name: 3. P-Factors, Correlation, Scaling, and Backtest
     needs: process_data
     runs-on: ubuntu-latest
     steps:
@@ -111,6 +111,12 @@ jobs:
       run: |
         echo "Running feature_scaling.py to standardize data..."
         python src/services/ai/feature_scaling.py
+
+    - name: Run Backtesting Model
+      # Runs the linear regression model and outputs performance metrics
+      run: |
+        echo "Running backtest_model.py to evaluate model performance..."
+        python src/services/ai/backtest_model.py
 
     - name: Upload Final Scaled Feature Set 📤
       uses: actions/upload-artifact@v4
