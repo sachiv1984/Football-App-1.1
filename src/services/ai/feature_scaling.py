@@ -17,7 +17,6 @@ FEATURES_TO_SCALE = [
     'tackles_att_3rd_MA5',
     'sot_MA5',
     'min_MA5'
-    'min'
 ]
 
 def load_data():
@@ -43,8 +42,13 @@ def scale_and_save(df):
     for f in FEATURES_TO_SCALE:
         df.rename(columns={f: f'{f}_scaled'}, inplace=True)
 
-    # ✅ Keep summary_min as raw
-    df['summary_min'] = df['summary_min']
+    # ✅ Keep 'min' as 'summary_min' (raw, unscaled) for the model
+    # Note: player_factor_engineer.py renamed 'summary_min' to 'min'
+    if 'min' in df.columns:
+        df['summary_min'] = df['min']
+        logger.info("Renamed 'min' to 'summary_min' (kept raw for prediction)")
+    else:
+        logger.warning("Column 'min' not found in dataframe")
 
     # Save final scaled dataset
     df.to_parquet(SCALED_DATA_FILE, index=False)
