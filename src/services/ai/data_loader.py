@@ -50,48 +50,67 @@ def fetch_all_data_from_supabase(table_name: str, select_columns: str = "*", ord
     return df
 
 def load_data_for_backtest() -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Orchestrates the data loading for player and team defense metrics."""
+    """Orchestrates the data loading for player and combined team defense metrics."""
     
     # --- 1. Player Stats (P-Factors Source) ---
-    # CORRECTED COLUMNS: Including match_datetime, home_team, away_team, venue, team_side
     player_cols = "player_id, team_name, summary_sot, summary_min, home_team, away_team, venue, team_side, match_datetime"
     
     df_player = fetch_all_data_from_supabase(
         table_name="player_match_stats", 
         select_columns=player_cols,
-        order_by_column="match_datetime"
+        order_by_column="match_datetime" 
     )
     
     if df_player.empty:
         return pd.DataFrame(), pd.DataFrame()
     
-    # FIX DATA TYPE: Convert TEXT 'summary_min' to NUMERIC
+    # Clean and standardize player data types
     df_player['summary_min'] = pd.to_numeric(df_player['summary_min'], errors='coerce')
-    
-    # Date processing for joins and sorting
     df_player['match_datetime'] = pd.to_datetime(df_player['match_datetime'])
-    # Create a simple date column for joining with daily-indexed team stats
     df_player['match_date'] = df_player['match_datetime'].dt.date 
     
     # CRITICAL: Sort for rolling calculations
     df_player = df_player.sort_values(by=['match_datetime', 'player_id']).reset_index(drop=True)
-    logger.info("Player data cleaned and sorted.")
+    logger.info(f"Player data (P-Factors) loaded: {df_player.shape}")
 
 
-    # --- 2. Team Defense Stats (O-Factors Source) ---
-    # Assuming team stats are indexed by 'match_date'
-    team_def_cols = "match_date, team_name, tackles_att_3rd, opp_shots_on_target"
-    df_team_def = fetch_all_data_from_supabase(
+    # --------------------------------------------------------------------------
+    # --- 2. Team Defense Stats (O-Factors Source) - Merging two tables FIX ---
+    # --------------------------------------------------------------------------
+    
+    # 2a. Fetch Core Defensive Stats (from the original query location)
+    logger.info("Fetching Team Core Stats (opp_shots_on_target) from team_misc_stats...")
+    df_core_def = fetch_all_data_from_supabase(
         table_name="team_misc_stats",
-        select_columns=team_def_cols,
-        order_by_column="match_date" # Assuming team data is ordered by date
+        select_columns="match_date, team_name, opp_shots_on_target",
+        order_by_column="match_date"
     ).rename(columns={'opp_shots_on_target': 'sot_conceded'})
     
-    if df_team_def.empty:
+    # 2b. Fetch Specific Defensive Stats (from the corrected location)
+    logger.info("Fetching Specific Defensive Stats (tackles_att_3rd) from team_defense_stats...")
+    df_specific_def = fetch_all_data_from_supabase(
+        table_name="team_defense_stats", # <-- CORRECT TABLE NAME
+        select_columns="match_date, team_name, tackles_att_3rd",
+        order_by_column="match_date"
+    )
+    
+    if df_core_def.empty or df_specific_def.empty:
+        logger.warning("One or both team defense tables returned empty data. Skipping merge.")
         return df_player, pd.DataFrame()
 
+    # 2c. Merge the two team dataframes into a single df_team_def
+    df_team_def = pd.merge(
+        df_core_def,
+        df_specific_def,
+        # Join key must be columns that exist in both tables
+        on=['match_date', 'team_name'],
+        how='inner' # Only keep records present in both tables
+    )
+
+    # Final cleanup and sort for team data
     df_team_def['match_date'] = pd.to_datetime(df_team_def['match_date'])
     df_team_def = df_team_def.sort_values(by=['match_date', 'team_name']).reset_index(drop=True)
+    logger.info(f"Team defense data (O-Factors) successfully merged: {df_team_def.shape}")
 
     return df_player, df_team_def
 
@@ -105,7 +124,7 @@ if __name__ == '__main__':
         
         if not df_player.empty and not df_team_def.empty:
             
-            # Save files to be read by the next script in the root directory
+            # Save files to be read by the next script
             df_player.to_parquet("player_data_raw.parquet", index=False)
             logger.info("✅ Player data saved to player_data_raw.parquet")
             
