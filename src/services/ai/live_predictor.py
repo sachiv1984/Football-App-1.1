@@ -28,7 +28,7 @@ MIN_PERIODS = 5
 
 PREDICTOR_COLUMNS = [
     'sot_conceded_MA5_scaled', 'tackles_att_3rd_MA5_scaled', 
-    'sot_MA5_scaled', 'min_MA5_scaled', 'summary_min'
+    'sot_MA5_scaled', 'min_MA5_scaled', 'summary_min' # summary_min is the only unscaled feature input
 ]
 MA5_METRICS = ['sot', 'min']
 OPP_METRICS = ['sot_conceded', 'tackles_att_3rd']
@@ -207,7 +207,7 @@ def calculate_ma5_factors(df: pd.DataFrame) -> pd.DataFrame:
         df_processed['summary_sot'] = np.nan
         df_processed['summary_min'] = np.nan
         
-    # Rename for calculation: 'summary_sot' -> 'sot', 'summary_min' -> 'min'
+    # Rename for MA5 calculation: 'summary_sot' -> 'sot', 'summary_min' -> 'min'
     df_processed.rename(columns={'summary_sot': 'sot', 'summary_min': 'min'}, inplace=True)
     
     # Calculate P-Factors (Player MA5s)
@@ -271,25 +271,25 @@ def get_live_gameweek_features(df_processed: pd.DataFrame) -> pd.DataFrame:
     
     logger.info(f"Dropped {initial_rows - len(df_live)} players with insufficient historical data.")
     
-    # *** FIX HERE: Rename 'min' to 'summary_min' BEFORE attempting to use 'summary_min' in logging ***
-    # This resolves the KeyError: "['min'] not in index"
-    df_live.rename(columns={'min': 'summary_min'}, inplace=True) 
+    # 5. FINAL FIX: Impute the prediction input feature ('summary_min') using the MA5 average of minutes ('min_MA5').
+    # This ensures a non-NaN value that is based on the player's recent playing history.
+    # The 'min' column is the raw minutes for the current game, which is NaN. We need to create 'summary_min'.
+    
+    # Create the required final input column 'summary_min' and set it equal to the MA5 minute average.
+    df_live['summary_min'] = df_live['min_MA5']
     
     
     # *** NEW DEBUGGING STEP: Show the input data for the few remaining players ***
     if not df_live.empty:
-        # Adjusted log_cols to use 'summary_min' which is now the correct column name
-        log_cols_base = ['sot_conceded', 'tackles_att_3rd', 'sot', 'summary_min']
-        log_cols_ma5 = [f'{col}_MA5' for col in ['sot_conceded', 'tackles_att_3rd', 'sot', 'min']] # 'min' is the MA5 column name before the final rename
+        # Adjusted log_cols: 'summary_min' is now correctly imputed from 'min_MA5'
+        log_cols_ma5 = [f'{col}_MA5' for col in ['sot_conceded', 'tackles_att_3rd', 'sot', 'min']] 
+        log_cols = ['player_name', 'summary_min'] + log_cols_ma5
         
-        log_cols = ['player_name'] + log_cols_base + log_cols_ma5
-        
-        # Check which logging columns exist (since the base columns were originally NaNs for future games)
+        # Check which logging columns exist (raw columns are intentionally omitted as they are NaN)
         existing_log_cols = [col for col in log_cols if col in df_live.columns]
 
-        log_df = df_live[existing_log_cols]
-        logger.info("\nRaw Features for Players Being Predicted (Check for NaN/Missing History):")
-        logger.info(log_df.to_string(index=False))
+        logger.info("\nRaw Features for Players Being Predicted (Imputed 'summary_min' should equal 'min_MA5'):")
+        logger.info(df_live[existing_log_cols].to_string(index=False))
         
     return df_live
 
@@ -332,7 +332,8 @@ def scale_live_data(df_raw, scaler_data):
         else:
             df_features[scaled_col] = (df_features[raw_col] - mu) / sigma
             
-    final_features = df_features[PREDICTOR_COLUMNS]
+    # Include the unscaled 'summary_min' in the final features
+    final_features = df_features[PREDICTOR_COLUMNS] 
     final_features = sm.add_constant(final_features, has_constant='add') 
     return final_features
 
