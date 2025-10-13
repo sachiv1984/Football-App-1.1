@@ -35,11 +35,11 @@ def determine_opponent(df_player: pd.DataFrame) -> pd.DataFrame:
     """
     logger.info("Determining opponent teams using home/away columns...")
     
-    # 1. Define the logic using NumPy's select for fast, vectorized conditional assignment
+    # Define the logic using NumPy's select for fast, vectorized conditional assignment
     conditions = [
-        # If player's team is the HOME team, the opponent is the AWAY team
+        # Condition 1: If player's team is the HOME team, the opponent is the AWAY team
         (df_player['team_name'] == df_player['home_team']),
-        # If player's team is the AWAY team, the opponent is the HOME team
+        # Condition 2: If player's team is the AWAY team, the opponent is the HOME team
         (df_player['team_name'] == df_player['away_team'])
     ]
     
@@ -50,12 +50,12 @@ def determine_opponent(df_player: pd.DataFrame) -> pd.DataFrame:
     
     df_player['opponent'] = np.select(conditions, choices, default=np.nan)
     
-    # 2. Clean up any records where the player's team name didn't match either home or away
+    # Clean up any records where the player's team name didn't match either home or away
     df_player.dropna(subset=['opponent'], inplace=True)
     
     logger.info(f"Successfully determined opponents for {len(df_player)} records.")
     
-    # 3. Clean up columns that are no longer needed
+    # Clean up columns that are no longer needed for the final feature set
     df_player = df_player.drop(columns=['home_team', 'away_team'])
     
     return df_player
@@ -69,6 +69,7 @@ def calculate_opponent_factors(df_player: pd.DataFrame, df_team_def: pd.DataFram
     logger.info("Calculating rolling opponent defensive factors (O-Factors)...")
     
     # 1. Prepare opponent defense data
+    # Rename 'team_name' to 'opponent' for the merge
     df_opp_def = df_team_def.rename(columns={'team_name': 'opponent'})
     
     # 2. Merge player stats with the opponent's historical defense stats
