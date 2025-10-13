@@ -4,13 +4,16 @@ import pandas as pd
 from sklearn.preprocessing import StandardScaler
 import logging
 
-# ... (logging and configuration remains the same) ...
+# --- FIX: Define logging globally so 'logger' is accessible everywhere ---
+logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
+logger = logging.getLogger(__name__)
 
 # --- Configuration ---
 INPUT_FILE = "final_feature_set_pfactors.parquet"
 OUTPUT_FILE = "final_feature_set_scaled.parquet"
 
-# --- NEW FILTERING CONFIGURATION ---
+# --- PLAYER FILTERING CONFIGURATION ---
+# We will only train the model on players relevant to offensive stats
 MIN_AVG_MINUTES = 15.0 # Minimum average minutes played historically
 MIN_AVG_SOT = 0.1      # Minimum average SOT per match historically
 
@@ -32,13 +35,13 @@ def load_and_scale_features():
         logger.error(f"File not found: {INPUT_FILE}. Ensure player_factor_engineer.py ran successfully.")
         return
 
-    # 1. Drop rows with NaNs in the features (already handled by player_factor_engineer, but safe check)
+    # 1. Prepare data and create a copy to prevent SettingWithCopyWarning
     df_clean = df.dropna(subset=FEATURES_TO_SCALE).copy()
     
-    # 2. IMPLEMENT PLAYER FILTERING
+    # 2. IMPLEMENT CRITICAL PLAYER FILTERING
     initial_rows = len(df_clean)
     
-    # Calculate player lifetime averages *before* scaling
+    # Calculate player lifetime averages for the filter criteria
     player_averages = df_clean.groupby('player_id').agg(
         total_sot=('summary_sot', 'sum'),
         total_min=('summary_min', 'sum'),
@@ -47,7 +50,7 @@ def load_and_scale_features():
     player_averages['avg_sot'] = player_averages['total_sot'] / player_averages['match_count']
     player_averages['avg_min'] = player_averages['total_min'] / player_averages['match_count']
     
-    # Identify offensive-minded players
+    # Identify relevant offensive-minded players (the sample the model should learn from)
     relevant_players = player_averages[
         (player_averages['avg_min'] >= MIN_AVG_MINUTES) & 
         (player_averages['avg_sot'] >= MIN_AVG_SOT)
