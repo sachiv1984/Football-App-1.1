@@ -1,8 +1,8 @@
 name: Backtest SOT Model
 
 on:
-  push:
-    branches: [ main ]
+  # This section is updated to only include workflow_dispatch,
+  # which allows for manual triggering from the GitHub Actions UI.
   workflow_dispatch:
 
 jobs:
