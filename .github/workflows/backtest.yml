@@ -104,17 +104,23 @@ jobs:
         python src/services/ai/correlation_analysis.py 
         
     - name: Run Feature Scaling Script (Player Filtering and Standardization)
-      # This step filters out defenders/GKs before scaling the features
+      # Filters out non-offensive players and standardizes features
       run: |
         echo "Running feature_scaling.py to filter and standardize data..."
         python src/services/ai/feature_scaling.py
 
     - name: Run Backtesting Model and Save Model
-      # Runs the Poisson regression and saves the final model object (poisson_model.pkl)
+      # Runs the Poisson regression, evaluates performance, and saves the model (poisson_model.pkl)
       run: |
         echo "Running backtest_model.py to evaluate model and save pkl..."
         python src/services/ai/backtest_model.py
 
+    - name: Run Prediction Service Simulation
+      # Tests that the saved model can be loaded and used for a live prediction
+      run: |
+        echo "Running prediction_service.py to test deployment readiness..."
+        python src/services/ai/prediction_service.py
+        
     - name: Upload Final Model Artifacts 📤
       uses: actions/upload-artifact@v4
       with:
