@@ -19,8 +19,8 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") 
 
 # --- AI Artifacts and Model Configuration ---
-# IMPORTANT: Adjust this path if you moved your artifacts to a sub-folder
-ARTIFACT_PATH = "src/services/ai/artifacts/" # <--- FIX APPLIED HERE 🛠️
+# FIX: Adjusted path for Git workflow execution from project root
+ARTIFACT_PATH = "src/services/ai/artifacts/" 
 
 MODEL_FILE = ARTIFACT_PATH + "poisson_model.pkl"
 SCALER_STATS_FILE = ARTIFACT_PATH + "training_stats.json" 
@@ -63,12 +63,12 @@ def fetch_all_data_from_supabase(table_name: str, select_columns: str = "*", ord
 def load_and_merge_raw_data() -> pd.DataFrame:
     """Fetches and merges player, team defense, and fixture data."""
     
-    # 1. Fetch Fixtures Data (Source of status and matchweek) 🎯 FINAL COLUMN NAME FIX: 'datetime'
+    # 1. Fetch Fixtures Data (Source of status and matchweek) 
     fixture_cols = "datetime, hometeam, awayteam, matchweek, status" 
     df_fixtures = fetch_all_data_from_supabase(
         table_name="fixtures", 
         select_columns=fixture_cols,
-        order_by_column="datetime" # Sorting by the 'datetime' column
+        order_by_column="datetime" 
     ).rename(columns={'hometeam': 'home_team', 'awayteam': 'away_team'})
     
     # Convert to datetime and create the 'match_date' (date-only) column for merging
@@ -93,11 +93,19 @@ def load_and_merge_raw_data() -> pd.DataFrame:
 
     # 3. Team Defense Stats (O-Factors Source)
     merge_keys = ['match_date', 'team_name']
+    
+    # FIX: Explicitly set order_by_column to 'match_date' for team_shooting_stats
     df_shooting_def = fetch_all_data_from_supabase(
-        table_name="team_shooting_stats", select_columns="match_date, team_name, opp_shots_on_target"
+        table_name="team_shooting_stats", 
+        select_columns="match_date, team_name, opp_shots_on_target",
+        order_by_column="match_date" 
     ).rename(columns={'opp_shots_on_target': 'sot_conceded'})
+    
+    # FIX: Explicitly set order_by_column to 'match_date' for team_defense_stats
     df_tackle_def = fetch_all_data_from_supabase(
-        table_name="team_defense_stats", select_columns="match_date, team_name, team_tackles_att_3rd"
+        table_name="team_defense_stats", 
+        select_columns="match_date, team_name, team_tackles_att_3rd",
+        order_by_column="match_date" 
     ).rename(columns={'team_tackles_att_3rd': 'tackles_att_3rd'})
     
     df_team_def = pd.merge(df_shooting_def, df_tackle_def, on=merge_keys, how='inner')
@@ -225,13 +233,12 @@ def main():
     # 3. Filter for Next Gameweek's Live Features
     df_live_raw = get_live_gameweek_features(df_processed)
     
-    # ⚠️ FIX: Safely create an empty output file if no predictions are made
+    # ⚠️ Safely create an empty output file if no predictions are made
     if df_live_raw.empty:
         logger.warning("Exiting: No scheduled games or players with sufficient history were processed. Creating empty report file.")
         empty_cols = ['player_id', 'player_name', 'team_name', 'opponent_team', 'E_SOT', 'P_SOT_1_Plus', 'expected_minutes', 'match_datetime']
         empty_report = pd.DataFrame(columns=empty_cols)
         empty_report.to_csv(PREDICTION_OUTPUT, index=False)
-        # This allows the workflow's artifact upload step to succeed
         return
         
     # 4. Scale Live Features
