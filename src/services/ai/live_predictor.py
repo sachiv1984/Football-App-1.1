@@ -25,8 +25,9 @@ MODEL_FILE = ARTIFACT_PATH + "poisson_model.pkl"
 SCALER_STATS_FILE = ARTIFACT_PATH + "training_stats.json" 
 PREDICTION_OUTPUT = "gameweek_sot_recommendations.csv"
 MIN_PERIODS = 5
-MIN_EXPECTED_MINUTES = 45 # New Filter 1: Minimum rolling minute average to qualify
-MIN_SOT_MA5 = 0.1          # New Filter 2: Minimum rolling SOT average to qualify (to exclude low-shot players/defenders)
+# TEMPORARY BENCHMARK SETTINGS: Resetting filters to 1.0 and 0.0 to check if Haaland is in the raw data.
+MIN_EXPECTED_MINUTES = 1 # Reset to 1 to check raw inclusion and the Ngumoha case
+MIN_SOT_MA5 = 0.0          # Reset to 0.0 to check raw inclusion and the Mavropanos case
 
 PREDICTOR_COLUMNS = [
     'sot_conceded_MA5_scaled', 'tackles_att_3rd_MA5_scaled', 
@@ -272,20 +273,27 @@ def get_live_gameweek_features(df_processed: pd.DataFrame) -> pd.DataFrame:
     # 4. Impute the final input column 'summary_min' with the rolling minute average 'min_MA5'
     df_live['summary_min'] = df_live['min_MA5']
     
-    # Filter 2: Drop players with low expected minutes (less than 45 min average)
+    # DEBUG: Check if Haaland is present after initial filtering
+    haaland_check = df_live[df_live['player_name'] == 'Erling Haaland']
+    if not haaland_check.empty:
+        logger.info(f"Haaland Check: Found Erling Haaland. His MA5 features are: {haaland_check[['sot_MA5', 'min_MA5']].to_dict('records')}")
+    else:
+        logger.warning("Haaland Check: Erling Haaland not found in the raw MA5 data (likely due to missing fixture or history).")
+    
+    # Filter 2: Drop players with low expected minutes
     initial_rows_after_history = len(df_live)
     df_live_after_min_filter = df_live[df_live['summary_min'] >= MIN_EXPECTED_MINUTES].copy()
     dropped_minutes_count = initial_rows_after_history - len(df_live_after_min_filter)
     
-    # Filter 3: Drop players with low offensive intent (SOT MA5 below 0.1)
+    # Filter 3: Drop players with low offensive intent
     initial_rows_after_min_filter = len(df_live_after_min_filter)
     df_live_final = df_live_after_min_filter[df_live_after_min_filter['sot_MA5'] >= MIN_SOT_MA5].copy()
     dropped_sot_count = initial_rows_after_min_filter - len(df_live_final)
     
     
     logger.info(f"Dropped {dropped_history_count} players with insufficient historical data.")
-    logger.info(f"Dropped {dropped_minutes_count} players with expected minutes < {MIN_EXPECTED_MINUTES} (low playing time risk).")
-    logger.info(f"Dropped {dropped_sot_count} players with SOT MA5 < {MIN_SOT_MA5} (low offensive intent, e.g., Mavropanos).")
+    logger.info(f"Dropped {dropped_minutes_count} players with expected minutes < {MIN_EXPECTED_MINUTES}.")
+    logger.info(f"Dropped {dropped_sot_count} players with SOT MA5 < {MIN_SOT_MA5}.")
     
     # The final working dataframe for prediction is df_live_final
     
@@ -298,7 +306,7 @@ def get_live_gameweek_features(df_processed: pd.DataFrame) -> pd.DataFrame:
         # Check which logging columns exist
         existing_log_cols = [col for col in log_cols if col in df_live_final.columns]
 
-        logger.info("\nRaw Features for Players Being Predicted (Filtered for Time & SOT):")
+        logger.info("\nRaw Features for Players Being Predicted (Filters Temporarily Reduced for Benchmark):")
         logger.info(df_live_final[existing_log_cols].to_string(index=False))
         
     return df_live_final
