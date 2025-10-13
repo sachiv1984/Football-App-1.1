@@ -19,7 +19,6 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") 
 
 # --- AI Artifacts and Model Configuration ---
-# FIX: Adjusted path for Git workflow execution from project root
 ARTIFACT_PATH = "src/services/ai/artifacts/" 
 
 MODEL_FILE = ARTIFACT_PATH + "poisson_model.pkl"
@@ -61,9 +60,13 @@ def fetch_all_data_from_supabase(table_name: str, select_columns: str = "*", ord
     return pd.DataFrame(data)
 
 def load_and_merge_raw_data() -> pd.DataFrame:
-    """Fetches and merges player, team defense, and fixture data."""
+    """
+    Fetches and merges all player, team defense, and fixture data.
+    Critically, it now appends placeholder rows for future scheduled fixtures
+    to ensure the MA5 calculation has a target row.
+    """
     
-    # 1. Fetch Fixtures Data (Source of status and matchweek) 
+    # 1. Fetch ALL Fixtures Data (needed to identify historical and future games)
     fixture_cols = "datetime, hometeam, awayteam, matchweek, status" 
     df_fixtures = fetch_all_data_from_supabase(
         table_name="fixtures", 
@@ -71,37 +74,39 @@ def load_and_merge_raw_data() -> pd.DataFrame:
         order_by_column="datetime" 
     ).rename(columns={'hometeam': 'home_team', 'awayteam': 'away_team'})
     
-    # Convert to datetime and create the 'match_date' (date-only) column for merging
     df_fixtures['datetime'] = pd.to_datetime(df_fixtures['datetime'])
     df_fixtures['match_date'] = df_fixtures['datetime'].dt.date
     if df_fixtures.empty:
         return pd.DataFrame()
 
-    # 2. Player Stats (P-Factors Source)
+    # Normalize fixture status immediately for robust filtering
+    df_fixtures['status'] = df_fixtures['status'].astype(str).str.strip().str.lower()
+    
+    # --- A. BUILD HISTORICAL DATA (Finished Games) ---
+    
+    # 2. Player Stats (P-Factors Source) - HISTORICAL ONLY
     player_cols = "player_id, player_name, team_name, summary_sot, summary_min, home_team, away_team, team_side, match_datetime"
-    df_player = fetch_all_data_from_supabase(
+    df_player_history = fetch_all_data_from_supabase(
         table_name="player_match_stats", 
         select_columns=player_cols,
         order_by_column="match_datetime" 
     )
-    if df_player.empty:
+    if df_player_history.empty:
+        # Cannot make predictions without player history to calculate MA5
         return pd.DataFrame()
     
-    df_player['summary_min'] = pd.to_numeric(df_player['summary_min'], errors='coerce')
-    df_player['match_datetime'] = pd.to_datetime(df_player['match_datetime'])
-    df_player['match_date'] = df_player['match_datetime'].dt.date 
+    df_player_history['summary_min'] = pd.to_numeric(df_player_history['summary_min'], errors='coerce')
+    df_player_history['match_datetime'] = pd.to_datetime(df_player_history['match_datetime'])
+    df_player_history['match_date'] = df_player_history['match_datetime'].dt.date 
 
-    # 3. Team Defense Stats (O-Factors Source)
+    # 3. Team Defense Stats (O-Factors Source) - HISTORICAL ONLY
     merge_keys = ['match_date', 'team_name']
-    
-    # FIX: Explicitly set order_by_column to 'match_date' for team_shooting_stats
     df_shooting_def = fetch_all_data_from_supabase(
         table_name="team_shooting_stats", 
         select_columns="match_date, team_name, opp_shots_on_target",
         order_by_column="match_date" 
     ).rename(columns={'opp_shots_on_target': 'sot_conceded'})
     
-    # FIX: Explicitly set order_by_column to 'match_date' for team_defense_stats
     df_tackle_def = fetch_all_data_from_supabase(
         table_name="team_defense_stats", 
         select_columns="match_date, team_name, team_tackles_att_3rd",
@@ -111,50 +116,116 @@ def load_and_merge_raw_data() -> pd.DataFrame:
     df_team_def = pd.merge(df_shooting_def, df_tackle_def, on=merge_keys, how='inner')
     df_team_def['match_date'] = pd.to_datetime(df_team_def['match_date']).dt.date
 
-    # 4. Join Player and Team Defense Data
-    df_combined = pd.merge(
-        df_player,
+    # 4. Join Player and Team Defense Data (Historical Player-Match Rows)
+    df_historical = pd.merge(
+        df_player_history,
         df_team_def,
         on=['match_date', 'team_name'],
         how='left' 
     )
     
-    # 5. Join with Fixtures Data to get Status and Matchweek
-    df_final = pd.merge(
-        df_combined,
+    # 5. Join with Fixtures Data to get Status and Matchweek for Historical Games
+    df_historical = pd.merge(
+        df_historical,
         df_fixtures[['match_date', 'home_team', 'away_team', 'matchweek', 'status']], 
         on=['match_date', 'home_team', 'away_team'],
         how='left'
     )
     
-    # FIX: Normalize the status column to handle case sensitivity and whitespace
-    if not df_final.empty:
-        df_final['status'] = df_final['status'].astype(str).str.strip().str.lower()
+    # --- B. BUILD FUTURE DATA (Scheduled Games) ---
+    
+    # Get the list of all active players based on history
+    active_players = df_player_history[['player_id', 'player_name', 'team_name']].drop_duplicates()
+    
+    # Get all scheduled fixtures
+    df_future_fixtures = df_fixtures[df_fixtures['status'] == 'scheduled']
+    
+    # Cross-join active players with scheduled fixtures to create placeholder rows
+    future_rows = []
+    for _, fixture in df_future_fixtures.iterrows():
+        # Get players for the home team
+        home_players = active_players[active_players['team_name'] == fixture['home_team']].copy()
+        if not home_players.empty:
+            home_players['team_side'] = 'home'
+            home_players['home_team'] = fixture['home_team']
+            home_players['away_team'] = fixture['away_team']
+            future_rows.append(home_players)
+            
+        # Get players for the away team
+        away_players = active_players[active_players['team_name'] == fixture['away_team']].copy()
+        if not away_players.empty:
+            away_players['team_side'] = 'away'
+            away_players['home_team'] = fixture['home_team']
+            away_players['away_team'] = fixture['away_team']
+            future_rows.append(away_players)
+            
+    if not future_rows:
+        logger.warning("No future scheduled player data could be generated.")
+        return df_historical # Return historical data, but prediction will fail
+        
+    df_future = pd.concat(future_rows, ignore_index=True)
+    
+    # Add fixture context columns to the future rows
+    context_cols = ['datetime', 'match_date', 'matchweek', 'status']
+    df_future = pd.merge(
+        df_future, 
+        df_future_fixtures[context_cols + ['home_team', 'away_team']],
+        on=['home_team', 'away_team'],
+        how='left'
+    )
+    
+    # Add the defensive factors for future matches (MA5 will use these)
+    df_future = pd.merge(
+        df_future, 
+        df_team_def.drop(columns=['sot_conceded', 'tackles_att_3rd']), # Only merge to match structure
+        on=['match_date', 'team_name'],
+        how='left'
+    )
+    
+    # Set prediction-specific columns to NaN for future games
+    for col in ['summary_sot', 'summary_min', 'sot_conceded', 'tackles_att_3rd']:
+        if col not in df_future.columns:
+             df_future[col] = np.nan
+        else:
+             df_future[col] = df_future[col].apply(lambda x: np.nan if pd.isna(x) else x) # Ensure NaN for prediction
+
+    # --- C. COMBINE HISTORICAL AND FUTURE DATA ---
+    df_final = pd.concat([df_historical, df_future], ignore_index=True)
 
     df_final = df_final.sort_values(by=['match_datetime', 'player_id']).reset_index(drop=True)
     logger.info(f"Final merged data loaded: {df_final.shape}")
     
     return df_final
 
+
 def calculate_ma5_factors(df: pd.DataFrame) -> pd.DataFrame:
     """Calculates all Player (P-Factors) and Opponent (O-Factors) MA5 metrics."""
     df_processed = df.copy()
     df_processed.rename(columns={'summary_sot': 'sot', 'summary_min': 'min'}, inplace=True)
+    
+    # Calculate P-Factors (Player MA5s)
     for col in MA5_METRICS:
         df_processed[f'{col}_MA5'] = (
             df_processed.groupby('player_id')[col]
             .transform(lambda x: x.rolling(window=MIN_PERIODS, min_periods=1, closed='left').mean())
         )
+        
+    # Determine the opponent team
     df_processed['opponent_team'] = np.where(
         df_processed['team_side'] == 'home', 
         df_processed['away_team'], 
         df_processed['home_team']
     )
+    
+    # Calculate O-Factors (Opponent MA5s)
     for col in OPP_METRICS:
+        # The defensive MA5 is calculated based on the OPPONENT'S HISTORICAL PERFORMANCE
+        # of conceding SOT/Tackles.
         df_processed[f'{col}_MA5'] = (
             df_processed.groupby('opponent_team')[col]
             .transform(lambda x: x.rolling(window=MIN_PERIODS, min_periods=1, closed='left').mean())
         )
+        
     return df_processed
 
 def get_live_gameweek_features(df_processed: pd.DataFrame) -> pd.DataFrame:
@@ -182,18 +253,19 @@ def get_live_gameweek_features(df_processed: pd.DataFrame) -> pd.DataFrame:
     
     logger.info(f"Fixtures in Gameweek {next_gameweek}:")
     for _, row in target_fixtures.iterrows():
-        # Format the date nicely for the log
         match_date_str = row['match_date'].strftime('%Y-%m-%d')
         logger.info(f"  {row['home_team']} vs {row['away_team']} on {match_date_str}")
     # --- END OF CONSOLE LOGGING ---
 
     REQUIRED_MA5_COLUMNS = [f'{col}_MA5' for col in MA5_METRICS + OPP_METRICS]
     initial_rows = len(df_live)
+    
+    # Only drop rows where the *calculated* MA5 factors are missing (i.e., player/team hasn't played enough history)
     df_live.dropna(subset=REQUIRED_MA5_COLUMNS, inplace=True)
     
-    # FIX: Corrected SyntaxError by ensuring the f-string is closed.
     logger.info(f"Dropped {initial_rows - len(df_live)} players with insufficient historical data.")
     
+    # The 'min' column in df_processed becomes 'summary_min' after renaming
     df_live.rename(columns={'min': 'summary_min'}, inplace=True)
     return df_live
 
