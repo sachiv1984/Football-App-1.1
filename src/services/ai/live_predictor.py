@@ -19,8 +19,12 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") 
 
 # --- AI Artifacts and Model Configuration ---
-MODEL_FILE = "poisson_model.pkl"
-SCALER_STATS_FILE = "training_stats.json" 
+# src/services/ai/live_predictor.py
+
+# --- AI Artifacts and Model Configuration ---
+ARTIFACT_PATH = "src/services/ai/artifacts/"
+MODEL_FILE = ARTIFACT_PATH + "poisson_model.pkl"
+SCALER_STATS_FILE = ARTIFACT_PATH + "training_stats.json"
 PREDICTION_OUTPUT = "gameweek_sot_recommendations.csv"
 MIN_PERIODS = 5
 
