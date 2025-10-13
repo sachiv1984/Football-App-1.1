@@ -68,7 +68,6 @@ jobs:
     - name: Upload O-Factor Data 📤
       uses: actions/upload-artifact@v4
       with:
-        # Output from O-Factor calculation
         name: final-feature-set-o-factors
         path: final_feature_set.parquet
 
@@ -95,31 +94,32 @@ jobs:
         name: final-feature-set-o-factors
         
     - name: Run P-Factor Engineer Script
-      # Calculates P-Factors and saves to final_feature_set_pfactors.parquet
       run: |
         echo "Running player_factor_engineer.py to calculate P-Factors..."
         python src/services/ai/player_factor_engineer.py
         
     - name: Run Correlation Analysis (Full Feature Set)
-      # Analyzes the statistical relationship of all factors
       run: |
         echo "Running correlation_analysis.py..."
         python src/services/ai/correlation_analysis.py 
         
-    - name: Run Feature Scaling Script (Standardization)
-      # Scales features and saves to final_feature_set_scaled.parquet
+    - name: Run Feature Scaling Script (Player Filtering and Standardization)
+      # This step filters out defenders/GKs before scaling the features
       run: |
-        echo "Running feature_scaling.py to standardize data..."
+        echo "Running feature_scaling.py to filter and standardize data..."
         python src/services/ai/feature_scaling.py
 
-    - name: Run Backtesting Model
-      # Runs the linear regression model and outputs performance metrics
+    - name: Run Backtesting Model and Save Model
+      # Runs the Poisson regression and saves the final model object (poisson_model.pkl)
       run: |
-        echo "Running backtest_model.py to evaluate model performance..."
+        echo "Running backtest_model.py to evaluate model and save pkl..."
         python src/services/ai/backtest_model.py
 
-    - name: Upload Final Scaled Feature Set 📤
+    - name: Upload Final Model Artifacts 📤
       uses: actions/upload-artifact@v4
       with:
-        name: final-feature-set-scaled
-        path: final_feature_set_scaled.parquet
+        name: final-model-artifacts
+        # Uploads the scaled data and the trained model file for deployment
+        path: |
+          final_feature_set_scaled.parquet
+          poisson_model.pkl
