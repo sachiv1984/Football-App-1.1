@@ -4,7 +4,8 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 import logging
-import json # New import for saving stats
+import json 
+import os # Added for checking file existence if needed, though primarily for robustness
 
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 logger = logging.getLogger(__name__)
@@ -12,7 +13,7 @@ logger = logging.getLogger(__name__)
 # --- Configuration ---
 RAW_DATA_FILE = "final_feature_set_pfactors.parquet"
 SCALED_DATA_FILE = "final_feature_set_scaled.parquet"
-SCALER_STATS_FILE = "training_stats.json" # New file name
+SCALER_STATS_FILE = "training_stats.json" # Critical file for live prediction scaling
 
 # Features used for scaling and modeling
 FEATURES_TO_SCALE = [
@@ -24,15 +25,16 @@ FEATURES_TO_SCALE = [
 ]
 
 # Filtering thresholds (to focus on offensive players)
-MIN_AVG_SOT = 0.1
-MIN_AVG_MIN = 15.0
+# NOTE: Using MA5 features since raw 'sot' and 'min' are dropped by preceding script.
+MIN_AVG_SOT_MA5 = 0.1
+MIN_AVG_MIN_MA5 = 15.0 
 
 def load_data():
     """Loads the data with O-factors and P-factors."""
     logger.info(f"Loading raw data from {RAW_DATA_FILE}...")
     try:
         df = pd.read_parquet(RAW_DATA_FILE)
-        # Drop rows where any feature needed for scaling is missing
+        # Drop rows where any feature needed for scaling is missing (e.g., first 4 games)
         df.dropna(subset=FEATURES_TO_SCALE, inplace=True) 
         logger.info(f"Data loaded. Total rows after initial dropna: {len(df)}")
         return df
@@ -41,17 +43,21 @@ def load_data():
         return None
 
 def filter_data(df):
-    """Filters data to retain only relevant offensive players."""
-    logger.info("Applying player filtering based on average SOT and Minutes...")
+    """
+    Filters data to retain only relevant offensive players, 
+    using the available MA5 features for player eligibility.
+    """
+    logger.info("Applying player filtering based on average SOT_MA5 and Min_MA5...")
     
-    # Calculate average SOT and minutes per player across all records
-    player_avg = df.groupby('player_id')[['sot', 'min']].mean().reset_index()
-    player_avg.rename(columns={'sot': 'avg_sot', 'min': 'avg_min'}, inplace=True)
+    # Use the MA5 features for averaging, as the raw 'sot' and 'min' are missing.
+    # We group by player_id and find their average MA5 form across all historical games.
+    player_avg = df.groupby('player_id')[['sot_MA5', 'min_MA5']].mean().reset_index()
+    player_avg.rename(columns={'sot_MA5': 'avg_sot_MA5', 'min_MA5': 'avg_min_MA5'}, inplace=True)
 
     # Identify players who meet the offensive thresholds
     eligible_players = player_avg[
-        (player_avg['avg_sot'] >= MIN_AVG_SOT) & 
-        (player_avg['avg_min'] >= MIN_AVG_MIN)
+        (player_avg['avg_sot_MA5'] >= MIN_AVG_SOT_MA5) & 
+        (player_avg['avg_min_MA5'] >= MIN_AVG_MIN_MA5)
     ]['player_id']
 
     # Filter the main DataFrame
@@ -62,19 +68,17 @@ def filter_data(df):
 
 def scale_and_save_stats(df):
     """
-    Scales features, saves the scaled data, and saves the scaler mean/std stats.
+    Scales features, saves the scaled data, and saves the scaler mean/std stats
+    to ensure live predictions use the exact same transformation.
     """
     logger.info("Scaling features and saving scaling statistics...")
     
-    # Initialize and fit the scaler on the data
+    # --- 1. Scaling ---
+    # Fit the scaler only on the features we care about
     scaler = StandardScaler()
     df[FEATURES_TO_SCALE] = scaler.fit_transform(df[FEATURES_TO_SCALE])
     
-    # -------------------------------------------------------------
-    # NEW STEP: Extract and Save Scaling Statistics (mu and sigma)
-    # -------------------------------------------------------------
-    
-    # Create a dictionary to hold the mean and std dev for each feature
+    # --- 2. Save Scaling Statistics (CRITICAL ARTIFACT) ---
     scaling_stats = {}
     for i, feature in enumerate(FEATURES_TO_SCALE):
         scaling_stats[feature] = {
@@ -82,18 +86,19 @@ def scale_and_save_stats(df):
             'std': scaler.scale_[i]
         }
 
-    # Save the statistics to a JSON file
     with open(SCALER_STATS_FILE, 'w') as f:
         json.dump(scaling_stats, f, indent=4)
         
     logger.info(f"Scaling statistics saved to {SCALER_STATS_FILE}.")
-    # -------------------------------------------------------------
 
-    # Save the final scaled data for the model training script (backtest_model.py)
+    # --- 3. Save Scaled Data ---
+    # Rename columns for clarity in the final training data
+    for feature in FEATURES_TO_SCALE:
+        df.rename(columns={feature: f'{feature}_scaled'}, inplace=True)
+        
     df.to_parquet(SCALED_DATA_FILE, index=False)
     logger.info(f"Scaled data saved to {SCALED_DATA_FILE}.")
     
-    # Return the scaled data for continuity, although the model script will reload it
     return df
 
 if __name__ == '__main__':
