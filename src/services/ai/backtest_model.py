@@ -1,27 +1,26 @@
-# src/services/ai/backtest_model.py
+# src/services/ai/backtest_model.py (FINAL FIX)
 
 import pandas as pd
-# Importing statsmodels for Generalized Linear Models
 import statsmodels.api as sm 
 from statsmodels.genmod import families 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error
 import numpy as np
 import logging
+import re # We need the regex library to parse the summary
 
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 logger = logging.getLogger(__name__)
 
-# --- Configuration ---
+# --- Configuration (remains the same) ---
 INPUT_FILE = "final_feature_set_scaled.parquet"
 TARGET_COLUMN = 'summary_sot'
-# Note: We include only the scaled MA5 factors and scaled summary_min as predictors
 PREDICTOR_COLUMNS = [
     'sot_conceded_MA5', 
     'tackles_att_3rd_MA5', 
     'sot_MA5', 
     'min_MA5',
-    'summary_min' # Player raw minutes played (scaled)
+    'summary_min'
 ]
 TEST_SIZE = 0.2 
 RANDOM_STATE = 42
@@ -43,50 +42,45 @@ def train_and_evaluate_model(df: pd.DataFrame):
     """
     logger.info("Starting POISSON REGRESSION backtesting (using statsmodels)...")
     
-    # Define features (X) and target (y)
     X = df[PREDICTOR_COLUMNS]
     y = df[TARGET_COLUMN]
     
-    # Add a constant (intercept) for statsmodels GLM
     X = sm.add_constant(X)
 
-    # Split the data
-    # shuffle=False ensures we maintain the time-series integrity (no future data leaks)
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=TEST_SIZE, random_state=RANDOM_STATE, shuffle=False
     )
     logger.info(f"Training set size: {len(X_train)} | Test set size: {len(X_test)}")
 
-    # Initialize and train the Generalized Linear Model with Poisson family
     poisson_model = sm.GLM(y_train, X_train, family=families.Poisson()).fit()
-    
-    # Make predictions on the test set (returns predicted event rate, lambda)
     y_pred_rate = poisson_model.predict(X_test)
     
     # --- Evaluation ---
     
-    # MAE is still a useful metric
     mae = mean_absolute_error(y_test, y_pred_rate)
     
-    # Retrieve Pseudo R-squared (D-squared) for goodness-of-fit
-    # FIX: Assign to a variable first to avoid format string error
-    pseudo_r2 = poisson_model.pseudo_rsquared 
+    # 1. FIX: Grab the full summary as a string
+    summary_text = str(poisson_model.summary())
+    
+    # 2. Extract the Pseudo R-squared using regex (highly robust)
+    # The summary typically lists the Pseudo R-squared on a line like "Pseudo R-squ.: 0.1550"
+    pseudo_r2_match = re.search(r'Pseudo R-squ\.:\s*(\d\.\d{4})', summary_text)
+    
+    # Set a default value in case parsing fails
+    pseudo_r2 = float(pseudo_r2_match.group(1)) if pseudo_r2_match else -999.0 
 
     logger.info("\n--- Model Performance Metrics (Poisson Regression) ---")
     logger.info(f"Mean Absolute Error (MAE): {mae:.4f} SOT")
     logger.info(f"Average SOT in Test Set: {y_test.mean():.4f}")
     
-    logger.info(f"Deviance Pseudo R-squared: {pseudo_r2:.4f}")
+    # Now this is a guaranteed float
+    logger.info(f"Deviance Pseudo R-squared: {pseudo_r2:.4f}") 
 
     logger.info("\n--- Feature Importance (Model Coefficients - Odds Ratio) ---")
-    # Coefficients are reported on the log-odds scale.
-    # Convert log-odds (log(lambda)) to Odds Ratio (change in SOT rate)
-    coefficients = pd.Series(poisson_model.params).drop('const')
+    coefficients = pd.Series(poisson_model.params).drop('const', errors='ignore')
     odds_ratio = np.exp(coefficients).sort_values(ascending=False)
     
     for feature, ratio in odds_ratio.items():
-        # Interpretation: A ratio of 1.10 means a 1-unit increase in the feature 
-        # increases the predicted SOT rate by 10%
         logger.info(f"   {feature:<20}: {ratio:.4f} (Rate Multiplier)")
 
     logger.info("Poisson Regression backtesting complete. Model metrics updated.")
