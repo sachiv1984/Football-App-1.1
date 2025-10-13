@@ -1,4 +1,4 @@
-# src/services/ai/backtest_processor.py (FINAL VERSION)
+# src/services/ai/backtest_processor.py
 
 import pandas as pd
 import numpy as np
@@ -38,26 +38,47 @@ def calculate_factors(df_player: pd.DataFrame, df_team_def: pd.DataFrame) -> pd.
     DEF_STATS = ['sot_conceded', 'tackles_att_3rd']
     DEF_COLS = ['team_name', 'match_date'] + DEF_STATS
     
-    # 2. Merge Player Data with HOME Team's Defense Stats
-    # Merge Key: ['home_team', 'match_date'] -> gives us the AWAY team's stats
-    logger.info("Merging with Home Team's defensive stats...")
+    # --- Prepare Defense DataFrames with explicit final column names ---
+    
+    # Defense stats for the AWAY team (when player is home)
+    df_opp_away = df_team_def[DEF_COLS].copy()
+    df_opp_away.rename(
+        columns={
+            'team_name': 'away_team', # Merge key
+            'sot_conceded': 'sot_conceded_opp_away_raw', # Final column name
+            'tackles_att_3rd': 'tackles_att_3rd_opp_away_raw' # Final column name
+        }, 
+        inplace=True
+    )
+    
+    # Defense stats for the HOME team (when player is away)
+    df_opp_home = df_team_def[DEF_COLS].copy()
+    df_opp_home.rename(
+        columns={
+            'team_name': 'home_team', # Merge key
+            'sot_conceded': 'sot_conceded_opp_home_raw', # Final column name
+            'tackles_att_3rd': 'tackles_att_3rd_opp_home_raw' # Final column name
+        }, 
+        inplace=True
+    )
+    
+    # 2. Merge Player Data with the renamed Defense Stats (Opponent-is-Away)
+    logger.info("Merging with Away Team's defensive stats (Opponent-is-Away)...")
     df_merged = pd.merge(
         df_player,
-        df_team_def[DEF_COLS].rename(columns={'team_name': 'home_team'}),
-        on=['home_team', 'match_date'],
-        how='left',
-        suffixes=('_player', '_opp_away_raw')
+        df_opp_away, # Already renamed
+        on=['away_team', 'match_date'],
+        how='left'
     )
 
-    # 3. Merge Player Data with AWAY Team's Defense Stats
-    # Merge Key: ['away_team', 'match_date'] -> gives us the HOME team's stats
-    logger.info("Merging with Away Team's defensive stats...")
+    # 3. Merge Player Data with the renamed Defense Stats (Opponent-is-Home)
+    logger.info("Merging with Home Team's defensive stats (Opponent-is-Home)...")
     df_merged = pd.merge(
         df_merged,
-        df_team_def[DEF_COLS].rename(columns={'team_name': 'away_team'}),
-        on=['away_team', 'match_date'],
-        how='left',
-        suffixes=('_temp', '_opp_home_raw')
+        df_opp_home, # Already renamed
+        on=['home_team', 'match_date'],
+        how='left'
+        # No suffixes needed here because we renamed columns beforehand
     )
 
     # 4. Consolidate Opponent Factors into single columns
@@ -65,21 +86,23 @@ def calculate_factors(df_player: pd.DataFrame, df_team_def: pd.DataFrame) -> pd.
     
     # Determine the opponent's stats based on the player's team side
     for stat in DEF_STATS:
-        home_col = f'{stat}_opp_home_raw'
+        # These columns must now exist due to the explicit renaming above
         away_col = f'{stat}_opp_away_raw'
+        home_col = f'{stat}_opp_home_raw'
         final_col = f'{stat}_opp_raw' # New base raw column name
 
         conditions = [
-            (df_merged['team_side'] == 'home'), # If player was home, use away team's stats (opp_away_raw)
-            (df_merged['team_side'] == 'away')  # If player was away, use home team's stats (opp_home_raw)
+            # If player was HOME, the opponent was AWAY. Use AWAY team's stats.
+            (df_merged['team_side'] == 'home'), 
+            # If player was AWAY, the opponent was HOME. Use HOME team's stats.
+            (df_merged['team_side'] == 'away') 
         ]
         
         choices = [
-            df_merged[away_col], # Use stats for the team playing AWAY
-            df_merged[home_col]  # Use stats for the team playing HOME
+            df_merged[away_col], 
+            df_merged[home_col] 
         ]
         
-        # Use np.select to pick the correct opponent statistic
         df_merged[final_col] = np.select(conditions, choices, default=np.nan)
     
     # 5. Determine the opponent's name (for the final output and P-Factor calculations later)
@@ -98,16 +121,15 @@ def calculate_factors(df_player: pd.DataFrame, df_team_def: pd.DataFrame) -> pd.
         df_merged[ma_col] = (
             df_merged
             .groupby('opponent')[raw_col]
-            # closed='left' ensures the window excludes the current row's data (no data leakage)
             .transform(lambda x: x.rolling(window=5, min_periods=1, closed='left').mean())
         )
     
     # 7. Final Cleanup
-    # Drop all temporary raw columns and the home/away team columns now that we have the opponent name
     cols_to_drop = [
         col for col in df_merged.columns 
         if col.endswith('_opp_home_raw') or col.endswith('_opp_away_raw') or col.endswith('_opp_raw')
     ]
+    # Keep 'opponent' as it's needed for the final DataFrame
     df_merged = df_merged.drop(columns=cols_to_drop + ['home_team', 'away_team'])
     
     logger.info("O-Factors calculated and ready for the final backtesting step.")
@@ -121,12 +143,8 @@ if __name__ == '__main__':
         logger.error("Cannot proceed with processing: Raw data is empty.")
         exit(1)
     
-    # Step 1: Merge Data and Calculate Rolling Opponent Factors
-    # Note: We now combine opponent determination and factor calculation into one step
     df_final_features = calculate_factors(df_player_raw, df_team_def_raw)
     
-    # Step 2: Save the final feature set
     output_file = "final_feature_set.parquet"
     df_final_features.to_parquet(output_file, index=False)
     logger.info(f"Process complete. Final feature set saved to {output_file} with shape: {df_final_features.shape}")
-
