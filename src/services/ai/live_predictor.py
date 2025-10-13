@@ -163,7 +163,7 @@ def get_live_gameweek_features(df_processed: pd.DataFrame) -> pd.DataFrame:
     # 1. Filter for all scheduled games
     scheduled_games = df_processed[df_processed['status'] == 'scheduled']
     
-    # --- CONSOLE LOGGING ADDED FOR DEBUGGING ---
+    # --- CONSOLE LOGGING FOR DEBUGGING ---
     if scheduled_games.empty:
         logger.warning("No rows found with status='scheduled'. Check your Supabase data.")
         return pd.DataFrame()
@@ -190,4 +190,90 @@ def get_live_gameweek_features(df_processed: pd.DataFrame) -> pd.DataFrame:
     REQUIRED_MA5_COLUMNS = [f'{col}_MA5' for col in MA5_METRICS + OPP_METRICS]
     initial_rows = len(df_live)
     df_live.dropna(subset=REQUIRED_MA5_COLUMNS, inplace=True)
-    logger.info(f"Dropped {initial_rows - len(df_live)} players
+    
+    # FIX: Corrected SyntaxError by ensuring the f-string is closed.
+    logger.info(f"Dropped {initial_rows - len(df_live)} players with insufficient historical data.")
+    
+    df_live.rename(columns={'min': 'summary_min'}, inplace=True)
+    return df_live
+
+def load_artifacts():
+    """Loads the trained model and the required scaling statistics."""
+    logger.info("Loading model and scaling statistics...")
+    with open(MODEL_FILE, 'rb') as f:
+        model = pickle.load(f)
+    with open(SCALER_STATS_FILE, 'r') as f:
+        stats_dict = json.load(f)
+    scaler_data = pd.DataFrame(stats_dict).T
+    return model, scaler_data
+
+def scale_live_data(df_raw, scaler_data):
+    """Standardizes the live MA5 feature data using training stats."""
+    df_features = df_raw.copy()
+    scaled_feature_stems = [col for col in scaler_data.index if col != 'summary_min']
+    for feature_stem in scaled_feature_stems:
+        raw_col = feature_stem
+        scaled_col = f'{feature_stem}_scaled'
+        mu = scaler_data.loc[raw_col, 'mean']
+        sigma = scaler_data.loc[raw_col, 'std']
+        df_features[scaled_col] = (df_features[raw_col] - mu) / sigma
+    final_features = df_features[PREDICTOR_COLUMNS]
+    final_features = sm.add_constant(final_features, has_constant='add') 
+    return final_features
+
+def run_predictions(model, df_features_scaled, df_raw):
+    """Generates predictions and calculates probabilities."""
+    logger.info(f"Generating predictions for {len(df_raw)} players...")
+    df_raw['E_SOT'] = model.predict(df_features_scaled)
+    df_raw['P_SOT_1_Plus'] = 1 - np.exp(-df_raw['E_SOT'])
+    report = df_raw.sort_values(by='P_SOT_1_Plus', ascending=False)
+    final_report = report[[
+        'player_id', 'player_name', 'team_name', 'opponent_team', 
+        'E_SOT', 'P_SOT_1_Plus', 'summary_min', 'match_datetime'
+    ]].rename(columns={'summary_min': 'expected_minutes', 'team_name': 'team', 'opponent_team': 'opponent'}).round(3)
+    final_report.to_csv(PREDICTION_OUTPUT, index=False)
+    logger.info(f"Prediction report saved to {PREDICTION_OUTPUT}. Top 5 recommendations:")
+    logger.info("\n" + final_report.head(5).to_string(index=False))
+    return final_report
+
+def main():
+    logger.info("--- Starting Live Prediction Service ---")
+    
+    # 1. Load Model Artifacts
+    try:
+        model, scaler_data = load_artifacts()
+    except FileNotFoundError as e:
+        logger.critical(f"💥 Failed to load model artifacts: {e}. Check that '{MODEL_FILE}' and '{SCALER_STATS_FILE}' are accessible via the path set in ARTIFACT_PATH.")
+        return
+    except Exception as e:
+        logger.error(f"An error occurred while loading artifacts: {e}")
+        return
+
+    # 2. Fetch and Process All Data
+    df_combined_raw = load_and_merge_raw_data()
+    if df_combined_raw.empty:
+        return
+
+    df_processed = calculate_ma5_factors(df_combined_raw)
+    
+    # 3. Filter for Next Gameweek's Live Features
+    df_live_raw = get_live_gameweek_features(df_processed)
+    
+    # ⚠️ Safely create an empty output file if no predictions are made
+    if df_live_raw.empty:
+        logger.warning("Exiting: No scheduled games or players with sufficient history were processed. Creating empty report file.")
+        empty_cols = ['player_id', 'player_name', 'team_name', 'opponent_team', 'E_SOT', 'P_SOT_1_Plus', 'expected_minutes', 'match_datetime']
+        empty_report = pd.DataFrame(columns=empty_cols)
+        empty_report.to_csv(PREDICTION_OUTPUT, index=False)
+        return
+        
+    # 4. Scale Live Features
+    df_scaled_input = scale_live_data(df_live_raw, scaler_data)
+    
+    # 5. Run Prediction and Save Report
+    run_predictions(model, df_scaled_input, df_live_raw)
+    
+    logger.info("--- Live Prediction Service Complete ---")
+
+if __name__ == '__main__':
+    main()
