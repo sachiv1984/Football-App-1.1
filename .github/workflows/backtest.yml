@@ -1,4 +1,4 @@
-name: Backtest SOT Model
+Name: Backtest SOT Model
 
 on:
   # This section is updated to only include workflow_dispatch,
@@ -129,3 +129,4 @@ jobs:
         path: |
           final_feature_set_scaled.parquet
           poisson_model.pkl
+          training_stats.json # <--- ADDED THE CRUCIAL SCALING ARTIFACT HERE
