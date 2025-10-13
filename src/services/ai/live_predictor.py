@@ -272,20 +272,18 @@ def get_live_gameweek_features(df_processed: pd.DataFrame) -> pd.DataFrame:
     logger.info(f"Dropped {initial_rows - len(df_live)} players with insufficient historical data.")
     
     # 5. FINAL FIX: Impute the prediction input feature ('summary_min') using the MA5 average of minutes ('min_MA5').
-    # This ensures a non-NaN value that is based on the player's recent playing history.
-    # The 'min' column is the raw minutes for the current game, which is NaN. We need to create 'summary_min'.
-    
-    # Create the required final input column 'summary_min' and set it equal to the MA5 minute average.
+    # The 'min_MA5' column is the rolling average of minutes played, which is the best proxy for expected minutes.
+    # The final input column needed by the model is 'summary_min'.
     df_live['summary_min'] = df_live['min_MA5']
     
     
     # *** NEW DEBUGGING STEP: Show the input data for the few remaining players ***
     if not df_live.empty:
-        # Adjusted log_cols: 'summary_min' is now correctly imputed from 'min_MA5'
+        # The MA5 columns must reference the name used for calculation ('min_MA5')
         log_cols_ma5 = [f'{col}_MA5' for col in ['sot_conceded', 'tackles_att_3rd', 'sot', 'min']] 
         log_cols = ['player_name', 'summary_min'] + log_cols_ma5
         
-        # Check which logging columns exist (raw columns are intentionally omitted as they are NaN)
+        # Check which logging columns exist
         existing_log_cols = [col for col in log_cols if col in df_live.columns]
 
         logger.info("\nRaw Features for Players Being Predicted (Imputed 'summary_min' should equal 'min_MA5'):")
