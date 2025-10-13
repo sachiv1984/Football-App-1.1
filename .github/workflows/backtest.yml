@@ -129,4 +129,4 @@ jobs:
         path: |
           final_feature_set_scaled.parquet
           poisson_model.pkl
-          training_stats.json # <--- ADDED THE CRUCIAL SCALING ARTIFACT HERE
+          training_stats.json
