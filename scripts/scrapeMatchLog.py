@@ -55,18 +55,18 @@ class FBRAPIScraper:
             return False
         return self.extract_match_id_from_url(url) is not None
     
-    # 🚨 UPDATED: Added match metadata to the insertion
-    def mark_as_scraped(self, match_url, datetime_str, hometeam, awayteam, venue):
-        """Mark a match as scraped in the database"""
+    # 🔄 UPDATED: Renamed argument to dt_str and using UPSERT on match_url
+    def mark_as_scraped(self, match_url, dt_str, hometeam, awayteam, venue):
+        """Mark a match as scraped (or update if already exists) in the database"""
         try:
-            supabase.table('scraped_matches').insert({
+            supabase.table('scraped_matches').upsert({
                 'match_url': match_url,
-                'match_datetime': datetime_str,
+                'match_datetime': dt_str, # Use the renamed variable
                 'home_team': hometeam,
                 'away_team': awayteam,
                 'venue': venue,
                 'scraped_at': datetime.now().isoformat()
-            }).execute()
+            }, on_conflict='match_url').execute() # UPSERT on the unique match_url
         except Exception as e:
             print(f"Error marking as scraped: {e}")
     
@@ -91,7 +91,6 @@ class FBRAPIScraper:
             print(f"Error fetching match {match_id}: {e}")
             return None
     
-    # 🚨 UPDATED: New arguments added to the method signature
     def parse_match_data(self, match_data, match_url, fixture_id, datetime_str, hometeam, awayteam, venue):
         """Parse API response into DataFrame, including match metadata"""
         all_players = []
@@ -104,14 +103,14 @@ class FBRAPIScraper:
                 meta = player_entry.get('meta_data', {})
                 stats = player_entry.get('stats', {})
                 
-                # Base metadata - 🚨 UPDATED: Added new metadata fields
+                # Base metadata - Includes new fields
                 player_data = {
                     'fixture_id': fixture_id,
                     'match_url': match_url,
-                    'match_datetime': datetime_str,  # New field
-                    'home_team': hometeam,           # New field
-                    'away_team': awayteam,           # New field
-                    'venue': venue,                  # New field
+                    'match_datetime': datetime_str,  
+                    'home_team': hometeam,           
+                    'away_team': awayteam,           
+                    'venue': venue,                  
                     'team_name': team_name,
                     'team_side': home_away,
                     'player_id': meta.get('player_id'),
@@ -135,23 +134,24 @@ class FBRAPIScraper:
         
         return pd.DataFrame(all_players) if all_players else None
     
+    # 🔄 UPDATED: Using UPSERT on (fixture_id, player_id)
     def save_to_supabase(self, df, table_name='player_match_stats'):
-        """Save DataFrame to Supabase with proper NaN handling"""
+        """Save DataFrame to Supabase using UPSERT for uniqueness"""
         if df is None or df.empty:
             print("⚠️ No data to save")
             return
         
         try:
             # CRITICAL: Replace NaN values with None (NULL in database)
-            # Use 'fillna' for better compatibility with mixed types before converting to records
             df = df.replace({pd.NA: None, float('nan'): None, np.nan: None})
             
             # Convert DataFrame to records
             records = df.to_dict('records')
             
-            print(f"Preparing to insert {len(records)} player records...")
+            print(f"Preparing to UPSERT {len(records)} player records...")
             
-            # Insert in batches
+            # Define conflict columns for player stats (Prevents duplicates)
+            conflict_columns = ['fixture_id', 'player_id']
             batch_size = 100
             successful_inserts = 0
             
@@ -159,25 +159,31 @@ class FBRAPIScraper:
                 batch = records[i:i + batch_size]
                 
                 try:
-                    supabase.table(table_name).insert(batch).execute()
+                    # Use UPSERT
+                    supabase.table(table_name).upsert(
+                        batch, 
+                        on_conflict=conflict_columns
+                    ).execute()
                     successful_inserts += len(batch)
-                    print(f"✅ Batch {i//batch_size + 1}: {len(batch)} records (Total: {successful_inserts}/{len(records)})")
+                    print(f"✅ Batch {i//batch_size + 1}: {len(batch)} records UPSERTED (Total: {successful_inserts}/{len(records)})")
                 except Exception as batch_error:
                     print(f"❌ Error in batch {i//batch_size + 1}: {batch_error}")
                     
                     # Try inserting one by one to find problematic record
-                    print(f"Attempting individual inserts...")
+                    print(f"Attempting individual UPSERTs...")
                     for record in batch:
                         try:
-                            supabase.table(table_name).insert([record]).execute()
+                            supabase.table(table_name).upsert(
+                                [record], 
+                                on_conflict=conflict_columns
+                            ).execute()
                             successful_inserts += 1
                         except Exception as single_error:
-                            # Note: Supabase error messages are often long. Keep the print concise.
                             error_summary = str(single_error).split('\n')[0].strip()
                             print(f"❌ Failed: {record.get('player_name', 'Unknown')} - {error_summary}")
             
             print(f"\n{'='*50}")
-            print(f"✅ Successfully inserted {successful_inserts}/{len(records)} records")
+            print(f"✅ Successfully UPSERTED {successful_inserts}/{len(records)} records")
             print(f"{'='*50}\n")
                     
         except Exception as e:
@@ -190,7 +196,7 @@ class FBRAPIScraper:
         try:
             print("="*50)
             
-            # 🚨 UPDATED: Selects new metadata fields
+            # Step 1: Get all fixtures with URLs and the new metadata
             response = supabase.table('fixtures').select(
                 'id, matchurl, datetime, hometeam, awayteam, venue'
             ).execute()
@@ -245,7 +251,6 @@ class FBRAPIScraper:
             scraped_success = 0
             failed = 0
             
-            # 🚨 UPDATED: Unpack all 6 fields from the to_scrape list
             for fixture_id, url, datetime_str, hometeam, awayteam, venue in to_scrape:
                 match_id = self.extract_match_id_from_url(url)
                 print(f"\nScraping fixture {fixture_id}, match ID: {match_id}")
@@ -253,7 +258,6 @@ class FBRAPIScraper:
                 match_data = self.get_match_players_stats(match_id)
                 
                 if match_data:
-                    # 🚨 UPDATED: Pass all new fields to the parse_match_data method
                     df = self.parse_match_data(
                         match_data, 
                         url, 
@@ -266,7 +270,6 @@ class FBRAPIScraper:
                     
                     if df is not None and not df.empty:
                         self.save_to_supabase(df)
-                        # 🚨 UPDATED: Pass all new fields to the mark_as_scraped method
                         self.mark_as_scraped(url, datetime_str, hometeam, awayteam, venue)
                         scraped_success += 1
                         print(f"✅ Success: {len(df)} players for fixture {fixture_id}")
