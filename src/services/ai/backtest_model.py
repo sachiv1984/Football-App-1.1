@@ -37,10 +37,17 @@ def train_and_evaluate_model(df):
     y_pred = model.predict(X)
 
     # Metrics
-    pseudo_r2 = model.prsquared
+    # For GLM, use llf (log-likelihood) to calculate pseudo R-squared manually
+    # McFadden's Pseudo R-squared = 1 - (llf / llnull)
+    llf = model.llf
+    llnull = model.llnull
+    pseudo_r2 = 1 - (llf / llnull)
+    
     rmse = np.sqrt(mean_squared_error(y, y_pred))
 
-    logger.info(f"Pseudo R-squared: {pseudo_r2:.4f}")
+    logger.info(f"Pseudo R-squared (McFadden): {pseudo_r2:.4f}")
+    logger.info(f"Log-Likelihood: {llf:.2f}")
+    logger.info(f"Null Log-Likelihood: {llnull:.2f}")
     logger.info(f"RMSE: {rmse:.4f}")
 
     logger.info("Feature Odds Ratios:")
