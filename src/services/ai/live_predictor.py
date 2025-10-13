@@ -1,4 +1,4 @@
-import pandas as pd
+limport pandas as pd
 import numpy as np
 import pickle
 import statsmodels.api as sm
@@ -19,8 +19,8 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") 
 
 # --- AI Artifacts and Model Configuration ---
+# IMPORTANT: Adjust this path if you moved your artifacts to a sub-folder
 ARTIFACT_PATH = "" 
-# If you moved your artifacts, adjust the path (e.g., ARTIFACT_PATH = "src/services/ai/artifacts/")
 
 MODEL_FILE = ARTIFACT_PATH + "poisson_model.pkl"
 SCALER_STATS_FILE = ARTIFACT_PATH + "training_stats.json" 
@@ -63,12 +63,12 @@ def fetch_all_data_from_supabase(table_name: str, select_columns: str = "*", ord
 def load_and_merge_raw_data() -> pd.DataFrame:
     """Fetches and merges player, team defense, and fixture data."""
     
-    # 1. Fetch Fixtures Data (Source of status and matchweek) 🎯 FIX APPLIED HERE
-    fixture_cols = "datetime, hometeam, awayteam, matchweek, status" # <-- CORRECTED COLUMN NAME
+    # 1. Fetch Fixtures Data (Source of status and matchweek) 🎯 FINAL COLUMN NAME FIX: 'datetime'
+    fixture_cols = "datetime, hometeam, awayteam, matchweek, status" 
     df_fixtures = fetch_all_data_from_supabase(
         table_name="fixtures", 
         select_columns=fixture_cols,
-        order_by_column="datetime" # <-- CORRECTED SORT COLUMN NAME
+        order_by_column="datetime" # Sorting by the 'datetime' column
     ).rename(columns={'hometeam': 'home_team', 'awayteam': 'away_team'})
     
     # Convert to datetime and create the 'match_date' (date-only) column for merging
@@ -114,7 +114,6 @@ def load_and_merge_raw_data() -> pd.DataFrame:
     # 5. Join with Fixtures Data to get Status and Matchweek
     df_final = pd.merge(
         df_combined,
-        # Only select the necessary columns for the merge
         df_fixtures[['match_date', 'home_team', 'away_team', 'matchweek', 'status']], 
         on=['match_date', 'home_team', 'away_team'],
         how='left'
@@ -125,9 +124,8 @@ def load_and_merge_raw_data() -> pd.DataFrame:
     
     return df_final
 
-# --- All other functions (MA5 calculation, scaling, prediction) are unchanged and work correctly with this data structure ---
-
 def calculate_ma5_factors(df: pd.DataFrame) -> pd.DataFrame:
+    """Calculates all Player (P-Factors) and Opponent (O-Factors) MA5 metrics."""
     df_processed = df.copy()
     df_processed.rename(columns={'summary_sot': 'sot', 'summary_min': 'min'}, inplace=True)
     for col in MA5_METRICS:
@@ -148,10 +146,13 @@ def calculate_ma5_factors(df: pd.DataFrame) -> pd.DataFrame:
     return df_processed
 
 def get_live_gameweek_features(df_processed: pd.DataFrame) -> pd.DataFrame:
+    """Filters the processed data to get the features for the next scheduled gameweek."""
     scheduled_games = df_processed[df_processed['status'] == 'scheduled']
     if scheduled_games.empty:
-        logger.info("No upcoming fixtures found in Supabase.")
+        # If no games are 'scheduled', it means everything might be 'finished' or 'postponed'
+        logger.warning("No rows found with status='scheduled'. Check your Supabase data.")
         return pd.DataFrame()
+        
     next_gameweek = scheduled_games['matchweek'].min()
     logger.info(f"Targeting predictions for Gameweek {next_gameweek}.")
     df_live = scheduled_games[scheduled_games['matchweek'] == next_gameweek].copy()
@@ -203,6 +204,8 @@ def run_predictions(model, df_features_scaled, df_raw):
 
 def main():
     logger.info("--- Starting Live Prediction Service ---")
+    
+    # 1. Load Model Artifacts
     try:
         model, scaler_data = load_artifacts()
     except FileNotFoundError as e:
@@ -212,17 +215,29 @@ def main():
         logger.error(f"An error occurred while loading artifacts: {e}")
         return
 
+    # 2. Fetch and Process All Data
     df_combined_raw = load_and_merge_raw_data()
     if df_combined_raw.empty:
         return
 
     df_processed = calculate_ma5_factors(df_combined_raw)
+    
+    # 3. Filter for Next Gameweek's Live Features
     df_live_raw = get_live_gameweek_features(df_processed)
+    
+    # ⚠️ FIX: Safely create an empty output file if no predictions are made
     if df_live_raw.empty:
-        logger.info("Exiting as no scheduled games were processed.")
+        logger.warning("Exiting: No scheduled games or players with sufficient history were processed. Creating empty report file.")
+        empty_cols = ['player_id', 'player_name', 'team_name', 'opponent_team', 'E_SOT', 'P_SOT_1_Plus', 'expected_minutes', 'match_datetime']
+        empty_report = pd.DataFrame(columns=empty_cols)
+        empty_report.to_csv(PREDICTION_OUTPUT, index=False)
+        # This allows the workflow's artifact upload step to succeed
         return
         
+    # 4. Scale Live Features
     df_scaled_input = scale_live_data(df_live_raw, scaler_data)
+    
+    # 5. Run Prediction and Save Report
     run_predictions(model, df_scaled_input, df_live_raw)
     
     logger.info("--- Live Prediction Service Complete ---")
