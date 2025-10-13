@@ -1,4 +1,4 @@
-Name: Live SOT Prediction Service
+name: Live SOT Prediction Service
 
 on:
   # Allows manual running from the GitHub Actions UI
@@ -40,4 +40,3 @@ jobs:
         path: gameweek_sot_recommendations.csv
         # Optional: Set a retention period (e.g., 7 days)
         retention-days: 7
-
