@@ -1,4 +1,4 @@
-# src/services/ai/player_factor_engineer.py
+# src/services/ai/player_factor_engineer.py - Revised
 
 import pandas as pd
 import numpy as np
@@ -23,26 +23,44 @@ def load_features() -> pd.DataFrame:
         logger.error(f"File not found: {INPUT_FILE}. Ensure backtest_processor.py ran successfully.")
         exit(1)
 
+def prepare_data(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Renames the summary columns to the expected model target/feature names.
+    This resolves the 'sot' KeyError in backtest_model.py.
+    """
+    logger.info("Renaming raw target column 'summary_sot' to 'sot'...")
+    
+    # 1. Rename raw SOT to the expected Target Column Name ('sot')
+    if 'summary_sot' in df.columns:
+        df.rename(columns={'summary_sot': 'sot'}, inplace=True)
+    else:
+        logger.warning("'summary_sot' not found. Check previous script's output.")
+        
+    # 2. Ensure min is also renamed if that's the raw column name
+    if 'summary_min' in df.columns:
+        df.rename(columns={'summary_min': 'min'}, inplace=True)
+    
+    # 3. Sort for time-series calculation
+    df = df.sort_values(by=['player_id', 'match_datetime']).reset_index(drop=True)
+    
+    return df
+
 def calculate_p_factors(df: pd.DataFrame) -> pd.DataFrame:
     """
     Calculates Player-specific rolling historical factors (P-Factors).
+    The raw columns 'sot' and 'min' are now expected to be present.
     """
     logger.info("Starting calculation of Player-specific Factors (P-Factors)...")
     
-    # 1. Ensure data is sorted for accurate time-series calculation
-    # Sort by player, then by match date, to ensure we calculate the rolling average
-    # based only on prior matches for that specific player.
-    df = df.sort_values(by=['player_id', 'match_datetime']).reset_index(drop=True)
-    
-    # 2. Define the metrics to track for the player
+    # Define the metrics to track for the player (using the new, simpler names)
     PLAYER_METRICS = {
-        'summary_sot': 'sot_MA5',
-        'summary_min': 'min_MA5'
+        'sot': 'sot_MA5', # Raw SOT
+        'min': 'min_MA5'  # Raw Minutes
     }
     
-    # 3. Calculate Rolling Averages (MA5)
+    # Calculate Rolling Averages (MA5)
     for raw_col, new_col in PLAYER_METRICS.items():
-        logger.info(f"Calculating rolling 5-match average for {raw_col}...")
+        logger.info(f"Calculating rolling {MIN_PERIODS}-match average for {raw_col}...")
         
         # Group by 'player_id' and apply the rolling transformation
         df[new_col] = (
@@ -53,26 +71,16 @@ def calculate_p_factors(df: pd.DataFrame) -> pd.DataFrame:
         )
         
     logger.info("P-Factors calculated successfully.")
+    
+    # NOTE: The drop_nan_factors function is not needed here as it was in the old code.
+    # It will be handled by the feature_scaling.py script.
     return df
-
-def drop_nan_factors(df: pd.DataFrame) -> pd.DataFrame:
-    """Drops rows where the O-Factors or P-Factors are still NaN."""
-    # We drop NaNs that result from the *combination* of P-Factors and O-Factors.
-    # The minimum required columns are the O-Factors and the new P-Factors.
-    REQUIRED_FACTORS = ['sot_conceded_MA5', 'tackles_att_3rd_MA5', 'sot_MA5', 'min_MA5']
-    
-    initial_rows = len(df)
-    df_clean = df.dropna(subset=REQUIRED_FACTORS).copy()
-    
-    rows_dropped = initial_rows - len(df_clean)
-    logger.info(f"Dropped an additional {rows_dropped} rows where factors were NaN.")
-    logger.info(f"Final data shape for modeling: {df_clean.shape}")
-    return df_clean
 
 if __name__ == '__main__':
     df_features = load_features()
+    df_features = prepare_data(df_features) # New step to standardize column names
     df_features = calculate_p_factors(df_features)
     
-    # Save the file containing both O-Factors and P-Factors
+    # Save the file containing both O-Factors, P-Factors, and the target 'sot'
     df_features.to_parquet(OUTPUT_FILE, index=False)
     logger.info(f"Feature engineering complete. Data saved to {OUTPUT_FILE}")
