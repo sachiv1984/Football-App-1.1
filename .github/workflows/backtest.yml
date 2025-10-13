@@ -28,19 +28,19 @@ jobs:
         SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       run: |
         echo "Running data_loader.py to pull data from Supabase..."
-        # 🎯 FIX: Correctly reference the file in its nested path
+        # Correct path for data_loader.py
         python src/services/ai/data_loader.py
         
     - name: Upload Data Artifacts 📤
       uses: actions/upload-artifact@v4
       with:
         name: raw-backtest-data
-        # Ensure these files are saved to the current working directory by data_loader.py
         path: |
           player_data_raw.parquet
           team_def_data_raw.parquet
         
-  # --- Separate Job for Processing ---
+# ---------------------------------------------------------------------
+
   process_data:
     name: 2. Process and Backtest
     needs: load_data # This job runs ONLY after 'load_data' succeeds
@@ -64,5 +64,5 @@ jobs:
     - name: Run Backtest Processor Script
       run: |
         echo "Running backtest_processor.py to merge and calculate factors..."
-        # Assuming your next file is at the root or you need to adjust this path too!
-        python backtest_processor.py 
+        # Correct path for backtest_processor.py
+        python src/services/ai/backtest_processor.py 
