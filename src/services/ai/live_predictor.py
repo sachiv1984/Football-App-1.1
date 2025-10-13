@@ -20,7 +20,7 @@ SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
 # --- AI Artifacts and Model Configuration ---
 # IMPORTANT: Adjust this path if you moved your artifacts to a sub-folder
-ARTIFACT_PATH = "" 
+ARTIFACT_PATH = "artifacts/" # <--- RECOMMENDED FIX IS HERE 🛠️
 
 MODEL_FILE = ARTIFACT_PATH + "poisson_model.pkl"
 SCALER_STATS_FILE = ARTIFACT_PATH + "training_stats.json" 
@@ -209,7 +209,8 @@ def main():
     try:
         model, scaler_data = load_artifacts()
     except FileNotFoundError as e:
-        logger.critical(f"💥 Failed to load model artifacts: {e}. Check that '{MODEL_FILE}' and '{SCALER_STATS_FILE}' are in the same directory as this script.")
+        # This error is now more likely to be fixed by the ARTIFACT_PATH change
+        logger.critical(f"💥 Failed to load model artifacts: {e}. Check that '{MODEL_FILE}' and '{SCALER_STATS_FILE}' are accessible via the path set in ARTIFACT_PATH.")
         return
     except Exception as e:
         logger.error(f"An error occurred while loading artifacts: {e}")
