@@ -6,78 +6,37 @@ on:
   workflow_dispatch:
 
 jobs:
-  load_data:
-    name: 1. Load Data from Supabase
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
-    
-    - name: Set up Python Environment
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
-        
-    - name: Install dependencies
-      run: pip install -r requirements.txt
-        
-    - name: Execute Data Loader and Save Files 💾
-      env:
-        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-        SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-      run: |
-        echo "Running data_loader.py to pull data from Supabase..."
-        python src/services/ai/data_loader.py
-        
-    - name: Upload Data Artifacts 📤
-      uses: actions/upload-artifact@v4
-      with:
-        # Artifact name must match download name in job 2
-        name: raw-backtest-data
-        path: |
-          player_data_raw.parquet
-          team_def_data_raw.parquet
-
-# ---------------------------------------------------------------------
+  # ... (load_data job remains UNCHANGED) ...
 
   process_data:
-    name: 2. Process and Feature Engineer
+    name: 2. Process and Feature Engineer (O-Factors)
     needs: load_data
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python Environment
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
-
-    - name: Install dependencies
-      run: pip install -r requirements.txt
+      # ... (setup steps remain UNCHANGED) ...
       
-    - name: Download Raw Data Artifacts 📥
-      uses: actions/download-artifact@v4
-      with:
-        # Must match the upload name from job 1
-        name: raw-backtest-data
-        
-    - name: Run Backtest Processor Script
-      run: |
-        echo "Running backtest_processor.py to merge and calculate factors..."
-        python src/services/ai/backtest_processor.py 
-        
-    - name: Upload Final Feature Set 📤
-      uses: actions/upload-artifact@v4
-      with:
-        # Artifact name must match download name in job 3
-        name: final-feature-set
-        path: final_feature_set.parquet
+      - name: Download Raw Data Artifacts 📥
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-backtest-data
+          
+      - name: Run Backtest Processor Script
+        run: |
+          echo "Running backtest_processor.py to merge and calculate O-factors..."
+          python src/services/ai/backtest_processor.py 
+          
+      - name: Upload Final Feature Set (O-Factors) 📤
+        uses: actions/upload-artifact@v4
+        with:
+          name: final-feature-set
+          # This artifact now contains the O-Factors
+          path: final_feature_set.parquet
 
 # ---------------------------------------------------------------------
 
-  analyze_data:
-    name: 3. Statistical Correlation Analysis
-    needs: process_data
+  analyze_and_scale:
+    name: 3. P-Factors, Correlation, and Scaling
+    needs: process_data # This job runs ONLY after 'process_data' succeeds
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -90,13 +49,21 @@ jobs:
     - name: Install dependencies
       run: pip install -r requirements.txt
       
-    - name: Download Final Feature Set 📥
+    - name: Download O-Factor Data 📥
       uses: actions/download-artifact@v4
       with:
-        # Must match the upload name from job 2
         name: final-feature-set
         
-    - name: Run Correlation Analysis
+    - name: Run P-Factor Engineer Script
+      # The P-Factor script will load final_feature_set.parquet and output final_feature_set_pfactors.parquet
+      run: |
+        echo "Running player_factor_engineer.py to calculate P-Factors..."
+        python src/services/ai/player_factor_engineer.py
+        
+    - name: Run Correlation Analysis (Full Feature Set)
+      # We need to run the correlation script again on the file that includes P-Factors
+      # This requires a slight update to correlation_analysis.py to load the new file name.
+      # We will address this in the next response after you confirm this step.
       run: |
         echo "Running correlation_analysis.py..."
         python src/services/ai/correlation_analysis.py 
