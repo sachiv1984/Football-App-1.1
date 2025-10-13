@@ -12,11 +12,10 @@ def load_raw_data() -> tuple[pd.DataFrame, pd.DataFrame]:
     logger.info("Loading raw Parquet files...")
     
     try:
-        # Files are downloaded by GitHub Actions into the working directory
         df_player = pd.read_parquet("player_data_raw.parquet")
         df_team_def = pd.read_parquet("team_def_data_raw.parquet")
         
-        # 🎯 FIX: Ensure match_date is a clean datetime object (time set to midnight) for reliable merging
+        # FIX: Ensure match_date is a clean datetime object (time set to midnight) for reliable merging
         df_player['match_date'] = pd.to_datetime(df_player['match_date']).dt.normalize()
         df_team_def['match_date'] = pd.to_datetime(df_team_def['match_date']).dt.normalize()
         
@@ -35,27 +34,21 @@ def determine_opponent(df_player: pd.DataFrame) -> pd.DataFrame:
     """
     logger.info("Determining opponent teams using home/away columns...")
     
-    # Define the logic using NumPy's select for fast, vectorized conditional assignment
     conditions = [
-        # Condition 1: If player's team is the HOME team, the opponent is the AWAY team
         (df_player['team_name'] == df_player['home_team']),
-        # Condition 2: If player's team is the AWAY team, the opponent is the HOME team
         (df_player['team_name'] == df_player['away_team'])
     ]
     
     choices = [
-        df_player['away_team'], # Result for Condition 1
-        df_player['home_team']  # Result for Condition 2
+        df_player['away_team'], 
+        df_player['home_team']  
     ]
     
     df_player['opponent'] = np.select(conditions, choices, default=np.nan)
-    
-    # Clean up any records where the player's team name didn't match either home or away
     df_player.dropna(subset=['opponent'], inplace=True)
     
     logger.info(f"Successfully determined opponents for {len(df_player)} records.")
     
-    # Clean up columns that are no longer needed for the final feature set
     df_player = df_player.drop(columns=['home_team', 'away_team'])
     
     return df_player
@@ -69,53 +62,50 @@ def calculate_opponent_factors(df_player: pd.DataFrame, df_team_def: pd.DataFram
     logger.info("Calculating rolling opponent defensive factors (O-Factors)...")
     
     # 1. Prepare opponent defense data
-    # Rename 'team_name' to 'opponent' for the merge
     df_opp_def = df_team_def.rename(columns={'team_name': 'opponent'})
+    
+    # === TEMPORARY DEBUGGING LOGS START ===
+    logger.info(f"DEBUG: Player opponent unique count: {df_player['opponent'].nunique()}")
+    logger.info(f"DEBUG: Defense opponent unique count: {df_opp_def['opponent'].nunique()}")
+    logger.info(f"DEBUG: Sample player opponent/date: {df_player[['opponent', 'match_date']].head(2).to_dict('records')}")
+    logger.info(f"DEBUG: Sample defense team/date: {df_opp_def[['opponent', 'match_date']].head(2).to_dict('records')}")
+    # === TEMPORARY DEBUGGING LOGS END ===
     
     # 2. Merge player stats with the opponent's historical defense stats
     df_merged = pd.merge(
         df_player,
-        # Merge on: [The Opponent's Name, The Match Date]
         df_opp_def[['opponent', 'match_date', 'sot_conceded', 'tackles_att_3rd']],
         on=['opponent', 'match_date'],
         how='left',
-        # Note: suffixes are only applied when columns conflict (e.g., if df_player had 'sot_conceded')
-        # However, we rely on the existence of these columns for the next step.
         suffixes=('_player', '_opp_raw') 
     )
     
     # 3. Defensive check and column creation (The core fix for the KeyError)
-    
     raw_sot_col = 'sot_conceded_opp_raw'
     raw_tackle_col = 'tackles_att_3rd_opp_raw'
 
-    # If the merge was successful, the raw columns are named as expected.
-    # If the merge failed (no matches), the columns from the right DataFrame are NOT included.
     if raw_sot_col not in df_merged.columns:
         logger.warning(f"Merge failed. Data for '{raw_sot_col}' not found. Filling with NaN.")
-        # If the merge failed, the columns from the right side were not appended. 
-        # Append them manually as NaN to prevent the next step from crashing.
-        df_merged[raw_sot_col] = np.nan
-        df_merged[raw_tackle_col] = np.nan
-        # We assume the user has correctly named the columns in the team defense DF
-        # to sot_conceded and tackles_att_3rd after the loader's merges.
-    else:
-        # Check if the columns were appended without the suffix (meaning they didn't conflict)
-        # This is a safety check for a different merge scenario.
-        if raw_sot_col not in df_merged.columns and 'sot_conceded' in df_merged.columns:
+        
+        # Check for the *un-suffixed* columns, which can happen if they didn't conflict 
+        # but were still added during a merge that yielded zero results.
+        if 'sot_conceded' in df_merged.columns:
+             # If present, rename them to the expected suffixed names
             df_merged.rename(columns={'sot_conceded': raw_sot_col, 'tackles_att_3rd': raw_tackle_col}, inplace=True)
+        else:
+            # If not present at all, create them as NaN columns
+            df_merged[raw_sot_col] = np.nan
+            df_merged[raw_tackle_col] = np.nan
 
 
     # 4. Calculate Rolling Average of Opponent Stats (AVOID DATA LEAKAGE)
     
-    # Group by the Opponent and apply a rolling window of 5 matches
     for col in [raw_sot_col, raw_tackle_col]:
         new_col_name = col.replace('_raw', '_MA5')
         
         df_merged[new_col_name] = (
             df_merged
             .groupby('opponent')[col]
-            # closed='left' ensures the window excludes the current row's data (no data leakage)
             .transform(lambda x: x.rolling(window=5, min_periods=1, closed='left').mean())
         )
     
