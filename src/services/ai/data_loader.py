@@ -1,4 +1,4 @@
-# data_loader.py
+# src/services/ai/data_loader.py
 
 import os
 import pandas as pd
@@ -30,7 +30,7 @@ except Exception as e:
 
 # --- Core Fetching Functions ---
 
-def fetch_all_data_from_supabase(table_name: str, select_columns: str = "*", order_by_column: str = "match_date") -> pd.DataFrame:
+def fetch_all_data_from_supabase(table_name: str, select_columns: str = "*", order_by_column: str = "match_datetime") -> pd.DataFrame:
     """Fetches all data from a specified Supabase table and converts it to a Pandas DataFrame."""
     logger.info(f"Fetching data from table: {table_name}")
     
@@ -53,39 +53,45 @@ def load_data_for_backtest() -> tuple[pd.DataFrame, pd.DataFrame]:
     """Orchestrates the data loading for player and team defense metrics."""
     
     # --- 1. Player Stats (P-Factors Source) ---
-    # CORRECTED COLUMNS: Removed 'opponent' and 'venue', added 'team_side'
-    player_cols = "player_id, team_name, match_date, summary_sot, summary_min, summary_sh, fixture_id, team_side"
+    # CORRECTED COLUMNS: Including match_datetime, home_team, away_team, venue, team_side
+    player_cols = "player_id, team_name, summary_sot, summary_min, home_team, away_team, venue, team_side, match_datetime"
     
     df_player = fetch_all_data_from_supabase(
         table_name="player_match_stats", 
-        select_columns=player_cols
+        select_columns=player_cols,
+        order_by_column="match_datetime"
     )
     
     if df_player.empty:
         return pd.DataFrame(), pd.DataFrame()
     
     # FIX DATA TYPE: Convert TEXT 'summary_min' to NUMERIC
-    # 'errors="coerce"' turns unparseable values (like 'NULL' or a time string) into NaN
     df_player['summary_min'] = pd.to_numeric(df_player['summary_min'], errors='coerce')
     
+    # Date processing for joins and sorting
+    df_player['match_datetime'] = pd.to_datetime(df_player['match_datetime'])
+    # Create a simple date column for joining with daily-indexed team stats
+    df_player['match_date'] = df_player['match_datetime'].dt.date 
+    
     # CRITICAL: Sort for rolling calculations
-    df_player['match_date'] = pd.to_datetime(df_player['match_date'])
-    df_player = df_player.sort_values(by=['match_date', 'fixture_id', 'player_id']).reset_index(drop=True)
+    df_player = df_player.sort_values(by=['match_datetime', 'player_id']).reset_index(drop=True)
     logger.info("Player data cleaned and sorted.")
 
 
     # --- 2. Team Defense Stats (O-Factors Source) ---
-    team_def_cols = "fixture_id, team_name, match_date, tackles_att_3rd, opp_shots_on_target"
+    # Assuming team stats are indexed by 'match_date'
+    team_def_cols = "match_date, team_name, tackles_att_3rd, opp_shots_on_target"
     df_team_def = fetch_all_data_from_supabase(
         table_name="team_misc_stats",
-        select_columns=team_def_cols
+        select_columns=team_def_cols,
+        order_by_column="match_date" # Assuming team data is ordered by date
     ).rename(columns={'opp_shots_on_target': 'sot_conceded'})
     
     if df_team_def.empty:
         return df_player, pd.DataFrame()
 
     df_team_def['match_date'] = pd.to_datetime(df_team_def['match_date'])
-    df_team_def = df_team_def.sort_values(by=['match_date', 'fixture_id']).reset_index(drop=True)
+    df_team_def = df_team_def.sort_values(by=['match_date', 'team_name']).reset_index(drop=True)
 
     return df_player, df_team_def
 
@@ -99,7 +105,7 @@ if __name__ == '__main__':
         
         if not df_player.empty and not df_team_def.empty:
             
-            # Save files to be read by the next script
+            # Save files to be read by the next script in the root directory
             df_player.to_parquet("player_data_raw.parquet", index=False)
             logger.info("✅ Player data saved to player_data_raw.parquet")
             
