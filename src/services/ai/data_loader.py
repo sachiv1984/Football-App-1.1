@@ -75,41 +75,47 @@ def load_data_for_backtest() -> tuple[pd.DataFrame, pd.DataFrame]:
 
 
     # --------------------------------------------------------------------------
-    # --- 2. Team Defense Stats (O-Factors Source) - Merging two tables FIX ---
+    # --- 2. Team Defense Stats (O-Factors Source) - Merging two required tables ---
     # --------------------------------------------------------------------------
     
-    # 2a. Fetch Core Defensive Stats (from the original query location)
-    logger.info("Fetching Team Core Stats (opp_shots_on_target) from team_misc_stats...")
-    df_core_def = fetch_all_data_from_supabase(
-        table_name="team_misc_stats",
+    merge_keys = ['match_date', 'team_name']
+
+    # 2a. Fetch Shooting Stats (opp_shots_on_target)
+    logger.info("Fetching Team Shooting Stats (opp_shots_on_target) from team_shooting_stats...")
+    df_shooting_def = fetch_all_data_from_supabase(
+        table_name="team_shooting_stats", 
         select_columns="match_date, team_name, opp_shots_on_target",
         order_by_column="match_date"
-    ).rename(columns={'opp_shots_on_target': 'sot_conceded'})
+    ).rename(columns={'opp_shots_on_target': 'sot_conceded'}) # Rename for consistency
     
-    # 2b. Fetch Specific Defensive Stats (from the corrected location)
+    # 2b. Fetch Specific Defensive Stats (tackles_att_3rd)
     logger.info("Fetching Specific Defensive Stats (tackles_att_3rd) from team_defense_stats...")
-    df_specific_def = fetch_all_data_from_supabase(
-        table_name="team_defense_stats", # <-- CORRECT TABLE NAME
+    df_tackle_def = fetch_all_data_from_supabase(
+        table_name="team_defense_stats", 
         select_columns="match_date, team_name, tackles_att_3rd",
         order_by_column="match_date"
     )
     
-    if df_core_def.empty or df_specific_def.empty:
-        logger.warning("One or both team defense tables returned empty data. Skipping merge.")
+    # Check for empty data before attempting merge
+    if df_shooting_def.empty or df_tackle_def.empty:
+        logger.warning("One or both required team defense tables returned empty data. Skipping merge.")
         return df_player, pd.DataFrame()
 
-    # 2c. Merge the two team dataframes into a single df_team_def
+    # 2c. Merge the two defense dataframes (Shooting and Tackles)
     df_team_def = pd.merge(
-        df_core_def,
-        df_specific_def,
-        # Join key must be columns that exist in both tables
-        on=['match_date', 'team_name'],
+        df_shooting_def,
+        df_tackle_def,
+        on=merge_keys,
         how='inner' # Only keep records present in both tables
     )
-
+    
+    if df_team_def.empty:
+        logger.warning("Merged team data is empty. Cannot proceed.")
+        return df_player, pd.DataFrame()
+        
     # Final cleanup and sort for team data
     df_team_def['match_date'] = pd.to_datetime(df_team_def['match_date'])
-    df_team_def = df_team_def.sort_values(by=['match_date', 'team_name']).reset_index(drop=True)
+    df_team_def = df_team_def.sort_values(by=merge_keys).reset_index(drop=True)
     logger.info(f"Team defense data (O-Factors) successfully merged: {df_team_def.shape}")
 
     return df_player, df_team_def
