@@ -3,34 +3,15 @@ name: Backtest SOT Model
 on:
   push:
     branches: [ main ]
-  workflow_dispatch: # Allows manual triggering
+  workflow_dispatch:
 
 jobs:
   load_data:
     name: 1. Load Data from Supabase
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
-    
-    - name: Set up Python Environment
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
-        
-    - name: Install dependencies
-      run: pip install -r requirements.txt
-        
-    - name: Execute Data Loader and Save Files 💾
-      # The credentials are provided here from your repository secrets
-      env:
-        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-        SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-      run: |
-        echo "Running data_loader.py to pull data from Supabase..."
-        # Correct path for data_loader.py
-        python src/services/ai/data_loader.py
-        
+    # ... (steps remain the same) ...
+    # ... (Saves player_data_raw.parquet and team_def_data_raw.parquet) ...
     - name: Upload Data Artifacts 📤
       uses: actions/upload-artifact@v4
       with:
@@ -38,12 +19,38 @@ jobs:
         path: |
           player_data_raw.parquet
           team_def_data_raw.parquet
-        
+
 # ---------------------------------------------------------------------
 
   process_data:
     name: 2. Process and Backtest
-    needs: load_data # This job runs ONLY after 'load_data' succeeds
+    needs: load_data
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    # ... (setup and install steps remain the same) ...
+      
+    - name: Download Data Artifacts 📥
+      uses: actions/download-artifact@v4
+      with:
+        name: raw-backtest-data
+        
+    - name: Run Backtest Processor Script
+      run: |
+        echo "Running backtest_processor.py to merge and calculate factors..."
+        python src/services/ai/backtest_processor.py 
+        
+    - name: Upload Final Feature Set 📤
+      uses: actions/upload-artifact@v4
+      with:
+        name: final-feature-set
+        path: final_feature_set.parquet
+
+# ---------------------------------------------------------------------
+
+  analyze_data:
+    name: 3. Statistical Correlation Analysis
+    needs: process_data # This job runs ONLY after 'process_data' succeeds
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -56,13 +63,12 @@ jobs:
     - name: Install dependencies
       run: pip install -r requirements.txt
       
-    - name: Download Data Artifacts 📥
+    - name: Download Final Feature Set 📥
       uses: actions/download-artifact@v4
       with:
-        name: raw-backtest-data
+        name: final-feature-set
         
-    - name: Run Backtest Processor Script
+    - name: Run Correlation Analysis
       run: |
-        echo "Running backtest_processor.py to merge and calculate factors..."
-        # Correct path for backtest_processor.py
-        python src/services/ai/backtest_processor.py 
+        echo "Running correlation_analysis.py..."
+        python src/services/ai/correlation_analysis.py 
