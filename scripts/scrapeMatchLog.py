@@ -87,7 +87,7 @@ class FBRAPIScraper:
             return None
     
     def parse_match_data(self, match_data, match_url, fixture_id):
-        """Parse API response into DataFrame"""
+        """Parse API response into DataFrame with full match metadata"""
         all_players = []
         
         for team in match_data:
@@ -98,10 +98,26 @@ class FBRAPIScraper:
                 meta = player_entry.get('meta_data', {})
                 stats = player_entry.get('stats', {})
                 
-                # Base metadata 
+                # Base metadata - EXPANDED to include match details
                 player_data = {
+                    # Your IDs
                     'fixture_id': fixture_id,
                     'match_url': match_url,
+                    
+                    # Match metadata from API
+                    'match_id': meta.get('match_id'),
+                    'match_date': meta.get('date'),
+                    'match_time': stats.get('summary', {}).get('result', '').split()[0] if 'summary' in stats else None,  # Extract time if available
+                    'round': meta.get('round'),
+                    'venue': meta.get('home_away'),
+                    'opponent': meta.get('opponent'),
+                    'opponent_id': meta.get('opponent_id'),
+                    'result': stats.get('summary', {}).get('result') if 'summary' in stats else None,
+                    'goals_for': None,  # Not available in player-level data
+                    'goals_against': None,  # Not available in player-level data
+                    'formation': meta.get('formation'),
+                    
+                    # Team and player metadata
                     'team_name': team_name,
                     'team_side': home_away,
                     'player_id': meta.get('player_id'),
@@ -134,6 +150,9 @@ class FBRAPIScraper:
         try:
             # CRITICAL: Replace NaN values with None (NULL in database)
             df = df.replace({pd.NA: None, float('nan'): None, np.nan: None})
+            
+            # Debug: Check fixture_id type
+            print(f"DEBUG - Sample fixture_id: {df['fixture_id'].iloc[0]} (type: {type(df['fixture_id'].iloc[0])})")
             
             # Convert DataFrame to records
             records = df.to_dict('records')
