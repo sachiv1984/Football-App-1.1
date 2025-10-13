@@ -1,4 +1,4 @@
-# src/services/ai/backtest_model.py (FINAL FIX)
+# src/services/ai/backtest_model.py
 
 import pandas as pd
 import statsmodels.api as sm 
@@ -7,13 +7,15 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error
 import numpy as np
 import logging
-import re # We need the regex library to parse the summary
+import re
+import pickle # Added for saving the model
 
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 logger = logging.getLogger(__name__)
 
-# --- Configuration (remains the same) ---
+# --- Configuration ---
 INPUT_FILE = "final_feature_set_scaled.parquet"
+MODEL_OUTPUT_FILE = "poisson_model.pkl" # Final output file for the trained model
 TARGET_COLUMN = 'summary_sot'
 PREDICTOR_COLUMNS = [
     'sot_conceded_MA5', 
@@ -38,7 +40,7 @@ def load_scaled_data() -> pd.DataFrame:
 
 def train_and_evaluate_model(df: pd.DataFrame):
     """
-    Trains a Poisson Regression model (suitable for count data) and evaluates performance.
+    Trains a Poisson Regression model, evaluates performance, and saves the model.
     """
     logger.info("Starting POISSON REGRESSION backtesting (using statsmodels)...")
     
@@ -56,24 +58,16 @@ def train_and_evaluate_model(df: pd.DataFrame):
     y_pred_rate = poisson_model.predict(X_test)
     
     # --- Evaluation ---
-    
     mae = mean_absolute_error(y_test, y_pred_rate)
     
-    # 1. FIX: Grab the full summary as a string
+    # Retrieve Pseudo R-squared by parsing the summary text (robust method)
     summary_text = str(poisson_model.summary())
-    
-    # 2. Extract the Pseudo R-squared using regex (highly robust)
-    # The summary typically lists the Pseudo R-squared on a line like "Pseudo R-squ.: 0.1550"
     pseudo_r2_match = re.search(r'Pseudo R-squ\.:\s*(\d\.\d{4})', summary_text)
-    
-    # Set a default value in case parsing fails
-    pseudo_r2 = float(pseudo_r2_match.group(1)) if pseudo_r2_match else -999.0 
+    pseudo_r2 = float(pseudo_r2_match.group(1)) if pseudo_r2_match else -1.0 # Use -1.0 as a definitive error flag
 
     logger.info("\n--- Model Performance Metrics (Poisson Regression) ---")
     logger.info(f"Mean Absolute Error (MAE): {mae:.4f} SOT")
     logger.info(f"Average SOT in Test Set: {y_test.mean():.4f}")
-    
-    # Now this is a guaranteed float
     logger.info(f"Deviance Pseudo R-squared: {pseudo_r2:.4f}") 
 
     logger.info("\n--- Feature Importance (Model Coefficients - Odds Ratio) ---")
@@ -84,8 +78,14 @@ def train_and_evaluate_model(df: pd.DataFrame):
         logger.info(f"   {feature:<20}: {ratio:.4f} (Rate Multiplier)")
 
     logger.info("Poisson Regression backtesting complete. Model metrics updated.")
+    
+    # --- FINAL STEP: Save the trained model ---
+    with open(MODEL_OUTPUT_FILE, 'wb') as file:
+        pickle.dump(poisson_model, file)
+    logger.info(f"Trained Poisson model saved to {MODEL_OUTPUT_FILE}")
 
+    return MODEL_OUTPUT_FILE # Return the saved file name for artifact upload
 
 if __name__ == '__main__':
     df_scaled = load_scaled_data()
-    train_and_evaluate_model(df_scaled)
+    saved_model_path = train_and_evaluate_model(df_scaled)
