@@ -1,4 +1,4 @@
-# src/services/ai/backtest_processor.py
+# src/services/ai/backtest_processor.py (FINAL VERSION)
 
 import pandas as pd
 import numpy as np
@@ -15,7 +15,7 @@ def load_raw_data() -> tuple[pd.DataFrame, pd.DataFrame]:
         df_player = pd.read_parquet("player_data_raw.parquet")
         df_team_def = pd.read_parquet("team_def_data_raw.parquet")
         
-        # FIX: Ensure match_date is a clean datetime object (time set to midnight) for reliable merging
+        # FIX: Ensure match_date is a clean datetime object for reliable merging
         df_player['match_date'] = pd.to_datetime(df_player['match_date']).dt.normalize()
         df_team_def['match_date'] = pd.to_datetime(df_team_def['match_date']).dt.normalize()
         
@@ -27,90 +27,88 @@ def load_raw_data() -> tuple[pd.DataFrame, pd.DataFrame]:
         exit(1)
 
 
-def determine_opponent(df_player: pd.DataFrame) -> pd.DataFrame:
+def calculate_factors(df_player: pd.DataFrame, df_team_def: pd.DataFrame) -> pd.DataFrame:
     """
-    Extracts the opponent team name by comparing the player's team_name 
-    against the home_team and away_team columns.
-    """
-    logger.info("Determining opponent teams using home/away columns...")
-    
-    conditions = [
-        (df_player['team_name'] == df_player['home_team']),
-        (df_player['team_name'] == df_player['away_team'])
-    ]
-    
-    choices = [
-        df_player['away_team'], 
-        df_player['home_team']  
-    ]
-    
-    df_player['opponent'] = np.select(conditions, choices, default=np.nan)
-    df_player.dropna(subset=['opponent'], inplace=True)
-    
-    logger.info(f"Successfully determined opponents for {len(df_player)} records.")
-    
-    df_player = df_player.drop(columns=['home_team', 'away_team'])
-    
-    return df_player
-
-
-def calculate_opponent_factors(df_player: pd.DataFrame, df_team_def: pd.DataFrame) -> pd.DataFrame:
-    """
-    Calculates the rolling average of opponent defensive stats (O-Factor) 
-    by merging on the calculated 'opponent' and 'match_date'.
+    Merges data by joining the player's HOME/AWAY status to the opposing team's defensive stats,
+    and then calculates the rolling O-Factors.
     """
     logger.info("Calculating rolling opponent defensive factors (O-Factors)...")
     
-    # 1. Prepare opponent defense data
-    df_opp_def = df_team_def.rename(columns={'team_name': 'opponent'})
+    # 1. Define the defensive stats columns we need
+    DEF_STATS = ['sot_conceded', 'tackles_att_3rd']
+    DEF_COLS = ['team_name', 'match_date'] + DEF_STATS
     
-    # === TEMPORARY DEBUGGING LOGS START ===
-    logger.info(f"DEBUG: Player opponent unique count: {df_player['opponent'].nunique()}")
-    logger.info(f"DEBUG: Defense opponent unique count: {df_opp_def['opponent'].nunique()}")
-    logger.info(f"DEBUG: Sample player opponent/date: {df_player[['opponent', 'match_date']].head(2).to_dict('records')}")
-    logger.info(f"DEBUG: Sample defense team/date: {df_opp_def[['opponent', 'match_date']].head(2).to_dict('records')}")
-    # === TEMPORARY DEBUGGING LOGS END ===
-    
-    # 2. Merge player stats with the opponent's historical defense stats
+    # 2. Merge Player Data with HOME Team's Defense Stats
+    # Merge Key: ['home_team', 'match_date'] -> gives us the AWAY team's stats
+    logger.info("Merging with Home Team's defensive stats...")
     df_merged = pd.merge(
         df_player,
-        df_opp_def[['opponent', 'match_date', 'sot_conceded', 'tackles_att_3rd']],
-        on=['opponent', 'match_date'],
+        df_team_def[DEF_COLS].rename(columns={'team_name': 'home_team'}),
+        on=['home_team', 'match_date'],
         how='left',
-        suffixes=('_player', '_opp_raw') 
+        suffixes=('_player', '_opp_away_raw')
+    )
+
+    # 3. Merge Player Data with AWAY Team's Defense Stats
+    # Merge Key: ['away_team', 'match_date'] -> gives us the HOME team's stats
+    logger.info("Merging with Away Team's defensive stats...")
+    df_merged = pd.merge(
+        df_merged,
+        df_team_def[DEF_COLS].rename(columns={'team_name': 'away_team'}),
+        on=['away_team', 'match_date'],
+        how='left',
+        suffixes=('_temp', '_opp_home_raw')
+    )
+
+    # 4. Consolidate Opponent Factors into single columns
+    logger.info("Consolidating final opponent metrics...")
+    
+    # Determine the opponent's stats based on the player's team side
+    for stat in DEF_STATS:
+        home_col = f'{stat}_opp_home_raw'
+        away_col = f'{stat}_opp_away_raw'
+        final_col = f'{stat}_opp_raw' # New base raw column name
+
+        conditions = [
+            (df_merged['team_side'] == 'home'), # If player was home, use away team's stats (opp_away_raw)
+            (df_merged['team_side'] == 'away')  # If player was away, use home team's stats (opp_home_raw)
+        ]
+        
+        choices = [
+            df_merged[away_col], # Use stats for the team playing AWAY
+            df_merged[home_col]  # Use stats for the team playing HOME
+        ]
+        
+        # Use np.select to pick the correct opponent statistic
+        df_merged[final_col] = np.select(conditions, choices, default=np.nan)
+    
+    # 5. Determine the opponent's name (for the final output and P-Factor calculations later)
+    df_merged['opponent'] = np.where(
+        df_merged['team_side'] == 'home', 
+        df_merged['away_team'], 
+        df_merged['home_team']
     )
     
-    # 3. Defensive check and column creation (The core fix for the KeyError)
-    raw_sot_col = 'sot_conceded_opp_raw'
-    raw_tackle_col = 'tackles_att_3rd_opp_raw'
-
-    if raw_sot_col not in df_merged.columns:
-        logger.warning(f"Merge failed. Data for '{raw_sot_col}' not found. Filling with NaN.")
+    # 6. Calculate Rolling Average of Opponent Stats (O-Factors)
+    logger.info("Calculating rolling averages (MA5)...")
+    for stat in DEF_STATS:
+        raw_col = f'{stat}_opp_raw'
+        ma_col = f'{stat}_MA5'
         
-        # Check for the *un-suffixed* columns, which can happen if they didn't conflict 
-        # but were still added during a merge that yielded zero results.
-        if 'sot_conceded' in df_merged.columns:
-             # If present, rename them to the expected suffixed names
-            df_merged.rename(columns={'sot_conceded': raw_sot_col, 'tackles_att_3rd': raw_tackle_col}, inplace=True)
-        else:
-            # If not present at all, create them as NaN columns
-            df_merged[raw_sot_col] = np.nan
-            df_merged[raw_tackle_col] = np.nan
-
-
-    # 4. Calculate Rolling Average of Opponent Stats (AVOID DATA LEAKAGE)
-    
-    for col in [raw_sot_col, raw_tackle_col]:
-        new_col_name = col.replace('_raw', '_MA5')
-        
-        df_merged[new_col_name] = (
+        df_merged[ma_col] = (
             df_merged
-            .groupby('opponent')[col]
+            .groupby('opponent')[raw_col]
+            # closed='left' ensures the window excludes the current row's data (no data leakage)
             .transform(lambda x: x.rolling(window=5, min_periods=1, closed='left').mean())
         )
     
-    # Drop the raw columns after calculation
-    df_merged = df_merged.drop(columns=[raw_sot_col, raw_tackle_col])
+    # 7. Final Cleanup
+    # Drop all temporary raw columns and the home/away team columns now that we have the opponent name
+    cols_to_drop = [
+        col for col in df_merged.columns 
+        if col.endswith('_opp_home_raw') or col.endswith('_opp_away_raw') or col.endswith('_opp_raw')
+    ]
+    df_merged = df_merged.drop(columns=cols_to_drop + ['home_team', 'away_team'])
     
     logger.info("O-Factors calculated and ready for the final backtesting step.")
     return df_merged
@@ -123,13 +121,12 @@ if __name__ == '__main__':
         logger.error("Cannot proceed with processing: Raw data is empty.")
         exit(1)
     
-    # Step 1: Determine the Opponent Name
-    df_player_with_opp = determine_opponent(df_player_raw)
+    # Step 1: Merge Data and Calculate Rolling Opponent Factors
+    # Note: We now combine opponent determination and factor calculation into one step
+    df_final_features = calculate_factors(df_player_raw, df_team_def_raw)
     
-    # Step 2: Merge Data and Calculate Rolling Opponent Factors
-    df_final_features = calculate_opponent_factors(df_player_with_opp, df_team_def_raw)
-    
-    # Step 3: Save the final feature set for the actual backtesting script
+    # Step 2: Save the final feature set
     output_file = "final_feature_set.parquet"
     df_final_features.to_parquet(output_file, index=False)
     logger.info(f"Process complete. Final feature set saved to {output_file} with shape: {df_final_features.shape}")
+
