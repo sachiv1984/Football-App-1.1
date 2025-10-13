@@ -55,11 +55,16 @@ class FBRAPIScraper:
             return False
         return self.extract_match_id_from_url(url) is not None
     
-    def mark_as_scraped(self, match_url):
+    # 🚨 UPDATED: Added match metadata to the insertion
+    def mark_as_scraped(self, match_url, datetime_str, hometeam, awayteam, venue):
         """Mark a match as scraped in the database"""
         try:
             supabase.table('scraped_matches').insert({
                 'match_url': match_url,
+                'match_datetime': datetime_str,
+                'home_team': hometeam,
+                'away_team': awayteam,
+                'venue': venue,
                 'scraped_at': datetime.now().isoformat()
             }).execute()
         except Exception as e:
@@ -86,8 +91,9 @@ class FBRAPIScraper:
             print(f"Error fetching match {match_id}: {e}")
             return None
     
-    def parse_match_data(self, match_data, match_url, fixture_id):
-        """Parse API response into DataFrame"""
+    # 🚨 UPDATED: New arguments added to the method signature
+    def parse_match_data(self, match_data, match_url, fixture_id, datetime_str, hometeam, awayteam, venue):
+        """Parse API response into DataFrame, including match metadata"""
         all_players = []
         
         for team in match_data:
@@ -98,10 +104,14 @@ class FBRAPIScraper:
                 meta = player_entry.get('meta_data', {})
                 stats = player_entry.get('stats', {})
                 
-                # Base metadata 
+                # Base metadata - 🚨 UPDATED: Added new metadata fields
                 player_data = {
                     'fixture_id': fixture_id,
                     'match_url': match_url,
+                    'match_datetime': datetime_str,  # New field
+                    'home_team': hometeam,           # New field
+                    'away_team': awayteam,           # New field
+                    'venue': venue,                  # New field
                     'team_name': team_name,
                     'team_side': home_away,
                     'player_id': meta.get('player_id'),
@@ -133,6 +143,7 @@ class FBRAPIScraper:
         
         try:
             # CRITICAL: Replace NaN values with None (NULL in database)
+            # Use 'fillna' for better compatibility with mixed types before converting to records
             df = df.replace({pd.NA: None, float('nan'): None, np.nan: None})
             
             # Convert DataFrame to records
@@ -161,7 +172,9 @@ class FBRAPIScraper:
                             supabase.table(table_name).insert([record]).execute()
                             successful_inserts += 1
                         except Exception as single_error:
-                            print(f"❌ Failed: {record.get('player_name', 'Unknown')} - {single_error}")
+                            # Note: Supabase error messages are often long. Keep the print concise.
+                            error_summary = str(single_error).split('\n')[0].strip()
+                            print(f"❌ Failed: {record.get('player_name', 'Unknown')} - {error_summary}")
             
             print(f"\n{'='*50}")
             print(f"✅ Successfully inserted {successful_inserts}/{len(records)} records")
@@ -177,14 +190,30 @@ class FBRAPIScraper:
         try:
             print("="*50)
             
-            # Step 1: Get all fixtures with URLs
-            response = supabase.table('fixtures').select('id, matchurl').execute()
-            all_fixtures = [(row['id'], row['matchurl']) for row in response.data if row.get('matchurl')]
+            # 🚨 UPDATED: Selects new metadata fields
+            response = supabase.table('fixtures').select(
+                'id, matchurl, datetime, hometeam, awayteam, venue'
+            ).execute()
+            
+            # Store all required fields from fixtures table
+            all_fixtures = [
+                (
+                    row['id'], 
+                    row['matchurl'], 
+                    row.get('datetime'), 
+                    row.get('hometeam'), 
+                    row.get('awayteam'), 
+                    row.get('venue')
+                )
+                for row in response.data 
+                if row.get('matchurl')
+            ]
             print(f"Step 1: Found {len(all_fixtures)} fixtures with URLs")
 
             # Step 2: Filter valid FBref URLs
             valid_fixtures = [
-                (fid, url) for fid, url in all_fixtures 
+                (fid, url, dt, home, away, venue) 
+                for fid, url, dt, home, away, venue in all_fixtures 
                 if self.is_valid_fbref_match_url(url)
             ]
             print(f"Step 2: {len(valid_fixtures)} valid FBref match URLs")
@@ -197,8 +226,10 @@ class FBRAPIScraper:
             scraped_response = supabase.table('scraped_matches').select('match_url').execute()
             scraped_urls = {row['match_url'] for row in scraped_response.data}
             
+            # Only include fixtures not yet scraped
             to_scrape = [
-                (fid, url) for fid, url in valid_fixtures 
+                (fid, url, dt, home, away, venue) 
+                for fid, url, dt, home, away, venue in valid_fixtures 
                 if url not in scraped_urls
             ]
             
@@ -214,18 +245,29 @@ class FBRAPIScraper:
             scraped_success = 0
             failed = 0
             
-            for fixture_id, url in to_scrape:
+            # 🚨 UPDATED: Unpack all 6 fields from the to_scrape list
+            for fixture_id, url, datetime_str, hometeam, awayteam, venue in to_scrape:
                 match_id = self.extract_match_id_from_url(url)
                 print(f"\nScraping fixture {fixture_id}, match ID: {match_id}")
                 
                 match_data = self.get_match_players_stats(match_id)
                 
                 if match_data:
-                    df = self.parse_match_data(match_data, url, fixture_id)
+                    # 🚨 UPDATED: Pass all new fields to the parse_match_data method
+                    df = self.parse_match_data(
+                        match_data, 
+                        url, 
+                        fixture_id,
+                        datetime_str, 
+                        hometeam, 
+                        awayteam, 
+                        venue
+                    )
                     
                     if df is not None and not df.empty:
                         self.save_to_supabase(df)
-                        self.mark_as_scraped(url)
+                        # 🚨 UPDATED: Pass all new fields to the mark_as_scraped method
+                        self.mark_as_scraped(url, datetime_str, hometeam, awayteam, venue)
                         scraped_success += 1
                         print(f"✅ Success: {len(df)} players for fixture {fixture_id}")
                     else:
