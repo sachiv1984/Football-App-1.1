@@ -25,13 +25,15 @@ MODEL_FILE = ARTIFACT_PATH + "poisson_model.pkl"
 SCALER_STATS_FILE = ARTIFACT_PATH + "training_stats.json" 
 PREDICTION_OUTPUT = "gameweek_sot_recommendations.csv"
 MIN_PERIODS = 5
-# TEMPORARY BENCHMARK SETTINGS: Resetting filters to 1.0 and 0.0 to check if Haaland is in the raw data.
-MIN_EXPECTED_MINUTES = 1 # Reset to 1 to check raw inclusion and the Ngumoha case
-MIN_SOT_MA5 = 0.0          # Reset to 0.0 to check raw inclusion and the Mavropanos case
+
+# ✅ PROPER FILTER THRESHOLDS (based on training criteria)
+MIN_EXPECTED_MINUTES = 15.0  # Same as training: minimum 15 mins average
+MIN_SOT_MA5 = 0.1            # Same as training: minimum 0.1 SOT per match
+MIN_MATCHES_PLAYED = 5       # Require at least 5 historical matches for reliable MA5
 
 PREDICTOR_COLUMNS = [
     'sot_conceded_MA5_scaled', 'tackles_att_3rd_MA5_scaled', 
-    'sot_MA5_scaled', 'min_MA5_scaled', 'summary_min' # summary_min is the only unscaled feature input
+    'sot_MA5_scaled', 'min_MA5_scaled', 'summary_min'
 ]
 MA5_METRICS = ['sot', 'min']
 OPP_METRICS = ['sot_conceded', 'tackles_att_3rd']
@@ -65,11 +67,10 @@ def fetch_all_data_from_supabase(table_name: str, select_columns: str = "*", ord
 def load_and_merge_raw_data() -> pd.DataFrame:
     """
     Fetches and merges all player, team defense, and fixture data.
-    Critically, it now appends placeholder rows for future scheduled fixtures
-    to ensure the MA5 calculation has a target row.
+    Appends placeholder rows for future scheduled fixtures.
     """
     
-    # 1. Fetch ALL Fixtures Data (needed to identify historical and future games)
+    # 1. Fetch ALL Fixtures Data
     fixture_cols = "datetime, hometeam, awayteam, matchweek, status" 
     df_fixtures = fetch_all_data_from_supabase(
         table_name="fixtures", 
@@ -82,7 +83,6 @@ def load_and_merge_raw_data() -> pd.DataFrame:
     if df_fixtures.empty:
         return pd.DataFrame()
 
-    # Normalize fixture status immediately for robust filtering
     df_fixtures['status'] = df_fixtures['status'].astype(str).str.strip().str.lower()
     
     # --- A. BUILD HISTORICAL DATA (Finished Games) ---
@@ -95,7 +95,6 @@ def load_and_merge_raw_data() -> pd.DataFrame:
         order_by_column="match_datetime" 
     )
     if df_player_history.empty:
-        # Cannot make predictions without player history to calculate MA5
         return pd.DataFrame()
     
     df_player_history['summary_min'] = pd.to_numeric(df_player_history['summary_min'], errors='coerce')
@@ -119,7 +118,7 @@ def load_and_merge_raw_data() -> pd.DataFrame:
     df_team_def = pd.merge(df_shooting_def, df_tackle_def, on=merge_keys, how='inner')
     df_team_def['match_date'] = pd.to_datetime(df_team_def['match_date']).dt.date
 
-    # 4. Join Player and Team Defense Data (Historical Player-Match Rows)
+    # 4. Join Player and Team Defense Data
     df_historical = pd.merge(
         df_player_history,
         df_team_def,
@@ -127,7 +126,7 @@ def load_and_merge_raw_data() -> pd.DataFrame:
         how='left' 
     )
     
-    # 5. Join with Fixtures Data to get Status and Matchweek for Historical Games
+    # 5. Join with Fixtures to get Status and Matchweek
     df_historical = pd.merge(
         df_historical,
         df_fixtures[['match_date', 'home_team', 'away_team', 'matchweek', 'status']], 
@@ -137,29 +136,48 @@ def load_and_merge_raw_data() -> pd.DataFrame:
     
     # --- B. BUILD FUTURE DATA (Scheduled Games) ---
     
-    # Get the list of all active players based on history
-    active_players = df_player_history[['player_id', 'player_name', 'team_name']].drop_duplicates()
+    # Get active players (those with sufficient history)
+    player_match_counts = df_player_history.groupby('player_id').size()
+    active_players = df_player_history[
+        df_player_history['player_id'].isin(
+            player_match_counts[player_match_counts >= MIN_MATCHES_PLAYED].index
+        )
+    ][['player_id', 'player_name', 'team_name']].drop_duplicates()
     
-    # Get all scheduled fixtures
-    df_future_fixtures = df_fixtures[df_fixtures['status'] == 'scheduled']
+    logger.info(f"Found {len(active_players)} active players with >= {MIN_MATCHES_PLAYED} matches")
     
-    # Cross-join active players with scheduled fixtures to create placeholder rows
+    # Get scheduled fixtures
+    df_future_fixtures = df_fixtures[df_fixtures['status'] == 'scheduled'].copy()
+    
+    if df_future_fixtures.empty:
+        logger.warning("No scheduled fixtures found")
+        return df_historical
+    
+    # Cross-join active players with scheduled fixtures
     future_rows = []
     for _, fixture in df_future_fixtures.iterrows():
-        # Get players for the home team
+        # Home team players
         home_players = active_players[active_players['team_name'] == fixture['home_team']].copy()
         if not home_players.empty:
             home_players['team_side'] = 'home'
             home_players['home_team'] = fixture['home_team']
             home_players['away_team'] = fixture['away_team']
+            home_players['match_date'] = fixture['match_date']
+            home_players['match_datetime'] = fixture['datetime']  # ✅ FIX: Preserve datetime
+            home_players['matchweek'] = fixture['matchweek']
+            home_players['status'] = fixture['status']
             future_rows.append(home_players)
             
-        # Get players for the away team
+        # Away team players
         away_players = active_players[active_players['team_name'] == fixture['away_team']].copy()
         if not away_players.empty:
             away_players['team_side'] = 'away'
             away_players['home_team'] = fixture['home_team']
             away_players['away_team'] = fixture['away_team']
+            away_players['match_date'] = fixture['match_date']
+            away_players['match_datetime'] = fixture['datetime']  # ✅ FIX: Preserve datetime
+            away_players['matchweek'] = fixture['matchweek']
+            away_players['status'] = fixture['status']
             future_rows.append(away_players)
             
     if not future_rows:
@@ -168,35 +186,15 @@ def load_and_merge_raw_data() -> pd.DataFrame:
         
     df_future = pd.concat(future_rows, ignore_index=True)
     
-    # Add fixture context columns to the future rows
-    context_cols = ['datetime', 'match_date', 'matchweek', 'status']
-    df_future = pd.merge(
-        df_future, 
-        df_future_fixtures[context_cols + ['home_team', 'away_team']],
-        on=['home_team', 'away_team'],
-        how='left'
-    )
-    
-    # Add the defensive factors for future matches (MA5 will use these)
-    df_future = pd.merge(
-        df_future, 
-        df_team_def.drop(columns=['sot_conceded', 'tackles_att_3rd'], errors='ignore'), # Only merge to match structure
-        on=['match_date', 'team_name'],
-        how='left'
-    )
-    
     # Set prediction-specific columns to NaN for future games
     for col in ['summary_sot', 'summary_min', 'sot_conceded', 'tackles_att_3rd']:
-        if col not in df_future.columns:
-             df_future[col] = np.nan
-        else:
-             df_future[col] = df_future[col].apply(lambda x: np.nan if pd.isna(x) else x) # Ensure NaN for prediction
+        df_future[col] = np.nan
 
     # --- C. COMBINE HISTORICAL AND FUTURE DATA ---
     df_final = pd.concat([df_historical, df_future], ignore_index=True)
-
     df_final = df_final.sort_values(by=['match_datetime', 'player_id']).reset_index(drop=True)
-    logger.info(f"Final merged data loaded: {df_final.shape}")
+    
+    logger.info(f"Final merged data: {len(df_historical)} historical + {len(df_future)} future = {len(df_final)} total rows")
     
     return df_final
 
@@ -205,12 +203,13 @@ def calculate_ma5_factors(df: pd.DataFrame) -> pd.DataFrame:
     """Calculates all Player (P-Factors) and Opponent (O-Factors) MA5 metrics."""
     df_processed = df.copy()
     
-    # Ensure 'summary_sot' and 'summary_min' are present before renaming
-    if 'summary_sot' not in df_processed.columns or 'summary_min' not in df_processed.columns:
+    # Ensure columns exist
+    if 'summary_sot' not in df_processed.columns:
         df_processed['summary_sot'] = np.nan
+    if 'summary_min' not in df_processed.columns:
         df_processed['summary_min'] = np.nan
         
-    # Rename for MA5 calculation: 'summary_sot' -> 'sot', 'summary_min' -> 'min'
+    # Rename for MA5 calculation
     df_processed.rename(columns={'summary_sot': 'sot', 'summary_min': 'min'}, inplace=True)
     
     # Calculate P-Factors (Player MA5s)
@@ -220,7 +219,7 @@ def calculate_ma5_factors(df: pd.DataFrame) -> pd.DataFrame:
             .transform(lambda x: x.rolling(window=MIN_PERIODS, min_periods=1, closed='left').mean())
         )
         
-    # Determine the opponent team
+    # Determine opponent team
     df_processed['opponent_team'] = np.where(
         df_processed['team_side'] == 'home', 
         df_processed['away_team'], 
@@ -229,7 +228,6 @@ def calculate_ma5_factors(df: pd.DataFrame) -> pd.DataFrame:
     
     # Calculate O-Factors (Opponent MA5s)
     for col in OPP_METRICS:
-        # The defensive MA5 is calculated based on the OPPONENT'S HISTORICAL PERFORMANCE
         df_processed[f'{col}_MA5'] = (
             df_processed.groupby('opponent_team')[col]
             .transform(lambda x: x.rolling(window=MIN_PERIODS, min_periods=1, closed='left').mean())
@@ -238,81 +236,81 @@ def calculate_ma5_factors(df: pd.DataFrame) -> pd.DataFrame:
     return df_processed
 
 def get_live_gameweek_features(df_processed: pd.DataFrame) -> pd.DataFrame:
-    """Filters the processed data to get the features for the next scheduled gameweek."""
+    """Filters the processed data to get features for the next scheduled gameweek."""
     
-    # 1. Filter for all scheduled games
-    scheduled_games = df_processed[df_processed['status'] == 'scheduled']
+    # 1. Filter for scheduled games only
+    scheduled_games = df_processed[df_processed['status'] == 'scheduled'].copy()
     
     if scheduled_games.empty:
-        logger.warning("No rows found with status='scheduled'. Check your Supabase data.")
+        logger.warning("No rows found with status='scheduled'.")
         return pd.DataFrame()
     
-    logger.info(f"Total scheduled player rows found: {len(scheduled_games)}")
-        
-    # 2. Identify the next gameweek
-    next_gameweek = scheduled_games['matchweek'].min()
-    logger.info(f"Targeting predictions for Gameweek {next_gameweek}.")
+    logger.info(f"Total scheduled player rows: {len(scheduled_games)}")
     
-    # 3. Filter for the target gameweek
+    # 2. Identify next gameweek
+    next_gameweek = scheduled_games['matchweek'].min()
+    logger.info(f"Targeting predictions for Gameweek {next_gameweek}")
+    
+    # 3. Filter for target gameweek
     df_live = scheduled_games[scheduled_games['matchweek'] == next_gameweek].copy()
     
-    # Log fixtures (for context)
-    target_fixtures = df_live[['match_date', 'home_team', 'away_team']].drop_duplicates()
-    logger.info(f"Fixtures in Gameweek {next_gameweek}:")
+    # Log fixtures
+    target_fixtures = df_live[['match_datetime', 'home_team', 'away_team']].drop_duplicates()
+    logger.info(f"\nFixtures in Gameweek {next_gameweek}:")
     for _, row in target_fixtures.iterrows():
-        match_date_str = row['match_date'].strftime('%Y-%m-%d')
-        logger.info(f"  {row['home_team']} vs {row['away_team']} on {match_date_str}")
+        dt = pd.to_datetime(row['match_datetime'])
+        logger.info(f"  {dt.strftime('%Y-%m-%d %H:%M')} - {row['home_team']} vs {row['away_team']}")
 
+    # Required MA5 columns
     REQUIRED_MA5_COLUMNS = [f'{col}_MA5' for col in MA5_METRICS + OPP_METRICS]
-    initial_rows = len(df_live)
     
-    # Filter 1: Drop players with insufficient historical data (MA5 factors are NaN)
-    df_live.dropna(subset=REQUIRED_MA5_COLUMNS, inplace=True)
-    dropped_history_count = initial_rows - len(df_live)
+    initial_count = len(df_live)
     
-    # 4. Impute the final input column 'summary_min' with the rolling minute average 'min_MA5'
+    # ✅ FILTER 1: Drop players with insufficient MA5 history
+    df_live = df_live.dropna(subset=REQUIRED_MA5_COLUMNS).copy()
+    dropped_history = initial_count - len(df_live)
+    logger.info(f"Filter 1 (History): Dropped {dropped_history} players without complete MA5 data")
+    
+    if df_live.empty:
+        logger.warning("No players remain after history filter")
+        return pd.DataFrame()
+    
+    # ✅ FILTER 2: Drop players with low expected minutes (based on historical average)
+    df_live = df_live[df_live['min_MA5'] >= MIN_EXPECTED_MINUTES].copy()
+    dropped_minutes = len(df_live.dropna(subset=['min_MA5'])) if not df_live.empty else 0
+    after_min_filter = len(df_live)
+    logger.info(f"Filter 2 (Minutes): Dropped {initial_count - dropped_history - after_min_filter} players with min_MA5 < {MIN_EXPECTED_MINUTES}")
+    
+    if df_live.empty:
+        logger.warning("No players remain after minutes filter")
+        return pd.DataFrame()
+    
+    # ✅ FILTER 3: Drop players with low offensive output (defenders, etc.)
+    before_sot_filter = len(df_live)
+    df_live = df_live[df_live['sot_MA5'] >= MIN_SOT_MA5].copy()
+    dropped_sot = before_sot_filter - len(df_live)
+    logger.info(f"Filter 3 (Offense): Dropped {dropped_sot} players with sot_MA5 < {MIN_SOT_MA5}")
+    
+    if df_live.empty:
+        logger.warning("No players remain after offensive filter")
+        return pd.DataFrame()
+    
+    # 4. Set expected minutes for prediction (use historical average)
     df_live['summary_min'] = df_live['min_MA5']
     
-    # DEBUG: Check if Haaland is present after initial filtering
-    haaland_check = df_live[df_live['player_name'] == 'Erling Haaland']
-    if not haaland_check.empty:
-        logger.info(f"Haaland Check: Found Erling Haaland. His MA5 features are: {haaland_check[['sot_MA5', 'min_MA5']].to_dict('records')}")
-    else:
-        logger.warning("Haaland Check: Erling Haaland not found in the raw MA5 data (likely due to missing fixture or history).")
+    # Log final player count
+    logger.info(f"\n✅ {len(df_live)} players qualified for prediction")
     
-    # Filter 2: Drop players with low expected minutes
-    initial_rows_after_history = len(df_live)
-    df_live_after_min_filter = df_live[df_live['summary_min'] >= MIN_EXPECTED_MINUTES].copy()
-    dropped_minutes_count = initial_rows_after_history - len(df_live_after_min_filter)
+    # Show sample of qualified players
+    if len(df_live) > 0:
+        sample_cols = ['player_name', 'team_name', 'opponent_team', 'sot_MA5', 'min_MA5', 'sot_conceded_MA5']
+        logger.info("\nSample of qualified players:")
+        logger.info(df_live[sample_cols].head(10).to_string(index=False))
     
-    # Filter 3: Drop players with low offensive intent
-    initial_rows_after_min_filter = len(df_live_after_min_filter)
-    df_live_final = df_live_after_min_filter[df_live_after_min_filter['sot_MA5'] >= MIN_SOT_MA5].copy()
-    dropped_sot_count = initial_rows_after_min_filter - len(df_live_final)
-    
-    
-    logger.info(f"Dropped {dropped_history_count} players with insufficient historical data.")
-    logger.info(f"Dropped {dropped_minutes_count} players with expected minutes < {MIN_EXPECTED_MINUTES}.")
-    logger.info(f"Dropped {dropped_sot_count} players with SOT MA5 < {MIN_SOT_MA5}.")
-    
-    # The final working dataframe for prediction is df_live_final
-    
-    # *** NEW DEBUGGING STEP: Show the input data for the few remaining players ***
-    if not df_live_final.empty:
-        # The MA5 columns must reference the name used for calculation ('min_MA5')
-        log_cols_ma5 = [f'{col}_MA5' for col in ['sot_conceded', 'tackles_att_3rd', 'sot', 'min']] 
-        log_cols = ['player_name', 'summary_min'] + log_cols_ma5
-        
-        # Check which logging columns exist
-        existing_log_cols = [col for col in log_cols if col in df_live_final.columns]
-
-        logger.info("\nRaw Features for Players Being Predicted (Filters Temporarily Reduced for Benchmark):")
-        logger.info(df_live_final[existing_log_cols].to_string(index=False))
-        
-    return df_live_final
+    return df_live
 
 def load_artifacts():
-    """Loads the trained model and the required scaling statistics."""
+    """Loads the trained model and scaling statistics."""
     logger.info("Loading model and scaling statistics...")
     with open(MODEL_FILE, 'rb') as f:
         model = pickle.load(f)
@@ -322,103 +320,115 @@ def load_artifacts():
     return model, scaler_data
 
 def scale_live_data(df_raw, scaler_data):
-    """Standardizes the live MA5 feature data using training stats."""
+    """Standardizes the live MA5 features using training stats."""
     df_features = df_raw.copy()
     scaled_feature_stems = [col.replace('_scaled', '') for col in PREDICTOR_COLUMNS if col != 'summary_min']
     
-    # Check if any feature stems are missing from the raw data
+    # Check for missing features
     for feature_stem in scaled_feature_stems:
         if feature_stem not in df_features.columns:
-             logger.error(f"FATAL: MA5 column '{feature_stem}' is missing before scaling. Check MA5 calculation.")
-             return None
+            logger.error(f"FATAL: MA5 column '{feature_stem}' missing before scaling")
+            return None
 
+    # Scale each MA5 feature
     for feature_stem in scaled_feature_stems:
         raw_col = feature_stem
         scaled_col = f'{feature_stem}_scaled'
         
-        # Guard against key missing in scaler data (shouldn't happen if artifacts are correct)
         if raw_col not in scaler_data.index:
-            logger.error(f"Feature '{raw_col}' not found in scaler data. Skipping scale.")
+            logger.error(f"Feature '{raw_col}' not found in scaler data")
             continue
             
         mu = scaler_data.loc[raw_col, 'mean']
         sigma = scaler_data.loc[raw_col, 'std']
         
-        # Check for division by zero
         if sigma == 0:
             df_features[scaled_col] = 0 
         else:
             df_features[scaled_col] = (df_features[raw_col] - mu) / sigma
             
-    # Include the unscaled 'summary_min' in the final features
+    # Include unscaled summary_min
     final_features = df_features[PREDICTOR_COLUMNS] 
     final_features = sm.add_constant(final_features, has_constant='add') 
     return final_features
 
 def run_predictions(model, df_features_scaled, df_raw):
     """Generates predictions and calculates probabilities."""
-    logger.info(f"Generating predictions for {len(df_raw)} players...")
+    logger.info(f"\nGenerating predictions for {len(df_raw)} players...")
     
-    # Ensure all required columns are present in df_features_scaled before prediction
     if not all(col in df_features_scaled.columns for col in PREDICTOR_COLUMNS + ['const']):
-        logger.error("Missing required feature columns in scaled data for prediction.")
-        return
+        logger.error("Missing required feature columns for prediction")
+        return None
 
     df_raw['E_SOT'] = model.predict(df_features_scaled)
     df_raw['P_SOT_1_Plus'] = 1 - np.exp(-df_raw['E_SOT'])
-    report = df_raw.sort_values(by='P_SOT_1_Plus', ascending=False)
+    
+    # Create report
+    report = df_raw.sort_values(by='E_SOT', ascending=False).copy()
+    
     final_report = report[[
         'player_id', 'player_name', 'team_name', 'opponent_team', 
-        'E_SOT', 'P_SOT_1_Plus', 'summary_min', 'match_datetime'
-    ]].rename(columns={'summary_min': 'expected_minutes', 'team_name': 'team', 'opponent_team': 'opponent'}).round(3)
+        'E_SOT', 'P_SOT_1_Plus', 'min_MA5', 'sot_MA5', 'match_datetime'
+    ]].rename(columns={
+        'min_MA5': 'expected_minutes',
+        'sot_MA5': 'recent_sot_avg',
+        'team_name': 'team',
+        'opponent_team': 'opponent'
+    }).round(3)
+    
     final_report.to_csv(PREDICTION_OUTPUT, index=False)
-    logger.info(f"Prediction report saved to {PREDICTION_OUTPUT}. Top 5 recommendations:")
-    logger.info("\n" + final_report.head(5).to_string(index=False))
+    
+    logger.info(f"\n✅ Prediction report saved to {PREDICTION_OUTPUT}")
+    logger.info(f"\nTop 10 Recommendations (by Expected SOT):\n")
+    logger.info(final_report.head(10).to_string(index=False))
+    
     return final_report
 
 def main():
-    logger.info("--- Starting Live Prediction Service ---")
+    logger.info("=" * 70)
+    logger.info("STARTING LIVE PREDICTION SERVICE")
+    logger.info("=" * 70)
     
     # 1. Load Model Artifacts
     try:
         model, scaler_data = load_artifacts()
     except FileNotFoundError as e:
-        logger.critical(f"💥 Failed to load model artifacts: {e}. Check that '{MODEL_FILE}' and '{SCALER_STATS_FILE}' are accessible via the path set in ARTIFACT_PATH.")
+        logger.critical(f"Failed to load model artifacts: {e}")
+        logger.critical(f"Check paths: MODEL_FILE={MODEL_FILE}, SCALER_STATS_FILE={SCALER_STATS_FILE}")
         return
     except Exception as e:
-        logger.error(f"An error occurred while loading artifacts: {e}")
+        logger.error(f"Error loading artifacts: {e}")
         return
 
-    # 2. Fetch and Process All Data
+    # 2. Fetch and Process Data
     df_combined_raw = load_and_merge_raw_data()
     if df_combined_raw.empty:
+        logger.error("No data loaded from database")
         return
 
     df_processed = calculate_ma5_factors(df_combined_raw)
     
-    # 3. Filter for Next Gameweek's Live Features
+    # 3. Filter for Next Gameweek
     df_live_raw = get_live_gameweek_features(df_processed)
     
-    # ⚠️ Safely create an empty output file if no predictions are made
     if df_live_raw.empty:
-        logger.warning("Exiting: No scheduled games or players with sufficient history were processed. Creating empty report file.")
-        empty_cols = ['player_id', 'player_name', 'team_name', 'opponent_team', 'E_SOT', 'P_SOT_1_Plus', 'expected_minutes', 'match_datetime']
-        empty_report = pd.DataFrame(columns=empty_cols)
-        empty_report.to_csv(PREDICTION_OUTPUT, index=False)
+        logger.warning("No players qualified for prediction. Creating empty report.")
+        empty_cols = ['player_id', 'player_name', 'team', 'opponent', 'E_SOT', 'P_SOT_1_Plus', 'expected_minutes', 'recent_sot_avg', 'match_datetime']
+        pd.DataFrame(columns=empty_cols).to_csv(PREDICTION_OUTPUT, index=False)
         return
         
-    # 4. Scale Live Features
+    # 4. Scale Features
     df_scaled_input = scale_live_data(df_live_raw, scaler_data)
-
-    # Handle the case where scaling failed (returned None)
     if df_scaled_input is None:
-        logger.error("Prediction aborted due to missing MA5 features after filtering.")
+        logger.error("Scaling failed. Aborting prediction.")
         return
     
-    # 5. Run Prediction and Save Report
-    run_predictions(model, df_scaled_input, df_live_raw)
+    # 5. Run Predictions
+    report = run_predictions(model, df_scaled_input, df_live_raw)
     
-    logger.info("--- Live Prediction Service Complete ---")
+    logger.info("\n" + "=" * 70)
+    logger.info("LIVE PREDICTION SERVICE COMPLETE")
+    logger.info("=" * 70)
 
 if __name__ == '__main__':
     main()
