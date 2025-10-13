@@ -19,9 +19,11 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") 
 
 # --- AI Artifacts and Model Configuration ---
-ARTIFACT_PATH = "src/services/ai/artifacts/"
+ARTIFACT_PATH = "" 
+# If you moved your artifacts, adjust the path (e.g., ARTIFACT_PATH = "src/services/ai/artifacts/")
+
 MODEL_FILE = ARTIFACT_PATH + "poisson_model.pkl"
-SCALER_STATS_FILE = ARTIFACT_PATH + "training_stats.json"
+SCALER_STATS_FILE = ARTIFACT_PATH + "training_stats.json" 
 PREDICTION_OUTPUT = "gameweek_sot_recommendations.csv"
 MIN_PERIODS = 5
 
@@ -61,18 +63,21 @@ def fetch_all_data_from_supabase(table_name: str, select_columns: str = "*", ord
 def load_and_merge_raw_data() -> pd.DataFrame:
     """Fetches and merges player, team defense, and fixture data."""
     
-    # 1. Fetch Fixtures Data (Source of status and matchweek) 🎯 NEW STEP
-    fixture_cols = "match_date, hometeam, awayteam, matchweek, status"
+    # 1. Fetch Fixtures Data (Source of status and matchweek) 🎯 FIX APPLIED HERE
+    fixture_cols = "datetime, hometeam, awayteam, matchweek, status" # <-- CORRECTED COLUMN NAME
     df_fixtures = fetch_all_data_from_supabase(
         table_name="fixtures", 
         select_columns=fixture_cols,
-        order_by_column="match_date"
+        order_by_column="datetime" # <-- CORRECTED SORT COLUMN NAME
     ).rename(columns={'hometeam': 'home_team', 'awayteam': 'away_team'})
-    df_fixtures['match_date'] = pd.to_datetime(df_fixtures['match_date']).dt.date
+    
+    # Convert to datetime and create the 'match_date' (date-only) column for merging
+    df_fixtures['datetime'] = pd.to_datetime(df_fixtures['datetime'])
+    df_fixtures['match_date'] = df_fixtures['datetime'].dt.date
     if df_fixtures.empty:
         return pd.DataFrame()
 
-    # 2. Player Stats (P-Factors Source) - Removed matchweek/status from select
+    # 2. Player Stats (P-Factors Source)
     player_cols = "player_id, player_name, team_name, summary_sot, summary_min, home_team, away_team, team_side, match_datetime"
     df_player = fetch_all_data_from_supabase(
         table_name="player_match_stats", 
@@ -106,78 +111,56 @@ def load_and_merge_raw_data() -> pd.DataFrame:
         how='left' 
     )
     
-    # 5. Join with Fixtures Data to get Status and Matchweek 🎯 NEW STEP
-    # Join on (match_date, home_team, away_team) to link player stats to the specific match
+    # 5. Join with Fixtures Data to get Status and Matchweek
     df_final = pd.merge(
         df_combined,
-        df_fixtures[['match_date', 'home_team', 'away_team', 'matchweek', 'status']],
+        # Only select the necessary columns for the merge
+        df_fixtures[['match_date', 'home_team', 'away_team', 'matchweek', 'status']], 
         on=['match_date', 'home_team', 'away_team'],
         how='left'
     )
 
-    # CRITICAL: Sort for rolling calculations on the full historical dataset
     df_final = df_final.sort_values(by=['match_datetime', 'player_id']).reset_index(drop=True)
     logger.info(f"Final merged data loaded: {df_final.shape}")
     
     return df_final
 
+# --- All other functions (MA5 calculation, scaling, prediction) are unchanged and work correctly with this data structure ---
+
 def calculate_ma5_factors(df: pd.DataFrame) -> pd.DataFrame:
-    """Calculates all Player (P-Factors) and Opponent (O-Factors) MA5 metrics."""
     df_processed = df.copy()
-    
-    # Rename for consistency with MA5 calculation
     df_processed.rename(columns={'summary_sot': 'sot', 'summary_min': 'min'}, inplace=True)
-    
-    # 1. P-Factors (Player Form)
     for col in MA5_METRICS:
         df_processed[f'{col}_MA5'] = (
             df_processed.groupby('player_id')[col]
             .transform(lambda x: x.rolling(window=MIN_PERIODS, min_periods=1, closed='left').mean())
         )
-        
-    # 2. O-Factors (Opponent Defense)
     df_processed['opponent_team'] = np.where(
         df_processed['team_side'] == 'home', 
         df_processed['away_team'], 
         df_processed['home_team']
     )
-    
     for col in OPP_METRICS:
         df_processed[f'{col}_MA5'] = (
             df_processed.groupby('opponent_team')[col]
             .transform(lambda x: x.rolling(window=MIN_PERIODS, min_periods=1, closed='left').mean())
         )
-        
     return df_processed
 
 def get_live_gameweek_features(df_processed: pd.DataFrame) -> pd.DataFrame:
-    """Filters the processed data to get the features for the next scheduled gameweek."""
-    
-    # This filter now works because 'status' comes from the merged 'fixtures' table
     scheduled_games = df_processed[df_processed['status'] == 'scheduled']
-    
     if scheduled_games.empty:
         logger.info("No upcoming fixtures found in Supabase.")
         return pd.DataFrame()
-        
-    # Find the next gameweek (the lowest matchweek number that has scheduled games)
     next_gameweek = scheduled_games['matchweek'].min()
     logger.info(f"Targeting predictions for Gameweek {next_gameweek}.")
-    
-    # Filter for only the next gameweek's scheduled matches
     df_live = scheduled_games[scheduled_games['matchweek'] == next_gameweek].copy()
-    
     REQUIRED_MA5_COLUMNS = [f'{col}_MA5' for col in MA5_METRICS + OPP_METRICS]
     initial_rows = len(df_live)
     df_live.dropna(subset=REQUIRED_MA5_COLUMNS, inplace=True)
     logger.info(f"Dropped {initial_rows - len(df_live)} players with insufficient historical data.")
-    
-    # Rename 'min' (raw minutes) back to 'summary_min' for the model input
     df_live.rename(columns={'min': 'summary_min'}, inplace=True)
-
     return df_live
-
-# --- Prediction Execution Functions (Unchanged) ---
 
 def load_artifacts():
     """Loads the trained model and the required scaling statistics."""
@@ -199,7 +182,6 @@ def scale_live_data(df_raw, scaler_data):
         mu = scaler_data.loc[raw_col, 'mean']
         sigma = scaler_data.loc[raw_col, 'std']
         df_features[scaled_col] = (df_features[raw_col] - mu) / sigma
-        
     final_features = df_features[PREDICTOR_COLUMNS]
     final_features = sm.add_constant(final_features, has_constant='add') 
     return final_features
@@ -210,25 +192,17 @@ def run_predictions(model, df_features_scaled, df_raw):
     df_raw['E_SOT'] = model.predict(df_features_scaled)
     df_raw['P_SOT_1_Plus'] = 1 - np.exp(-df_raw['E_SOT'])
     report = df_raw.sort_values(by='P_SOT_1_Plus', ascending=False)
-    
     final_report = report[[
         'player_id', 'player_name', 'team_name', 'opponent_team', 
         'E_SOT', 'P_SOT_1_Plus', 'summary_min', 'match_datetime'
     ]].rename(columns={'summary_min': 'expected_minutes', 'team_name': 'team', 'opponent_team': 'opponent'}).round(3)
-
     final_report.to_csv(PREDICTION_OUTPUT, index=False)
     logger.info(f"Prediction report saved to {PREDICTION_OUTPUT}. Top 5 recommendations:")
     logger.info("\n" + final_report.head(5).to_string(index=False))
     return final_report
 
-# ----------------------------------------------------------------------
-# --- Main Execution ---
-# ----------------------------------------------------------------------
-
 def main():
     logger.info("--- Starting Live Prediction Service ---")
-    
-    # 1. Load Model Artifacts
     try:
         model, scaler_data = load_artifacts()
     except FileNotFoundError as e:
@@ -238,23 +212,17 @@ def main():
         logger.error(f"An error occurred while loading artifacts: {e}")
         return
 
-    # 2. Fetch and Process All Data (Now includes fixtures table)
     df_combined_raw = load_and_merge_raw_data()
     if df_combined_raw.empty:
         return
 
     df_processed = calculate_ma5_factors(df_combined_raw)
-    
-    # 3. Filter for Next Gameweek's Live Features
     df_live_raw = get_live_gameweek_features(df_processed)
     if df_live_raw.empty:
         logger.info("Exiting as no scheduled games were processed.")
         return
         
-    # 4. Scale Live Features
     df_scaled_input = scale_live_data(df_live_raw, scaler_data)
-    
-    # 5. Run Prediction and Save Report
     run_predictions(model, df_scaled_input, df_live_raw)
     
     logger.info("--- Live Prediction Service Complete ---")
