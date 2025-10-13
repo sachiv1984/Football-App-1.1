@@ -80,21 +80,22 @@ def load_data_for_backtest() -> tuple[pd.DataFrame, pd.DataFrame]:
     
     merge_keys = ['match_date', 'team_name']
 
-    # 2a. Fetch Shooting Stats (opp_shots_on_target)
+    # 2a. Fetch Shooting Stats (sot_conceded)
     logger.info("Fetching Team Shooting Stats (opp_shots_on_target) from team_shooting_stats...")
     df_shooting_def = fetch_all_data_from_supabase(
         table_name="team_shooting_stats", 
         select_columns="match_date, team_name, opp_shots_on_target",
         order_by_column="match_date"
-    ).rename(columns={'opp_shots_on_target': 'sot_conceded'}) # Rename for consistency
+    ).rename(columns={'opp_shots_on_target': 'sot_conceded'})
     
     # 2b. Fetch Specific Defensive Stats (tackles_att_3rd)
     logger.info("Fetching Specific Defensive Stats (tackles_att_3rd) from team_defense_stats...")
     df_tackle_def = fetch_all_data_from_supabase(
         table_name="team_defense_stats", 
-        select_columns="match_date, team_name, tackles_att_3rd",
+        # 🎯 FIX APPLIED: Using the correct mapped column name
+        select_columns="match_date, team_name, team_tackles_att_3rd",
         order_by_column="match_date"
-    )
+    ).rename(columns={'team_tackles_att_3rd': 'tackles_att_3rd'}) # Renamed back for processor consistency
     
     # Check for empty data before attempting merge
     if df_shooting_def.empty or df_tackle_def.empty:
@@ -106,7 +107,7 @@ def load_data_for_backtest() -> tuple[pd.DataFrame, pd.DataFrame]:
         df_shooting_def,
         df_tackle_def,
         on=merge_keys,
-        how='inner' # Only keep records present in both tables
+        how='inner'
     )
     
     if df_team_def.empty:
