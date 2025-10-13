@@ -17,6 +17,7 @@ FEATURES_TO_SCALE = [
     'tackles_att_3rd_MA5',
     'sot_MA5',
     'min_MA5'
+    'min'
 ]
 
 def load_data():
