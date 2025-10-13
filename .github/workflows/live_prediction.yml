@@ -1,0 +1,43 @@
+Name: Live SOT Prediction Service
+
+on:
+  # Allows manual running from the GitHub Actions UI
+  workflow_dispatch:
+  # Optional: Schedule this workflow to run automatically (e.g., every Monday morning)
+  # schedule:
+  #   - cron: '0 8 * * 1' # Runs every Monday at 8:00 AM UTC
+
+jobs:
+  run_live_prediction:
+    name: Generate Next Gameweek Predictions
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python Environment
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+        
+    - name: Execute Live Predictor Script 🚀
+      env:
+        # Pass secrets securely to the script via environment variables
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      run: |
+        echo "Starting live prediction service..."
+        python src/services/ai/live_predictor.py
+        
+    - name: Upload Prediction Report 📤
+      uses: actions/upload-artifact@v4
+      with:
+        # Add a timestamp to the file name for easy tracking/downloading
+        name: SOT_Prediction_Report_${{ github.run_id }}
+        path: gameweek_sot_recommendations.csv
+        # Optional: Set a retention period (e.g., 7 days)
+        retention-days: 7
+
