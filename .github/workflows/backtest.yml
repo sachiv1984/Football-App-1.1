@@ -1,4 +1,4 @@
-Name: Backtest SOT Model
+name: Backtest SOT Model
 
 on:
   # This section is updated to only include workflow_dispatch,
@@ -38,6 +38,8 @@ jobs:
           player_data_raw.parquet
           team_def_data_raw.parquet
 
+# ---------------------------------------------------------------------
+
   process_data:
     name: 2. Feature Engineer (O-Factors)
     needs: load_data
@@ -68,6 +70,8 @@ jobs:
       with:
         name: final-feature-set-o-factors
         path: final_feature_set.parquet
+
+# ---------------------------------------------------------------------
 
   analyze_and_scale:
     name: 3. P-Factors, Correlation, Scaling, and Backtest
@@ -125,4 +129,3 @@ jobs:
         path: |
           final_feature_set_scaled.parquet
           poisson_model.pkl
-          training_stats.json
