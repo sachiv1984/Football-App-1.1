@@ -201,12 +201,13 @@ def load_and_merge_raw_data() -> pd.DataFrame:
 def calculate_ma5_factors(df: pd.DataFrame) -> pd.DataFrame:
     """Calculates all Player (P-Factors) and Opponent (O-Factors) MA5 metrics."""
     df_processed = df.copy()
+    
     # Ensure 'summary_sot' and 'summary_min' are present before renaming
     if 'summary_sot' not in df_processed.columns or 'summary_min' not in df_processed.columns:
-        # This should only happen if historical data fetch fails, but for robustness:
         df_processed['summary_sot'] = np.nan
         df_processed['summary_min'] = np.nan
         
+    # Rename for calculation: 'summary_sot' -> 'sot', 'summary_min' -> 'min'
     df_processed.rename(columns={'summary_sot': 'sot', 'summary_min': 'min'}, inplace=True)
     
     # Calculate P-Factors (Player MA5s)
@@ -226,7 +227,6 @@ def calculate_ma5_factors(df: pd.DataFrame) -> pd.DataFrame:
     # Calculate O-Factors (Opponent MA5s)
     for col in OPP_METRICS:
         # The defensive MA5 is calculated based on the OPPONENT'S HISTORICAL PERFORMANCE
-        # of conceding SOT/Tackles.
         df_processed[f'{col}_MA5'] = (
             df_processed.groupby('opponent_team')[col]
             .transform(lambda x: x.rolling(window=MIN_PERIODS, min_periods=1, closed='left').mean())
@@ -266,19 +266,29 @@ def get_live_gameweek_features(df_processed: pd.DataFrame) -> pd.DataFrame:
     REQUIRED_MA5_COLUMNS = [f'{col}_MA5' for col in MA5_METRICS + OPP_METRICS]
     initial_rows = len(df_live)
     
-    # Drop rows where the *calculated* MA5 factors are missing
+    # Drop rows where the *calculated* MA5 factors are missing (less than MIN_PERIODS history)
     df_live.dropna(subset=REQUIRED_MA5_COLUMNS, inplace=True)
     
     logger.info(f"Dropped {initial_rows - len(df_live)} players with insufficient historical data.")
     
-    # Rename 'min' (which is the player minute count) to 'summary_min' as required by the model
-    df_live.rename(columns={'min': 'summary_min'}, inplace=True)
+    # *** FIX HERE: Rename 'min' to 'summary_min' BEFORE attempting to use 'summary_min' in logging ***
+    # This resolves the KeyError: "['min'] not in index"
+    df_live.rename(columns={'min': 'summary_min'}, inplace=True) 
+    
     
     # *** NEW DEBUGGING STEP: Show the input data for the few remaining players ***
     if not df_live.empty:
-        log_cols = ['player_name'] + [col.replace('_MA5', '') for col in REQUIRED_MA5_COLUMNS] + REQUIRED_MA5_COLUMNS
-        log_df = df_live[log_cols]
-        logger.info("\nRaw Features for Players Being Predicted (Check for NaN):")
+        # Adjusted log_cols to use 'summary_min' which is now the correct column name
+        log_cols_base = ['sot_conceded', 'tackles_att_3rd', 'sot', 'summary_min']
+        log_cols_ma5 = [f'{col}_MA5' for col in ['sot_conceded', 'tackles_att_3rd', 'sot', 'min']] # 'min' is the MA5 column name before the final rename
+        
+        log_cols = ['player_name'] + log_cols_base + log_cols_ma5
+        
+        # Check which logging columns exist (since the base columns were originally NaNs for future games)
+        existing_log_cols = [col for col in log_cols if col in df_live.columns]
+
+        log_df = df_live[existing_log_cols]
+        logger.info("\nRaw Features for Players Being Predicted (Check for NaN/Missing History):")
         logger.info(log_df.to_string(index=False))
         
     return df_live
@@ -296,15 +306,13 @@ def load_artifacts():
 def scale_live_data(df_raw, scaler_data):
     """Standardizes the live MA5 feature data using training stats."""
     df_features = df_raw.copy()
-    scaled_feature_stems = [col for col in scaler_data.index if col != 'summary_min']
+    scaled_feature_stems = [col.replace('_scaled', '') for col in PREDICTOR_COLUMNS if col != 'summary_min']
     
     # Check if any feature stems are missing from the raw data
-    missing_cols = [col for col in scaled_feature_stems if col not in df_features.columns]
-    if missing_cols:
-         logger.warning(f"Missing feature columns in raw data before scaling: {missing_cols}")
-         # Attempt to add them as NaN to avoid crash, though this indicates an MA5 calculation issue
-         for col in missing_cols:
-              df_features[col] = np.nan
+    for feature_stem in scaled_feature_stems:
+        if feature_stem not in df_features.columns:
+             logger.error(f"FATAL: MA5 column '{feature_stem}' is missing before scaling. Check MA5 calculation.")
+             return None
 
     for feature_stem in scaled_feature_stems:
         raw_col = feature_stem
@@ -320,7 +328,7 @@ def scale_live_data(df_raw, scaler_data):
         
         # Check for division by zero
         if sigma == 0:
-            df_features[scaled_col] = 0 # If std is zero, all values are the mean, so scaled value is 0
+            df_features[scaled_col] = 0 
         else:
             df_features[scaled_col] = (df_features[raw_col] - mu) / sigma
             
@@ -336,7 +344,7 @@ def run_predictions(model, df_features_scaled, df_raw):
     if not all(col in df_features_scaled.columns for col in PREDICTOR_COLUMNS + ['const']):
         logger.error("Missing required feature columns in scaled data for prediction.")
         return
-        
+
     df_raw['E_SOT'] = model.predict(df_features_scaled)
     df_raw['P_SOT_1_Plus'] = 1 - np.exp(-df_raw['E_SOT'])
     report = df_raw.sort_values(by='P_SOT_1_Plus', ascending=False)
@@ -382,6 +390,11 @@ def main():
         
     # 4. Scale Live Features
     df_scaled_input = scale_live_data(df_live_raw, scaler_data)
+
+    # Handle the case where scaling failed (returned None)
+    if df_scaled_input is None:
+        logger.error("Prediction aborted due to missing MA5 features after filtering.")
+        return
     
     # 5. Run Prediction and Save Report
     run_predictions(model, df_scaled_input, df_live_raw)
