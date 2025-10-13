@@ -61,7 +61,7 @@ class FBRAPIScraper:
         try:
             supabase.table('scraped_matches').insert({
                 'match_url': match_url,
-                'match_datetime': datetime_str,
+                'match_datetime': datetime,
                 'home_team': hometeam,
                 'away_team': awayteam,
                 'venue': venue,
