@@ -155,15 +155,34 @@ def calculate_ma5_factors(df: pd.DataFrame) -> pd.DataFrame:
 
 def get_live_gameweek_features(df_processed: pd.DataFrame) -> pd.DataFrame:
     """Filters the processed data to get the features for the next scheduled gameweek."""
+    
+    # 1. Filter for all scheduled games
     scheduled_games = df_processed[df_processed['status'] == 'scheduled']
+    
+    # --- CONSOLE LOGGING ADDED FOR DEBUGGING ---
     if scheduled_games.empty:
-        # If no games are 'scheduled', it means everything might be 'finished' or 'postponed'
         logger.warning("No rows found with status='scheduled'. Check your Supabase data.")
         return pd.DataFrame()
+    
+    logger.info(f"Total scheduled player rows found: {len(scheduled_games)}")
         
+    # 2. Identify the next gameweek
     next_gameweek = scheduled_games['matchweek'].min()
     logger.info(f"Targeting predictions for Gameweek {next_gameweek}.")
+    
+    # 3. Filter for the target gameweek
     df_live = scheduled_games[scheduled_games['matchweek'] == next_gameweek].copy()
+    
+    # 4. List the fixtures for the target gameweek (deduplicated)
+    target_fixtures = df_live[['match_date', 'home_team', 'away_team']].drop_duplicates()
+    
+    logger.info(f"Fixtures in Gameweek {next_gameweek}:")
+    for _, row in target_fixtures.iterrows():
+        # Format the date nicely for the log
+        match_date_str = row['match_date'].strftime('%Y-%m-%d')
+        logger.info(f"  {row['home_team']} vs {row['away_team']} on {match_date_str}")
+    # --- END OF CONSOLE LOGGING ---
+
     REQUIRED_MA5_COLUMNS = [f'{col}_MA5' for col in MA5_METRICS + OPP_METRICS]
     initial_rows = len(df_live)
     df_live.dropna(subset=REQUIRED_MA5_COLUMNS, inplace=True)
