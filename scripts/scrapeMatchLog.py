@@ -110,15 +110,11 @@ class FBRAPIScraper:
                     # Match metadata from API
                     'match_id': meta.get('match_id'),
                     'match_date': meta.get('date'),
-                    'match_time': None,  # Time not available in this endpoint
                     'round': meta.get('round'),
                     'venue': meta.get('home_away'),
                     'opponent': meta.get('opponent'),
                     'opponent_id': meta.get('opponent_id'),
                     'result': summary_stats.get('result'),  # e.g., "W 2–1", "L 0–1", "D 1–1"
-                    'goals_for': None,  # Not available in player-level data
-                    'goals_against': None,  # Not available in player-level data
-                    'formation': None,  # Not available in this endpoint
                     
                     # Team and player metadata
                     'team_name': team_name,
