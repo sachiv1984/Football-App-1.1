@@ -21,7 +21,7 @@ PREDICTOR_COLUMNS = [
     'tackles_att_3rd_MA5_scaled',
     'sot_MA5_scaled',
     'min_MA5_scaled',
-    'summary_min_scaled'   # Will exist after converting to numeric in feature_scaling.py
+    'summary_min'   # use raw minutes
 ]
 TARGET_COLUMN = 'sot' # Still the raw SOT count
 
