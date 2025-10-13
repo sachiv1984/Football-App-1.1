@@ -25,6 +25,7 @@ MODEL_FILE = ARTIFACT_PATH + "poisson_model.pkl"
 SCALER_STATS_FILE = ARTIFACT_PATH + "training_stats.json" 
 PREDICTION_OUTPUT = "gameweek_sot_recommendations.csv"
 MIN_PERIODS = 5
+MIN_EXPECTED_MINUTES = 45 # New Filter: Only predict for players expected to play 45+ minutes
 
 PREDICTOR_COLUMNS = [
     'sot_conceded_MA5_scaled', 'tackles_att_3rd_MA5_scaled', 
@@ -269,12 +270,20 @@ def get_live_gameweek_features(df_processed: pd.DataFrame) -> pd.DataFrame:
     # Drop rows where the *calculated* MA5 factors are missing (less than MIN_PERIODS history)
     df_live.dropna(subset=REQUIRED_MA5_COLUMNS, inplace=True)
     
-    logger.info(f"Dropped {initial_rows - len(df_live)} players with insufficient historical data.")
+    dropped_history_count = initial_rows - len(df_live)
     
-    # 5. FINAL FIX: Impute the prediction input feature ('summary_min') using the MA5 average of minutes ('min_MA5').
-    # The 'min_MA5' column is the rolling average of minutes played, which is the best proxy for expected minutes.
-    # The final input column needed by the model is 'summary_min'.
+    # 5. Impute the final input column 'summary_min' with the rolling minute average 'min_MA5'
     df_live['summary_min'] = df_live['min_MA5']
+    
+    # 6. NEW FILTER: Filter out players with low expected minutes.
+    # This addresses the Rio Ngumoha issue by ensuring a reasonable amount of playing time.
+    initial_rows_after_history = len(df_live)
+    df_live = df_live[df_live['summary_min'] >= MIN_EXPECTED_MINUTES].copy()
+
+    dropped_minutes_count = initial_rows_after_history - len(df_live)
+    
+    logger.info(f"Dropped {dropped_history_count} players with insufficient historical data.")
+    logger.info(f"Dropped {dropped_minutes_count} players with expected minutes < {MIN_EXPECTED_MINUTES} (low playing time risk).")
     
     
     # *** NEW DEBUGGING STEP: Show the input data for the few remaining players ***
@@ -286,7 +295,7 @@ def get_live_gameweek_features(df_processed: pd.DataFrame) -> pd.DataFrame:
         # Check which logging columns exist
         existing_log_cols = [col for col in log_cols if col in df_live.columns]
 
-        logger.info("\nRaw Features for Players Being Predicted (Imputed 'summary_min' should equal 'min_MA5'):")
+        logger.info("\nRaw Features for Players Being Predicted (Filtered for 45+ minutes):")
         logger.info(df_live[existing_log_cols].to_string(index=False))
         
     return df_live
