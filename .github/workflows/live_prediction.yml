@@ -32,6 +32,11 @@ jobs:
         echo "Starting live prediction service..."
         python src/services/ai/live_predictor.py
         
+    - name: Diagnose Fixtures Table
+      run: |
+        echo "Starting Fixtures Diagnose service..."
+        python src/services/ai/fixture_diagnostic.py
+
     - name: Upload Prediction Report 📤
       uses: actions/upload-artifact@v4
       with:
