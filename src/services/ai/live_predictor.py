@@ -83,7 +83,18 @@ def load_and_merge_raw_data() -> pd.DataFrame:
     if df_fixtures.empty:
         return pd.DataFrame()
 
+    # Normalize status and add debug logging
     df_fixtures['status'] = df_fixtures['status'].astype(str).str.strip().str.lower()
+    
+    logger.info(f"Loaded {len(df_fixtures)} total fixtures")
+    logger.info(f"Unique status values: {df_fixtures['status'].unique().tolist()}")
+    
+    # Identify future fixtures by datetime instead of relying only on status
+    now = pd.Timestamp.now()
+    df_fixtures['is_future'] = df_fixtures['datetime'] > now
+    
+    future_count = df_fixtures['is_future'].sum()
+    logger.info(f"Fixtures in the future (datetime > now): {future_count}")
     
     # --- A. BUILD HISTORICAL DATA (Finished Games) ---
     
