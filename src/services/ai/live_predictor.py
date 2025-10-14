@@ -78,7 +78,7 @@ def load_and_merge_raw_data() -> pd.DataFrame:
         order_by_column="datetime" 
     ).rename(columns={'hometeam': 'home_team', 'awayteam': 'away_team'})
     
-    df_fixtures['datetime'] = pd.to_datetime(df_fixtures['datetime'])
+    df_fixtures['datetime'] = pd.to_datetime(df_fixtures['datetime'], utc=True)
     df_fixtures['match_date'] = df_fixtures['datetime'].dt.date
     if df_fixtures.empty:
         return pd.DataFrame()
@@ -90,7 +90,8 @@ def load_and_merge_raw_data() -> pd.DataFrame:
     logger.info(f"Unique status values: {df_fixtures['status'].unique().tolist()}")
     
     # Identify future fixtures by datetime instead of relying only on status
-    now = pd.Timestamp.now()
+    # Use timezone-aware timestamp for comparison
+    now = pd.Timestamp.now(tz='UTC')
     df_fixtures['is_future'] = df_fixtures['datetime'] > now
     
     future_count = df_fixtures['is_future'].sum()
@@ -157,11 +158,19 @@ def load_and_merge_raw_data() -> pd.DataFrame:
     
     logger.info(f"Found {len(active_players)} active players with >= {MIN_MATCHES_PLAYED} matches")
     
-    # Get scheduled fixtures
-    df_future_fixtures = df_fixtures[df_fixtures['status'] == 'scheduled'].copy()
+    # Get scheduled fixtures - use multiple methods to identify future games
+    # Method 1: Check for 'scheduled' or similar status
+    # Method 2: Use datetime to identify future fixtures
+    df_future_fixtures = df_fixtures[
+        (df_fixtures['status'].isin(['scheduled', 'fixture', 'upcoming', 'not started'])) | 
+        (df_fixtures['is_future'])
+    ].copy()
+    
+    logger.info(f"Future fixtures identified: {len(df_future_fixtures)}")
     
     if df_future_fixtures.empty:
-        logger.warning("No scheduled fixtures found")
+        logger.warning("No scheduled fixtures found. Checking fixture status values...")
+        logger.warning(f"Available status values: {df_fixtures['status'].value_counts().to_dict()}")
         return df_historical
     
     # Cross-join active players with scheduled fixtures
@@ -249,11 +258,15 @@ def calculate_ma5_factors(df: pd.DataFrame) -> pd.DataFrame:
 def get_live_gameweek_features(df_processed: pd.DataFrame) -> pd.DataFrame:
     """Filters the processed data to get features for the next scheduled gameweek."""
     
-    # 1. Filter for scheduled games only
-    scheduled_games = df_processed[df_processed['status'] == 'scheduled'].copy()
+    # 1. Filter for scheduled/future games using flexible criteria
+    scheduled_games = df_processed[
+        (df_processed['status'].isin(['scheduled', 'fixture', 'upcoming', 'not started'])) |
+        (df_processed.get('is_future', False) == True)
+    ].copy()
     
     if scheduled_games.empty:
-        logger.warning("No rows found with status='scheduled'.")
+        logger.warning("No rows found with future game indicators")
+        logger.warning(f"Available status values in processed data: {df_processed['status'].value_counts().to_dict()}")
         return pd.DataFrame()
     
     logger.info(f"Total scheduled player rows: {len(scheduled_games)}")
