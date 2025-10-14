@@ -1,0 +1,30 @@
+name: Data Validation 
+
+on:
+  # This section is updated to only include workflow_dispatch,
+  # which allows for manual triggering from the GitHub Actions UI.
+  workflow_dispatch:
+
+jobs:
+  load_data:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+    
+    - name: Set up Python Environment
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+        
+    - name: Validate Raw Data Quality
+      run: |
+        python src/services/ai/utils/data_validation.py
+
+    - name: Check Validation Result
+      if: success()
+      run: echo "✅ Data validation passed - proceeding with training"
+        
