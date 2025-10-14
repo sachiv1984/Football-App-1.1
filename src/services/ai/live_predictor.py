@@ -29,7 +29,7 @@ MIN_PERIODS = 5
 # ✅ PROPER FILTER THRESHOLDS (based on training criteria)
 MIN_EXPECTED_MINUTES = 15.0  # Same as training: minimum 15 mins average
 MIN_SOT_MA5 = 0.1            # Same as training: minimum 0.1 SOT per match
-MIN_MATCHES_PLAYED = 5       # Require at least 5 historical matches for reliable MA5
+MIN_MATCHES_PLAYED = 3       # ✅ LOWERED: Require at least 3 historical matches for MA5 (was 5)
 
 PREDICTOR_COLUMNS = [
     'sot_conceded_MA5_scaled', 'tackles_att_3rd_MA5_scaled', 
@@ -55,14 +55,34 @@ except Exception as e:
 # ----------------------------------------------------------------------
 
 def fetch_all_data_from_supabase(table_name: str, select_columns: str = "*", order_by_column: str = "match_datetime") -> pd.DataFrame:
-    """Fetches all data from a specified Supabase table."""
+    """Fetches all data from a specified Supabase table with pagination to avoid limits."""
     logger.info(f"Fetching data from table: {table_name}")
-    response = supabase.from_(table_name).select(select_columns).order(order_by_column, desc=False).execute()
-    data = response.data
-    if not data:
+    
+    all_data = []
+    offset = 0
+    limit = 1000  # Supabase default limit
+    
+    while True:
+        response = supabase.from_(table_name).select(select_columns).order(order_by_column, desc=False).range(offset, offset + limit - 1).execute()
+        
+        if not response.data:
+            break
+            
+        all_data.extend(response.data)
+        
+        # If we got less than limit, we've reached the end
+        if len(response.data) < limit:
+            break
+            
+        offset += limit
+        logger.info(f"  Fetched {len(all_data)} rows so far...")
+    
+    if not all_data:
         logger.warning(f"No data found in table {table_name}.")
         return pd.DataFrame()
-    return pd.DataFrame(data)
+    
+    logger.info(f"  Total fetched from {table_name}: {len(all_data)} rows")
+    return pd.DataFrame(all_data)
 
 def load_and_merge_raw_data() -> pd.DataFrame:
     """
@@ -108,6 +128,14 @@ def load_and_merge_raw_data() -> pd.DataFrame:
     )
     
     logger.info(f"Fetched {len(df_player_history)} player match records from database")
+    
+    # 🔍 DEBUG: Check for Haaland in raw data
+    haaland_raw = df_player_history[df_player_history['player_name'].str.contains('Haaland', case=False, na=False)]
+    if not haaland_raw.empty:
+        logger.info(f"🔍 HAALAND CHECK 1 - Found in raw data: {len(haaland_raw)} matches")
+        logger.info(f"   Total SOT: {haaland_raw['summary_sot'].sum()}, Total mins: {haaland_raw['summary_min'].sum()}")
+    else:
+        logger.warning("🔍 HAALAND CHECK 1 - NOT FOUND in raw player data!")
     
     if df_player_history.empty:
         logger.error("No player match stats found in database!")
@@ -173,6 +201,18 @@ def load_and_merge_raw_data() -> pd.DataFrame:
     qualified_player_ids = player_match_counts[player_match_counts['match_count'] >= MIN_MATCHES_PLAYED]['player_id'].tolist()
     
     logger.info(f"Players with >= {MIN_MATCHES_PLAYED} matches: {len(qualified_player_ids)}")
+    
+    if len(qualified_player_ids) == 0:
+        logger.error(f"No players have >= {MIN_MATCHES_PLAYED} matches!")
+        logger.error(f"Highest match count in database: {player_match_counts['match_count'].max()}")
+        logger.error("Consider: 1) Loading more historical data, or 2) Lowering MIN_MATCHES_PLAYED")
+        return df_historical
+    
+    # Warn if match counts are low
+    avg_matches = player_match_counts[player_match_counts['player_id'].isin(qualified_player_ids)]['match_count'].mean()
+    if avg_matches < 5:
+        logger.warning(f"⚠️ Average match count ({avg_matches:.1f}) is below ideal MA5 requirement (5)")
+        logger.warning("MA5 calculations will use fewer periods - predictions may be less reliable")
     
     # Get the latest team for each qualified player (they might have transferred)
     active_players = (
@@ -242,6 +282,7 @@ def load_and_merge_raw_data() -> pd.DataFrame:
     df_final = df_final.sort_values(by=['match_datetime', 'player_id']).reset_index(drop=True)
     
     logger.info(f"Final merged data: {len(df_historical)} historical + {len(df_future)} future = {len(df_final)} total rows")
+    logger.info(f"Status distribution in final data: {df_final['status'].value_counts().to_dict()}")
     
     return df_final
 
