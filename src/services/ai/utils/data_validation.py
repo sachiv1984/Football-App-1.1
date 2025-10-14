@@ -40,6 +40,11 @@ def fetch_with_pagination(table_name, select_columns="*", order_by="match_dateti
     offset = 0
     limit = 1000
     
+    # Use appropriate order_by column for different tables
+    # Team stats tables use 'match_date', player stats use 'match_datetime'
+    if table_name in ['team_shooting_stats', 'team_defense_stats']:
+        order_by = 'match_date'
+    
     while True:
         response = supabase.from_(table_name).select(select_columns).order(order_by, desc=False).range(offset, offset + limit - 1).execute()
         
