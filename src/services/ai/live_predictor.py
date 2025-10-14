@@ -106,11 +106,15 @@ def load_and_merge_raw_data() -> pd.DataFrame:
         select_columns=player_cols,
         order_by_column="match_datetime" 
     )
+    
+    logger.info(f"Fetched {len(df_player_history)} player match records from database")
+    
     if df_player_history.empty:
+        logger.error("No player match stats found in database!")
         return pd.DataFrame()
     
     df_player_history['summary_min'] = pd.to_numeric(df_player_history['summary_min'], errors='coerce')
-    df_player_history['match_datetime'] = pd.to_datetime(df_player_history['match_datetime'])
+    df_player_history['match_datetime'] = pd.to_datetime(df_player_history['match_datetime'], utc=True)
     df_player_history['match_date'] = df_player_history['match_datetime'].dt.date 
 
     # 3. Team Defense Stats (O-Factors Source) - HISTORICAL ONLY
@@ -129,6 +133,8 @@ def load_and_merge_raw_data() -> pd.DataFrame:
     
     df_team_def = pd.merge(df_shooting_def, df_tackle_def, on=merge_keys, how='inner')
     df_team_def['match_date'] = pd.to_datetime(df_team_def['match_date']).dt.date
+    
+    logger.info(f"Merged team defense data: {len(df_team_def)} team-match records")
 
     # 4. Join Player and Team Defense Data
     df_historical = pd.merge(
@@ -141,22 +147,43 @@ def load_and_merge_raw_data() -> pd.DataFrame:
     # 5. Join with Fixtures to get Status and Matchweek
     df_historical = pd.merge(
         df_historical,
-        df_fixtures[['match_date', 'home_team', 'away_team', 'matchweek', 'status']], 
+        df_fixtures[['match_date', 'home_team', 'away_team', 'matchweek', 'status', 'datetime']], 
         on=['match_date', 'home_team', 'away_team'],
-        how='left'
+        how='left',
+        suffixes=('', '_fixture')
     )
+    
+    # Use fixture datetime if player datetime is missing
+    df_historical['match_datetime'] = df_historical['match_datetime'].fillna(df_historical['datetime'])
+    df_historical.drop(columns=['datetime'], errors='ignore', inplace=True)
+    
+    logger.info(f"Historical data after fixture join: {len(df_historical)} rows")
+    logger.info(f"Status distribution in historical: {df_historical['status'].value_counts().to_dict()}")
     
     # --- B. BUILD FUTURE DATA (Scheduled Games) ---
     
     # Get active players (those with sufficient history)
-    player_match_counts = df_player_history.groupby('player_id').size()
-    active_players = df_player_history[
-        df_player_history['player_id'].isin(
-            player_match_counts[player_match_counts >= MIN_MATCHES_PLAYED].index
-        )
-    ][['player_id', 'player_name', 'team_name']].drop_duplicates()
+    # Count matches per player
+    player_match_counts = df_player_history.groupby('player_id').size().reset_index(name='match_count')
     
-    logger.info(f"Found {len(active_players)} active players with >= {MIN_MATCHES_PLAYED} matches")
+    logger.info(f"Total unique players in history: {len(player_match_counts)}")
+    logger.info(f"Match count distribution: min={player_match_counts['match_count'].min()}, max={player_match_counts['match_count'].max()}, mean={player_match_counts['match_count'].mean():.1f}")
+    
+    # Filter for players with enough matches
+    qualified_player_ids = player_match_counts[player_match_counts['match_count'] >= MIN_MATCHES_PLAYED]['player_id'].tolist()
+    
+    logger.info(f"Players with >= {MIN_MATCHES_PLAYED} matches: {len(qualified_player_ids)}")
+    
+    # Get the latest team for each qualified player (they might have transferred)
+    active_players = (
+        df_player_history[df_player_history['player_id'].isin(qualified_player_ids)]
+        .sort_values('match_datetime')
+        .groupby('player_id')
+        .last()[['player_name', 'team_name']]
+        .reset_index()
+    )
+    
+    logger.info(f"Active players ready for prediction: {len(active_players)}")
     
     # Get scheduled fixtures - use multiple methods to identify future games
     # Method 1: Check for 'scheduled' or similar status
