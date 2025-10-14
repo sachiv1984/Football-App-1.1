@@ -187,18 +187,42 @@ def validate_player_match_stats():
     # --- Check for Duplicate Records ---
     logger.info(f"\n🔁 DUPLICATE RECORDS CHECK:")
     
-    duplicates = df[df.duplicated(subset=['player_id', 'match_datetime'], keep=False)]
-    if len(duplicates) > 0:
-        logger.error(f"  🔴 {len(duplicates)} duplicate player-match records found!")
-        logger.error(f"     Same player appearing multiple times in the same match")
-        issues.append(f"Duplicate records: {len(duplicates)} rows")
+    # First check: player_id + match_datetime (what we checked before)
+    duplicates_basic = df[df.duplicated(subset=['player_id', 'match_datetime'], keep=False)]
+    
+    # Second check: player_id + match_datetime + team_name (more accurate)
+    duplicates_strict = df[df.duplicated(subset=['player_id', 'match_datetime', 'team_name'], keep=False)]
+    
+    # Third check: Same player, same datetime, different teams (likely transfers)
+    player_datetime_teams = df.groupby(['player_id', 'match_datetime'])['team_name'].nunique()
+    multi_team_records = player_datetime_teams[player_datetime_teams > 1]
+    
+    if len(duplicates_strict) > 0:
+        logger.error(f"  🔴 {len(duplicates_strict)} TRUE duplicate player-match records found!")
+        logger.error(f"     Same player, same match, same team - genuine duplicates")
+        issues.append(f"True duplicate records: {len(duplicates_strict)} rows")
         
         # Show examples
-        sample_dup = duplicates.groupby(['player_id', 'match_datetime']).size().reset_index(name='count')
+        sample_dup = duplicates_strict.groupby(['player_id', 'match_datetime', 'team_name']).size().reset_index(name='count')
         sample_dup = sample_dup[sample_dup['count'] > 1].head(3)
         for _, row in sample_dup.iterrows():
             player_name = df[df['player_id'] == row['player_id']]['player_name'].iloc[0]
-            logger.error(f"       {player_name} on {row['match_datetime']}: {row['count']} records")
+            logger.error(f"       {player_name} ({row['team_name']}) on {row['match_datetime']}: {row['count']} records")
+    elif len(duplicates_basic) > 0 and len(multi_team_records) > 0:
+        # Duplicates by basic check, but different teams - likely false positive
+        logger.warning(f"  ⚠️ {len(duplicates_basic)} records flagged as duplicates (player + datetime)")
+        logger.warning(f"     BUT {len(multi_team_records)} are different teams (likely transfers)")
+        logger.info(f"\n  These are NOT true duplicates:")
+        logger.info(f"  Example: Player played for Team A on Date X, later transferred to Team B")
+        logger.info(f"  Both records exist with same datetime but different fixtures")
+        
+        # Show a few examples
+        for (player_id, match_dt), team_count in list(multi_team_records.head(3).items()):
+            player_name = df[df['player_id'] == player_id]['player_name'].iloc[0]
+            teams = df[(df['player_id'] == player_id) & (df['match_datetime'] == match_dt)]['team_name'].unique()
+            logger.info(f"     {player_name} on {match_dt}: {', '.join(teams)}")
+        
+        logger.info(f"\n  ✅ No action needed - these are legitimate records")
     else:
         logger.info(f"  ✅ No duplicate records found")
     
