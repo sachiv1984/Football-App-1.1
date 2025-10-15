@@ -1,34 +1,45 @@
-name: Data Validation 
+name: Data Validation or Duplicate Investigation
 
 on:
-  # This section is updated to only include workflow_dispatch,
-  # which allows for manual triggering from the GitHub Actions UI.
   workflow_dispatch:
+    inputs:
+      script_to_run:
+        description: "Select which script to execute"
+        required: true
+        default: "data_validation"
+        type: choice
+        options:
+          - data_validation
+          - duplicate_investigation
 
 jobs:
-  load_data:
+  run_script:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
-    
-    - name: Set up Python Environment
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
-        
-    - name: Install dependencies
-      run: pip install -r requirements.txt
-        
-    - name: Validate Raw Data Quality
-      env:
-        # NOTE: Ensure these secrets are configured in your repo settings
-        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-        SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-      run: |
-        python src/services/ai/utils/data_validation.py
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-    - name: Check Validation Result
-      if: success()
-      run: echo "✅ Data validation passed - proceeding with training"
-        
+      - name: Set up Python Environment
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Selected Script
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [ "${{ github.event.inputs.script_to_run }}" == "data_validation" ]; then
+            echo "Running data validation..."
+            python src/services/ai/utils/data_validation.py
+          else
+            echo "Running duplicate investigation..."
+            python src/services/ai/utils/duplicate_investigation.py
+          fi
+
+      - name: Check Result
+        if: success()
+        run: echo "✅ Script completed successfully"
