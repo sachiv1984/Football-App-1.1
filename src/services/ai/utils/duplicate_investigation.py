@@ -21,12 +21,30 @@ def investigate_duplicates():
     logger.info("DUPLICATE DETECTION INVESTIGATION")
     logger.info("=" * 80)
     
-    # Fetch all player match stats
+    # Fetch all player match stats WITH PAGINATION
     logger.info("\nFetching all player_match_stats data...")
-    response = supabase.from_("player_match_stats").select("*").execute()
-    df = pd.DataFrame(response.data)
     
-    logger.info(f"Total records fetched: {len(df)}")
+    all_data = []
+    offset = 0
+    limit = 1000
+    
+    while True:
+        response = supabase.from_("player_match_stats").select("*").order("match_datetime", desc=False).range(offset, offset + limit - 1).execute()
+        
+        if not response.data:
+            break
+            
+        all_data.extend(response.data)
+        logger.info(f"  Fetched {len(all_data)} rows so far...")
+        
+        if len(response.data) < limit:
+            break
+            
+        offset += limit
+    
+    df = pd.DataFrame(all_data)
+    
+    logger.info(f"\nTotal records fetched: {len(df)}")
     logger.info(f"Columns: {list(df.columns)}")
     
     # ============================================================================
