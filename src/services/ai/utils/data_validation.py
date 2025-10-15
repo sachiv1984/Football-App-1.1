@@ -34,14 +34,15 @@ def print_section(title):
     logger.info("=" * 80)
 
 def fetch_with_pagination(table_name, select_columns="*", order_by="match_datetime"):
-    """Fetch all data from a table with pagination."""
+    """Fetch all data from a table with pagination and deduplication."""
     logger.info(f"\nFetching data from {table_name}...")
+    
     all_data = []
+    seen_ids = set()
     offset = 0
     limit = 1000
     
     # Use appropriate order_by column for different tables
-    # Team stats tables use 'match_date', player stats use 'match_datetime'
     if table_name in ['team_shooting_stats', 'team_defense_stats']:
         order_by = 'match_date'
     
@@ -50,10 +51,19 @@ def fetch_with_pagination(table_name, select_columns="*", order_by="match_dateti
         
         if not response.data:
             break
-            
-        all_data.extend(response.data)
         
-        if len(response.data) < limit:
+        # Deduplicate by ID to prevent pagination overlap
+        new_records = 0
+        for record in response.data:
+            record_id = record.get('id')
+            
+            if record_id is None or record_id not in seen_ids:
+                all_data.append(record)
+                if record_id:
+                    seen_ids.add(record_id)
+                new_records += 1
+        
+        if len(response.data) < limit or new_records == 0:
             break
             
         offset += limit
