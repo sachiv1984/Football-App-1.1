@@ -11,6 +11,7 @@ on:
         options:
           - data_validation
           - duplicate_investigation
+          - quick_duplicate_check
 
 jobs:
   run_script:
@@ -32,13 +33,24 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          if [ "${{ github.event.inputs.script_to_run }}" == "data_validation" ]; then
-            echo "Running data validation..."
-            python src/services/ai/utils/data_validation.py
-          else
-            echo "Running duplicate investigation..."
-            python src/services/ai/utils/duplicate_investigation.py
-          fi
+          case "${{ github.event.inputs.script_to_run }}" in
+            data_validation)
+              echo "Running data validation..."
+              python src/services/ai/utils/data_validation.py
+              ;;
+            duplicate_investigation)
+              echo "Running duplicate investigation..."
+              python src/services/ai/utils/duplicate_investigation.py
+              ;;
+            quick_duplicate_check)
+              echo "Running quick duplicate check..."
+              python src/services/ai/utils/quick_duplicate_check.py
+              ;;
+            *)
+              echo "❌ Invalid option selected."
+              exit 1
+              ;;
+          esac
 
       - name: Check Result
         if: success()
