@@ -115,6 +115,21 @@ jobs:
         echo "Running backtest_model.py to evaluate model and save pkl..."
         python src/services/ai/backtest_model.py
 
+    - name: Run Model Diagnostics
+      run: |
+        python src/services/ai/utils/model_diagnostics.py
+
+    - name: Upload Diagnostics Results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+      name: model-diagnostics
+      path: |
+      src/services/ai/utils/diagnostics_report.txt
+      src/services/ai/utils/vif_results.csv
+      src/services/ai/utils/correlation_matrix.csv
+      src/services/ai/utils/feature_target_correlations.csv
+
     - name: Run Prediction Service Simulation
       # Tests that the saved model can be loaded and used for a live prediction
       run: |
