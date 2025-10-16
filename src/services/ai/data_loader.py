@@ -4,9 +4,13 @@ from supabase import create_client, Client
 from dotenv import load_dotenv
 import logging
 import numpy as np
+import sys
 
-# ✅ Import the shared deduplication fetcher
+# ✅ Ensure project root is on Python path (fix for GitHub runner)
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../..")))
+
 from src.services.ai.utils.supabase_utils import fetch_with_deduplication
+
 
 # --- Configuration and Setup ---
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
