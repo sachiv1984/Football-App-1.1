@@ -42,19 +42,18 @@ def fetch_with_pagination(table_name, select_columns="*", order_by="id"):
     offset = 0
     limit = 1000
 
-    # Always order by a unique column to prevent pagination overlap
-    # Fall back to 'id' if available
-    if table_name in ['team_shooting_stats', 'team_defense_stats']:
-        order_by = 'id'  # ✅ FIXED
-    else:
-        order_by = 'id'  # ✅ FIXED for player_match_stats and fixtures
+    # Always include 'id' column for deduplication
+    if "id" not in select_columns:
+        if select_columns.strip() == "*":
+            select_columns = "id, *"
+        else:
+            select_columns = "id, " + select_columns
 
     while True:
-        # Use the new Supabase pagination with .table() not .from_()
         response = (
             supabase.table(table_name)
             .select(select_columns)
-            .order(order_by, desc=False)  # ✅ FIXED
+            .order(order_by, desc=False)
             .range(offset, offset + limit - 1)
             .execute()
         )
@@ -65,8 +64,7 @@ def fetch_with_pagination(table_name, select_columns="*", order_by="id"):
 
         new_records = 0
         for record in data:
-            record_id = record.get('id')
-            # Deduplicate by record ID
+            record_id = record.get("id")
             if record_id is not None and record_id not in seen_ids:
                 seen_ids.add(record_id)
                 all_data.append(record)
