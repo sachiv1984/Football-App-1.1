@@ -6,8 +6,11 @@ from dotenv import load_dotenv
 import logging
 import sys
 
-# ✅ Import the shared utility
+# ✅ Ensure project root is on Python path (fix for GitHub runner)
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../..")))
+
 from src.services.ai.utils.supabase_utils import fetch_with_deduplication
+
 
 # ---------------------------------------------------------------
 # Logging Configuration
