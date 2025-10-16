@@ -125,10 +125,10 @@ jobs:
       with:
       name: model-diagnostics
       path: |
-      src/services/ai/utils/diagnostics_report.txt
-      src/services/ai/utils/vif_results.csv
-      src/services/ai/utils/correlation_matrix.csv
-      src/services/ai/utils/feature_target_correlations.csv
+        src/services/ai/utils/diagnostics_report.txt
+        src/services/ai/utils/vif_results.csv
+        src/services/ai/utils/correlation_matrix.csv
+        src/services/ai/utils/feature_target_correlations.csv
 
     - name: Run Prediction Service Simulation
       # Tests that the saved model can be loaded and used for a live prediction
