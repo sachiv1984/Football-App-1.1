@@ -6,9 +6,12 @@ import logging
 import numpy as np
 import sys
 
-# ✅ Ensure project root is on Python path (fix for GitHub runner)
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../..")))
+# ✅ Ensure src is on path (one level up from ai)
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 
+# ✅ Now safely import from utils
 from src.services.ai.utils.supabase_utils import fetch_with_deduplication
 
 
