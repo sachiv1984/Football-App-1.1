@@ -33,44 +33,56 @@ def print_section(title):
     logger.info(f"  {title}")
     logger.info("=" * 80)
 
-def fetch_with_pagination(table_name, select_columns="*", order_by="match_datetime"):
+def fetch_with_pagination(table_name, select_columns="*", order_by="id"):
     """Fetch all data from a table with pagination and deduplication."""
     logger.info(f"\nFetching data from {table_name}...")
-    
+
     all_data = []
     seen_ids = set()
     offset = 0
     limit = 1000
-    
-    # Use appropriate order_by column for different tables
+
+    # Always order by a unique column to prevent pagination overlap
+    # Fall back to 'id' if available
     if table_name in ['team_shooting_stats', 'team_defense_stats']:
-        order_by = 'match_date'
-    
+        order_by = 'id'  # ✅ FIXED
+    else:
+        order_by = 'id'  # ✅ FIXED for player_match_stats and fixtures
+
     while True:
-        response = supabase.from_(table_name).select(select_columns).order(order_by, desc=False).range(offset, offset + limit - 1).execute()
-        
-        if not response.data:
+        # Use the new Supabase pagination with .table() not .from_()
+        response = (
+            supabase.table(table_name)
+            .select(select_columns)
+            .order(order_by, desc=False)  # ✅ FIXED
+            .range(offset, offset + limit - 1)
+            .execute()
+        )
+
+        data = response.data or []
+        if not data:
             break
-        
-        # Deduplicate by ID to prevent pagination overlap
+
         new_records = 0
-        for record in response.data:
+        for record in data:
             record_id = record.get('id')
-            
-            if record_id is None or record_id not in seen_ids:
+            # Deduplicate by record ID
+            if record_id is not None and record_id not in seen_ids:
+                seen_ids.add(record_id)
                 all_data.append(record)
-                if record_id:
-                    seen_ids.add(record_id)
                 new_records += 1
-        
-        if len(response.data) < limit or new_records == 0:
+
+        logger.info(f"  Page {(offset // limit) + 1}: fetched {len(data)} rows (unique so far: {len(all_data)})")
+
+        if len(data) < limit or new_records == 0:
             break
-            
+
         offset += limit
-    
+
     df = pd.DataFrame(all_data)
-    logger.info(f"  Fetched {len(df)} rows")
+    logger.info(f"  ✅ Completed fetch: {len(df)} unique rows from {table_name}")
     return df
+
 
 def validate_player_match_stats():
     """Validate player_match_stats table - the primary data source."""
