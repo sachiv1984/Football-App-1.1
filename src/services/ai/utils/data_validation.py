@@ -42,12 +42,11 @@ def fetch_with_pagination(table_name, select_columns="*", order_by="id"):
     offset = 0
     limit = 1000
 
-    # Always include 'id' column for deduplication
-    if "id" not in select_columns:
-        if select_columns.strip() == "*":
-            select_columns = "id, *"
-        else:
-            select_columns = "id, " + select_columns
+    # ✅ Always include 'id' column for deduplication
+    select_columns_list = [c.strip() for c in select_columns.split(",") if c.strip()]
+    if "id" not in [c.lower() for c in select_columns_list]:
+        select_columns_list.insert(0, "id")  # prepend id to ensure it's included
+    select_columns = ", ".join(select_columns_list)
 
     while True:
         response = (
