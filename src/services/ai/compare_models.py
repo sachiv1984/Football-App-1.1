@@ -155,7 +155,8 @@ def evaluate_model(model, X, y, model_name='Model'):
     # Probability predictions for 1+ SOT
     if model_name.lower() == 'zip':
         # ZIP model: P(0) includes both inflation and Poisson zeros
-        prob_zero = model.predict(X, which='prob')[0]
+        # Need to provide exog_infl parameter (same as exog for our model)
+        prob_zero = model.predict(X, which='prob', exog_infl=X)[0]
         y_pred_proba = 1 - prob_zero
     else:
         # Poisson model: P(1+) = 1 - P(0) = 1 - exp(-λ)
