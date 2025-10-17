@@ -12,6 +12,9 @@ from dotenv import load_dotenv
 # ✅ Fix: ensure project root (so src/ can be imported) is in the Python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../..")))
 
+# ✅ CRITICAL FIX: Import the fixed utility function
+from src.services.ai.utils.supabase_utils import fetch_with_deduplication
+
 # --- Configuration and Setup ---
 
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
@@ -58,45 +61,19 @@ except Exception as e:
 # --- Core Data Pipeline Functions ---
 # ----------------------------------------------------------------------
 
-def fetch_all_data_from_supabase(table_name: str, select_columns: str = "*", order_by_column: str = "match_datetime") -> pd.DataFrame:
-    """Fetches all data from a specified Supabase table with pagination to avoid limits."""
-    logger.info(f"Fetching data from table: {table_name}")
-    
-    all_data = []
-    offset = 0
-    limit = 1000  # Supabase default limit
-    
-    while True:
-        response = supabase.from_(table_name).select(select_columns).order(order_by_column, desc=False).range(offset, offset + limit - 1).execute()
-        
-        if not response.data:
-            break
-            
-        all_data.extend(response.data)
-        
-        if len(response.data) < limit:
-            break
-            
-        offset += limit
-        logger.info(f"  Fetched {len(all_data)} rows so far...")
-    
-    if not all_data:
-        logger.warning(f"No data found in table {table_name}.")
-        return pd.DataFrame()
-    
-    logger.info(f"  Total fetched from {table_name}: {len(all_data)} rows")
-    return pd.DataFrame(all_data)
+# ✅ REMOVED OLD BUGGY FUNCTION - Now using shared utility
 
-# ----------------------------------------------------------------------
-# --- Rest of your original live_predictor logic ---
-# ----------------------------------------------------------------------
 
 def load_and_merge_raw_data() -> pd.DataFrame:
+    """Load and merge all raw data for predictions."""
+    
+    # ✅ FIX: Use the shared utility with deduplication
     fixture_cols = "datetime, hometeam, awayteam, matchweek, status" 
-    df_fixtures = fetch_all_data_from_supabase(
+    df_fixtures = fetch_with_deduplication(
+        supabase_client=supabase,
         table_name="fixtures", 
         select_columns=fixture_cols,
-        order_by_column="datetime" 
+        order_by="datetime"
     ).rename(columns={'hometeam': 'home_team', 'awayteam': 'away_team'})
     
     df_fixtures['datetime'] = pd.to_datetime(df_fixtures['datetime'], utc=True)
@@ -108,28 +85,34 @@ def load_and_merge_raw_data() -> pd.DataFrame:
     now = pd.Timestamp.now(tz='UTC')
     df_fixtures['is_future'] = df_fixtures['datetime'] > now
 
+    # ✅ FIX: Use the shared utility with deduplication
     player_cols = "player_id, player_name, team_name, summary_sot, summary_min, home_team, away_team, team_side, match_datetime"
-    df_player_history = fetch_all_data_from_supabase(
+    df_player_history = fetch_with_deduplication(
+        supabase_client=supabase,
         table_name="player_match_stats", 
         select_columns=player_cols,
-        order_by_column="match_datetime" 
+        order_by="match_datetime"
     )
 
     df_player_history['summary_min'] = pd.to_numeric(df_player_history['summary_min'], errors='coerce')
     df_player_history['match_datetime'] = pd.to_datetime(df_player_history['match_datetime'], utc=True)
     df_player_history['match_date'] = df_player_history['match_datetime'].dt.date 
 
+    # ✅ FIX: Use the shared utility with deduplication
     merge_keys = ['match_date', 'team_name']
-    df_shooting_def = fetch_all_data_from_supabase(
+    df_shooting_def = fetch_with_deduplication(
+        supabase_client=supabase,
         table_name="team_shooting_stats", 
         select_columns="match_date, team_name, opp_shots_on_target",
-        order_by_column="match_date" 
+        order_by="match_date"
     ).rename(columns={'opp_shots_on_target': 'sot_conceded'})
     
-    df_tackle_def = fetch_all_data_from_supabase(
+    # ✅ FIX: Use the shared utility with deduplication
+    df_tackle_def = fetch_with_deduplication(
+        supabase_client=supabase,
         table_name="team_defense_stats", 
         select_columns="match_date, team_name, team_tackles_att_3rd",
-        order_by_column="match_date" 
+        order_by="match_date"
     ).rename(columns={'team_tackles_att_3rd': 'tackles_att_3rd'})
     
     df_team_def = pd.merge(df_shooting_def, df_tackle_def, on=merge_keys, how='inner')
