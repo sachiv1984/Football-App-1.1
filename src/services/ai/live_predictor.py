@@ -9,8 +9,10 @@ import json
 from supabase import create_client, Client
 from dotenv import load_dotenv
 
-# ✅ Fix: ensure project root (so src/ can be imported) is in the Python path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../..")))
+# ✅ Fix: ensure project root is on Python path BEFORE imports
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 
 # ✅ CRITICAL FIX: Import the fixed utility function
 from src.services.ai.utils.supabase_utils import fetch_with_deduplication
