@@ -1,3 +1,13 @@
+"""
+Live Predictor with Zero-Inflated Poisson (ZIP) Model Support
+
+This version can use either:
+1. Standard Poisson model (poisson_model.pkl)
+2. Zero-Inflated Poisson model (zip_model.pkl)
+
+Set MODEL_TYPE = 'zip' or 'poisson' to choose.
+"""
+
 import os
 import sys
 import pandas as pd
@@ -14,7 +24,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-# ✅ CRITICAL FIX: Import the fixed utility function
+# ✅ Import the fixed utility function
 from src.services.ai.utils.supabase_utils import fetch_with_deduplication
 
 # --- Configuration and Setup ---
@@ -30,8 +40,16 @@ SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 # --- AI Artifacts and Model Configuration ---
 ARTIFACT_PATH = "src/services/ai/artifacts/" 
 
-MODEL_FILE = ARTIFACT_PATH + "poisson_model.pkl"
-SCALER_STATS_FILE = ARTIFACT_PATH + "training_stats.json" 
+# ✅ CHOOSE MODEL TYPE: 'zip' or 'poisson'
+MODEL_TYPE = os.getenv("MODEL_TYPE", "zip")  # Default to ZIP model
+
+if MODEL_TYPE == 'zip':
+    MODEL_FILE = ARTIFACT_PATH + "zip_model.pkl"
+    STATS_FILE = ARTIFACT_PATH + "zip_training_stats.json"
+else:
+    MODEL_FILE = ARTIFACT_PATH + "poisson_model.pkl"
+    STATS_FILE = ARTIFACT_PATH + "training_stats.json"
+
 PREDICTION_OUTPUT = "gameweek_sot_recommendations.csv"
 MIN_PERIODS = 5
 
@@ -62,9 +80,6 @@ except Exception as e:
 # ----------------------------------------------------------------------
 # --- Core Data Pipeline Functions ---
 # ----------------------------------------------------------------------
-
-# ✅ REMOVED OLD BUGGY FUNCTION - Now using shared utility
-
 
 def load_and_merge_raw_data() -> pd.DataFrame:
     """Load and merge all raw data for predictions."""
@@ -173,6 +188,7 @@ def load_and_merge_raw_data() -> pd.DataFrame:
 
 
 def calculate_ma5_factors(df: pd.DataFrame) -> pd.DataFrame:
+    """Calculate MA5 factors for players and opponents."""
     df_processed = df.copy()
     df_processed.rename(columns={'summary_sot': 'sot', 'summary_min': 'min'}, inplace=True)
     
@@ -197,6 +213,7 @@ def calculate_ma5_factors(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def get_live_gameweek_features(df_processed: pd.DataFrame) -> pd.DataFrame:
+    """Filter for live gameweek and apply qualification criteria."""
     scheduled_games = df_processed[
         (df_processed['status'].isin(['scheduled', 'fixture', 'upcoming', 'not started'])) |
         (df_processed.get('is_future', False) == True)
@@ -218,16 +235,41 @@ def get_live_gameweek_features(df_processed: pd.DataFrame) -> pd.DataFrame:
 
 
 def load_artifacts():
-    logger.info("Loading model and scaling statistics...")
-    with open(MODEL_FILE, 'rb') as f:
-        model = pickle.load(f)
-    with open(SCALER_STATS_FILE, 'r') as f:
-        stats_dict = json.load(f)
-    scaler_data = pd.DataFrame(stats_dict).T
-    return model, scaler_data
+    """Load model and scaling statistics."""
+    logger.info(f"Loading {MODEL_TYPE.upper()} model and scaling statistics...")
+    
+    try:
+        with open(MODEL_FILE, 'rb') as f:
+            model = pickle.load(f)
+        logger.info(f"✅ Model loaded from: {MODEL_FILE}")
+        
+        with open(STATS_FILE, 'r') as f:
+            stats_dict = json.load(f)
+        
+        # Handle different stats file formats
+        if 'model_type' in stats_dict:
+            # New format from ZIP trainer
+            logger.info(f"   Model type: {stats_dict['model_type']}")
+            # Load scaler stats from training_stats.json (always needed)
+            scaler_file = ARTIFACT_PATH + "training_stats.json"
+            with open(scaler_file, 'r') as f:
+                scaler_dict = json.load(f)
+            scaler_data = pd.DataFrame(scaler_dict).T
+        else:
+            # Old format (scaler stats directly)
+            scaler_data = pd.DataFrame(stats_dict).T
+        
+        return model, scaler_data
+        
+    except FileNotFoundError as e:
+        logger.error(f"❌ Model file not found: {e}")
+        logger.error(f"   Expected: {MODEL_FILE}")
+        logger.error(f"   Run zip_model_trainer.py first!")
+        exit(1)
 
 
 def scale_live_data(df_raw, scaler_data):
+    """Scale features using training statistics."""
     df_features = df_raw.copy()
     scaled_feature_stems = [col.replace('_scaled', '') for col in PREDICTOR_COLUMNS if col != 'summary_min']
 
@@ -241,15 +283,40 @@ def scale_live_data(df_raw, scaler_data):
     return final_features
 
 
-def run_predictions(model, df_features_scaled, df_raw):
-    df_raw['E_SOT'] = model.predict(df_features_scaled)
-    df_raw['P_SOT_1_Plus'] = 1 - np.exp(-df_raw['E_SOT'])
+def run_predictions(model, df_features_scaled, df_raw, model_type='zip'):
+    """Generate predictions using ZIP or Poisson model."""
+    
+    if model_type == 'zip':
+        # ZIP model predictions
+        df_raw['E_SOT'] = model.predict(df_features_scaled)
+        
+        # Calculate P(1+ SOT) for ZIP
+        # P(0) = π + (1-π) × Poisson(0|λ)
+        # P(1+) = 1 - P(0)
+        prob_zero = model.predict(df_features_scaled, which='prob')[0]
+        df_raw['P_SOT_1_Plus'] = 1 - prob_zero
+        
+        # Add ZIP-specific columns
+        df_raw['P_Never_Shooter'] = model.predict(df_features_scaled, which='prob-main')[0]
+        
+    else:
+        # Standard Poisson predictions
+        df_raw['E_SOT'] = model.predict(df_features_scaled)
+        df_raw['P_SOT_1_Plus'] = 1 - np.exp(-df_raw['E_SOT'])
     
     report = df_raw.sort_values(by='E_SOT', ascending=False).copy()
-    final_report = report[[
+    
+    # Select columns for output
+    output_cols = [
         'player_id', 'player_name', 'team_name', 'opponent_team', 
         'E_SOT', 'P_SOT_1_Plus', 'min_MA5', 'sot_MA5', 'match_datetime'
-    ]].rename(columns={
+    ]
+    
+    # Add ZIP-specific column if available
+    if 'P_Never_Shooter' in report.columns:
+        output_cols.insert(6, 'P_Never_Shooter')
+    
+    final_report = report[output_cols].rename(columns={
         'min_MA5': 'expected_minutes',
         'sot_MA5': 'recent_sot_avg',
         'team_name': 'team',
@@ -258,15 +325,31 @@ def run_predictions(model, df_features_scaled, df_raw):
     
     final_report.to_csv(PREDICTION_OUTPUT, index=False)
     logger.info(f"✅ Prediction report saved to {PREDICTION_OUTPUT}")
+    
+    # Display top 10 predictions
+    logger.info(f"\n🎯 TOP 10 PREDICTIONS (Gameweek {df_raw['matchweek'].iloc[0]}):")
+    logger.info("─" * 100)
+    
+    display_cols = ['player_name', 'team', 'opponent', 'E_SOT', 'P_SOT_1_Plus']
+    if 'P_Never_Shooter' in final_report.columns:
+        display_cols.insert(4, 'P_Never_Shooter')
+    
+    logger.info(final_report[display_cols].head(10).to_string(index=False))
+    logger.info("─" * 100)
+    
     return final_report
 
 
 def main():
+    """Main execution pipeline."""
     logger.info("=" * 70)
-    logger.info("STARTING LIVE PREDICTION SERVICE")
+    logger.info(f"STARTING LIVE PREDICTION SERVICE ({MODEL_TYPE.upper()} MODEL)")
     logger.info("=" * 70)
     
+    # Load model
     model, scaler_data = load_artifacts()
+    
+    # Load and process data
     df_combined_raw = load_and_merge_raw_data()
     if df_combined_raw.empty:
         logger.error("No data loaded from database")
@@ -274,16 +357,23 @@ def main():
 
     df_processed = calculate_ma5_factors(df_combined_raw)
     df_live_raw = get_live_gameweek_features(df_processed)
+    
     if df_live_raw.empty:
         logger.warning("No players qualified for prediction.")
         return
+    
+    logger.info(f"\n📊 Qualified players: {len(df_live_raw)}")
         
+    # Scale features
     df_scaled_input = scale_live_data(df_live_raw, scaler_data)
-    report = run_predictions(model, df_scaled_input, df_live_raw)
+    
+    # Generate predictions
+    report = run_predictions(model, df_scaled_input, df_live_raw, model_type=MODEL_TYPE)
     
     logger.info("=" * 70)
     logger.info("LIVE PREDICTION SERVICE COMPLETE")
     logger.info("=" * 70)
+
 
 if __name__ == '__main__':
     main()
