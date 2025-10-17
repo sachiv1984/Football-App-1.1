@@ -288,16 +288,16 @@ def run_predictions(model, df_features_scaled, df_raw, model_type='zip'):
     
     if model_type == 'zip':
         # ZIP model predictions
-        df_raw['E_SOT'] = model.predict(df_features_scaled)
+        df_raw['E_SOT'] = model.predict(df_features_scaled, exog_infl=df_features_scaled)
         
         # Calculate P(1+ SOT) for ZIP
         # P(0) = π + (1-π) × Poisson(0|λ)
         # P(1+) = 1 - P(0)
-        prob_zero = model.predict(df_features_scaled, which='prob')[0]
+        prob_zero = model.predict(df_features_scaled, which='prob', exog_infl=df_features_scaled)[0]
         df_raw['P_SOT_1_Plus'] = 1 - prob_zero
         
         # Add ZIP-specific columns
-        df_raw['P_Never_Shooter'] = model.predict(df_features_scaled, which='prob-main')[0]
+        df_raw['P_Never_Shooter'] = model.predict(df_features_scaled, which='prob-main', exog_infl=df_features_scaled)[0]
         
     else:
         # Standard Poisson predictions
