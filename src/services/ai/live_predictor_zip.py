@@ -287,25 +287,74 @@ def run_predictions(model, df_features_scaled, df_raw, model_type='zip'):
     """Generate predictions using ZIP or Poisson model."""
     
     if model_type == 'zip':
-        # ZIP model predictions
-        df_raw['E_SOT'] = model.predict(df_features_scaled, exog_infl=df_features_scaled)
+        # ZIP model predictions for E[SOT]
+        e_sot = model.predict(df_features_scaled, exog_infl=df_features_scaled)
+        
+        # Convert to simple array
+        if hasattr(e_sot, 'values'):
+            e_sot = e_sot.values
+        e_sot = np.asarray(e_sot).ravel()
+        if len(e_sot) > len(df_raw):
+            e_sot = e_sot[:len(df_raw)]
+        
+        df_raw['E_SOT'] = e_sot
         
         # Calculate P(1+ SOT) for ZIP
-        # P(0) = π + (1-π) × Poisson(0|λ)
-        # P(1+) = 1 - P(0)
-        # Note: predict returns array with probabilities for each count (0, 1, 2, ...)
-        # We want P(0), which is the first element
+        # Get P(Y=0) from the model
         prob_results = model.predict(df_features_scaled, which='prob', exog_infl=df_features_scaled)
+        
+        # Extract P(Y=0)
         if isinstance(prob_results, tuple):
-            prob_zero = prob_results[0]  # P(Y=0) for each observation
+            prob_zero = prob_results[0]
         else:
             prob_zero = prob_results
-        df_raw['P_SOT_1_Plus'] = 1 - prob_zero
         
-        # Add ZIP-specific columns
-        # P(structural zero) from inflation model
+        # Convert to simple 1D numpy array
+        if isinstance(prob_zero, pd.DataFrame):
+            prob_zero = prob_zero.iloc[:, 0].values
+        elif isinstance(prob_zero, pd.Series):
+            prob_zero = prob_zero.values
+        elif hasattr(prob_zero, 'values'):
+            prob_zero = prob_zero.values
+        
+        prob_zero = np.asarray(prob_zero).ravel()
+        
+        # Truncate if needed
+        if len(prob_zero) > len(df_raw):
+            prob_zero = prob_zero[:len(df_raw)]
+        
+        # Validate length
+        if len(prob_zero) != len(df_raw):
+            raise ValueError(f"Length mismatch: prob_zero={len(prob_zero)}, df_raw={len(df_raw)}")
+        
+        # Calculate P(1+ SOT) = 1 - P(0)
+        # IMPORTANT: Do calculation, then assign as list
+        p_vals = [1 - p for p in prob_zero]
+        df_raw['P_SOT_1_Plus'] = p_vals
+        
+        # Get P(structural zero) from inflation model
         prob_inflate = model.predict(df_features_scaled, which='prob-main', exog_infl=df_features_scaled)
-        df_raw['P_Never_Shooter'] = prob_inflate
+        
+        # Convert to simple 1D numpy array
+        if isinstance(prob_inflate, pd.DataFrame):
+            prob_inflate = prob_inflate.iloc[:, 0].values
+        elif isinstance(prob_inflate, pd.Series):
+            prob_inflate = prob_inflate.values
+        elif hasattr(prob_inflate, 'values'):
+            prob_inflate = prob_inflate.values
+        
+        prob_inflate = np.asarray(prob_inflate).ravel()
+        
+        # Truncate if needed
+        if len(prob_inflate) > len(df_raw):
+            prob_inflate = prob_inflate[:len(df_raw)]
+        
+        # Validate length
+        if len(prob_inflate) != len(df_raw):
+            raise ValueError(f"Length mismatch: prob_inflate={len(prob_inflate)}, df_raw={len(df_raw)}")
+        
+        # Assign as list
+        df_raw['P_Never_Shooter'] = prob_inflate.tolist()
         
     else:
         # Standard Poisson predictions
@@ -346,7 +395,6 @@ def run_predictions(model, df_features_scaled, df_raw, model_type='zip'):
     logger.info("─" * 100)
     
     return final_report
-
 
 def main():
     """Main execution pipeline."""
