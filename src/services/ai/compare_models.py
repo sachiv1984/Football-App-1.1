@@ -108,7 +108,15 @@ def calculate_brier_score(y_true, y_pred_proba):
 
 def calculate_calibration_metrics(y_true, y_pred_proba, n_bins=10):
     """Calculate calibration metrics (reliability curve)."""
-    y_binary = (y_true > 0).astype(int)
+    # Convert everything to numpy arrays first for consistent handling
+    y_true_array = y_true.values if hasattr(y_true, 'values') else np.array(y_true)
+    y_pred_proba_array = y_pred_proba.values if hasattr(y_pred_proba, 'values') else np.array(y_pred_proba)
+    
+    # Flatten arrays if needed (handle 2D arrays from predictions)
+    y_true_array = y_true_array.flatten()
+    y_pred_proba_array = y_pred_proba_array.flatten()
+    
+    y_binary = (y_true_array > 0).astype(int)
     
     bins = np.linspace(0, 1, n_bins + 1)
     bin_means_predicted = []
@@ -116,18 +124,11 @@ def calculate_calibration_metrics(y_true, y_pred_proba, n_bins=10):
     bin_counts = []
     
     for i in range(n_bins):
-        mask = (y_pred_proba >= bins[i]) & (y_pred_proba < bins[i + 1])
-        # Convert to numpy array if it's a pandas Series
-        if hasattr(mask, 'values'):
-            mask = mask.values
+        mask = (y_pred_proba_array >= bins[i]) & (y_pred_proba_array < bins[i + 1])
         
         if mask.sum() > 0:
-            # Convert to numpy arrays for indexing
-            proba_array = y_pred_proba.values if hasattr(y_pred_proba, 'values') else y_pred_proba
-            binary_array = y_binary.values if hasattr(y_binary, 'values') else y_binary
-            
-            bin_means_predicted.append(proba_array[mask].mean())
-            bin_means_actual.append(binary_array[mask].mean())
+            bin_means_predicted.append(y_pred_proba_array[mask].mean())
+            bin_means_actual.append(y_binary[mask].mean())
             bin_counts.append(mask.sum())
     
     # Calibration error
