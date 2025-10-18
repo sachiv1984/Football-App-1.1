@@ -117,9 +117,17 @@ def calculate_calibration_metrics(y_true, y_pred_proba, n_bins=10):
     
     for i in range(n_bins):
         mask = (y_pred_proba >= bins[i]) & (y_pred_proba < bins[i + 1])
+        # Convert to numpy array if it's a pandas Series
+        if hasattr(mask, 'values'):
+            mask = mask.values
+        
         if mask.sum() > 0:
-            bin_means_predicted.append(y_pred_proba[mask].mean())
-            bin_means_actual.append(y_binary[mask].mean())
+            # Convert to numpy arrays for indexing
+            proba_array = y_pred_proba.values if hasattr(y_pred_proba, 'values') else y_pred_proba
+            binary_array = y_binary.values if hasattr(y_binary, 'values') else y_binary
+            
+            bin_means_predicted.append(proba_array[mask].mean())
+            bin_means_actual.append(binary_array[mask].mean())
             bin_counts.append(mask.sum())
     
     # Calibration error
