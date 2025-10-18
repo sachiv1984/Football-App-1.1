@@ -156,7 +156,12 @@ def evaluate_model(model, X, y, model_name='Model'):
     if model_name.lower() == 'zip':
         # ZIP model: P(0) includes both inflation and Poisson zeros
         # Need to provide exog_infl parameter (same as exog for our model)
-        prob_zero = model.predict(X, which='prob', exog_infl=X)[0]
+        prob_results = model.predict(X, which='prob', exog_infl=X)
+        # prob_results is either a tuple (prob_0, prob_1, ...) or array of prob_0
+        if isinstance(prob_results, tuple):
+            prob_zero = prob_results[0]  # P(Y=0) for each observation
+        else:
+            prob_zero = prob_results  # Already just P(Y=0)
         y_pred_proba = 1 - prob_zero
     else:
         # Poisson model: P(1+) = 1 - P(0) = 1 - exp(-λ)
