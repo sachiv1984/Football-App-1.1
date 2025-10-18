@@ -11,8 +11,14 @@ import pickle
 import logging
 import sys
 import json
+import warnings
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from scipy.stats import poisson
+
+# Suppress statsmodels BIC warning
+import statsmodels.api as sm
+from statsmodels.genmod.generalized_linear_model import SET_USE_BIC_LLF
+SET_USE_BIC_LLF(True)  # Use log-likelihood based BIC (future default)
 
 # --- Logging Setup ---
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
@@ -166,29 +172,38 @@ def evaluate_model(model, X, y, model_name='Model'):
     
     # Model fit statistics
     results['aic'] = model.aic if hasattr(model, 'aic') else np.nan
-    results['bic'] = model.bic if hasattr(model, 'bic') else np.nan
+    results['bic'] = model.bic_llf if hasattr(model, 'bic_llf') else model.bic if hasattr(model, 'bic') else np.nan
     results['llf'] = model.llf if hasattr(model, 'llf') else np.nan
     
     # Probability predictions for 1+ SOT
     if model_name.lower() == 'zip':
         # ZIP model: P(0) includes both inflation and Poisson zeros
-        # Need to provide exog_infl parameter (same as exog for our model)
         prob_results = model.predict(X, which='prob', exog_infl=X)
-        # prob_results is either a tuple (prob_0, prob_1, ...) or array of prob_0
+        
+        # Handle tuple return (prob for each count: 0, 1, 2, 3, 4)
         if isinstance(prob_results, tuple):
-            prob_zero = prob_results[0]  # P(Y=0) for each observation
+            # Take only P(Y=0) - first element of tuple
+            prob_zero = prob_results[0]
         else:
-            prob_zero = prob_results  # Already just P(Y=0)
+            # If not tuple, assume it's already just P(Y=0)
+            prob_zero = prob_results
         
         # Convert to numpy and flatten
         prob_zero = prob_zero.values if hasattr(prob_zero, 'values') else np.array(prob_zero)
         prob_zero = prob_zero.flatten()
         
-        # Ensure same length as y
+        # CRITICAL: Check length and truncate if needed
         if len(prob_zero) != len(y_array):
             logger.warning(f"⚠️ Probability array length mismatch: {len(prob_zero)} vs {len(y_array)}")
-            # Take first len(y_array) elements if longer
+            
+            # If longer (e.g., 5595 = 1119 × 5 counts), it's still flattened wrong
+            # This suggests prob_results is returning all probabilities, not just P(Y=0)
+            # Take only the first N values
             prob_zero = prob_zero[:len(y_array)]
+            
+            # Verify values are in valid probability range [0, 1]
+            if prob_zero.max() > 1.0 or prob_zero.min() < 0.0:
+                logger.error(f"❌ Invalid probabilities after truncation: min={prob_zero.min()}, max={prob_zero.max()}")
         
         y_pred_proba = 1 - prob_zero
     else:
