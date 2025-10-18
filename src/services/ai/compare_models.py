@@ -150,11 +150,19 @@ def evaluate_model(model, X, y, model_name='Model'):
     y_pred = model.predict(X)
     results['predictions'] = y_pred
     
+    # Convert to numpy arrays for consistent handling
+    y_array = y.values if hasattr(y, 'values') else np.array(y)
+    y_pred_array = y_pred.values if hasattr(y_pred, 'values') else np.array(y_pred)
+    
+    # Flatten to ensure 1D
+    y_array = y_array.flatten()
+    y_pred_array = y_pred_array.flatten()
+    
     # Basic metrics
-    results['rmse'] = np.sqrt(mean_squared_error(y, y_pred))
-    results['mae'] = mean_absolute_error(y, y_pred)
-    results['mean_pred'] = y_pred.mean()
-    results['mean_actual'] = y.mean()
+    results['rmse'] = np.sqrt(mean_squared_error(y_array, y_pred_array))
+    results['mae'] = mean_absolute_error(y_array, y_pred_array)
+    results['mean_pred'] = y_pred_array.mean()
+    results['mean_actual'] = y_array.mean()
     
     # Model fit statistics
     results['aic'] = model.aic if hasattr(model, 'aic') else np.nan
@@ -171,27 +179,38 @@ def evaluate_model(model, X, y, model_name='Model'):
             prob_zero = prob_results[0]  # P(Y=0) for each observation
         else:
             prob_zero = prob_results  # Already just P(Y=0)
+        
+        # Convert to numpy and flatten
+        prob_zero = prob_zero.values if hasattr(prob_zero, 'values') else np.array(prob_zero)
+        prob_zero = prob_zero.flatten()
+        
+        # Ensure same length as y
+        if len(prob_zero) != len(y_array):
+            logger.warning(f"⚠️ Probability array length mismatch: {len(prob_zero)} vs {len(y_array)}")
+            # Take first len(y_array) elements if longer
+            prob_zero = prob_zero[:len(y_array)]
+        
         y_pred_proba = 1 - prob_zero
     else:
         # Poisson model: P(1+) = 1 - P(0) = 1 - exp(-λ)
-        y_pred_proba = 1 - np.exp(-y_pred)
+        y_pred_proba = 1 - np.exp(-y_pred_array)
     
     results['prob_predictions'] = y_pred_proba
     
     # Brier score
-    results['brier_score'] = calculate_brier_score(y, y_pred_proba)
+    results['brier_score'] = calculate_brier_score(y_array, y_pred_proba)
     
     # Calibration
-    cal_error, _, _, _ = calculate_calibration_metrics(y, y_pred_proba)
+    cal_error, _, _, _ = calculate_calibration_metrics(y_array, y_pred_proba)
     results['calibration_error'] = cal_error
     
     # Prediction distribution
     results['pred_dist'] = {
-        'min': y_pred.min(),
-        'q25': np.percentile(y_pred, 25),
-        'median': np.median(y_pred),
-        'q75': np.percentile(y_pred, 75),
-        'max': y_pred.max()
+        'min': y_pred_array.min(),
+        'q25': np.percentile(y_pred_array, 25),
+        'median': np.median(y_pred_array),
+        'q75': np.percentile(y_pred_array, 75),
+        'max': y_pred_array.max()
     }
     
     return results
