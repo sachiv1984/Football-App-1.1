@@ -293,11 +293,19 @@ def run_predictions(model, df_features_scaled, df_raw, model_type='zip'):
         # Calculate P(1+ SOT) for ZIP
         # P(0) = π + (1-π) × Poisson(0|λ)
         # P(1+) = 1 - P(0)
-        prob_zero = model.predict(df_features_scaled, which='prob', exog_infl=df_features_scaled)[0]
+        # Note: predict returns array with probabilities for each count (0, 1, 2, ...)
+        # We want P(0), which is the first element
+        prob_results = model.predict(df_features_scaled, which='prob', exog_infl=df_features_scaled)
+        if isinstance(prob_results, tuple):
+            prob_zero = prob_results[0]  # P(Y=0) for each observation
+        else:
+            prob_zero = prob_results
         df_raw['P_SOT_1_Plus'] = 1 - prob_zero
         
         # Add ZIP-specific columns
-        df_raw['P_Never_Shooter'] = model.predict(df_features_scaled, which='prob-main', exog_infl=df_features_scaled)[0]
+        # P(structural zero) from inflation model
+        prob_inflate = model.predict(df_features_scaled, which='prob-main', exog_infl=df_features_scaled)
+        df_raw['P_Never_Shooter'] = prob_inflate
         
     else:
         # Standard Poisson predictions
