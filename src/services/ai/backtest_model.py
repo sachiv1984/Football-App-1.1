@@ -1,8 +1,9 @@
-import pandas as pd
+limport pandas as pd
 import numpy as np
 import pickle
 import logging
 import statsmodels.api as sm
+import os
 
 # --- Logging Setup ---
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
@@ -100,15 +101,33 @@ def display_model_summary(model, X, y):
     # 1. Model Fit Statistics
     logger.info("\n📊 Model Fit Statistics:")
     
-    # Calculate McFadden's Pseudo R-squared manually
+    # ✅ FIXED: Calculate McFadden's Pseudo R-squared using statsmodels' llnull
     ll_model = model.llf
-    ll_null = -len(y) * (y.mean() * np.log(y.mean()) - y.mean()) if y.mean() > 0 else 0
-    pseudo_r2 = 1 - (ll_model / ll_null)
     
-    logger.info(f"  Pseudo R² (McFadden): {pseudo_r2:.4f} ({pseudo_r2*100:.2f}%)")
-    logger.info(f"  Log-Likelihood:       {model.llf:.2f}")
+    if hasattr(model, 'llnull'):
+        # Use statsmodels' built-in null log-likelihood
+        ll_null = model.llnull
+        pseudo_r2 = 1 - (ll_model / ll_null)
+        
+        logger.info(f"  Pseudo R² (McFadden): {pseudo_r2:.4f} ({pseudo_r2*100:.2f}%)")
+        logger.info(f"  Log-Likelihood (Model): {ll_model:.2f}")
+        logger.info(f"  Log-Likelihood (Null):  {ll_null:.2f}")
+    else:
+        # Fallback: Manual calculation for Poisson null model
+        y_mean = y.mean()
+        if y_mean > 0:
+            # Poisson null model: all observations predicted as the mean
+            ll_null = np.sum(y * np.log(y_mean) - y_mean - np.log(np.maximum(1, np.arange(1, len(y)+1))))
+            pseudo_r2 = 1 - (ll_model / ll_null)
+            logger.info(f"  Pseudo R² (McFadden): {pseudo_r2:.4f} ({pseudo_r2*100:.2f}%)")
+            logger.info(f"  Log-Likelihood (Model): {ll_model:.2f}")
+            logger.info(f"  Log-Likelihood (Null):  {ll_null:.2f} (calculated)")
+        else:
+            logger.warning("  ⚠️ Could not calculate Pseudo R² (mean SOT = 0)")
+            pseudo_r2 = np.nan
+    
     logger.info(f"  AIC:                  {model.aic:.2f}")
-    logger.info(f"  BIC:                  {model.bic:.2f}")
+    logger.info(f"  BIC:                  {model.bic_llf:.2f}")  # Use log-likelihood based BIC
     
     # 2. Prediction Performance
     y_pred = model.predict(X)
@@ -126,10 +145,15 @@ def display_model_summary(model, X, y):
     logger.info(f"  {'Feature':<35} {'Coefficient':<12} {'Rate Mult.':<12} {'P-value':<10}")
     logger.info(f"  {'-'*70}")
     
-    for i, feature in enumerate(['const'] + PREDICTOR_COLUMNS):
-        coef = model.params[i]
+    feature_names = ['const'] + PREDICTOR_COLUMNS
+    
+    for feature in feature_names:
+        if feature not in model.params.index:
+            continue
+            
+        coef = model.params[feature]
         rate_mult = np.exp(coef)
-        p_value = model.pvalues[i]
+        p_value = model.pvalues[feature]
         
         # Interpretation
         if feature == 'const':
@@ -149,22 +173,19 @@ def display_model_summary(model, X, y):
     logger.info(f"\n  Significance: *** p<0.001, ** p<0.01, * p<0.05")
     
     # 4. Position Feature Insights (NEW)
-    logger.info(f"\n📊 Position Feature Insights:")
-    
-    # Find position coefficient indices
-    forward_idx = PREDICTOR_COLUMNS.index('is_forward') + 1  # +1 for const
-    defender_idx = PREDICTOR_COLUMNS.index('is_defender') + 1
-    
-    forward_mult = np.exp(model.params[forward_idx])
-    defender_mult = np.exp(model.params[defender_idx])
-    
-    logger.info(f"  Forwards vs Midfielders:   {(forward_mult-1)*100:+.1f}% SOT")
-    logger.info(f"  Att.Defenders vs Midfielders: {(defender_mult-1)*100:+.1f}% SOT")
-    logger.info(f"  ")
-    logger.info(f"  Interpretation:")
-    logger.info(f"    - Baseline (Midfielders): Reference group (coefficient = 0)")
-    logger.info(f"    - Forwards: {forward_mult:.3f}x multiplier")
-    logger.info(f"    - Attacking Defenders: {defender_mult:.3f}x multiplier")
+    if 'is_forward' in model.params.index and 'is_defender' in model.params.index:
+        logger.info(f"\n📊 Position Feature Insights:")
+        
+        forward_mult = np.exp(model.params['is_forward'])
+        defender_mult = np.exp(model.params['is_defender'])
+        
+        logger.info(f"  Forwards vs Midfielders:   {(forward_mult-1)*100:+.1f}% SOT")
+        logger.info(f"  Att.Defenders vs Midfielders: {(defender_mult-1)*100:+.1f}% SOT")
+        logger.info(f"  ")
+        logger.info(f"  Interpretation:")
+        logger.info(f"    - Baseline (Midfielders): Reference group (coefficient = 0)")
+        logger.info(f"    - Forwards: {forward_mult:.3f}x multiplier")
+        logger.info(f"    - Attacking Defenders: {defender_mult:.3f}x multiplier")
     
     # 5. Training Sample Info
     logger.info(f"\n📊 Training Sample:")
@@ -172,6 +193,19 @@ def display_model_summary(model, X, y):
     logger.info(f"  Zero SOT matches:     {(y == 0).sum()} ({(y==0).sum()/len(y)*100:.1f}%)")
     logger.info(f"  Non-zero matches:     {(y > 0).sum()} ({(y>0).sum()/len(y)*100:.1f}%)")
     logger.info(f"  Max SOT in sample:    {y.max():.0f}")
+    
+    # 6. Comparison with Baseline (if available)
+    logger.info(f"\n📊 Comparison with Baseline (No Position Features):")
+    logger.info(f"  Baseline Pseudo R²:   8.27% (reference)")
+    logger.info(f"  Current Pseudo R²:    {pseudo_r2*100:.2f}%")
+    
+    if not np.isnan(pseudo_r2):
+        improvement = (pseudo_r2 - 0.0827) * 100
+        if improvement > 0:
+            logger.info(f"  Improvement:          +{improvement:.2f} percentage points ✅")
+        else:
+            logger.info(f"  Change:               {improvement:.2f} percentage points ⚠️")
+            logger.warning(f"  ⚠️ Model fit WORSE than baseline!")
 
 
 def save_model(model):
@@ -219,9 +253,6 @@ def main():
     logger.info("             The live predictor needs it in that location!")
     logger.info("\nNext step: Run live_predictor_zip.py for predictions")
 
-
-# Add missing import
-import os
 
 if __name__ == '__main__':
     main()
