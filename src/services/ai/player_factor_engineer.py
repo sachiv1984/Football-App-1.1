@@ -4,83 +4,275 @@ import pandas as pd
 import numpy as np
 import logging
 
+# --- Logging Setup ---
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 logger = logging.getLogger(__name__)
 
 # --- Configuration ---
-INPUT_FILE = "final_feature_set.parquet" # Output from backtest_processor.py
+INPUT_FILE = "final_feature_set.parquet"
 OUTPUT_FILE = "final_feature_set_pfactors.parquet"
-MIN_PERIODS = 5 # Window size for rolling average
+MIN_PERIODS = 5  # Minimum periods for rolling average
 
-def load_features() -> pd.DataFrame:
-    """Loads the feature set including the O-Factors."""
-    logger.info(f"Loading feature set from {INPUT_FILE}...")
+# Player-level metrics to calculate MA5 for
+MA5_METRICS = ['sot', 'min']
+
+
+def load_data():
+    """Load the feature set with O-Factors from backtest_processor."""
+    logger.info("Loading data from backtest_processor output...")
     try:
         df = pd.read_parquet(INPUT_FILE)
-        logger.info(f"Data loaded successfully. Shape: {df.shape}")
+        logger.info(f"✅ Data loaded successfully. Shape: {df.shape}")
         return df
     except FileNotFoundError:
-        logger.error(f"File not found: {INPUT_FILE}. Ensure backtest_processor.py ran successfully.")
+        logger.error(f"❌ File not found: {INPUT_FILE}")
+        logger.error("Run backtest_processor.py first!")
         exit(1)
 
-def prepare_data(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Renames the summary columns to the expected model target/feature names.
-    This resolves the 'sot' KeyError in backtest_model.py.
-    """
-    logger.info("Renaming raw target column 'summary_sot' to 'sot'...")
-    
-    # 1. Rename raw SOT to the expected Target Column Name ('sot')
-    if 'summary_sot' in df.columns:
-        df.rename(columns={'summary_sot': 'sot'}, inplace=True)
-    else:
-        logger.warning("'summary_sot' not found. Check previous script's output.")
-        
-    # 2. Ensure min is also renamed if that's the raw column name
-    if 'summary_min' in df.columns:
-        df.rename(columns={'summary_min': 'min'}, inplace=True)
-    
-    # 3. Sort for time-series calculation
-    df = df.sort_values(by=['player_id', 'match_datetime']).reset_index(drop=True)
-    
-    return df
 
-def calculate_p_factors(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Calculates Player-specific rolling historical factors (P-Factors).
-    The raw columns 'sot' and 'min' are now expected to be present.
-    """
-    logger.info("Starting calculation of Player-specific Factors (P-Factors)...")
+def rename_columns_for_consistency(df):
+    """Rename summary columns to shorter names for easier processing."""
+    logger.info("Renaming columns for consistency...")
     
-    # Define the metrics to track for the player (using the new, simpler names)
-    PLAYER_METRICS = {
-        'sot': 'sot_MA5', # Raw SOT
-        'min': 'min_MA5'  # Raw Minutes
+    rename_map = {
+        'summary_sot': 'sot',
+        'summary_min': 'min'
     }
     
-    # Calculate Rolling Averages (MA5)
-    for raw_col, new_col in PLAYER_METRICS.items():
-        logger.info(f"Calculating rolling {MIN_PERIODS}-match average for {raw_col}...")
-        
-        # Group by 'player_id' and apply the rolling transformation
-        df[new_col] = (
-            df.groupby('player_id')[raw_col]
-            .transform(
-                lambda x: x.rolling(window=MIN_PERIODS, min_periods=1, closed='left').mean()
-            )
-        )
-        
-    logger.info("P-Factors calculated successfully.")
+    df = df.rename(columns=rename_map)
+    logger.info(f"  ✅ Renamed: {list(rename_map.keys())} → {list(rename_map.values())}")
     
-    # NOTE: The drop_nan_factors function is not needed here as it was in the old code.
-    # It will be handled by the feature_scaling.py script.
     return df
 
-if __name__ == '__main__':
-    df_features = load_features()
-    df_features = prepare_data(df_features) # New step to standardize column names
-    df_features = calculate_p_factors(df_features)
+
+def process_position_data(df):
+    """
+    Extract and process position data with hybrid filtering.
     
-    # Save the file containing both O-Factors, P-Factors, and the target 'sot'
-    df_features.to_parquet(OUTPUT_FILE, index=False)
-    logger.info(f"Feature engineering complete. Data saved to {OUTPUT_FILE}")
+    Keeps:
+    - All Forwards and Midfielders
+    - Defenders with avg SOT >= 0.3 (attacking defenders like Trent, Reece James)
+    
+    Removes:
+    - Goalkeepers (never shoot)
+    - Pure defenders (avg SOT < 0.3)
+    """
+    logger.info("\n" + "="*60)
+    logger.info("PROCESSING POSITION DATA (HYBRID FILTERING)")
+    logger.info("="*60)
+    
+    # Check if position data exists
+    if 'summary_positions' not in df.columns:
+        logger.error("❌ 'summary_positions' column not found!")
+        logger.error("Make sure data_loader.py includes 'summary_positions' in SELECT query")
+        exit(1)
+    
+    # 1. Extract primary position (first position if multiple)
+    df['position'] = df['summary_positions'].str.split(',').str[0]
+    logger.info(f"  ✅ Extracted primary position from 'summary_positions'")
+    
+    # 2. Map to position groups
+    position_mapping = {
+        'GK': 'Goalkeeper',
+        'DF': 'Defender',
+        'MF': 'Midfielder',
+        'FW': 'Forward'
+    }
+    
+    df['position_group'] = df['position'].map(position_mapping)
+    
+    # Fill missing positions with 'Midfielder' (conservative default)
+    missing_positions = df['position_group'].isna().sum()
+    if missing_positions > 0:
+        logger.warning(f"  ⚠️ {missing_positions} players with unknown positions, defaulting to 'Midfielder'")
+        df['position_group'] = df['position_group'].fillna('Midfielder')
+    
+    # 3. Calculate player's average SOT (for hybrid filtering)
+    player_avg_sot = df.groupby('player_id')['sot'].mean().reset_index()
+    player_avg_sot.columns = ['player_id', 'player_avg_sot']
+    df = df.merge(player_avg_sot, on='player_id', how='left')
+    
+    # 4. Show position distribution BEFORE filtering
+    logger.info("\n  Position Distribution (Before Filtering):")
+    position_counts = df['position_group'].value_counts()
+    for pos, count in position_counts.items():
+        pct = (count / len(df)) * 100
+        logger.info(f"    {pos:<15} {count:>5} ({pct:>5.1f}%)")
+    
+    # 5. HYBRID FILTERING
+    original_count = len(df)
+    
+    # Threshold for attacking defenders
+    ATTACKING_DEFENDER_THRESHOLD = 0.3
+    
+    # Keep if:
+    # - Forward or Midfielder (always keep)
+    # - Defender with avg SOT >= threshold (attacking defenders)
+    # Remove:
+    # - Goalkeepers (always remove)
+    # - Pure defenders (avg SOT < threshold)
+    
+    attacking_defenders = df[
+        (df['position_group'] == 'Defender') & 
+        (df['player_avg_sot'] >= ATTACKING_DEFENDER_THRESHOLD)
+    ]
+    
+    if len(attacking_defenders) > 0:
+        logger.info(f"\n  🎯 Found {len(attacking_defenders['player_id'].nunique())} attacking defenders (avg SOT >= {ATTACKING_DEFENDER_THRESHOLD}):")
+        top_attacking_defenders = attacking_defenders.groupby('player_name')['player_avg_sot'].first().sort_values(ascending=False).head(5)
+        for name, avg_sot in top_attacking_defenders.items():
+            logger.info(f"    {name:<30} {avg_sot:.3f}")
+    
+    df = df[
+        (df['position_group'].isin(['Forward', 'Midfielder'])) |  # Regular offensive players
+        ((df['position_group'] == 'Defender') & (df['player_avg_sot'] >= ATTACKING_DEFENDER_THRESHOLD))  # Attacking defenders
+    ].copy()
+    
+    filtered_count = original_count - len(df)
+    
+    logger.info(f"\n  🗑️  Filtered out {filtered_count} non-offensive players")
+    logger.info(f"  ✅ Remaining: {len(df)} offensive players")
+    
+    # 6. Show position distribution AFTER filtering
+    logger.info("\n  Position Distribution (After Filtering):")
+    position_counts = df['position_group'].value_counts()
+    for pos, count in position_counts.items():
+        pct = (count / len(df)) * 100
+        avg_sot = df[df['position_group']==pos]['player_avg_sot'].mean()
+        logger.info(f"    {pos:<15} {count:>5} ({pct:>5.1f}%) - Avg SOT: {avg_sot:.3f}")
+    
+    # 7. Create dummy variables for model
+    df['is_forward'] = (df['position_group'] == 'Forward').astype(int)
+    df['is_defender'] = (df['position_group'] == 'Defender').astype(int)  # Attacking defenders
+    
+    logger.info(f"\n  ✅ Created position dummy variables:")
+    logger.info(f"    is_forward: {df['is_forward'].sum()} ({(df['is_forward'].sum()/len(df)*100):.1f}%)")
+    logger.info(f"    is_defender: {df['is_defender'].sum()} ({(df['is_defender'].sum()/len(df)*100):.1f}%) [attacking defenders only]")
+    logger.info(f"    Midfielders (baseline): {((~df['is_forward'].astype(bool)) & (~df['is_defender'].astype(bool))).sum()} ({(((~df['is_forward'].astype(bool)) & (~df['is_defender'].astype(bool))).sum()/len(df)*100):.1f}%)")
+    
+    logger.info("="*60 + "\n")
+    
+    return df
+
+
+def calculate_player_ma5_factors(df):
+    """
+    Calculate rolling MA5 (Moving Average over 5 matches) for player-specific metrics.
+    
+    NOTE: This is now calculated AFTER position filtering, so defenders don't
+    pollute the rolling averages of offensive players.
+    """
+    logger.info("Calculating Player MA5 Factors (P-Factors)...")
+    
+    # Ensure data is sorted by player and time
+    df = df.sort_values(by=['player_id', 'match_datetime']).reset_index(drop=True)
+    
+    for metric in MA5_METRICS:
+        if metric not in df.columns:
+            logger.warning(f"⚠️ Metric '{metric}' not found in dataframe, skipping...")
+            continue
+        
+        # Calculate rolling MA5 with closed='left' (exclude current match)
+        df[f'{metric}_MA5'] = (
+            df.groupby('player_id')[metric]
+            .transform(lambda x: x.rolling(window=MIN_PERIODS, min_periods=1, closed='left').mean())
+        )
+        
+        logger.info(f"  ✅ Calculated {metric}_MA5")
+    
+    logger.info(f"Player MA5 calculation complete. Shape: {df.shape}")
+    
+    return df
+
+
+def validate_output(df):
+    """Validate the output before saving."""
+    logger.info("\nValidating output data...")
+    
+    required_columns = [
+        'sot', 'min',  # Renamed columns
+        'sot_MA5', 'min_MA5',  # Player factors
+        'sot_conceded_MA5', 'tackles_att_3rd_MA5',  # Opponent factors (from backtest_processor)
+        'position_group', 'is_forward'  # Position features (NEW)
+    ]
+    
+    missing = [col for col in required_columns if col not in df.columns]
+    
+    if missing:
+        logger.error(f"❌ Missing required columns: {missing}")
+        exit(1)
+    
+    # Check for excessive NaN values in critical columns
+    for col in required_columns:
+        nan_count = df[col].isna().sum()
+        nan_pct = (nan_count / len(df)) * 100
+        
+        if nan_pct > 50:
+            logger.warning(f"⚠️ {col} has {nan_pct:.1f}% NaN values (high!)")
+        elif nan_pct > 0:
+            logger.info(f"  ℹ️ {col} has {nan_pct:.1f}% NaN values (acceptable)")
+    
+    # Summary statistics
+    logger.info("\n📊 Summary Statistics:")
+    logger.info(f"  Total observations: {len(df)}")
+    logger.info(f"  Unique players: {df['player_id'].nunique()}")
+    logger.info(f"  Date range: {df['match_datetime'].min()} to {df['match_datetime'].max()}")
+    logger.info(f"  Forwards: {df['is_forward'].sum()} ({(df['is_forward'].sum()/len(df)*100):.1f}%)")
+    logger.info(f"  Midfielders: {(~df['is_forward'].astype(bool)).sum()} ({((~df['is_forward'].astype(bool)).sum()/len(df)*100):.1f}%)")
+    
+    # Show average SOT by position
+    logger.info("\n📊 Average SOT by Position:")
+    avg_sot = df.groupby('position_group')['sot'].mean()
+    for pos, val in avg_sot.items():
+        logger.info(f"  {pos:<15} {val:.3f}")
+    
+    logger.info("\n✅ Validation complete")
+
+
+def save_output(df):
+    """Save the processed dataframe."""
+    logger.info(f"\nSaving processed data to {OUTPUT_FILE}...")
+    
+    try:
+        df.to_parquet(OUTPUT_FILE, index=False)
+        logger.info(f"✅ Data saved successfully")
+        logger.info(f"   Shape: {df.shape}")
+        logger.info(f"   Columns: {len(df.columns)}")
+    except Exception as e:
+        logger.error(f"❌ Error saving file: {e}")
+        exit(1)
+
+
+def main():
+    """Main execution pipeline."""
+    logger.info("="*70)
+    logger.info("  PLAYER FACTOR ENGINEER (P-FACTORS) - WITH POSITION FEATURES")
+    logger.info("="*70)
+    
+    # Step 1: Load data
+    df = load_data()
+    
+    # Step 2: Rename columns for consistency
+    df = rename_columns_for_consistency(df)
+    
+    # Step 3: Process position data (NEW - CRITICAL STEP)
+    df = process_position_data(df)
+    
+    # Step 4: Calculate player MA5 factors
+    # NOTE: Now calculated AFTER filtering, so only offensive players included
+    df = calculate_player_ma5_factors(df)
+    
+    # Step 5: Validate output
+    validate_output(df)
+    
+    # Step 6: Save output
+    save_output(df)
+    
+    logger.info("="*70)
+    logger.info("  ✅ PLAYER FACTOR ENGINEERING COMPLETE")
+    logger.info("="*70)
+    logger.info("\nNext step: Run feature_scaling.py")
+
+
+if __name__ == '__main__':
+    main()
