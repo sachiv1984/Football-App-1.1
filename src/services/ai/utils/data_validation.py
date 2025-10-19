@@ -1,3 +1,5 @@
+# src/services/ai/utils/data_validation.py
+
 import pandas as pd
 import numpy as np
 import os
@@ -49,7 +51,6 @@ def print_section(title):
     logger.info(f"  {title}")
     logger.info("=" * 80)
 
-# --- NEW UTILITY FUNCTION FOR POSITION PARSING (Copied from factor engineer) ---
 def safe_extract_position(pos_str):
     """
     Safely extracts the primary position code from potentially corrupted strings.
@@ -89,7 +90,7 @@ def print_position_distribution(df, position_col='summary_positions', title="Pos
         logger.warning(f"  ⚠️ Cannot calculate {title}: No position data found.")
         return
 
-    logger.info(f"\n📊 {title} (Primary Position - Cleaned):") # Updated title
+    logger.info(f"\n📊 {title} (Primary Position - Cleaned):") 
     
     for pos, count in counts.items():
         if pd.isna(pos) or pos == 'NAN':
@@ -160,7 +161,9 @@ def validate_player_match_stats():
         
         # Identify records with invalid primary position codes (excluding NaNs which were checked above)
         invalid_pos_records = df[~df['primary_pos_code'].isin(valid_codes)]
-        invalid_pos_records = invalid_pos_records[df['primary_pos_code'].notna()]
+        
+        # Filter out NaN/None values from the filtered set to eliminate the UserWarning
+        invalid_pos_records = invalid_pos_records[invalid_pos_records['primary_pos_code'].notna()]
 
         if len(invalid_pos_records) > 0:
             example_code = invalid_pos_records['primary_pos_code'].iloc[0] if not invalid_pos_records.empty else '?'
