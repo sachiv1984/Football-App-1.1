@@ -930,7 +930,7 @@
     "awayteam": "Aston Villa",
     "homescore": null,
     "awayscore": null,
-    "status": "scheduled",
+    "status": "finished",
     "venue": "Tottenham Hotspur Stadium",
     "matchweek": 8,
     "matchurl": "https://fbref.com/en/matches/2025-10-19"
@@ -942,7 +942,7 @@
     "awayteam": "Manchester Utd",
     "homescore": null,
     "awayscore": null,
-    "status": "scheduled",
+    "status": "finished",
     "venue": "Anfield",
     "matchweek": 8,
     "matchurl": "https://fbref.com/en/matches/2025-10-19"
