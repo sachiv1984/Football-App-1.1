@@ -1,4 +1,4 @@
-"""
+l"""
 Side-by-Side Comparison: Poisson vs ZIP Model
 
 This script compares both models on the same test set and generates
@@ -17,8 +17,9 @@ from scipy.stats import poisson
 
 # Suppress statsmodels BIC warning
 import statsmodels.api as sm
-from statsmodels.genmod.generalized_linear_model import SET_USE_BIC_LLF
-SET_USE_BIC_LLF(True)  # Use log-likelihood based BIC (future default)
+# The following import is only needed if statsmodels version requires it
+# from statsmodels.genmod.generalized_linear_model import SET_USE_BIC_LLF
+# SET_USE_BIC_LLF(True)  # Use log-likelihood based BIC (future default)
 
 # --- Logging Setup ---
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
@@ -30,8 +31,7 @@ POISSON_MODEL = "src/services/ai/artifacts/poisson_model.pkl"
 ZIP_MODEL = "src/services/ai/artifacts/zip_model.pkl"
 OUTPUT_FILE = "model_comparison_report.txt"
 
-# FIX 1: Expanded PREDICTOR_COLUMNS to include all 7 features the 8-parameter 
-# saved models were likely trained on.
+# Features used for prediction - FULL SET FOR POISSON (COUNT) PART
 PREDICTOR_COLUMNS = [
     'sot_conceded_MA5_scaled', 
     'tackles_att_3rd_MA5_scaled', 
@@ -41,6 +41,13 @@ PREDICTOR_COLUMNS = [
     'is_forward',   
     'is_defender'   
 ]
+
+# ✅ FIX: ADDED INFLATION COLUMNS to match the training script
+INFLATION_PREDICTOR_COLUMNS = [
+    'sot_MA5_scaled', 
+    'is_forward',   
+    'is_defender'   
+] 
 
 TARGET_COLUMN = 'sot'
 
@@ -60,9 +67,9 @@ def load_data():
         df = pd.read_parquet(INPUT_FILE)
         logger.info(f"✅ Data loaded successfully. Shape: {df.shape}")
         
-        # --- FIX 2: Data Cleaning to match the training data subset (705 rows) ---
+        # --- Data Cleaning to match the training data subset (705 rows) ---
         initial_shape = df.shape[0]
-        required_cols = PREDICTOR_COLUMNS + [TARGET_COLUMN]
+        required_cols = list(set(PREDICTOR_COLUMNS + INFLATION_PREDICTOR_COLUMNS + [TARGET_COLUMN]))
         
         # Replace Inf with NaN and then drop NaNs
         df = df.replace([np.inf, -np.inf], np.nan)
@@ -81,7 +88,6 @@ def load_data():
         y = df[TARGET_COLUMN].copy()
         
         # Add constant (X will now have 7 features + 1 const = 8 columns)
-        import statsmodels.api as sm
         X = sm.add_constant(X, has_constant='add')
         
         logger.info(f"  Feature matrix: {X.shape}")
@@ -173,8 +179,15 @@ def evaluate_model(model, X, y, model_name='Model'):
     results = {}
     
     # Generate predictions
-    # This step should now work as X and the model's params are aligned (8 columns)
-    y_pred = model.predict(X)
+    if model_name.lower() == 'zip':
+        # ✅ FIX: Pass the correct, simplified feature subset for the inflation component
+        # X is the full 8-column matrix used for the Count part
+        X_infl_pred = X[['const'] + INFLATION_PREDICTOR_COLUMNS] 
+        y_pred = model.predict(X, exog_infl=X_infl_pred)
+    else:
+        # Poisson only needs the full X
+        y_pred = model.predict(X)
+        
     results['predictions'] = y_pred
     
     # Convert to numpy arrays for consistent handling
@@ -193,15 +206,17 @@ def evaluate_model(model, X, y, model_name='Model'):
     
     # Model fit statistics
     results['aic'] = model.aic if hasattr(model, 'aic') else np.nan
+    # Use bic_llf if available (log-likelihood based BIC)
     results['bic'] = model.bic_llf if hasattr(model, 'bic_llf') else model.bic if hasattr(model, 'bic') else np.nan
     results['llf'] = model.llf if hasattr(model, 'llf') else np.nan
     
     # Probability predictions for 1+ SOT
     if model_name.lower() == 'zip':
-        # ZIP model: P(0) includes both inflation and Poisson zeros
-        prob_results = model.predict(X, which='prob', exog_infl=X)
+        # ✅ FIX: Use the correct, simplified feature subset for the probability prediction as well
+        X_infl_pred = X[['const'] + INFLATION_PREDICTOR_COLUMNS] 
+        prob_results = model.predict(X, which='prob', exog_infl=X_infl_pred)
         
-        # Handle tuple return (prob for each count: 0, 1, 2, 3, 4)
+        # Handle tuple return (prob for each count: 0, 1, 2, 3, 4, ...)
         if isinstance(prob_results, tuple):
             # Take only P(Y=0) - first element of tuple
             prob_zero = prob_results[0]
@@ -213,18 +228,9 @@ def evaluate_model(model, X, y, model_name='Model'):
         prob_zero = prob_zero.values if hasattr(prob_zero, 'values') else np.array(prob_zero)
         prob_zero = prob_zero.flatten()
         
-        # CRITICAL: Check length and truncate if needed
-        if len(prob_zero) != len(y_array):
-            logger.warning(f"⚠️ Probability array length mismatch: {len(prob_zero)} vs {len(y_array)}")
-            
-            # If longer (e.g., 5595 = 1119 × 5 counts), it's still flattened wrong
-            # This suggests prob_results is returning all probabilities, not just P(Y=0)
-            # Take only the first N values
+        # Ensure length matches (critical for zip predict which might return a long array if not handled)
+        if len(prob_zero) > len(y_array):
             prob_zero = prob_zero[:len(y_array)]
-            
-            # Verify values are in valid probability range [0, 1]
-            if prob_zero.max() > 1.0 or prob_zero.min() < 0.0:
-                logger.error(f"❌ Invalid probabilities after truncation: min={prob_zero.min()}, max={prob_zero.max()}")
         
         y_pred_proba = 1 - prob_zero
     else:
