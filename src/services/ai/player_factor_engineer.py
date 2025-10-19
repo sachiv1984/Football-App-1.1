@@ -3,6 +3,7 @@
 import pandas as pd
 import numpy as np
 import logging
+import ast # <<< NEW IMPORT: Needed for safe parsing of list-like strings
 
 # --- Logging Setup ---
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
@@ -15,6 +16,34 @@ MIN_PERIODS = 5  # Minimum periods for rolling average
 
 # Player-level metrics to calculate MA5 for
 MA5_METRICS = ['sot', 'min']
+
+# --- Helper Function for Position Parsing ---
+def safe_extract_position(pos_str):
+    """
+    Safely extracts the primary position code from potentially corrupted strings.
+    Handles 'FW,MF' (clean) and '["FW", "MF"]' (corrupted).
+    """
+    if pd.isna(pos_str) or pos_str is None:
+        return None
+    
+    pos_str = str(pos_str).strip()
+    
+    # Check for and handle the observed corrupted format '["FW", "MF"]'
+    if pos_str.startswith('["') and pos_str.endswith(']'):
+        try:
+            # Safely evaluate the string to a list of strings
+            pos_list = ast.literal_eval(pos_str)
+            if isinstance(pos_list, list) and pos_list:
+                return pos_list[0].strip().upper()
+        except (ValueError, SyntaxError, IndexError):
+            # Fallback for unexpected corruption: strip and split
+            cleaned_str = pos_str.strip('[" ]').replace('"', '')
+            return cleaned_str.split(',')[0].strip().upper()
+            
+    # Handle the expected clean format 'FW,MF' or simple 'FW'
+    return pos_str.split(',')[0].strip().upper()
+
+# ---------------------------------------------
 
 
 def load_data():
@@ -67,24 +96,36 @@ def process_position_data(df):
         logger.error("Make sure data_loader.py includes 'summary_positions' in SELECT query")
         exit(1)
     
-    # 1. Extract primary position (first position if multiple)
-    df['position'] = df['summary_positions'].str.split(',').str[0]
-    logger.info(f"  ✅ Extracted primary position from 'summary_positions'")
+    # 1. Extract primary position (first position if multiple) - FIXED WITH SAFE PARSING
+    df['position'] = df['summary_positions'].apply(safe_extract_position)
+    logger.info(f"  ✅ Extracted primary position using robust parsing.")
     
-    # 2. Map to position groups
+    # 2. Map to position groups (Must include the detailed codes from your logs: CB, CM, etc.)
+    # Note: Your validation log showed detailed codes (CB, CM, LB, etc.), so the mapping must be expanded.
     position_mapping = {
         'GK': 'Goalkeeper',
-        'DF': 'Defender',
-        'MF': 'Midfielder',
-        'FW': 'Forward'
+        # Defenders (DF, CB, LB, RB, WB)
+        'DF': 'Defender', 'CB': 'Defender', 'LB': 'Defender', 'RB': 'Defender', 'WB': 'Defender',
+        # Midfielders (MF, CM, DM, AM, LM, RM)
+        'MF': 'Midfielder', 'CM': 'Midfielder', 'DM': 'Midfielder', 'AM': 'Midfielder', 'LM': 'Midfielder', 'RM': 'Midfielder',
+        # Forwards (FW, LW, RW)
+        'FW': 'Forward', 'LW': 'Forward', 'RW': 'Forward'
     }
     
     df['position_group'] = df['position'].map(position_mapping)
     
-    # Fill missing positions with 'Midfielder' (conservative default)
-    missing_positions = df['position_group'].isna().sum()
-    if missing_positions > 0:
-        logger.warning(f"  ⚠️ {missing_positions} players with unknown positions, defaulting to 'Midfielder'")
+    # Fill missing positions with 'Unknown' for diagnostics, then filter/default
+    missing_positions_count = df['position_group'].isna().sum()
+    if missing_positions_count > 0:
+        # First, check how many started as None/NaN after parsing
+        na_count = df['position'].isna().sum()
+        logger.warning(f"  ⚠️ {na_count} records had no position data (NaN) or failed parsing.")
+        
+        # Now map unmapped codes (like the original CB/CM) to 'Midfielder' (conservative default)
+        unknown_codes = df[df['position_group'].isna()]['position'].nunique()
+        if unknown_codes > 0:
+             logger.warning(f"  ⚠️ {unknown_codes} unknown position codes remaining after mapping, defaulting to 'Midfielder'.")
+
         df['position_group'] = df['position_group'].fillna('Midfielder')
     
     # 3. Calculate player's average SOT (for hybrid filtering)
@@ -112,14 +153,14 @@ def process_position_data(df):
     # - Goalkeepers (always remove)
     # - Pure defenders (avg SOT < threshold)
     
-    attacking_defenders = df[
+    attacking_defenders_df = df[
         (df['position_group'] == 'Defender') & 
         (df['player_avg_sot'] >= ATTACKING_DEFENDER_THRESHOLD)
     ]
     
-    if len(attacking_defenders) > 0:
-        logger.info(f"\n  🎯 Found {len(attacking_defenders['player_id'].nunique())} attacking defenders (avg SOT >= {ATTACKING_DEFENDER_THRESHOLD}):")
-        top_attacking_defenders = attacking_defenders.groupby('player_name')['player_avg_sot'].first().sort_values(ascending=False).head(5)
+    if len(attacking_defenders_df) > 0:
+        logger.info(f"\n  🎯 Found {attacking_defenders_df['player_id'].nunique()} unique attacking defenders (avg SOT >= {ATTACKING_DEFENDER_THRESHOLD}):")
+        top_attacking_defenders = attacking_defenders_df.groupby('player_name')['player_avg_sot'].first().sort_values(ascending=False).head(5)
         for name, avg_sot in top_attacking_defenders.items():
             logger.info(f"    {name:<30} {avg_sot:.3f}")
     
@@ -148,7 +189,11 @@ def process_position_data(df):
     logger.info(f"\n  ✅ Created position dummy variables:")
     logger.info(f"    is_forward: {df['is_forward'].sum()} ({(df['is_forward'].sum()/len(df)*100):.1f}%)")
     logger.info(f"    is_defender: {df['is_defender'].sum()} ({(df['is_defender'].sum()/len(df)*100):.1f}%) [attacking defenders only]")
-    logger.info(f"    Midfielders (baseline): {((~df['is_forward'].astype(bool)) & (~df['is_defender'].astype(bool))).sum()} ({(((~df['is_forward'].astype(bool)) & (~df['is_defender'].astype(bool))).sum()/len(df)*100):.1f}%)")
+    
+    # Calculate baseline (Midfielders) count
+    midfielders_count = ((~df['is_forward'].astype(bool)) & (~df['is_defender'].astype(bool))).sum()
+    midfielders_pct = (midfielders_count/len(df)*100)
+    logger.info(f"    Midfielders (baseline): {midfielders_count} ({midfielders_pct:.1f}%)")
     
     logger.info("="*60 + "\n")
     
@@ -159,8 +204,8 @@ def calculate_player_ma5_factors(df):
     """
     Calculate rolling MA5 (Moving Average over 5 matches) for player-specific metrics.
     
-    NOTE: This is now calculated AFTER position filtering, so defenders don't
-    pollute the rolling averages of offensive players.
+    NOTE: This is now calculated AFTER position filtering, so only relevant offensive players 
+    are used for their own rolling averages.
     """
     logger.info("Calculating Player MA5 Factors (P-Factors)...")
     
@@ -193,7 +238,7 @@ def validate_output(df):
         'sot', 'min',  # Renamed columns
         'sot_MA5', 'min_MA5',  # Player factors
         'sot_conceded_MA5', 'tackles_att_3rd_MA5',  # Opponent factors (from backtest_processor)
-        'position_group', 'is_forward'  # Position features (NEW)
+        'position_group', 'is_forward', 'is_defender'  # Position features (UPDATED)
     ]
     
     missing = [col for col in required_columns if col not in df.columns]
@@ -218,7 +263,7 @@ def validate_output(df):
     logger.info(f"  Unique players: {df['player_id'].nunique()}")
     logger.info(f"  Date range: {df['match_datetime'].min()} to {df['match_datetime'].max()}")
     logger.info(f"  Forwards: {df['is_forward'].sum()} ({(df['is_forward'].sum()/len(df)*100):.1f}%)")
-    logger.info(f"  Midfielders: {(~df['is_forward'].astype(bool)).sum()} ({((~df['is_forward'].astype(bool)).sum()/len(df)*100):.1f}%)")
+    logger.info(f"  Att.Defenders: {df['is_defender'].sum()} ({(df['is_defender'].sum()/len(df)*100):.1f}%)")
     
     # Show average SOT by position
     logger.info("\n📊 Average SOT by Position:")
