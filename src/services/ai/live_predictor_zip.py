@@ -62,7 +62,7 @@ MIN_MATCHES_PLAYED = 3
 PREDICTOR_COLUMNS = [
     'sot_conceded_MA5_scaled', 'tackles_att_3rd_MA5_scaled', 
     'sot_MA5_scaled', 'min_MA5_scaled', 'summary_min',
-    'is_forward', 'is_defender' # NEW: Added for alignment
+    'is_forward', 'is_defender' 
 ]
 MA5_METRICS = ['sot', 'min']
 OPP_METRICS = ['sot_conceded', 'tackles_att_3rd']
@@ -86,9 +86,6 @@ except Exception as e:
 def load_and_merge_raw_data() -> pd.DataFrame:
     """Load and merge all raw data for predictions."""
     
-    # ... (code for fetching and merging raw data remains the same) ...
-    # Omitted for brevity, but assumes the original implementation is here.
-
     fixture_cols = "datetime, hometeam, awayteam, matchweek, status" 
     df_fixtures = fetch_with_deduplication(
         supabase_client=supabase,
@@ -106,7 +103,8 @@ def load_and_merge_raw_data() -> pd.DataFrame:
     now = pd.Timestamp.now(tz='UTC')
     df_fixtures['is_future'] = df_fixtures['datetime'] > now
 
-    player_cols = "player_id, player_name, team_name, summary_sot, summary_min, home_team, away_team, team_side, match_datetime"
+    # MODIFIED: Include 'summary_positions' from the player_match_stats table
+    player_cols = "player_id, player_name, team_name, summary_sot, summary_min, home_team, away_team, team_side, match_datetime, summary_positions"
     df_player_history = fetch_with_deduplication(
         supabase_client=supabase,
         table_name="player_match_stats", 
@@ -151,11 +149,12 @@ def load_and_merge_raw_data() -> pd.DataFrame:
     player_match_counts = df_player_history.groupby('player_id').size().reset_index(name='match_count')
     qualified_player_ids = player_match_counts[player_match_counts['match_count'] >= MIN_MATCHES_PLAYED]['player_id'].tolist()
     
+    # MODIFIED: Preserve 'summary_positions' for future fixtures
     active_players = (
         df_player_history[df_player_history['player_id'].isin(qualified_player_ids)]
         .sort_values('match_datetime')
         .groupby('player_id')
-        .last()[['player_name', 'team_name']]
+        .last()[['player_name', 'team_name', 'summary_positions']]
         .reset_index()
     )
     
@@ -189,28 +188,33 @@ def load_and_merge_raw_data() -> pd.DataFrame:
 
 def clean_and_enrich_data(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Cleans data and adds necessary non-MA5 features (like positional dummies).
-    FIX 2: Adds positional dummy variables to align with model expectations.
+    CLEANED: Creates positional dummy variables (is_forward, is_defender) 
+    using the reliable 'summary_positions' column fetched from the database.
     """
     df_enriched = df.copy()
     
-    # --- MOCK POSITIONAL DUMMY CREATION ---
-    # WARNING: This assumes a player's position is known or can be mocked.
-    # A robust solution needs position data fetched from the DB.
-    logger.warning("⚠️ MOCKING player position data. Use actual position data in production!")
+    # Ensure position is uppercase string for reliable comparison
+    df_enriched['position'] = df_enriched['summary_positions'].astype(str).str.upper()
     
-    # Create simple mock columns (assuming all are not a forward/defender for safety)
-    df_enriched['is_forward'] = 0
-    df_enriched['is_defender'] = 0
+    # --- Create Positional Dummy Variables ---
     
-    # Example: Mark a few players as Forward/Defender based on their name for demonstration
-    forward_names = ['Haaland', 'Kane', 'Salah', 'Watkins'] # Mock logic
-    defender_names = ['van Dijk', 'Dias', 'Saliba', 'Trippier'] # Mock logic
-
-    df_enriched.loc[df_enriched['player_name'].str.contains('|'.join(forward_names), case=False, na=False), 'is_forward'] = 1
-    df_enriched.loc[df_enriched['player_name'].str.contains('|'.join(defender_names), case=False, na=False), 'is_defender'] = 1
+    # is_forward: Checks for common forward keywords (FWD, ATT, ST, CF, RW, LW)
+    df_enriched['is_forward'] = np.where(
+        df_enriched['position'].str.contains('FWD|ATT|ST|CF|RW|LW'), 
+        1, 
+        0
+    )
     
-    # Log the shape to confirm the new columns are present
+    # is_defender: Checks for common defender keywords (DEF, CB, LB, RB, LWB, RWB)
+    df_enriched['is_defender'] = np.where(
+        df_enriched['position'].str.contains('DEF|LB|RB|CB|LCB|RCB|LWB|RWB'), 
+        1, 
+        0
+    )
+    
+    # Note: Midfielders (MID) and Goalkeepers (GK) become the reference group (is_forward=0, is_defender=0)
+    
+    logger.info(f"✅ Position data successfully converted to dummies.")
     logger.info(f"  Enriched data shape: {df_enriched.shape}")
     
     return df_enriched
@@ -264,7 +268,6 @@ def get_live_gameweek_features(df_processed: pd.DataFrame) -> pd.DataFrame:
     return df_live
 
 
-# ... (load_artifacts function remains the same) ...
 def load_artifacts():
     """Load model and scaling statistics."""
     logger.info(f"Loading {MODEL_TYPE.upper()} model and scaling statistics...")
@@ -299,7 +302,6 @@ def load_artifacts():
         exit(1)
 
 
-# ... (scale_live_data function remains the same) ...
 def scale_live_data(df_raw, scaler_data):
     """Scale features using training statistics."""
     df_features = df_raw.copy()
@@ -317,12 +319,10 @@ def scale_live_data(df_raw, scaler_data):
     return final_features
 
 
-# ... (run_predictions function remains the same) ...
 def run_predictions(model, df_features_scaled, df_raw, model_type='zip'):
     """Generate predictions using ZIP or Poisson model."""
     
     if model_type == 'zip':
-        # FIX: The prediction call is correct now that df_features_scaled has 8 columns.
         e_sot = model.predict(df_features_scaled, exog_infl=df_features_scaled)
         
         # Convert to simple array
@@ -445,7 +445,7 @@ def main():
         logger.error("No data loaded from database")
         return
 
-    # NEW STEP: Enrich data with positional dummies
+    # NEW STEP: Enrich data with positional dummies (now using real data)
     df_enriched = clean_and_enrich_data(df_combined_raw)
 
     df_processed = calculate_ma5_factors(df_enriched)
