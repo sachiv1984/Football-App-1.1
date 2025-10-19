@@ -1,4 +1,4 @@
-l"""
+"""
 Side-by-Side Comparison: Poisson vs ZIP Model
 
 This script compares both models on the same test set and generates
