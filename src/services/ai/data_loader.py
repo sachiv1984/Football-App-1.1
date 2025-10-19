@@ -56,7 +56,8 @@ def load_data_for_backtest() -> tuple[pd.DataFrame, pd.DataFrame]:
     """Orchestrates the data loading for player and combined team defense metrics."""
     
     # --- 1. Player Stats (P-Factors Source) ---
-    player_cols = "id, player_id, team_name, summary_sot, summary_min, home_team, away_team, venue, team_side, match_datetime"
+    # ✅ UPDATED: Added summary_positions to fetch player position data
+    player_cols = "id, player_id, player_name, team_name, summary_sot, summary_min, summary_positions, home_team, away_team, venue, team_side, match_datetime"
     
     df_player = fetch_all_data_from_supabase(
         table_name="player_match_stats", 
@@ -76,6 +77,7 @@ def load_data_for_backtest() -> tuple[pd.DataFrame, pd.DataFrame]:
     # Sort for rolling calculations
     df_player = df_player.sort_values(by=['match_datetime', 'player_id']).reset_index(drop=True)
     logger.info(f"Player data (P-Factors) loaded: {df_player.shape}")
+    logger.info(f"  ✅ Position data included: {df_player['summary_positions'].notna().sum()} players have position info")
 
 
     # --------------------------------------------------------------------------
