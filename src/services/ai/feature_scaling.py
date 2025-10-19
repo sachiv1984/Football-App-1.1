@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import json
 import logging
+import sys # Added for error handling clarity
 from sklearn.preprocessing import StandardScaler
 
 # --- Logging Setup ---
@@ -23,8 +24,9 @@ FEATURES_TO_SCALE = [
 ]
 
 # Features to keep raw (no scaling)
+# *** FIX: Changed 'summary_min' to 'min' to match player_factor_engineer.py output ***
 RAW_FEATURES = [
-    'summary_min',      # Raw minutes expected for this match
+    'min',              # Raw minutes expected for this match (New Name)
     'is_forward',       # Binary position indicator (0 or 1)
     'is_defender'       # Binary position indicator (0 or 1) - attacking defenders
 ]
@@ -40,20 +42,22 @@ def load_data():
     except FileNotFoundError:
         logger.error(f"❌ File not found: {INPUT_FILE}")
         logger.error("Run player_factor_engineer.py first!")
-        exit(1)
+        # Use sys.exit(1) instead of bare exit() for clarity and runner compatibility
+        sys.exit(1)
 
 
 def validate_columns(df):
     """Ensure all required columns exist."""
     logger.info("Validating required columns...")
     
-    required = FEATURES_TO_SCALE + RAW_FEATURES + ['sot']  # sot is target
+    # 'sot' is the target variable
+    required = FEATURES_TO_SCALE + RAW_FEATURES + ['sot']  
     missing = [col for col in required if col not in df.columns]
     
     if missing:
         logger.error(f"❌ Missing required columns: {missing}")
         logger.error("Ensure player_factor_engineer.py completed successfully")
-        exit(1)
+        sys.exit(1) # Use sys.exit(1) here too
     
     logger.info(f"✅ All {len(required)} required columns present")
 
@@ -62,18 +66,24 @@ def add_summary_min(df):
     """
     Ensure 'summary_min' exists for live predictions.
     This represents expected minutes for the upcoming match.
+    
+    NOTE: The column is now named 'min' in the input file. 
+    This function's original purpose was to *create* a 'summary_min' if absent,
+    but it now correctly checks for 'min' and ensures 'summary_min' is 
+    present for downstream compatibility if required by another script.
     """
     logger.info("Checking for 'summary_min' column...")
     
-    if 'summary_min' not in df.columns:
-        if 'min' in df.columns:
-            logger.info("  'summary_min' not found, using 'min' (recent actual minutes)")
-            df['summary_min'] = df['min']
-        else:
-            logger.warning("  ⚠️ Neither 'summary_min' nor 'min' found, creating from min_MA5")
-            df['summary_min'] = df['min_MA5']
-    else:
+    # Use the 'min' column created by the factor engineer as the source
+    if 'min' in df.columns and 'summary_min' not in df.columns:
+        logger.info("  'summary_min' not found, creating from 'min' column.")
+        df['summary_min'] = df['min']
+    elif 'summary_min' in df.columns:
         logger.info("  ✅ 'summary_min' already exists")
+    else:
+        # This fallback should rarely happen if player_factor_engineer ran correctly
+        logger.warning("  ⚠️ Neither 'summary_min' nor 'min' found, creating from min_MA5")
+        df['summary_min'] = df['min_MA5']
     
     return df
 
@@ -92,11 +102,18 @@ def standardize_features(df):
     
     # Fit and transform
     df_scaled = df.copy()
-    scaled_values = scaler.fit_transform(df[FEATURES_TO_SCALE])
+    
+    # Handle NaN values before scaling by filling with the mean of the existing data
+    # (This is a common practice for feature scaling, especially with MA5s)
+    df_temp = df[FEATURES_TO_SCALE].fillna(df[FEATURES_TO_SCALE].mean())
+    scaled_values = scaler.fit_transform(df_temp)
     
     # Create new scaled columns
     for i, feature in enumerate(FEATURES_TO_SCALE):
-        df_scaled[f'{feature}_scaled'] = scaled_values[:, i]
+        # We assign back to the original index, so NaNs will be reapplied here
+        df_scaled[f'{feature}_scaled'] = scaled_values[:, i] 
+        # Reapply NaNs to scaled features where the original was NaN
+        df_scaled.loc[df[feature].isna(), f'{feature}_scaled'] = np.nan
         logger.info(f"  ✅ Scaled {feature} (μ={scaler.mean_[i]:.3f}, σ={scaler.scale_[i]:.3f})")
     
     # Save scaling statistics for live predictions
@@ -140,6 +157,9 @@ def prepare_final_dataset(df):
         # Raw features (including position)
         *RAW_FEATURES,
         
+        # Compatibility column for live prediction scripts (if needed)
+        'summary_min',
+        
         # Position metadata (for analysis)
         'position_group', 'player_avg_sot'
     ]
@@ -161,7 +181,9 @@ def validate_output(df):
     
     # Check for NaN in critical columns
     scaled_cols = [f'{f}_scaled' for f in FEATURES_TO_SCALE]
-    critical_cols = scaled_cols + RAW_FEATURES + ['sot']
+    
+    # Note: 'min' is the raw column name now
+    critical_cols = scaled_cols + ['min', 'is_forward', 'is_defender'] + ['sot'] 
     
     for col in critical_cols:
         if col not in df.columns:
@@ -174,7 +196,8 @@ def validate_output(df):
             if nan_pct > 50:
                 logger.error(f"❌ {col} has {nan_pct:.1f}% NaN values (too high!)")
             else:
-                logger.warning(f"⚠️ {col} has {nan_pct:.1f}% NaN values")
+                # MA5 NaNs are expected for early matches
+                logger.warning(f"⚠️ {col} has {nan_pct:.1f}% NaN values") 
     
     # Summary statistics
     logger.info("\n📊 Final Dataset Summary:")
@@ -218,7 +241,7 @@ def save_output(df):
         logger.info(f"   Shape: {df.shape}")
     except Exception as e:
         logger.error(f"❌ Error saving file: {e}")
-        exit(1)
+        sys.exit(1) # Use sys.exit(1) here too
 
 
 def main():
@@ -233,7 +256,7 @@ def main():
     # Step 2: Validate columns
     validate_columns(df)
     
-    # Step 3: Ensure summary_min exists
+    # Step 3: Ensure summary_min exists (for potential downstream/legacy use)
     df = add_summary_min(df)
     
     # Step 4: Standardize MA5 features (NOT position features)
