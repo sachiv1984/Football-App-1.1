@@ -6,6 +6,8 @@ This version can use either:
 2. Zero-Inflated Poisson model (zip_model.pkl)
 
 Set MODEL_TYPE = 'zip' or 'poisson' to choose.
+
+✅ UPDATED 2025-10-19: Implemented position extraction and hybrid filtering logic.
 """
 
 import os
@@ -16,6 +18,7 @@ import pickle
 import statsmodels.api as sm
 import logging
 import json
+import ast # Added for safe position parsing
 from supabase import create_client, Client
 from dotenv import load_dotenv
 
@@ -58,6 +61,21 @@ MIN_EXPECTED_MINUTES = 15.0
 MIN_SOT_MA5 = 0.1
 MIN_MATCHES_PLAYED = 3
 
+# --- Position Feature Configuration (NEW) ---
+ATTACKING_DEFENDER_THRESHOLD = 0.3  # Min avg SOT to qualify as attacking defender
+
+POSITION_MAPPING = {
+    'GK': 'Goalkeeper',
+    # Defenders
+    'DF': 'Defender', 'CB': 'Defender', 'LB': 'Defender', 
+    'RB': 'Defender', 'WB': 'Defender',
+    # Midfielders
+    'MF': 'Midfielder', 'CM': 'Midfielder', 'DM': 'Midfielder', 
+    'AM': 'Midfielder', 'LM': 'Midfielder', 'RM': 'Midfielder',
+    # Forwards
+    'FW': 'Forward', 'LW': 'Forward', 'RW': 'Forward'
+}
+
 # FIX 1: Add the positional dummy variables to match the 8-parameter model (7 features + const)
 PREDICTOR_COLUMNS = [
     'sot_conceded_MA5_scaled', 'tackles_att_3rd_MA5_scaled', 
@@ -78,6 +96,34 @@ try:
 except Exception as e:
     logger.error(f"Failed to initialize Supabase client: {e}")
     exit(1)
+
+# ----------------------------------------------------------------------
+# --- NEW Position Utility Function ---
+# ----------------------------------------------------------------------
+
+def safe_extract_position(pos_str):
+    """
+    Safely extracts primary position code from potentially corrupted strings.
+    Handles 'FW,MF' (clean) and '["FW", "MF"]' (corrupted).
+    """
+    if pd.isna(pos_str) or pos_str is None:
+        return None
+    
+    pos_str = str(pos_str).strip()
+    
+    # Handle corrupted format '["FW", "MF"]' (using try/except for robustness)
+    if pos_str.startswith('["') and pos_str.endswith(']'):
+        try:
+            pos_list = ast.literal_eval(pos_str)
+            if isinstance(pos_list, list) and pos_list:
+                return pos_list[0].strip().upper()
+        except (ValueError, SyntaxError, IndexError):
+            # Fallback for corrupted but unparsable formats
+            cleaned_str = pos_str.strip('[" ]').replace('"', '')
+            return cleaned_str.split(',')[0].strip().upper()
+            
+    # Handle clean format 'FW,MF' or simple 'FW'
+    return pos_str.split(',')[0].strip().upper()
 
 # ----------------------------------------------------------------------
 # --- Core Data Pipeline Functions ---
@@ -188,34 +234,28 @@ def load_and_merge_raw_data() -> pd.DataFrame:
 
 def clean_and_enrich_data(df: pd.DataFrame) -> pd.DataFrame:
     """
-    CLEANED: Creates positional dummy variables (is_forward, is_defender) 
-    using the reliable 'summary_positions' column fetched from the database.
+    FIXED: Creates positional dummy variables (is_forward, is_defender) 
+    using the training pipeline's position extraction and mapping.
+    Goalkeepers are filtered out here. The hybrid SOT filter is applied later.
     """
     df_enriched = df.copy()
     
-    # Ensure position is uppercase string for reliable comparison
-    df_enriched['position'] = df_enriched['summary_positions'].astype(str).str.upper()
+    # --- Step 1: Extract and Map Position ---
+    df_enriched['position_code'] = df_enriched['summary_positions'].apply(safe_extract_position)
+    df_enriched['position_group'] = df_enriched['position_code'].map(POSITION_MAPPING).fillna('Midfielder')
     
-    # --- Create Positional Dummy Variables ---
+    # --- Step 2: Goalkeeper Removal ---
+    # Goalkeepers are filtered out first, as they never qualify.
+    initial_count = len(df_enriched)
+    df_enriched = df_enriched[df_enriched['position_group'] != 'Goalkeeper'].copy()
+    logger.info(f"  Filtered out {initial_count - len(df_enriched)} Goalkeeper records.")
     
-    # is_forward: Checks for common forward keywords (FWD, ATT, ST, CF, RW, LW)
-    df_enriched['is_forward'] = np.where(
-        df_enriched['position'].str.contains('FWD|ATT|ST|CF|RW|LW'), 
-        1, 
-        0
-    )
+    # --- Step 3: Create Dummy Variables ---
+    # Midfielders are the baseline (is_forward=0, is_defender=0)
+    df_enriched['is_forward'] = (df_enriched['position_group'] == 'Forward').astype(int)
+    df_enriched['is_defender'] = (df_enriched['position_group'] == 'Defender').astype(int)
     
-    # is_defender: Checks for common defender keywords (DEF, CB, LB, RB, LWB, RWB)
-    df_enriched['is_defender'] = np.where(
-        df_enriched['position'].str.contains('DEF|LB|RB|CB|LCB|RCB|LWB|RWB'), 
-        1, 
-        0
-    )
-    
-    # Note: Midfielders (MID) and Goalkeepers (GK) become the reference group (is_forward=0, is_defender=0)
-    
-    logger.info(f"✅ Position data successfully converted to dummies.")
-    logger.info(f"  Enriched data shape: {df_enriched.shape}")
+    logger.info(f"✅ Position data extracted, dummies created. Enriched data shape: {df_enriched.shape}")
     
     return df_enriched
 
@@ -246,7 +286,10 @@ def calculate_ma5_factors(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def get_live_gameweek_features(df_processed: pd.DataFrame) -> pd.DataFrame:
-    """Filter for live gameweek and apply qualification criteria."""
+    """
+    FIXED: Filter for live gameweek and apply qualification criteria, 
+    including the **hybrid attacking defender filter** based on sot_MA5.
+    """
     scheduled_games = df_processed[
         (df_processed['status'].isin(['scheduled', 'fixture', 'upcoming', 'not started'])) |
         (df_processed.get('is_future', False) == True)
@@ -260,12 +303,37 @@ def get_live_gameweek_features(df_processed: pd.DataFrame) -> pd.DataFrame:
     
     REQUIRED_MA5_COLUMNS = [f'{col}_MA5' for col in MA5_METRICS + OPP_METRICS]
     df_live = df_live.dropna(subset=REQUIRED_MA5_COLUMNS).copy()
+    
+    # --- Mandatory Model Qualification Filters ---
+    initial_qualified_count = len(df_live)
     df_live = df_live[df_live['min_MA5'] >= MIN_EXPECTED_MINUTES].copy()
     df_live = df_live[df_live['sot_MA5'] >= MIN_SOT_MA5].copy()
     
+    logger.info(f"  Applied MIN_MINUTES/MIN_SOT filters: {len(df_live)} remaining.")
+    
+    # --- NEW: Hybrid Filtering Logic (Matching Training Pipeline) ---
+    
+    # 1. Non-Defender Group: Keep all Forwards and Midfielders who qualified above.
+    non_defenders = df_live[df_live['position_group'].isin(['Forward', 'Midfielder'])].copy()
+    
+    # 2. Defender Group: Keep only Defenders who meet the SOT threshold (0.3).
+    defenders = df_live[df_live['position_group'] == 'Defender'].copy()
+    attacking_defenders = defenders[
+        defenders['sot_MA5'] >= ATTACKING_DEFENDER_THRESHOLD
+    ].copy()
+    
+    # 3. Combine the groups for the final prediction set
+    df_final_qualified = pd.concat([non_defenders, attacking_defenders], ignore_index=True)
+    
+    logger.info(f"  Applied Hybrid Filter. Attacking Defenders kept: {len(attacking_defenders)}")
+    
+    if df_final_qualified.empty:
+        return pd.DataFrame()
+    
     # Set the 'summary_min' feature to the calculated MA5 min for live prediction
-    df_live['summary_min'] = df_live['min_MA5'] 
-    return df_live
+    df_final_qualified['summary_min'] = df_final_qualified['min_MA5'] 
+    
+    return df_final_qualified
 
 
 def load_artifacts():
@@ -298,15 +366,19 @@ def load_artifacts():
     except FileNotFoundError as e:
         logger.error(f"❌ Model file not found: {e}")
         logger.error(f"   Expected: {MODEL_FILE}")
-        logger.error(f"   Run zip_model_trainer.py first!")
+        logger.error(f"   🚨 CRITICAL: Did you run backtest_model.py and manually upload the artifacts?")
         exit(1)
 
 
 def scale_live_data(df_raw, scaler_data):
     """Scale features using training statistics."""
     df_features = df_raw.copy()
-    # Correctly include all 7 features for scaling
-    feature_stems_to_scale = [col.replace('_scaled', '') for col in PREDICTOR_COLUMNS if col not in ['summary_min', 'is_forward', 'is_defender']]
+    # Correctly include all 7 features for scaling (excluding summary_min, is_forward, is_defender)
+    feature_stems_to_scale = [
+        col.replace('_scaled', '') 
+        for col in PREDICTOR_COLUMNS 
+        if col not in ['summary_min', 'is_forward', 'is_defender']
+    ]
     
     for feature_stem in feature_stems_to_scale:
         mu = scaler_data.loc[feature_stem, 'mean']
@@ -445,10 +517,13 @@ def main():
         logger.error("No data loaded from database")
         return
 
-    # NEW STEP: Enrich data with positional dummies (now using real data)
+    # NEW STEP: Enrich data with positional dummies and filter GKs
     df_enriched = clean_and_enrich_data(df_combined_raw)
 
+    # Calculate MA5 factors
     df_processed = calculate_ma5_factors(df_enriched)
+    
+    # Get live features and apply all remaining filters (including hybrid SOT filter for defenders)
     df_live_raw = get_live_gameweek_features(df_processed)
     
     if df_live_raw.empty:
