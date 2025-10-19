@@ -48,17 +48,46 @@ def print_section(title):
     logger.info(f"  {title}")
     logger.info("=" * 80)
 
+# --- NEW UTILITY FUNCTION FOR POSITION DISTRIBUTION ---
+def print_position_distribution(df, position_col='summary_positions', title="Position Distribution"):
+    """Calculate and print the distribution of primary player positions."""
+    
+    # Extract primary position (e.g., 'FW,MF' -> 'FW')
+    df['primary_position'] = df[position_col].astype(str).str.split(',').str[0].str.upper()
+    
+    # Calculate distribution
+    counts = df['primary_position'].value_counts(dropna=False)
+    total = counts.sum()
+    
+    if total == 0:
+        logger.warning(f"  ⚠️ Cannot calculate {title}: No position data found.")
+        return
+
+    logger.info(f"\n📊 {title} (Primary Position):")
+    
+    for pos, count in counts.items():
+        if pd.isna(pos) or pos == 'NAN':
+            pos_label = 'MISSING/NAN'
+        else:
+            pos_label = pos
+            
+        pct = (count / total) * 100
+        logger.info(f"  - {pos_label:<12}: {count:,} records ({pct:.1f}%)")
 # ---------------------------------------------------------------
-# 1. Player Match Stats Validation
+
+# ---------------------------------------------------------------
+# 1. Player Match Stats Validation (UPDATED)
 # ---------------------------------------------------------------
 def validate_player_match_stats():
     """Validate player_match_stats table - the primary data source."""
     print_section("1. PLAYER MATCH STATS VALIDATION")
 
+    # UPDATED: Add summary_positions to the fetch columns
+    player_cols = "player_id, player_name, team_name, summary_sot, summary_min, summary_positions, home_team, away_team, team_side, match_datetime"
     df = fetch_with_deduplication(
         supabase,
         "player_match_stats",
-        "player_id, player_name, team_name, summary_sot, summary_min, home_team, away_team, team_side, match_datetime"
+        player_cols
     )
 
     if df.empty:
@@ -77,16 +106,51 @@ def validate_player_match_stats():
     # --- Missing Values ---
     logger.info(f"\n🔍 Missing Values Check:")
     missing = df.isnull().sum()
-    critical_columns = ['player_id', 'player_name', 'team_name', 'summary_sot', 'summary_min', 'match_datetime']
+    # UPDATED: Add 'summary_positions' to critical columns
+    critical_columns = ['player_id', 'player_name', 'team_name', 'summary_sot', 'summary_min', 'match_datetime', 'summary_positions']
 
     for col in critical_columns:
-        missing_count = missing[col]
+        missing_count = missing.get(col, 0)
         if missing_count > 0:
             pct = (missing_count / len(df)) * 100
-            logger.warning(f"  ⚠️ {col}: {missing_count} missing ({pct:.1f}%)")
-            issues.append(f"Missing values in {col}: {missing_count} rows")
+            
+            # Use ERROR for critical position data missing
+            if col == 'summary_positions':
+                logger.error(f"  🔴 {col}: {missing_count} missing ({pct:.1f}%) - CRITICAL FOR NEW MODEL")
+            else:
+                logger.warning(f"  ⚠️ {col}: {missing_count} missing ({pct:.1f}%)")
+                
+            issues.append(f"Missing values in {col}: {missing_count} rows ({pct:.1f}%)")
         else:
             logger.info(f"  ✅ {col}: No missing values")
+
+    # --- Position Data Validation (NEW SECTION) ---
+    logger.info(f"\n📍 PLAYER POSITION DATA VALIDATION:")
+    
+    if 'summary_positions' in df.columns:
+        # Check for valid position codes (FW, MF, DF, GK)
+        valid_codes = ['FW', 'MF', 'DF', 'GK']
+        
+        # Extract primary position code
+        df['primary_pos_code'] = df['summary_positions'].astype(str).str.split(',').str[0].str.upper()
+        
+        # Identify records with invalid primary position codes (excluding NaNs which were checked above)
+        invalid_pos_records = df[~df['primary_pos_code'].isin(valid_codes)]
+        invalid_pos_records = invalid_pos_records[invalid_pos_records['summary_positions'].notna()]
+
+        if len(invalid_pos_records) > 0:
+            example_code = invalid_pos_records['primary_pos_code'].iloc[0] if not invalid_pos_records.empty else '?'
+            logger.error(f"  🔴 {len(invalid_pos_records)} records with invalid position codes (e.g., '{example_code}')")
+            issues.append(f"Invalid position codes: {len(invalid_pos_records)} records")
+        else:
+            logger.info(f"  ✅ All non-missing position data contains valid codes.")
+
+        # Print the distribution to confirm data variety
+        print_position_distribution(df, 'summary_positions', "Raw Position Distribution")
+    else:
+        logger.error("  ❌ 'summary_positions' column not found in DataFrame!")
+        issues.append("'summary_positions' column missing from fetched data.")
+    # -------------------------------------------------------------
 
     # --- Minutes Validation ---
     logger.info(f"\n⚠️ MINUTES DATA VALIDATION:")
@@ -188,6 +252,7 @@ def cross_validate_data():
     """Cross-validate relationships between tables."""
     print_section("4. CROSS-TABLE VALIDATION")
 
+    # UPDATED: Ensure cross-validation doesn't rely on position data
     df_player = fetch_with_deduplication(supabase, "player_match_stats", "team_name, home_team, away_team, match_datetime")
     df_fixtures = fetch_with_deduplication(supabase, "fixtures", "datetime, hometeam, awayteam", "datetime")
 
@@ -235,7 +300,7 @@ def generate_summary_report(all_issues):
 # ---------------------------------------------------------------
 def main():
     logger.info("=" * 80)
-    logger.info("  DATA VALIDATION & QUALITY CHECK")
+    logger.info("  DATA VALIDATION & QUALITY CHECK (incl. Position Features)") # UPDATED
     logger.info("=" * 80)
 
     all_issues = []
