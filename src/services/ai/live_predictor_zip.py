@@ -8,6 +8,7 @@ This version can use either:
 Set MODEL_TYPE = 'zip' or 'poisson' to choose.
 
 ✅ UPDATED 2025-10-19: Implemented position extraction and hybrid filtering logic.
+✅ FIX APPLIED 2025-10-19: Correctly handles the simplified feature set for ZIP model prediction (exog_infl).
 """
 
 import os
@@ -18,7 +19,7 @@ import pickle
 import statsmodels.api as sm
 import logging
 import json
-import ast # Added for safe position parsing
+import ast 
 from supabase import create_client, Client
 from dotenv import load_dotenv
 
@@ -76,7 +77,7 @@ POSITION_MAPPING = {
     'FW': 'Forward', 'LW': 'Forward', 'RW': 'Forward'
 }
 
-# FIX 1: Add the positional dummy variables to match the 8-parameter model (7 features + const)
+# FIX 1: Full list of 7 features + const (8 columns) for the Count part
 PREDICTOR_COLUMNS = [
     'sot_conceded_MA5_scaled', 'tackles_att_3rd_MA5_scaled', 
     'sot_MA5_scaled', 'min_MA5_scaled', 'summary_min',
@@ -84,6 +85,13 @@ PREDICTOR_COLUMNS = [
 ]
 MA5_METRICS = ['sot', 'min']
 OPP_METRICS = ['sot_conceded', 'tackles_att_3rd']
+
+# ✅ NEW: Simplified list of features for the ZIP Inflation (Logistic) part (3 features + const)
+INFLATION_PREDICTOR_COLUMNS = [
+    'sot_MA5_scaled', 
+    'is_forward',   
+    'is_defender'   
+]
 
 # --- Supabase Initialization ---
 if not SUPABASE_URL or not SUPABASE_KEY:
@@ -126,7 +134,7 @@ def safe_extract_position(pos_str):
     return pos_str.split(',')[0].strip().upper()
 
 # ----------------------------------------------------------------------
-# --- Core Data Pipeline Functions ---
+# --- Core Data Pipeline Functions (No changes needed here) ---
 # ----------------------------------------------------------------------
 
 def load_and_merge_raw_data() -> pd.DataFrame:
@@ -234,9 +242,9 @@ def load_and_merge_raw_data() -> pd.DataFrame:
 
 def clean_and_enrich_data(df: pd.DataFrame) -> pd.DataFrame:
     """
-    FIXED: Creates positional dummy variables (is_forward, is_defender) 
+    Creates positional dummy variables (is_forward, is_defender) 
     using the training pipeline's position extraction and mapping.
-    Goalkeepers are filtered out here. The hybrid SOT filter is applied later.
+    Goalkeepers are filtered out here.
     """
     df_enriched = df.copy()
     
@@ -245,7 +253,6 @@ def clean_and_enrich_data(df: pd.DataFrame) -> pd.DataFrame:
     df_enriched['position_group'] = df_enriched['position_code'].map(POSITION_MAPPING).fillna('Midfielder')
     
     # --- Step 2: Goalkeeper Removal ---
-    # Goalkeepers are filtered out first, as they never qualify.
     initial_count = len(df_enriched)
     df_enriched = df_enriched[df_enriched['position_group'] != 'Goalkeeper'].copy()
     logger.info(f"  Filtered out {initial_count - len(df_enriched)} Goalkeeper records.")
@@ -287,8 +294,8 @@ def calculate_ma5_factors(df: pd.DataFrame) -> pd.DataFrame:
 
 def get_live_gameweek_features(df_processed: pd.DataFrame) -> pd.DataFrame:
     """
-    FIXED: Filter for live gameweek and apply qualification criteria, 
-    including the **hybrid attacking defender filter** based on sot_MA5.
+    Filter for live gameweek and apply qualification criteria, 
+    including the hybrid attacking defender filter based on sot_MA5.
     """
     scheduled_games = df_processed[
         (df_processed['status'].isin(['scheduled', 'fixture', 'upcoming', 'not started'])) |
@@ -394,8 +401,16 @@ def scale_live_data(df_raw, scaler_data):
 def run_predictions(model, df_features_scaled, df_raw, model_type='zip'):
     """Generate predictions using ZIP or Poisson model."""
     
+    # ✅ FIX: Create the correct simplified feature subset for the ZIP inflation component
     if model_type == 'zip':
-        e_sot = model.predict(df_features_scaled, exog_infl=df_features_scaled)
+        # The full feature set (df_features_scaled, shape N x 8) is X (Count Part)
+        # Create the simplified feature set (X_infl, shape N x 4)
+        df_infl_scaled = df_features_scaled[['const'] + INFLATION_PREDICTOR_COLUMNS] 
+    
+    if model_type == 'zip':
+        # --- ZIP Expected Value (E_SOT) ---
+        # Pass the full features (Count) and the simplified features (Inflation)
+        e_sot = model.predict(df_features_scaled, exog_infl=df_infl_scaled) # ✅ FIXED LINE
         
         # Convert to simple array
         if hasattr(e_sot, 'values'):
@@ -406,9 +421,10 @@ def run_predictions(model, df_features_scaled, df_raw, model_type='zip'):
         
         df_raw['E_SOT'] = e_sot
         
-        # Calculate P(1+ SOT) for ZIP
+        # --- ZIP P(1+ SOT) ---
         # Get P(Y=0) from the model
-        prob_results = model.predict(df_features_scaled, which='prob', exog_infl=df_features_scaled)
+        # Pass the full features (Count) and the simplified features (Inflation)
+        prob_results = model.predict(df_features_scaled, which='prob', exog_infl=df_infl_scaled) # ✅ FIXED LINE
         
         # Extract P(Y=0)
         if isinstance(prob_results, tuple):
@@ -438,8 +454,10 @@ def run_predictions(model, df_features_scaled, df_raw, model_type='zip'):
         p_vals = [1 - p for p in prob_zero]
         df_raw['P_SOT_1_Plus'] = p_vals
         
+        # --- ZIP P(structural zero/Never Shooter) ---
         # Get P(structural zero) from inflation model
-        prob_inflate = model.predict(df_features_scaled, which='prob-main', exog_infl=df_features_scaled)
+        # Pass the full features (Count) and the simplified features (Inflation)
+        prob_inflate = model.predict(df_features_scaled, which='prob-main', exog_infl=df_infl_scaled) # ✅ FIXED LINE
         
         # Convert to simple 1D numpy array
         if isinstance(prob_inflate, pd.DataFrame):
