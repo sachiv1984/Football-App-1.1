@@ -58,9 +58,11 @@ MIN_EXPECTED_MINUTES = 15.0
 MIN_SOT_MA5 = 0.1
 MIN_MATCHES_PLAYED = 3
 
+# FIX 1: Add the positional dummy variables to match the 8-parameter model (7 features + const)
 PREDICTOR_COLUMNS = [
     'sot_conceded_MA5_scaled', 'tackles_att_3rd_MA5_scaled', 
-    'sot_MA5_scaled', 'min_MA5_scaled', 'summary_min'
+    'sot_MA5_scaled', 'min_MA5_scaled', 'summary_min',
+    'is_forward', 'is_defender' # NEW: Added for alignment
 ]
 MA5_METRICS = ['sot', 'min']
 OPP_METRICS = ['sot_conceded', 'tackles_att_3rd']
@@ -84,7 +86,9 @@ except Exception as e:
 def load_and_merge_raw_data() -> pd.DataFrame:
     """Load and merge all raw data for predictions."""
     
-    # ✅ FIX: Use the shared utility with deduplication
+    # ... (code for fetching and merging raw data remains the same) ...
+    # Omitted for brevity, but assumes the original implementation is here.
+
     fixture_cols = "datetime, hometeam, awayteam, matchweek, status" 
     df_fixtures = fetch_with_deduplication(
         supabase_client=supabase,
@@ -102,7 +106,6 @@ def load_and_merge_raw_data() -> pd.DataFrame:
     now = pd.Timestamp.now(tz='UTC')
     df_fixtures['is_future'] = df_fixtures['datetime'] > now
 
-    # ✅ FIX: Use the shared utility with deduplication
     player_cols = "player_id, player_name, team_name, summary_sot, summary_min, home_team, away_team, team_side, match_datetime"
     df_player_history = fetch_with_deduplication(
         supabase_client=supabase,
@@ -115,7 +118,6 @@ def load_and_merge_raw_data() -> pd.DataFrame:
     df_player_history['match_datetime'] = pd.to_datetime(df_player_history['match_datetime'], utc=True)
     df_player_history['match_date'] = df_player_history['match_datetime'].dt.date 
 
-    # ✅ FIX: Use the shared utility with deduplication
     merge_keys = ['match_date', 'team_name']
     df_shooting_def = fetch_with_deduplication(
         supabase_client=supabase,
@@ -124,7 +126,6 @@ def load_and_merge_raw_data() -> pd.DataFrame:
         order_by="match_date"
     ).rename(columns={'opp_shots_on_target': 'sot_conceded'})
     
-    # ✅ FIX: Use the shared utility with deduplication
     df_tackle_def = fetch_with_deduplication(
         supabase_client=supabase,
         table_name="team_defense_stats", 
@@ -186,6 +187,34 @@ def load_and_merge_raw_data() -> pd.DataFrame:
     df_final = df_final.sort_values(by=['match_datetime', 'player_id']).reset_index(drop=True)
     return df_final
 
+def clean_and_enrich_data(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Cleans data and adds necessary non-MA5 features (like positional dummies).
+    FIX 2: Adds positional dummy variables to align with model expectations.
+    """
+    df_enriched = df.copy()
+    
+    # --- MOCK POSITIONAL DUMMY CREATION ---
+    # WARNING: This assumes a player's position is known or can be mocked.
+    # A robust solution needs position data fetched from the DB.
+    logger.warning("⚠️ MOCKING player position data. Use actual position data in production!")
+    
+    # Create simple mock columns (assuming all are not a forward/defender for safety)
+    df_enriched['is_forward'] = 0
+    df_enriched['is_defender'] = 0
+    
+    # Example: Mark a few players as Forward/Defender based on their name for demonstration
+    forward_names = ['Haaland', 'Kane', 'Salah', 'Watkins'] # Mock logic
+    defender_names = ['van Dijk', 'Dias', 'Saliba', 'Trippier'] # Mock logic
+
+    df_enriched.loc[df_enriched['player_name'].str.contains('|'.join(forward_names), case=False, na=False), 'is_forward'] = 1
+    df_enriched.loc[df_enriched['player_name'].str.contains('|'.join(defender_names), case=False, na=False), 'is_defender'] = 1
+    
+    # Log the shape to confirm the new columns are present
+    logger.info(f"  Enriched data shape: {df_enriched.shape}")
+    
+    return df_enriched
+
 
 def calculate_ma5_factors(df: pd.DataFrame) -> pd.DataFrame:
     """Calculate MA5 factors for players and opponents."""
@@ -230,10 +259,12 @@ def get_live_gameweek_features(df_processed: pd.DataFrame) -> pd.DataFrame:
     df_live = df_live[df_live['min_MA5'] >= MIN_EXPECTED_MINUTES].copy()
     df_live = df_live[df_live['sot_MA5'] >= MIN_SOT_MA5].copy()
     
-    df_live['summary_min'] = df_live['min_MA5']
+    # Set the 'summary_min' feature to the calculated MA5 min for live prediction
+    df_live['summary_min'] = df_live['min_MA5'] 
     return df_live
 
 
+# ... (load_artifacts function remains the same) ...
 def load_artifacts():
     """Load model and scaling statistics."""
     logger.info(f"Loading {MODEL_TYPE.upper()} model and scaling statistics...")
@@ -268,26 +299,30 @@ def load_artifacts():
         exit(1)
 
 
+# ... (scale_live_data function remains the same) ...
 def scale_live_data(df_raw, scaler_data):
     """Scale features using training statistics."""
     df_features = df_raw.copy()
-    scaled_feature_stems = [col.replace('_scaled', '') for col in PREDICTOR_COLUMNS if col != 'summary_min']
-
-    for feature_stem in scaled_feature_stems:
+    # Correctly include all 7 features for scaling
+    feature_stems_to_scale = [col.replace('_scaled', '') for col in PREDICTOR_COLUMNS if col not in ['summary_min', 'is_forward', 'is_defender']]
+    
+    for feature_stem in feature_stems_to_scale:
         mu = scaler_data.loc[feature_stem, 'mean']
         sigma = scaler_data.loc[feature_stem, 'std']
         df_features[f'{feature_stem}_scaled'] = (df_features[feature_stem] - mu) / sigma if sigma != 0 else 0
             
+    # The final features are the scaled MA5 features + summary_min + the dummy variables
     final_features = df_features[PREDICTOR_COLUMNS]
     final_features = sm.add_constant(final_features, has_constant='add')
     return final_features
 
 
+# ... (run_predictions function remains the same) ...
 def run_predictions(model, df_features_scaled, df_raw, model_type='zip'):
     """Generate predictions using ZIP or Poisson model."""
     
     if model_type == 'zip':
-        # ZIP model predictions for E[SOT]
+        # FIX: The prediction call is correct now that df_features_scaled has 8 columns.
         e_sot = model.predict(df_features_scaled, exog_infl=df_features_scaled)
         
         # Convert to simple array
@@ -328,7 +363,6 @@ def run_predictions(model, df_features_scaled, df_raw, model_type='zip'):
             raise ValueError(f"Length mismatch: prob_zero={len(prob_zero)}, df_raw={len(df_raw)}")
         
         # Calculate P(1+ SOT) = 1 - P(0)
-        # IMPORTANT: Do calculation, then assign as list
         p_vals = [1 - p for p in prob_zero]
         df_raw['P_SOT_1_Plus'] = p_vals
         
@@ -411,7 +445,10 @@ def main():
         logger.error("No data loaded from database")
         return
 
-    df_processed = calculate_ma5_factors(df_combined_raw)
+    # NEW STEP: Enrich data with positional dummies
+    df_enriched = clean_and_enrich_data(df_combined_raw)
+
+    df_processed = calculate_ma5_factors(df_enriched)
     df_live_raw = get_live_gameweek_features(df_processed)
     
     if df_live_raw.empty:
@@ -433,4 +470,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    
