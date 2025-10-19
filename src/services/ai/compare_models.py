@@ -30,12 +30,16 @@ POISSON_MODEL = "src/services/ai/artifacts/poisson_model.pkl"
 ZIP_MODEL = "src/services/ai/artifacts/zip_model.pkl"
 OUTPUT_FILE = "model_comparison_report.txt"
 
+# FIX 1: Expanded PREDICTOR_COLUMNS to include all 7 features the 8-parameter 
+# saved models were likely trained on.
 PREDICTOR_COLUMNS = [
     'sot_conceded_MA5_scaled', 
     'tackles_att_3rd_MA5_scaled', 
     'sot_MA5_scaled', 
     'min_MA5_scaled', 
-    'summary_min'
+    'summary_min',
+    'is_forward',   
+    'is_defender'   
 ]
 
 TARGET_COLUMN = 'sot'
@@ -49,18 +53,34 @@ def print_section(title):
 
 
 def load_data():
-    """Load the test dataset."""
+    """Load and clean the test dataset."""
     print_section("1. LOADING DATA")
     
     try:
         df = pd.read_parquet(INPUT_FILE)
         logger.info(f"✅ Data loaded successfully. Shape: {df.shape}")
         
+        # --- FIX 2: Data Cleaning to match the training data subset (705 rows) ---
+        initial_shape = df.shape[0]
+        required_cols = PREDICTOR_COLUMNS + [TARGET_COLUMN]
+        
+        # Replace Inf with NaN and then drop NaNs
+        df = df.replace([np.inf, -np.inf], np.nan)
+        df = df.dropna(subset=required_cols)
+        
+        final_shape = df.shape[0]
+        if initial_shape != final_shape:
+            logger.warning(f"⚠️ NaN/Inf rows detected and dropped. Samples lost: {initial_shape - final_shape}")
+            logger.info(f"  Shape after cleaning: {df.shape}")
+        else:
+            logger.info("✅ Data is clean (no NaNs/Infs in feature/target columns).")
+        # ----------------------------------------------------
+        
         # Prepare features
         X = df[PREDICTOR_COLUMNS].copy()
         y = df[TARGET_COLUMN].copy()
         
-        # Add constant
+        # Add constant (X will now have 7 features + 1 const = 8 columns)
         import statsmodels.api as sm
         X = sm.add_constant(X, has_constant='add')
         
@@ -153,6 +173,7 @@ def evaluate_model(model, X, y, model_name='Model'):
     results = {}
     
     # Generate predictions
+    # This step should now work as X and the model's params are aligned (8 columns)
     y_pred = model.predict(X)
     results['predictions'] = y_pred
     
@@ -307,15 +328,17 @@ def analyze_predictions_by_zero_status(results, y):
         # For actual zeros
         zeros_mask = y == 0
         logger.info(f"\nFor Actual ZEROS (n={zeros_mask.sum()}):")
-        logger.info(f"  Mean prediction: {y_pred[zeros_mask].mean():.4f}")
-        logger.info(f"  Median prediction: {np.median(y_pred[zeros_mask]):.4f}")
-        logger.info(f"  Max prediction: {y_pred[zeros_mask].max():.4f}")
+        y_pred_zeros = y_pred[zeros_mask]
+        logger.info(f"  Mean prediction: {y_pred_zeros.mean():.4f}")
+        logger.info(f"  Median prediction: {np.median(y_pred_zeros):.4f}")
+        logger.info(f"  Max prediction: {y_pred_zeros.max():.4f}")
         
         # For actual non-zeros
         nonzeros_mask = y > 0
         logger.info(f"\nFor Actual NON-ZEROS (n={nonzeros_mask.sum()}):")
-        logger.info(f"  Mean prediction: {y_pred[nonzeros_mask].mean():.4f}")
-        logger.info(f"  Median prediction: {np.median(y_pred[nonzeros_mask]):.4f}")
+        y_pred_nonzeros = y_pred[nonzeros_mask]
+        logger.info(f"  Mean prediction: {y_pred_nonzeros.mean():.4f}")
+        logger.info(f"  Median prediction: {np.median(y_pred_nonzeros):.4f}")
         logger.info(f"  Mean actual: {y[nonzeros_mask].mean():.4f}")
 
 
@@ -328,17 +351,19 @@ def generate_recommendation(results):
         return
     
     # Key decision metrics
+    # Lower is better for AIC/Brier/RMSE, so a negative difference means ZIP is better.
     aic_improvement = results['poisson']['aic'] - results['zip']['aic']
     brier_improvement = results['poisson']['brier_score'] - results['zip']['brier_score']
     rmse_improvement = results['poisson']['rmse'] - results['zip']['rmse']
     
     logger.info("\n📊 KEY IMPROVEMENTS (Poisson → ZIP):")
     logger.info("─" * 60)
-    logger.info(f"  AIC improvement: {aic_improvement:+.2f} {'✅' if aic_improvement > 0 else '❌'}")
-    logger.info(f"  Brier score improvement: {brier_improvement:+.4f} {'✅' if brier_improvement > 0 else '❌'}")
-    logger.info(f"  RMSE improvement: {rmse_improvement:+.4f} {'✅' if rmse_improvement > 0 else '❌'}")
+    logger.info(f"  AIC difference (Poisson - ZIP): {aic_improvement:+.2f} {'✅ (ZIP better)' if aic_improvement > 0 else '❌ (Poisson better)'}")
+    logger.info(f"  Brier difference (Poisson - ZIP): {brier_improvement:+.4f} {'✅ (ZIP better)' if brier_improvement > 0 else '❌ (Poisson better)'}")
+    logger.info(f"  RMSE difference (Poisson - ZIP): {rmse_improvement:+.4f} {'✅ (ZIP better)' if rmse_improvement > 0 else '❌ (Poisson better)'}")
     
     # Make recommendation
+    # Score favors ZIP model (if difference > 0, ZIP is better for that metric)
     score = 0
     if aic_improvement > 10:
         score += 3
@@ -359,13 +384,13 @@ def generate_recommendation(results):
     
     if score >= 5:
         logger.info("✅ STRONG RECOMMENDATION: Deploy ZIP Model")
-        logger.info("   ZIP shows significant improvements across key metrics")
+        logger.info("   ZIP shows significant improvements across key metrics (AIC, Brier, RMSE)")
     elif score >= 3:
         logger.info("⚠️ MODERATE RECOMMENDATION: Consider ZIP Model")
-        logger.info("   ZIP shows improvements but gains are modest")
+        logger.info("   ZIP shows improvements but gains are modest or mixed")
     else:
         logger.info("❌ RECOMMENDATION: Keep Poisson Model")
-        logger.info("   ZIP does not show sufficient improvement")
+        logger.info("   ZIP does not show sufficient improvement over Poisson")
     
     logger.info("=" * 60)
 
