@@ -5,6 +5,7 @@ from supabase import create_client, Client
 from dotenv import load_dotenv
 import logging
 import sys
+import ast # <<< NEW IMPORT: Needed for safe parsing
 
 # ✅ Ensure project root is on Python path (fix for GitHub runner)
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../..")))
@@ -48,12 +49,37 @@ def print_section(title):
     logger.info(f"  {title}")
     logger.info("=" * 80)
 
-# --- NEW UTILITY FUNCTION FOR POSITION DISTRIBUTION ---
+# --- NEW UTILITY FUNCTION FOR POSITION PARSING (Copied from factor engineer) ---
+def safe_extract_position(pos_str):
+    """
+    Safely extracts the primary position code from potentially corrupted strings.
+    Handles 'FW,MF' (clean) and '["FW", "MF"]' (corrupted).
+    """
+    if pd.isna(pos_str) or pos_str is None:
+        return None
+    
+    pos_str = str(pos_str).strip()
+    
+    # Check for and handle the observed corrupted format '["FW", "MF"]'
+    if pos_str.startswith('["') and pos_str.endswith(']'):
+        try:
+            # Safely evaluate the string to a list of strings
+            pos_list = ast.literal_eval(pos_str)
+            if isinstance(pos_list, list) and pos_list:
+                return pos_list[0].strip().upper()
+        except (ValueError, SyntaxError, IndexError):
+            # Fallback for unexpected corruption
+            cleaned_str = pos_str.strip('[" ]').replace('"', '')
+            return cleaned_str.split(',')[0].strip().upper()
+            
+    # Handle the expected clean format 'FW,MF' or simple 'FW'
+    return pos_str.split(',')[0].strip().upper()
+
 def print_position_distribution(df, position_col='summary_positions', title="Position Distribution"):
     """Calculate and print the distribution of primary player positions."""
     
-    # Extract primary position (e.g., 'FW,MF' -> 'FW')
-    df['primary_position'] = df[position_col].astype(str).str.split(',').str[0].str.upper()
+    # Apply the safe extraction before calculating distribution
+    df['primary_position'] = df[position_col].apply(safe_extract_position)
     
     # Calculate distribution
     counts = df['primary_position'].value_counts(dropna=False)
@@ -63,7 +89,7 @@ def print_position_distribution(df, position_col='summary_positions', title="Pos
         logger.warning(f"  ⚠️ Cannot calculate {title}: No position data found.")
         return
 
-    logger.info(f"\n📊 {title} (Primary Position):")
+    logger.info(f"\n📊 {title} (Primary Position - Cleaned):") # Updated title
     
     for pos, count in counts.items():
         if pd.isna(pos) or pos == 'NAN':
@@ -82,7 +108,6 @@ def validate_player_match_stats():
     """Validate player_match_stats table - the primary data source."""
     print_section("1. PLAYER MATCH STATS VALIDATION")
 
-    # UPDATED: Add summary_positions to the fetch columns
     player_cols = "player_id, player_name, team_name, summary_sot, summary_min, summary_positions, home_team, away_team, team_side, match_datetime"
     df = fetch_with_deduplication(
         supabase,
@@ -106,7 +131,6 @@ def validate_player_match_stats():
     # --- Missing Values ---
     logger.info(f"\n🔍 Missing Values Check:")
     missing = df.isnull().sum()
-    # UPDATED: Add 'summary_positions' to critical columns
     critical_columns = ['player_id', 'player_name', 'team_name', 'summary_sot', 'summary_min', 'match_datetime', 'summary_positions']
 
     for col in critical_columns:
@@ -114,7 +138,6 @@ def validate_player_match_stats():
         if missing_count > 0:
             pct = (missing_count / len(df)) * 100
             
-            # Use ERROR for critical position data missing
             if col == 'summary_positions':
                 logger.error(f"  🔴 {col}: {missing_count} missing ({pct:.1f}%) - CRITICAL FOR NEW MODEL")
             else:
@@ -124,26 +147,27 @@ def validate_player_match_stats():
         else:
             logger.info(f"  ✅ {col}: No missing values")
 
-    # --- Position Data Validation (NEW SECTION) ---
+    # --- Position Data Validation (FIXED) ---
     logger.info(f"\n📍 PLAYER POSITION DATA VALIDATION:")
     
     if 'summary_positions' in df.columns:
-        # Check for valid position codes (FW, MF, DF, GK)
-        valid_codes = ['FW', 'MF', 'DF', 'GK']
         
-        # Extract primary position code
-        df['primary_pos_code'] = df['summary_positions'].astype(str).str.split(',').str[0].str.upper()
+        # 1. Clean the position data using the new safe_extract function
+        df['primary_pos_code'] = df['summary_positions'].apply(safe_extract_position)
+        
+        # 2. Check for records where parsing failed to produce a valid code (NaN is covered by the missing check above)
+        valid_codes = ['FW', 'MF', 'DF', 'GK', 'CB', 'LB', 'RB', 'WB', 'CM', 'DM', 'AM', 'LM', 'RM', 'LW', 'RW']
         
         # Identify records with invalid primary position codes (excluding NaNs which were checked above)
         invalid_pos_records = df[~df['primary_pos_code'].isin(valid_codes)]
-        invalid_pos_records = invalid_pos_records[invalid_pos_records['summary_positions'].notna()]
+        invalid_pos_records = invalid_pos_records[df['primary_pos_code'].notna()]
 
         if len(invalid_pos_records) > 0:
             example_code = invalid_pos_records['primary_pos_code'].iloc[0] if not invalid_pos_records.empty else '?'
-            logger.error(f"  🔴 {len(invalid_pos_records)} records with invalid position codes (e.g., '{example_code}')")
+            logger.error(f"  🔴 {len(invalid_pos_records)} records with invalid position codes (e.g., '{example_code}') AFTER CLEANING")
             issues.append(f"Invalid position codes: {len(invalid_pos_records)} records")
         else:
-            logger.info(f"  ✅ All non-missing position data contains valid codes.")
+            logger.info(f"  ✅ All non-missing position data contains valid codes after parsing fix.")
 
         # Print the distribution to confirm data variety
         print_position_distribution(df, 'summary_positions', "Raw Position Distribution")
@@ -252,7 +276,6 @@ def cross_validate_data():
     """Cross-validate relationships between tables."""
     print_section("4. CROSS-TABLE VALIDATION")
 
-    # UPDATED: Ensure cross-validation doesn't rely on position data
     df_player = fetch_with_deduplication(supabase, "player_match_stats", "team_name, home_team, away_team, match_datetime")
     df_fixtures = fetch_with_deduplication(supabase, "fixtures", "datetime, hometeam, awayteam", "datetime")
 
@@ -300,7 +323,7 @@ def generate_summary_report(all_issues):
 # ---------------------------------------------------------------
 def main():
     logger.info("=" * 80)
-    logger.info("  DATA VALIDATION & QUALITY CHECK (incl. Position Features)") # UPDATED
+    logger.info("  DATA VALIDATION & QUALITY CHECK (incl. Position Features)")
     logger.info("=" * 80)
 
     all_issues = []
