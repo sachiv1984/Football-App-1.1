@@ -1,67 +1,227 @@
 import pandas as pd
 import numpy as np
-import statsmodels.api as sm
 import pickle
-from sklearn.metrics import mean_squared_error
 import logging
+import statsmodels.api as sm
 
+# --- Logging Setup ---
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 logger = logging.getLogger(__name__)
 
-SCALED_DATA_FILE = "final_feature_set_scaled.parquet"
-MODEL_PKL_FILE = "poisson_model.pkl"
+# --- Configuration ---
+INPUT_FILE = "final_feature_set_scaled.parquet"
+MODEL_OUTPUT = "poisson_model.pkl"
 
+# Predictor columns for the model
+# ✅ UPDATED: Added is_forward and is_defender position features
 PREDICTOR_COLUMNS = [
-    'sot_conceded_MA5_scaled',
-    'tackles_att_3rd_MA5_scaled',
-    'sot_MA5_scaled',
-    'min_MA5_scaled',
-    'summary_min'   # raw minutes, kept in scaled DF
+    'sot_conceded_MA5_scaled',      # Opponent weakness (O-Factor)
+    'tackles_att_3rd_MA5_scaled',   # Opponent pressing (O-Factor)
+    'sot_MA5_scaled',                # Player form (P-Factor)
+    'min_MA5_scaled',                # Player minutes history (P-Factor)
+    'summary_min',                   # Expected minutes this match (raw)
+    'is_forward',                    # Position: Forward (binary, not scaled)
+    'is_defender'                    # Position: Attacking Defender (binary, not scaled)
 ]
-TARGET_COLUMN = 'sot'  # raw SOT
+
+TARGET_COLUMN = 'sot'
+
 
 def load_data():
-    logger.info(f"Loading scaled dataset from {SCALED_DATA_FILE}...")
-    df = pd.read_parquet(SCALED_DATA_FILE)
-    logger.info(f"Data loaded. Shape: {df.shape}")
-    return df
+    """Load the scaled feature set."""
+    logger.info("Loading scaled feature set...")
+    try:
+        df = pd.read_parquet(INPUT_FILE)
+        logger.info(f"✅ Data loaded successfully. Shape: {df.shape}")
+        return df
+    except FileNotFoundError:
+        logger.error(f"❌ File not found: {INPUT_FILE}")
+        logger.error("Run feature_scaling.py first!")
+        exit(1)
 
-def train_and_evaluate_model(df):
-    logger.info("Starting POISSON REGRESSION training...")
+
+def prepare_features(df):
+    """Prepare features and target for modeling."""
+    logger.info("\nPreparing features for Poisson regression...")
     
-    X = df[PREDICTOR_COLUMNS]
-    X = sm.add_constant(X)
-    y = df[TARGET_COLUMN]
+    # Check all required columns exist
+    missing = [col for col in PREDICTOR_COLUMNS + [TARGET_COLUMN] if col not in df.columns]
+    if missing:
+        logger.error(f"❌ Missing required columns: {missing}")
+        exit(1)
+    
+    # Drop rows with NaN in critical columns
+    df_clean = df.dropna(subset=PREDICTOR_COLUMNS + [TARGET_COLUMN])
+    dropped = len(df) - len(df_clean)
+    
+    if dropped > 0:
+        logger.warning(f"⚠️ Dropped {dropped} rows with NaN values ({(dropped/len(df)*100):.1f}%)")
+    
+    # Extract features and target
+    X = df_clean[PREDICTOR_COLUMNS].copy()
+    y = df_clean[TARGET_COLUMN].copy()
+    
+    # Add constant (intercept) for statsmodels
+    X = sm.add_constant(X, has_constant='add')
+    
+    logger.info(f"  ✅ Feature matrix shape: {X.shape}")
+    logger.info(f"  ✅ Target vector shape: {y.shape}")
+    logger.info(f"\n  Features in model:")
+    for i, col in enumerate(['const'] + PREDICTOR_COLUMNS, 1):
+        logger.info(f"    {i}. {col}")
+    
+    return X, y, df_clean
 
-    model = sm.GLM(y, X, family=sm.families.Poisson()).fit()
+
+def train_poisson_model(X, y):
+    """Train Poisson regression model."""
+    logger.info("\nTraining Poisson Regression model...")
+    logger.info("  Model family: Poisson (log link)")
+    logger.info("  Solver: IRLS (Iteratively Reweighted Least Squares)")
+    
+    try:
+        # Train Poisson GLM
+        model = sm.GLM(y, X, family=sm.families.Poisson()).fit()
+        
+        logger.info("✅ Model training complete")
+        return model
+        
+    except Exception as e:
+        logger.error(f"❌ Model training failed: {e}")
+        exit(1)
+
+
+def display_model_summary(model, X, y):
+    """Display comprehensive model performance metrics."""
+    logger.info("\n" + "="*70)
+    logger.info("  MODEL PERFORMANCE SUMMARY")
+    logger.info("="*70)
+    
+    # 1. Model Fit Statistics
+    logger.info("\n📊 Model Fit Statistics:")
+    
+    # Calculate McFadden's Pseudo R-squared manually
+    ll_model = model.llf
+    ll_null = -len(y) * (y.mean() * np.log(y.mean()) - y.mean()) if y.mean() > 0 else 0
+    pseudo_r2 = 1 - (ll_model / ll_null)
+    
+    logger.info(f"  Pseudo R² (McFadden): {pseudo_r2:.4f} ({pseudo_r2*100:.2f}%)")
+    logger.info(f"  Log-Likelihood:       {model.llf:.2f}")
+    logger.info(f"  AIC:                  {model.aic:.2f}")
+    logger.info(f"  BIC:                  {model.bic:.2f}")
+    
+    # 2. Prediction Performance
     y_pred = model.predict(X)
-
-    # Metrics
-    # For GLM, use llf (log-likelihood) to calculate pseudo R-squared manually
-    # McFadden's Pseudo R-squared = 1 - (llf / llnull)
-    llf = model.llf
-    llnull = model.llnull
-    pseudo_r2 = 1 - (llf / llnull)
+    rmse = np.sqrt(np.mean((y - y_pred)**2))
+    mae = np.mean(np.abs(y - y_pred))
     
-    rmse = np.sqrt(mean_squared_error(y, y_pred))
+    logger.info(f"\n📊 Prediction Performance:")
+    logger.info(f"  RMSE:                 {rmse:.4f}")
+    logger.info(f"  MAE:                  {mae:.4f}")
+    logger.info(f"  Mean Actual SOT:      {y.mean():.4f}")
+    logger.info(f"  Mean Predicted SOT:   {y_pred.mean():.4f}")
+    
+    # 3. Feature Coefficients (Rate Multipliers)
+    logger.info(f"\n📊 Feature Coefficients (Rate Multipliers):")
+    logger.info(f"  {'Feature':<35} {'Coefficient':<12} {'Rate Mult.':<12} {'P-value':<10}")
+    logger.info(f"  {'-'*70}")
+    
+    for i, feature in enumerate(['const'] + PREDICTOR_COLUMNS):
+        coef = model.params[i]
+        rate_mult = np.exp(coef)
+        p_value = model.pvalues[i]
+        
+        # Interpretation
+        if feature == 'const':
+            interp = "(baseline)"
+        elif rate_mult > 1.05:
+            interp = f"(+{(rate_mult-1)*100:.1f}% SOT) ✅"
+        elif rate_mult < 0.95:
+            interp = f"({(rate_mult-1)*100:.1f}% SOT) ⚠️"
+        else:
+            interp = "(minimal effect)"
+        
+        # Significance
+        sig = "***" if p_value < 0.001 else "**" if p_value < 0.01 else "*" if p_value < 0.05 else ""
+        
+        logger.info(f"  {feature:<35} {coef:>11.4f} {rate_mult:>11.4f}{sig:<3} {interp}")
+    
+    logger.info(f"\n  Significance: *** p<0.001, ** p<0.01, * p<0.05")
+    
+    # 4. Position Feature Insights (NEW)
+    logger.info(f"\n📊 Position Feature Insights:")
+    
+    # Find position coefficient indices
+    forward_idx = PREDICTOR_COLUMNS.index('is_forward') + 1  # +1 for const
+    defender_idx = PREDICTOR_COLUMNS.index('is_defender') + 1
+    
+    forward_mult = np.exp(model.params[forward_idx])
+    defender_mult = np.exp(model.params[defender_idx])
+    
+    logger.info(f"  Forwards vs Midfielders:   {(forward_mult-1)*100:+.1f}% SOT")
+    logger.info(f"  Att.Defenders vs Midfielders: {(defender_mult-1)*100:+.1f}% SOT")
+    logger.info(f"  ")
+    logger.info(f"  Interpretation:")
+    logger.info(f"    - Baseline (Midfielders): Reference group (coefficient = 0)")
+    logger.info(f"    - Forwards: {forward_mult:.3f}x multiplier")
+    logger.info(f"    - Attacking Defenders: {defender_mult:.3f}x multiplier")
+    
+    # 5. Training Sample Info
+    logger.info(f"\n📊 Training Sample:")
+    logger.info(f"  Total observations:   {len(y)}")
+    logger.info(f"  Zero SOT matches:     {(y == 0).sum()} ({(y==0).sum()/len(y)*100:.1f}%)")
+    logger.info(f"  Non-zero matches:     {(y > 0).sum()} ({(y>0).sum()/len(y)*100:.1f}%)")
+    logger.info(f"  Max SOT in sample:    {y.max():.0f}")
 
-    logger.info(f"Pseudo R-squared (McFadden): {pseudo_r2:.4f}")
-    logger.info(f"Log-Likelihood: {llf:.2f}")
-    logger.info(f"Null Log-Likelihood: {llnull:.2f}")
-    logger.info(f"RMSE: {rmse:.4f}")
 
-    logger.info("Feature Odds Ratios:")
-    odds_ratios = np.exp(model.params)
-    for feature in PREDICTOR_COLUMNS:
-        logger.info(f"  {feature.replace('_scaled',''):<25}: {odds_ratios[feature]:.4f}")
+def save_model(model):
+    """Save the trained model to disk."""
+    logger.info(f"\nSaving model to {MODEL_OUTPUT}...")
+    
+    try:
+        with open(MODEL_OUTPUT, 'wb') as f:
+            pickle.dump(model, f)
+        
+        logger.info(f"✅ Model saved successfully")
+        logger.info(f"   File: {MODEL_OUTPUT}")
+        logger.info(f"   Size: {os.path.getsize(MODEL_OUTPUT) / 1024:.1f} KB")
+        
+    except Exception as e:
+        logger.error(f"❌ Error saving model: {e}")
+        exit(1)
 
-    # Save model
-    with open(MODEL_PKL_FILE, 'wb') as f:
-        pickle.dump(model, f)
-    logger.info(f"Poisson model saved to {MODEL_PKL_FILE}")
 
-    return MODEL_PKL_FILE
+def main():
+    """Main execution pipeline."""
+    logger.info("="*70)
+    logger.info("  POISSON REGRESSION MODEL TRAINING - WITH POSITION FEATURES")
+    logger.info("="*70)
+    
+    # Step 1: Load data
+    df = load_data()
+    
+    # Step 2: Prepare features
+    X, y, df_clean = prepare_features(df)
+    
+    # Step 3: Train model
+    model = train_poisson_model(X, y)
+    
+    # Step 4: Display results
+    display_model_summary(model, X, y)
+    
+    # Step 5: Save model
+    save_model(model)
+    
+    logger.info("\n" + "="*70)
+    logger.info("  ✅ MODEL TRAINING COMPLETE")
+    logger.info("="*70)
+    logger.info("\n🚨 CRITICAL: Upload poisson_model.pkl to src/services/ai/artifacts/")
+    logger.info("             The live predictor needs it in that location!")
+    logger.info("\nNext step: Run live_predictor_zip.py for predictions")
 
-if __name__ == "__main__":
-    df_scaled = load_data()
-    train_and_evaluate_model(df_scaled)
+
+# Add missing import
+import os
+
+if __name__ == '__main__':
+    main()
