@@ -1,40 +1,57 @@
-# src/services/ai/correlation_analysis.py
-
 import pandas as pd
 import logging
 import numpy as np
+import sys
+import os
 
+# Set up logging
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 logger = logging.getLogger(__name__)
 
 # --- Configuration (UPDATED) ---
 # Now loading the file that includes P-Factors
 FEATURE_FILE = "final_feature_set_pfactors.parquet" 
-TARGET_COLUMN = 'summary_sot'
-# Including the new P-Factors in the list of features to analyze
-FEATURE_COLUMNS = ['sot_conceded_MA5', 'tackles_att_3rd_MA5', 'sot_MA5', 'min_MA5'] 
+# Target column is 'sot' (Shots on Target), the current match performance
+TARGET_COLUMN = 'sot'
+# Including the new P-Factors and Position Features in the list of features to analyze
+FEATURE_COLUMNS = [
+    'sot_conceded_MA5', 
+    'tackles_att_3rd_MA5', 
+    'sot_MA5', 
+    'min_MA5',
+    'is_forward',   # <-- NEW: Binary indicator for Forward
+    'is_defender'   # <-- NEW: Binary indicator for Attacking Defender
+] 
 MIN_PERIODS = 5 
 
 def load_final_features() -> pd.DataFrame:
     """Loads the final feature set including all O-Factors and P-Factors."""
     logger.info(f"Loading final feature set from {FEATURE_FILE}...")
     try:
+        # Check if file exists before trying to read
+        if not os.path.exists(FEATURE_FILE):
+             logger.error(f"❌ File not found: {FEATURE_FILE}. Ensure player_factor_engineer.py ran successfully.")
+             sys.exit(1)
+             
         df = pd.read_parquet(FEATURE_FILE)
         logger.info(f"Data loaded successfully. Shape: {df.shape}")
         return df
-    except FileNotFoundError:
-        logger.error(f"File not found: {FEATURE_FILE}. Ensure player_factor_engineer.py ran successfully.")
-        exit(1)
+    except Exception as e:
+        logger.error(f"❌ Error loading data: {e}")
+        sys.exit(1)
 
 def analyze_correlations(df: pd.DataFrame):
     """
     Cleans the data and calculates Pearson's correlation coefficients 
     between all factors and the target variable.
     """
-    logger.info("Starting statistical correlation analysis (Full Feature Set)...")
+    logger.info("\nStarting statistical correlation analysis (Full Feature Set)...")
     
     # 1. Handle Missing Values (where rolling averages are still NaN)
-    df_clean = df.dropna(subset=FEATURE_COLUMNS).copy()
+    # Ensure all required features and the target column exist before dropna
+    analysis_cols = [col for col in FEATURE_COLUMNS + [TARGET_COLUMN] if col in df.columns]
+    
+    df_clean = df.dropna(subset=analysis_cols).copy()
     
     rows_dropped = len(df) - len(df_clean)
     logger.info(f"Dropped {rows_dropped} rows due to NaN factors.")
@@ -45,39 +62,46 @@ def analyze_correlations(df: pd.DataFrame):
         return
 
     # 2. Calculate Correlation
-    correlation_results = df_clean[FEATURE_COLUMNS + [TARGET_COLUMN]].corr()[TARGET_COLUMN].drop(TARGET_COLUMN)
+    correlation_results = df_clean[analysis_cols].corr()[TARGET_COLUMN].drop(TARGET_COLUMN)
 
     logger.info("\n--- Correlation Results (Pearson's r) ---")
     
+    # Sort results for readability
+    correlation_results = correlation_results.sort_values(ascending=False)
+
     for feature, r_value in correlation_results.items():
         logger.info(f"   {feature:<20}: {r_value:.4f}")
 
-    # 3. Interpretation (UPDATED for P-Factors)
+    # 3. Interpretation (UPDATED for Position Features)
     logger.info("\n--- Interpretation ---")
     
     # P-Factor Expectations:
-    # sot_MA5: Player's historical SOT should be strongly POSITIVELY correlated with current SOT.
-    # min_MA5: Player's historical minutes should be weakly POSITIVELY correlated with current SOT 
-    #          (more minutes played historically implies a higher chance of starting and playing well).
-
-    # O-Factor Expectations:
-    # sot_conceded_MA5: POSITIVE (Weaker defense $\implies$ more SOT)
-    # tackles_att_3rd_MA5: NEGATIVE (Aggressive defense $\implies$ fewer SOT)
-
-    # Simple check for the most critical feature
-    sot_ma5_r = correlation_results.get('sot_MA5', 0)
+    logger.info("   P-Factors (Historical Player):")
+    logger.info("     - sot_MA5: Strong POSITIVE expected (Past SOT predicts Current SOT).")
+    logger.info("     - min_MA5: Weak POSITIVE expected (More historical minutes implies better starter/form).")
     
-    if sot_ma5_r > 0.4:
-        logger.info(f"✅ 'sot_MA5' has a strong positive correlation (r={sot_ma5_r:.4f}). This is expected: Past performance predicts future performance.")
-    elif sot_ma5_r > 0:
-        logger.warning(f"⚠️ 'sot_MA5' correlation is positive but only moderate (r={sot_ma5_r:.4f}).")
+    # O-Factor Expectations:
+    logger.info("   O-Factors (Opponent Defense):")
+    logger.info("     - sot_conceded_MA5: POSITIVE expected (Weaker defense => more SOT).")
+    logger.info("     - tackles_att_3rd_MA5: NEGATIVE expected (Aggressive defense => fewer SOT).")
+
+    # Position Feature Expectations:
+    logger.info("   Position Features (New):")
+    logger.info("     - is_forward: Strong POSITIVE expected (Forwards should have the highest correlation with SOT).")
+    logger.info("     - is_defender: Weak/Negative expected (Attacking defenders still shoot less than MFs/FWs).")
+
+    # Simple check for the most critical features
+    sot_ma5_r = correlation_results.get('sot_MA5', 0)
+    forward_r = correlation_results.get('is_forward', 0)
+    
+    if sot_ma5_r > 0.4 and forward_r > 0.3:
+        logger.info(f"✅ Success: 'sot_MA5' (r={sot_ma5_r:.4f}) and 'is_forward' (r={forward_r:.4f}) show the expected strong positive correlation with SOT.")
     else:
-        logger.error("❌ 'sot_MA5' correlation is negative. Investigate data.")
+        logger.warning(f"⚠️ Warning: 'sot_MA5' (r={sot_ma5_r:.4f}) or 'is_forward' (r={forward_r:.4f}) correlation is weaker than expected. Proceed, but monitor model results closely.")
         
-    logger.info("Correlation analysis complete. Ready for Feature Scaling.")
+    logger.info("\nCorrelation analysis complete. Ready for Model Training.")
     
     
 if __name__ == '__main__':
     df_final = load_final_features()
-    # The correlation analysis will be run in the next pipeline execution
-
+    analyze_correlations(df_final)
