@@ -844,84 +844,84 @@
     "datetime": "2025-10-18T12:30:00.000Z",
     "hometeam": "Nott'ham Forest",
     "awayteam": "Chelsea",
-    "homescore": null,
-    "awayscore": null,
+    "homescore": 0,
+    "awayscore": 3,
     "status": "finished",
     "venue": "The City Ground",
     "matchweek": 8,
-    "matchurl": "https://fbref.com/en/matches/2025-10-18"
+    "matchurl": "https://fbref.com/en/matches/b3ac7e40/Nottingham-Forest-Chelsea-October-18-2025-Premier-League"
   },
   {
     "id": "Sunderland_2025-10-18_Wolves",
     "datetime": "2025-10-18T15:00:00.000Z",
     "hometeam": "Sunderland",
     "awayteam": "Wolves",
-    "homescore": null,
-    "awayscore": null,
+    "homescore": 2,
+    "awayscore": 0,
     "status": "finished",
     "venue": "Stadium of Light",
     "matchweek": 8,
-    "matchurl": "https://fbref.com/en/matches/2025-10-18"
+    "matchurl": "https://fbref.com/en/matches/fe212874/Sunderland-Wolverhampton-Wanderers-October-18-2025-Premier-League"
   },
   {
     "id": "Burnley_2025-10-18_Leeds_United",
     "datetime": "2025-10-18T15:00:00.000Z",
     "hometeam": "Burnley",
     "awayteam": "Leeds United",
-    "homescore": null,
-    "awayscore": null,
+    "homescore": 2,
+    "awayscore": 0,
     "status": "finished",
     "venue": "Turf Moor",
     "matchweek": 8,
-    "matchurl": "https://fbref.com/en/matches/2025-10-18"
+    "matchurl": "https://fbref.com/en/matches/a31356f3/Burnley-Leeds-United-October-18-2025-Premier-League"
   },
   {
     "id": "Brighton_2025-10-18_Newcastle_Utd",
     "datetime": "2025-10-18T15:00:00.000Z",
     "hometeam": "Brighton",
     "awayteam": "Newcastle Utd",
-    "homescore": null,
-    "awayscore": null,
+    "homescore": 2,
+    "awayscore": 1,
     "status": "finished",
     "venue": "The American Express Stadium",
     "matchweek": 8,
-    "matchurl": "https://fbref.com/en/matches/2025-10-18"
+    "matchurl": "https://fbref.com/en/matches/7c25388b/Brighton-and-Hove-Albion-Newcastle-United-October-18-2025-Premier-League"
   },
   {
     "id": "Crystal_Palace_2025-10-18_Bournemouth",
     "datetime": "2025-10-18T15:00:00.000Z",
     "hometeam": "Crystal Palace",
     "awayteam": "Bournemouth",
-    "homescore": null,
-    "awayscore": null,
+    "homescore": 3,
+    "awayscore": 3,
     "status": "finished",
     "venue": "Selhurst Park",
     "matchweek": 8,
-    "matchurl": "https://fbref.com/en/matches/2025-10-18"
+    "matchurl": "https://fbref.com/en/matches/7a0ab06b/Crystal-Palace-Bournemouth-October-18-2025-Premier-League"
   },
   {
     "id": "Manchester_City_2025-10-18_Everton",
     "datetime": "2025-10-18T15:00:00.000Z",
     "hometeam": "Manchester City",
     "awayteam": "Everton",
-    "homescore": null,
-    "awayscore": null,
+    "homescore": 2,
+    "awayscore": 0,
     "status": "finished",
     "venue": "Etihad Stadium",
     "matchweek": 8,
-    "matchurl": "https://fbref.com/en/matches/2025-10-18"
+    "matchurl": "https://fbref.com/en/matches/1340e41a/Manchester-City-Everton-October-18-2025-Premier-League"
   },
   {
     "id": "Fulham_2025-10-18_Arsenal",
     "datetime": "2025-10-18T17:30:00.000Z",
     "hometeam": "Fulham",
     "awayteam": "Arsenal",
-    "homescore": null,
-    "awayscore": null,
+    "homescore": 0,
+    "awayscore": 1,
     "status": "finished",
     "venue": "Craven Cottage",
     "matchweek": 8,
-    "matchurl": "https://fbref.com/en/matches/2025-10-18"
+    "matchurl": "https://fbref.com/en/matches/94eefc1d/Fulham-Arsenal-October-18-2025-Premier-League"
   },
   {
     "id": "Tottenham_2025-10-19_Aston_Villa",
