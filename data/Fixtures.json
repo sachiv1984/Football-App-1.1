@@ -928,24 +928,24 @@
     "datetime": "2025-10-19T14:00:00.000Z",
     "hometeam": "Tottenham",
     "awayteam": "Aston Villa",
-    "homescore": null,
-    "awayscore": null,
+    "homescore": 1,
+    "awayscore": 2,
     "status": "finished",
     "venue": "Tottenham Hotspur Stadium",
     "matchweek": 8,
-    "matchurl": "https://fbref.com/en/matches/2025-10-19"
+    "matchurl": "https://fbref.com/en/matches/810c0cb9/Tottenham-Hotspur-Aston-Villa-October-19-2025-Premier-League"
   },
   {
     "id": "Liverpool_2025-10-19_Manchester_Utd",
     "datetime": "2025-10-19T16:30:00.000Z",
     "hometeam": "Liverpool",
     "awayteam": "Manchester Utd",
-    "homescore": null,
-    "awayscore": null,
+    "homescore": 1,
+    "awayscore": 2,
     "status": "finished",
     "venue": "Anfield",
     "matchweek": 8,
-    "matchurl": "https://fbref.com/en/matches/2025-10-19"
+    "matchurl": "https://fbref.com/en/matches/cbec79a5/North-West-Derby-Liverpool-Manchester-United-October-19-2025-Premier-League"
   },
   {
     "id": "West_Ham_2025-10-20_Brentford",
