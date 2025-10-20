@@ -134,7 +134,7 @@ class FBRAPIScraper:
         
         return pd.DataFrame(all_players) if all_players else None
     
-    # 🔄 UPDATED: Using UPSERT on (fixture_id, player_id)
+# 🔄 UPDATED: Using UPSERT on (fixture_id, player_id)
     def save_to_supabase(self, df, table_name='player_match_stats'):
         """Save DataFrame to Supabase using UPSERT for uniqueness"""
         if df is None or df.empty:
@@ -150,8 +150,8 @@ class FBRAPIScraper:
             
             print(f"Preparing to UPSERT {len(records)} player records...")
             
-            # Define conflict columns for player stats (Prevents duplicates)
-            conflict_columns = ['fixture_id', 'player_id']
+            # ✅ FIXED: Use STRING format for on_conflict, matching the unique constraint
+            conflict_target = 'fixture_id,player_id'  # Must be comma-separated string
             batch_size = 100
             successful_inserts = 0
             
@@ -159,10 +159,10 @@ class FBRAPIScraper:
                 batch = records[i:i + batch_size]
                 
                 try:
-                    # Use UPSERT
+                    # Use UPSERT with string conflict target
                     supabase.table(table_name).upsert(
                         batch, 
-                        on_conflict=conflict_columns
+                        on_conflict=conflict_target  # ✅ String, not list
                     ).execute()
                     successful_inserts += len(batch)
                     print(f"✅ Batch {i//batch_size + 1}: {len(batch)} records UPSERTED (Total: {successful_inserts}/{len(records)})")
@@ -175,7 +175,7 @@ class FBRAPIScraper:
                         try:
                             supabase.table(table_name).upsert(
                                 [record], 
-                                on_conflict=conflict_columns
+                                on_conflict=conflict_target  # ✅ String, not list
                             ).execute()
                             successful_inserts += 1
                         except Exception as single_error:
