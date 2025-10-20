@@ -1,0 +1,23 @@
+{
+  "model_type": "ZeroInflatedPoisson",
+  "pseudo_r2": 0.048372849369224924,
+  "aic": 1099.0719060615563,
+  "bic": 1155.4066507638095,
+  "rmse": 0.5620227088277152,
+  "mae": 0.410986491478994,
+  "count_features": [
+    "sot_conceded_MA5_scaled",
+    "tackles_att_3rd_MA5_scaled",
+    "sot_MA5_scaled",
+    "min_MA5_scaled",
+    "summary_min",
+    "is_forward",
+    "is_defender"
+  ],
+  "inflation_features": [
+    "sot_MA5_scaled",
+    "is_forward",
+    "is_defender"
+  ],
+  "training_samples": 808
+}
