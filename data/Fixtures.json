@@ -952,12 +952,12 @@
     "datetime": "2025-10-20T20:00:00.000Z",
     "hometeam": "West Ham",
     "awayteam": "Brentford",
-    "homescore": null,
-    "awayscore": null,
+    "homescore": 0,
+    "awayscore": 2,
     "status": "finished",
     "venue": "London Stadium",
     "matchweek": 8,
-    "matchurl": "https://fbref.com/en/matches/2025-10-20"
+    "matchurl": "https://fbref.com/en/matches/3322a47b/West-Ham-United-Brentford-October-20-2025-Premier-League"
   },
   {
     "id": "Leeds_United_2025-10-24_West_Ham",
