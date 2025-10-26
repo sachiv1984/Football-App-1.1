@@ -976,48 +976,48 @@
     "datetime": "2025-10-25T15:00:00.000Z",
     "hometeam": "Newcastle Utd",
     "awayteam": "Fulham",
-    "homescore": null,
-    "awayscore": null,
+    "homescore": 2,
+    "awayscore": 1,
     "status": "finished",
     "venue": "St James' Park",
     "matchweek": 9,
-    "matchurl": "https://fbref.com/en/matches/2025-10-25"
+    "matchurl": "https://fbref.com/en/matches/0f6b6849/Newcastle-United-Fulham-October-25-2025-Premier-League"
   },
   {
     "id": "Chelsea_2025-10-25_Sunderland",
     "datetime": "2025-10-25T15:00:00.000Z",
     "hometeam": "Chelsea",
     "awayteam": "Sunderland",
-    "homescore": null,
-    "awayscore": null,
+    "homescore": 1,
+    "awayscore": 2,
     "status": "finished",
     "venue": "Stamford Bridge",
     "matchweek": 9,
-    "matchurl": "https://fbref.com/en/matches/2025-10-25"
+    "matchurl": "https://fbref.com/en/matches/cfda878f/Chelsea-Sunderland-October-25-2025-Premier-League"
   },
   {
     "id": "Manchester_Utd_2025-10-25_Brighton",
     "datetime": "2025-10-25T17:30:00.000Z",
     "hometeam": "Manchester Utd",
     "awayteam": "Brighton",
-    "homescore": null,
-    "awayscore": null,
+    "homescore": 4,
+    "awayscore": 2,
     "status": "finished",
     "venue": "Old Trafford",
     "matchweek": 9,
-    "matchurl": "https://fbref.com/en/matches/2025-10-25"
+    "matchurl": "https://fbref.com/en/matches/a190da2c/Manchester-United-Brighton-and-Hove-Albion-October-25-2025-Premier-League"
   },
   {
     "id": "Brentford_2025-10-25_Liverpool",
     "datetime": "2025-10-25T20:00:00.000Z",
     "hometeam": "Brentford",
     "awayteam": "Liverpool",
-    "homescore": null,
-    "awayscore": null,
+    "homescore": 3,
+    "awayscore": 2,
     "status": "finished",
     "venue": "Gtech Community Stadium",
     "matchweek": 9,
-    "matchurl": "https://fbref.com/en/matches/2025-10-25"
+    "matchurl": "https://fbref.com/en/matches/26e5ca72/Brentford-Liverpool-October-25-2025-Premier-League"
   },
   {
     "id": "Arsenal_2025-10-26_Crystal_Palace",
