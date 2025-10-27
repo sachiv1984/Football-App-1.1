@@ -8,6 +8,7 @@ This version can use either:
 Set MODEL_TYPE = 'zip' or 'poisson' to choose.
 
 ✅ UPDATED 2025-10-19: Implemented position extraction and hybrid filtering logic.
+✅ UPDATED 2025-10-27: Removed min_MA5_scaled from model features (redundant after position features).
 ✅ FIX APPLIED 2025-10-19: Correctly handles the simplified feature set for ZIP model prediction (exog_infl).
 """
 
@@ -45,7 +46,7 @@ SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 ARTIFACT_PATH = "src/services/ai/artifacts/" 
 
 # ✅ CHOOSE MODEL TYPE: 'zip' or 'poisson'
-MODEL_TYPE = os.getenv("MODEL_TYPE", "zip")  # Default to ZIP model
+MODEL_TYPE = os.getenv("MODEL_TYPE", "poisson")  # ✅ CHANGED: Default to Poisson (recommended)
 
 if MODEL_TYPE == 'zip':
     MODEL_FILE = ARTIFACT_PATH + "zip_model.pkl"
@@ -77,12 +78,18 @@ POSITION_MAPPING = {
     'FW': 'Forward', 'LW': 'Forward', 'RW': 'Forward'
 }
 
-# FIX 1: Full list of 7 features + const (8 columns) for the Count part
+# ✅ FIXED: Updated to match training model (6 features, removed min_MA5_scaled)
 PREDICTOR_COLUMNS = [
-    'sot_conceded_MA5_scaled', 'tackles_att_3rd_MA5_scaled', 
-    'sot_MA5_scaled', 'min_MA5_scaled', 'summary_min',
-    'is_forward', 'is_defender' 
+    'sot_conceded_MA5_scaled', 
+    'tackles_att_3rd_MA5_scaled', 
+    'sot_MA5_scaled', 
+    # 'min_MA5_scaled',  # ❌ REMOVED: Not in model anymore (redundant after position features)
+    'summary_min',
+    'is_forward', 
+    'is_defender' 
 ]
+
+# Still calculate min_MA5 for filtering purposes
 MA5_METRICS = ['sot', 'min']
 OPP_METRICS = ['sot_conceded', 'tackles_att_3rd']
 
@@ -134,7 +141,7 @@ def safe_extract_position(pos_str):
     return pos_str.split(',')[0].strip().upper()
 
 # ----------------------------------------------------------------------
-# --- Core Data Pipeline Functions (No changes needed here) ---
+# --- Core Data Pipeline Functions ---
 # ----------------------------------------------------------------------
 
 def load_and_merge_raw_data() -> pd.DataFrame:
@@ -333,6 +340,7 @@ def get_live_gameweek_features(df_processed: pd.DataFrame) -> pd.DataFrame:
     df_final_qualified = pd.concat([non_defenders, attacking_defenders], ignore_index=True)
     
     logger.info(f"  Applied Hybrid Filter. Attacking Defenders kept: {len(attacking_defenders)}")
+    logger.info(f"  Final qualified players: {len(df_final_qualified)}")
     
     if df_final_qualified.empty:
         return pd.DataFrame()
@@ -380,37 +388,55 @@ def load_artifacts():
 def scale_live_data(df_raw, scaler_data):
     """Scale features using training statistics."""
     df_features = df_raw.copy()
-    # Correctly include all 7 features for scaling (excluding summary_min, is_forward, is_defender)
+    
+    # Get features that need scaling (exclude raw features like summary_min and binary dummies)
     feature_stems_to_scale = [
         col.replace('_scaled', '') 
         for col in PREDICTOR_COLUMNS 
         if col not in ['summary_min', 'is_forward', 'is_defender']
     ]
     
+    # Scale MA5 features using training statistics
     for feature_stem in feature_stems_to_scale:
+        if feature_stem not in scaler_data.index:
+            logger.warning(f"⚠️ Feature '{feature_stem}' not found in scaler_data, skipping scaling.")
+            continue
+            
         mu = scaler_data.loc[feature_stem, 'mean']
         sigma = scaler_data.loc[feature_stem, 'std']
-        df_features[f'{feature_stem}_scaled'] = (df_features[feature_stem] - mu) / sigma if sigma != 0 else 0
-            
-    # The final features are the scaled MA5 features + summary_min + the dummy variables
+        df_features[f'{feature_stem}_scaled'] = (
+            (df_features[feature_stem] - mu) / sigma 
+            if sigma != 0 else 0
+        )
+    
+    # Verify all required features exist
+    missing_features = [col for col in PREDICTOR_COLUMNS if col not in df_features.columns]
+    if missing_features:
+        logger.error(f"❌ Missing required features: {missing_features}")
+        raise ValueError(f"Missing features: {missing_features}")
+    
+    # Select final features (6 features matching training model)
     final_features = df_features[PREDICTOR_COLUMNS]
     final_features = sm.add_constant(final_features, has_constant='add')
+    
+    logger.info(f"✅ Features scaled. Final shape: {final_features.shape} (expected: N x 7 with const)")
+    
     return final_features
 
 
-def run_predictions(model, df_features_scaled, df_raw, model_type='zip'):
+def run_predictions(model, df_features_scaled, df_raw, model_type='poisson'):
     """Generate predictions using ZIP or Poisson model."""
     
     # ✅ FIX: Create the correct simplified feature subset for the ZIP inflation component
     if model_type == 'zip':
-        # The full feature set (df_features_scaled, shape N x 8) is X (Count Part)
+        # The full feature set (df_features_scaled, shape N x 7) is X (Count Part)
         # Create the simplified feature set (X_infl, shape N x 4)
         df_infl_scaled = df_features_scaled[['const'] + INFLATION_PREDICTOR_COLUMNS] 
     
     if model_type == 'zip':
         # --- ZIP Expected Value (E_SOT) ---
         # Pass the full features (Count) and the simplified features (Inflation)
-        e_sot = model.predict(df_features_scaled, exog_infl=df_infl_scaled) # ✅ FIXED LINE
+        e_sot = model.predict(df_features_scaled, exog_infl=df_infl_scaled)
         
         # Convert to simple array
         if hasattr(e_sot, 'values'):
@@ -423,8 +449,7 @@ def run_predictions(model, df_features_scaled, df_raw, model_type='zip'):
         
         # --- ZIP P(1+ SOT) ---
         # Get P(Y=0) from the model
-        # Pass the full features (Count) and the simplified features (Inflation)
-        prob_results = model.predict(df_features_scaled, which='prob', exog_infl=df_infl_scaled) # ✅ FIXED LINE
+        prob_results = model.predict(df_features_scaled, which='prob', exog_infl=df_infl_scaled)
         
         # Extract P(Y=0)
         if isinstance(prob_results, tuple):
@@ -456,8 +481,7 @@ def run_predictions(model, df_features_scaled, df_raw, model_type='zip'):
         
         # --- ZIP P(structural zero/Never Shooter) ---
         # Get P(structural zero) from inflation model
-        # Pass the full features (Count) and the simplified features (Inflation)
-        prob_inflate = model.predict(df_features_scaled, which='prob-main', exog_infl=df_infl_scaled) # ✅ FIXED LINE
+        prob_inflate = model.predict(df_features_scaled, which='prob-main', exog_infl=df_infl_scaled)
         
         # Convert to simple 1D numpy array
         if isinstance(prob_inflate, pd.DataFrame):
