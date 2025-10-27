@@ -1024,60 +1024,60 @@
     "datetime": "2025-10-26T14:00:00.000Z",
     "hometeam": "Arsenal",
     "awayteam": "Crystal Palace",
-    "homescore": null,
-    "awayscore": null,
+    "homescore": 1,
+    "awayscore": 0,
     "status": "finished",
     "venue": "Emirates Stadium",
     "matchweek": 9,
-    "matchurl": "https://fbref.com/en/matches/2025-10-26"
+    "matchurl": "https://fbref.com/en/matches/8e08b6c9/Arsenal-Crystal-Palace-October-26-2025-Premier-League"
   },
   {
     "id": "Aston_Villa_2025-10-26_Manchester_City",
     "datetime": "2025-10-26T14:00:00.000Z",
     "hometeam": "Aston Villa",
     "awayteam": "Manchester City",
-    "homescore": null,
-    "awayscore": null,
+    "homescore": 1,
+    "awayscore": 0,
     "status": "finished",
     "venue": "Villa Park",
     "matchweek": 9,
-    "matchurl": "https://fbref.com/en/matches/2025-10-26"
+    "matchurl": "https://fbref.com/en/matches/2324c097/Aston-Villa-Manchester-City-October-26-2025-Premier-League"
   },
   {
     "id": "Wolves_2025-10-26_Burnley",
     "datetime": "2025-10-26T14:00:00.000Z",
     "hometeam": "Wolves",
     "awayteam": "Burnley",
-    "homescore": null,
-    "awayscore": null,
+    "homescore": 2,
+    "awayscore": 3,
     "status": "finished",
     "venue": "Molineux Stadium",
     "matchweek": 9,
-    "matchurl": "https://fbref.com/en/matches/2025-10-26"
+    "matchurl": "https://fbref.com/en/matches/28244556/Wolverhampton-Wanderers-Burnley-October-26-2025-Premier-League"
   },
   {
     "id": "Bournemouth_2025-10-26_Nott'ham_Forest",
     "datetime": "2025-10-26T14:00:00.000Z",
     "hometeam": "Bournemouth",
     "awayteam": "Nott'ham Forest",
-    "homescore": null,
-    "awayscore": null,
+    "homescore": 2,
+    "awayscore": 0,
     "status": "finished",
     "venue": "Vitality Stadium",
     "matchweek": 9,
-    "matchurl": "https://fbref.com/en/matches/2025-10-26"
+    "matchurl": "https://fbref.com/en/matches/0676a57a/Bournemouth-Nottingham-Forest-October-26-2025-Premier-League"
   },
   {
     "id": "Everton_2025-10-26_Tottenham",
     "datetime": "2025-10-26T16:30:00.000Z",
     "hometeam": "Everton",
     "awayteam": "Tottenham",
-    "homescore": null,
-    "awayscore": null,
+    "homescore": 0,
+    "awayscore": 3,
     "status": "finished",
     "venue": "Hill Dickinson Stadium",
     "matchweek": 9,
-    "matchurl": "https://fbref.com/en/matches/2025-10-26"
+    "matchurl": "https://fbref.com/en/matches/4234aaa9/Everton-Tottenham-Hotspur-October-26-2025-Premier-League"
   },
   {
     "id": "Crystal_Palace_2025-11-01_Brentford",
