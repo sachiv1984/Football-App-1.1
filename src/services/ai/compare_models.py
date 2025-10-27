@@ -36,7 +36,6 @@ PREDICTOR_COLUMNS = [
     'sot_conceded_MA5_scaled', 
     'tackles_att_3rd_MA5_scaled', 
     'sot_MA5_scaled', 
-    'min_MA5_scaled', 
     'summary_min',
     'is_forward',   
     'is_defender'   
