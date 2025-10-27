@@ -18,7 +18,6 @@ STATS_FILE = "training_stats.json"
 # NOTE: MA5 features are standardized, but NOT position features (they're binary)
 FEATURES_TO_SCALE = [
     'sot_MA5',
-    'min_MA5',
     'sot_conceded_MA5',
     'tackles_att_3rd_MA5'
 ]
