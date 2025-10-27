@@ -19,7 +19,6 @@ PREDICTOR_COLUMNS = [
     'sot_conceded_MA5_scaled',      # Opponent weakness (O-Factor)
     'tackles_att_3rd_MA5_scaled',   # Opponent pressing (O-Factor)
     'sot_MA5_scaled',                # Player form (P-Factor)
-    'min_MA5_scaled',                # Player minutes history (P-Factor)
     'summary_min',                   # Expected minutes this match (raw)
     'is_forward',                    # Position: Forward (binary, not scaled)
     'is_defender'                    # Position: Attacking Defender (binary, not scaled)
