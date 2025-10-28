@@ -21,10 +21,8 @@ SCALED_DATA_FILE = "final_feature_set_scaled.parquet"
 # which should now include 'is_forward' and 'is_defender' for a full check.
 PREDICTOR_COLUMNS = [
     'sot_conceded_MA5_scaled',
-    'tackles_att_3rd_MA5_scaled',
     'sot_MA5_scaled',
     'summary_min',
-    # Include new features for comprehensive check
     'is_forward',   
     'is_defender'   
 ]
