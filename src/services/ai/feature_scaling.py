@@ -19,7 +19,6 @@ STATS_FILE = "training_stats.json"
 FEATURES_TO_SCALE = [
     'sot_MA5',
     'sot_conceded_MA5',
-    'tackles_att_3rd_MA5'
 ]
 
 # Features to keep raw (no scaling)
