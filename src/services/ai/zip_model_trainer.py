@@ -35,8 +35,7 @@ COMPARISON_OUTPUT = "zip_vs_poisson_comparison.txt"
 
 # Features used for prediction - FULL SET FOR POISSON (COUNT) PART
 PREDICTOR_COLUMNS = [
-    'sot_conceded_MA5_scaled', 
-    'tackles_att_3rd_MA5_scaled', 
+    'sot_conceded_MA5_scaled',  
     'sot_MA5_scaled', 
     'summary_min',
     'is_forward',   
