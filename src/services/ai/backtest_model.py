@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 # --- Configuration ---
 INPUT_FILE = "final_feature_set_scaled.parquet"
+RAW_INPUT_FILE = "final_feature_set.parquet"  # Original unscaled file
 MODEL_OUTPUT = "poisson_model.pkl"
 PROB_OUTPUT = "poisson_probabilities.csv"
 
@@ -30,24 +31,35 @@ TARGET_COLUMN = 'sot'
 def load_data():
     logger.info("Loading scaled feature set...")
     try:
-        df = pd.read_parquet(INPUT_FILE)
-        logger.info(f"✅ Data loaded successfully. Shape: {df.shape}")
-        return df
-    except FileNotFoundError:
-        logger.error(f"❌ File not found: {INPUT_FILE}")
+        df_scaled = pd.read_parquet(INPUT_FILE)
+        df_raw = pd.read_parquet(RAW_INPUT_FILE)
+        logger.info(f"✅ Scaled data loaded successfully. Shape: {df_scaled.shape}")
+        logger.info(f"✅ Raw data loaded successfully. Shape: {df_raw.shape}")
+        return df_scaled, df_raw
+    except FileNotFoundError as e:
+        logger.error(f"❌ File not found: {e.filename}")
         exit(1)
 
-def prepare_features(df):
+def prepare_features(df_scaled, df_raw):
     logger.info("\nPreparing features for Poisson regression...")
-    missing = [col for col in PREDICTOR_COLUMNS + [TARGET_COLUMN] if col not in df.columns]
+    
+    missing = [col for col in PREDICTOR_COLUMNS + [TARGET_COLUMN] if col not in df_scaled.columns]
     if missing:
-        logger.error(f"❌ Missing required columns: {missing}")
+        logger.error(f"❌ Missing required columns in scaled data: {missing}")
         exit(1)
     
-    df_clean = df.dropna(subset=PREDICTOR_COLUMNS + [TARGET_COLUMN])
-    dropped = len(df) - len(df_clean)
+    df_clean = df_scaled.dropna(subset=PREDICTOR_COLUMNS + [TARGET_COLUMN])
+    dropped = len(df_scaled) - len(df_clean)
     if dropped > 0:
-        logger.warning(f"⚠️ Dropped {dropped} rows with NaN values ({(dropped/len(df)*100):.1f}%)")
+        logger.warning(f"⚠️ Dropped {dropped} rows with NaN values ({(dropped/len(df_scaled)*100):.1f}%)")
+    
+    # Align identifiers from raw dataframe
+    df_clean = df_clean.merge(
+        df_raw[['player_name', 'team', 'opponent']],
+        left_index=True,
+        right_index=True,
+        how='left'
+    )
     
     X = df_clean[PREDICTOR_COLUMNS].copy()
     y = df_clean[TARGET_COLUMN].copy()
@@ -68,9 +80,6 @@ def train_poisson_model(X, y):
         exit(1)
 
 def compute_sot_probabilities(model, X, df_clean):
-    """
-    Compute 1+, 2+, 3+ SOT probabilities using Poisson PMF/CDF.
-    """
     logger.info("\nCalculating 1+, 2+, 3+ SOT probabilities for each player...")
     
     y_pred = model.predict(X)
@@ -89,7 +98,6 @@ def compute_sot_probabilities(model, X, df_clean):
         'P_3_plus': prob_3_plus
     })
     
-    # Save to CSV for live predictions
     results.to_csv(PROB_OUTPUT, index=False)
     logger.info(f"✅ Probabilities saved to {PROB_OUTPUT}")
     return results
@@ -115,8 +123,8 @@ def main():
     logger.info("  POISSON REGRESSION MODEL TRAINING + SOT PROBABILITIES")
     logger.info("="*70)
     
-    df = load_data()
-    X, y, df_clean = prepare_features(df)
+    df_scaled, df_raw = load_data()
+    X, y, df_clean = prepare_features(df_scaled, df_raw)
     model = train_poisson_model(X, y)
     display_model_summary(model)
     save_model(model)
