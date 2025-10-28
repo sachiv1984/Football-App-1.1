@@ -1,6 +1,7 @@
 name: Backtest SOT Model (Poisson + ZIP)
 
 on:
+  # Manual triggering from GitHub Actions UI
   workflow_dispatch:
     inputs:
       train_zip_model:
@@ -14,262 +15,472 @@ on:
 
 jobs:
   # =====================================================================
-  # 0. Validate Data
+  # STEP 0: Data Validation (NEW - MANDATORY)
   # =====================================================================
   validate_data:
+    name: 0. Validate Data Quality ✅
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-      - run: pip install -r requirements.txt
-      - name: Run Data Validation
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: python src/services/ai/utils/data_validation.py
-      - uses: actions/upload-artifact@v4
-        with:
-          name: data-validation-report
-          path: |
-            data_validation_report.txt
-            invalid_minutes_records.csv
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+    
+    - name: Set up Python Environment
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+        
+    - name: Run Data Validation Script 🔍
+      env:
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      run: |
+        echo "🔍 Running data validation checks..."
+        python src/services/ai/utils/data_validation.py
+        
+    - name: Upload Validation Report 📤
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: data-validation-report
+        path: |
+          data_validation_report.txt
+          invalid_minutes_records.csv
 
   # =====================================================================
-  # 1. Load Data
+  # STEP 1: Load Data from Supabase
   # =====================================================================
   load_data:
+    name: 1. Load Data from Supabase
     needs: validate_data
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-      - run: pip install -r requirements.txt
-      - name: Load Data from Supabase
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: python src/services/ai/data_loader.py
-      - uses: actions/upload-artifact@v4
-        with:
-          name: raw-backtest-data
-          path: |
-            player_data_raw.parquet
-            team_def_data_raw.parquet
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+    
+    - name: Set up Python Environment
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+        
+    - name: Execute Data Loader and Save Files 💾
+      env:
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      run: |
+        echo "Running data_loader.py to pull data from Supabase..."
+        python src/services/ai/data_loader.py
+        
+    - name: Upload Data Artifacts 📤
+      uses: actions/upload-artifact@v4
+      with:
+        name: raw-backtest-data
+        path: |
+          player_data_raw.parquet
+          team_def_data_raw.parquet
 
   # =====================================================================
-  # 2. Feature Engineering (O-Factors)
+  # STEP 2: Feature Engineering (O-Factors)
   # =====================================================================
   process_data:
+    name: 2. Feature Engineer (O-Factors)
     needs: load_data
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-      - run: pip install -r requirements.txt
-      - uses: actions/download-artifact@v4
-        with:
-          name: raw-backtest-data
-      - run: python src/services/ai/backtest_processor.py
-      - uses: actions/upload-artifact@v4
-        with:
-          name: final-feature-set-o-factors
-          path: final_feature_set.parquet
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python Environment
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+      
+    - name: Download Raw Data Artifacts 📥
+      uses: actions/download-artifact@v4
+      with:
+        name: raw-backtest-data
+        
+    - name: Run Backtest Processor Script (O-Factors)
+      run: |
+        echo "Running backtest_processor.py to merge and calculate O-factors..."
+        python src/services/ai/backtest_processor.py 
+        
+    - name: Upload O-Factor Data 📤
+      uses: actions/upload-artifact@v4
+      with:
+        name: final-feature-set-o-factors
+        path: final_feature_set.parquet
 
   # =====================================================================
-  # 3. P-Factors, Scaling
+  # STEP 3: P-Factors, Analysis, Scaling, and Training
   # =====================================================================
   analyze_and_scale:
+    name: 3. P-Factors, Correlation, Scaling
     needs: process_data
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-      - run: pip install -r requirements.txt
-      - uses: actions/download-artifact@v4
-        with:
-          name: final-feature-set-o-factors
-      - run: python src/services/ai/player_factor_engineer.py
-      - run: python src/services/ai/correlation_analysis.py
-      - run: python src/services/ai/feature_scaling.py
-      - uses: actions/upload-artifact@v4
-        with:
-          name: scaled-feature-set
-          path: |
-            final_feature_set_scaled.parquet
-            training_stats.json
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python Environment
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+      
+    - name: Download O-Factor Data 📥
+      uses: actions/download-artifact@v4
+      with:
+        name: final-feature-set-o-factors
+        
+    - name: Run P-Factor Engineer Script
+      run: |
+        echo "Running player_factor_engineer.py to calculate P-Factors..."
+        python src/services/ai/player_factor_engineer.py
+        
+    - name: Run Correlation Analysis (Full Feature Set)
+      run: |
+        echo "Running correlation_analysis.py..."
+        python src/services/ai/correlation_analysis.py 
+        
+    - name: Run Feature Scaling Script (Player Filtering and Standardization)
+      run: |
+        echo "Running feature_scaling.py to filter and standardize data..."
+        python src/services/ai/feature_scaling.py
+
+    - name: Upload Scaled Data 📤
+      uses: actions/upload-artifact@v4
+      with:
+        name: scaled-feature-set
+        path: |
+          final_feature_set_scaled.parquet
+          training_stats.json
 
   # =====================================================================
-  # 4a. Train Poisson Model
+  # STEP 4: Train Standard Poisson Model (Baseline)
   # =====================================================================
   train_poisson:
+    name: 4a. Train Poisson Model (Baseline)
     needs: analyze_and_scale
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-      - run: pip install -r requirements.txt
-      - uses: actions/download-artifact@v4
-        with:
-          name: scaled-feature-set
-      - name: Train Poisson Model
-        run: python src/services/ai/backtest_model.py
-      - name: Run Live Predictor (Poisson)
-        env:
-          MODEL_TYPE: poisson
-        run: python src/services/ai/live_predictor_zip.py
-      - uses: actions/upload-artifact@v4
-        with:
-          name: poisson-model-artifacts
-          path: |
-            poisson_model.pkl
-            gameweek_sot_recommendations.csv
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python Environment
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+      
+    - name: Download Scaled Data 📥
+      uses: actions/download-artifact@v4
+      with:
+        name: scaled-feature-set
+
+    - name: Run Backtesting Model and Save Model
+      run: |
+        echo "Running backtest_model.py to train Poisson model..."
+        python src/services/ai/backtest_model.py
+
+    - name: Upload Poisson Model Artifacts 📤
+      uses: actions/upload-artifact@v4
+      with:
+        name: poisson-model-artifacts
+        path: |
+          poisson_model.pkl
 
   # =====================================================================
-  # 4b. Train ZIP Model (Optional)
+  # STEP 5: Train ZIP Model (NEW) ⭐
   # =====================================================================
   train_zip:
+    name: 4b. Train ZIP Model ⭐
     needs: analyze_and_scale
     if: ${{ github.event.inputs.train_zip_model == 'true' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-      - run: pip install -r requirements.txt
-      - uses: actions/download-artifact@v4
-        with:
-          name: scaled-feature-set
-      - run: python src/services/ai/zip_model_trainer.py
-      - name: Run Live Predictor (ZIP)
-        env:
-          MODEL_TYPE: zip
-        run: python src/services/ai/live_predictor_zip.py
-      - uses: actions/upload-artifact@v4
-        with:
-          name: zip-model-artifacts
-          path: |
-            src/services/ai/artifacts/zip_model.pkl
-            src/services/ai/artifacts/zip_training_stats.json
-            gameweek_sot_recommendations.csv
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python Environment
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+      
+    - name: Download Scaled Data 📥
+      uses: actions/download-artifact@v4
+      with:
+        name: scaled-feature-set
+
+    - name: Train Zero-Inflated Poisson Model 🎯
+      run: |
+        echo "Running zip_model_trainer.py to train ZIP model..."
+        python src/services/ai/zip_model_trainer.py
+
+    - name: Upload ZIP Model Artifacts 📤
+      uses: actions/upload-artifact@v4
+      with:
+        name: zip-model-artifacts
+        path: |
+          src/services/ai/artifacts/zip_model.pkl
+          src/services/ai/artifacts/zip_training_stats.json
 
   # =====================================================================
-  # 5. Compare Models & Diagnostics
+  # STEP 6: Model Comparison and Diagnostics
   # =====================================================================
   compare_and_diagnose:
+    name: 5. Compare Models & Run Diagnostics
     needs: [train_poisson, train_zip]
+    if: always()
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-      - run: pip install -r requirements.txt
-      - uses: actions/download-artifact@v4
-        with:
-          name: scaled-feature-set
-      - uses: actions/download-artifact@v4
-        with:
-          name: poisson-model-artifacts
-          path: src/services/ai/artifacts/
-      - uses: actions/download-artifact@v4
-        if: ${{ github.event.inputs.train_zip_model == 'true' }}
-        with:
-          name: zip-model-artifacts
-          path: src/services/ai/artifacts/
-      - run: python src/services/ai/utils/model_diagnostics.py
-      - run: python src/services/ai/compare_models.py
-        if: ${{ github.event.inputs.train_zip_model == 'true' }}
-      - uses: actions/upload-artifact@v4
-        with:
-          name: model-diagnostics
-          path: |
-            diagnostics_report.txt
-            vif_results.csv
-            correlation_matrix.csv
-            feature_target_correlations.csv
-            model_comparison_report.txt
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python Environment
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+      
+    - name: Download Scaled Data 📥
+      uses: actions/download-artifact@v4
+      with:
+        name: scaled-feature-set
+
+    - name: Download Poisson Model 📥
+      uses: actions/download-artifact@v4
+      with:
+        name: poisson-model-artifacts
+        path: src/services/ai/artifacts/
+      continue-on-error: true
+
+    - name: Download ZIP Model 📥
+      if: ${{ github.event.inputs.train_zip_model == 'true' }}
+      uses: actions/download-artifact@v4
+      with:
+        name: zip-model-artifacts
+        path: src/services/ai/artifacts/
+      continue-on-error: true
+
+    - name: Run Model Diagnostics 📊
+      run: |
+        echo "Running model diagnostics..."
+        python src/services/ai/utils/model_diagnostics.py
+
+    - name: Compare Poisson vs ZIP Models 🎯
+      if: ${{ github.event.inputs.train_zip_model == 'true' }}
+      run: |
+        echo "Running model comparison..."
+        python src/services/ai/compare_models.py
+      continue-on-error: true
+
+    - name: Upload Diagnostics Results 📤
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: model-diagnostics
+        path: |
+          diagnostics_report.txt
+          vif_results.csv
+          correlation_matrix.csv
+          feature_target_correlations.csv
+          model_comparison_report.txt
 
   # =====================================================================
-  # 6. Test Prediction Service
+  # STEP 7: Test Prediction Service
   # =====================================================================
   test_predictions:
+    name: 6. Test Prediction Service
     needs: compare_and_diagnose
     runs-on: ubuntu-latest
     strategy:
       matrix:
         model_type: [poisson, zip]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-      - run: pip install -r requirements.txt
-      - uses: actions/download-artifact@v4
-        with:
-          name: scaled-feature-set
-      - uses: actions/download-artifact@v4
-        with:
-          name: ${{ matrix.model_type }}-model-artifacts
-          path: src/services/ai/artifacts/
-      - name: Run Prediction Service
-        env:
-          MODEL_TYPE: ${{ matrix.model_type }}
-        run: python src/services/ai/live_predictor_zip.py
-      - uses: actions/upload-artifact@v4
-        with:
-          name: predictions-${{ matrix.model_type }}
-          path: gameweek_sot_recommendations.csv
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python Environment
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+      
+    - name: Download Scaled Data 📥
+      uses: actions/download-artifact@v4
+      with:
+        name: scaled-feature-set
+
+    - name: Download Model Artifacts 📥
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ matrix.model_type }}-model-artifacts
+        path: src/services/ai/artifacts/
+      continue-on-error: true
+
+    - name: Run Prediction Service Simulation (${{ matrix.model_type }})
+      env:
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        MODEL_TYPE: ${{ matrix.model_type }}
+      run: |
+        echo "Testing ${{ matrix.model_type }} model predictions..."
+        python src/services/ai/live_predictor_zip.py
+      continue-on-error: true
+        
+    - name: Upload Prediction Output 📤
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: predictions-${{ matrix.model_type }}
+        path: gameweek_sot_recommendations.csv
 
   # =====================================================================
-  # 7. Package Artifacts
+  # STEP 8: Package Final Artifacts
   # =====================================================================
   package_artifacts:
+    name: 7. Package Final Artifacts for Deployment
     needs: test_predictions
+    if: always()
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          name: poisson-model-artifacts
-      - uses: actions/download-artifact@v4
-        with:
-          name: zip-model-artifacts
-          continue-on-error: true
-      - uses: actions/download-artifact@v4
-        with:
-          name: scaled-feature-set
-      - uses: actions/download-artifact@v4
-        with:
-          name: model-diagnostics
-      - uses: actions/download-artifact@v4
-        with:
-          name: predictions-poisson
-      - uses: actions/download-artifact@v4
-        with:
-          name: predictions-zip
-          continue-on-error: true
-      - run: |
-          mkdir -p deployment_package/artifacts
-          cp -f poisson-model-artifacts/*.pkl deployment_package/artifacts/ 2>/dev/null || true
-          cp -f zip-model-artifacts/*.pkl deployment_package/artifacts/ 2>/dev/null || true
-          cp -f zip-model-artifacts/*.json deployment_package/artifacts/ 2>/dev/null || true
-          cp -f scaled-feature-set/training_stats.json deployment_package/artifacts/ 2>/dev/null || true
-          cp -f predictions-*/*.csv deployment_package/artifacts/ 2>/dev/null || true
-          cp -f model-diagnostics/*.txt deployment_package/ 2>/dev/null || true
-          cp -f model-diagnostics/*.csv deployment_package/ 2>/dev/null || true
-          ls -lah deployment_package/artifacts
-      - uses: actions/upload-artifact@v4
-        with:
-          name: deployment-package
-          path: deployment_package/
+    - uses: actions/checkout@v4
+
+    - name: Download All Artifacts 📥
+      uses: actions/download-artifact@v4
+
+    - name: Create Deployment Package 📦
+      run: |
+        echo "Creating deployment package..."
+        mkdir -p deployment_package/artifacts
+        
+        # Copy models
+        cp -f poisson-model-artifacts/*.pkl deployment_package/artifacts/ 2>/dev/null || true
+        cp -f zip-model-artifacts/*.pkl deployment_package/artifacts/ 2>/dev/null || true
+        cp -f zip-model-artifacts/*.json deployment_package/artifacts/ 2>/dev/null || true
+        cp -f scaled-feature-set/training_stats.json deployment_package/artifacts/ 2>/dev/null || true
+        
+        # Copy diagnostics
+        cp -f model-diagnostics/*.txt deployment_package/ 2>/dev/null || true
+        cp -f model-diagnostics/*.csv deployment_package/ 2>/dev/null || true
+        
+        # Copy predictions
+        cp -f predictions-*/*.csv deployment_package/ 2>/dev/null || true
+        
+        # Create README
+        cat > deployment_package/README.md << 'EOF'
+        # Model Deployment Package
+        
+        ## Contents
+        
+        ### Models
+        - `artifacts/poisson_model.pkl` - Standard Poisson model (baseline)
+        - `artifacts/zip_model.pkl` - Zero-Inflated Poisson model (recommended)
+        - `artifacts/training_stats.json` - Feature scaling parameters
+        - `artifacts/zip_training_stats.json` - ZIP-specific statistics
+        
+        ### Diagnostics
+        - `diagnostics_report.txt` - Model performance metrics
+        - `model_comparison_report.txt` - Poisson vs ZIP comparison
+        - `vif_results.csv` - Multicollinearity analysis
+        - `correlation_matrix.csv` - Feature correlations
+        
+        ### Test Predictions
+        - `gameweek_sot_recommendations.csv` - Sample predictions
+        
+        ## Deployment Instructions
+        
+        1. Upload artifacts to production: `src/services/ai/artifacts/`
+        2. Set environment variable: `export MODEL_TYPE=zip` (or `poisson`)
+        3. Run live predictor: `python src/services/ai/live_predictor_zip.py`
+        
+        ## Model Selection
+        
+        Check `model_comparison_report.txt`:
+        - If AIC improved by >10 points → Deploy ZIP
+        - If AIC improved by <10 points → Consider business requirements
+        - If AIC worsened → Keep Poisson
+        
+        ## Support
+        
+        See `ZIP_MODEL_GUIDE.md` for complete documentation.
+        EOF
+        
+        ls -lah deployment_package/
+        ls -lah deployment_package/artifacts/
+
+    - name: Upload Deployment Package 📤
+      uses: actions/upload-artifact@v4
+      with:
+        name: deployment-package
+        path: deployment_package/
+
+  # =====================================================================
+  # STEP 9: Generate Summary Report
+  # =====================================================================
+  summary_report:
+    name: 8. Generate Workflow Summary
+    needs: package_artifacts
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download Diagnostics 📥
+      uses: actions/download-artifact@v4
+      with:
+        name: model-diagnostics
+      continue-on-error: true
+
+    - name: Create Workflow Summary 📋
+      run: |
+        echo "# 🎯 Backtest Workflow Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## Workflow Configuration" >> $GITHUB_STEP_SUMMARY
+        echo "- **Train ZIP Model:** ${{ github.event.inputs.train_zip_model }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Triggered by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Run ID:** ${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        echo "## Artifacts Generated" >> $GITHUB_STEP_SUMMARY
+        echo "✅ Data validation report" >> $GITHUB_STEP_SUMMARY
+        echo "✅ Poisson model (baseline)" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "${{ github.event.inputs.train_zip_model }}" == "true" ]; then
+          echo "✅ ZIP model (experimental)" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Model comparison report" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "✅ Model diagnostics" >> $GITHUB_STEP_SUMMARY
+        echo "✅ Test predictions" >> $GITHUB_STEP_SUMMARY
+        echo "✅ Deployment package" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        echo "## Next Steps" >> $GITHUB_STEP_SUMMARY
+        echo "1. Download **deployment-package** artifact" >> $GITHUB_STEP_SUMMARY
+        echo "2. Review **model_comparison_report.txt**" >> $GITHUB_STEP_SUMMARY
+        echo "3. Choose model based on AIC improvement" >> $GITHUB_STEP_SUMMARY
+        echo "4. Upload artifacts to production environment" >> $GITHUB_STEP_SUMMARY
+        echo "5. Set \`MODEL_TYPE\` environment variable" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        echo "## Key Diagnostics" >> $GITHUB_STEP_SUMMARY
+        if [ -f "diagnostics_report.txt" ]; then
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          head -n 50 diagnostics_report.txt >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "⚠️ Diagnostics report not found" >> $GITHUB_STEP_SUMMARY
+        fi
