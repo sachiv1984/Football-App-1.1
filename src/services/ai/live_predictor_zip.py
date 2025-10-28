@@ -89,7 +89,7 @@ PREDICTOR_COLUMNS = [
 
 # Still calculate min_MA5 for filtering purposes
 MA5_METRICS = ['sot', 'min']
-OPP_METRICS = ['sot_conceded', 'tackles_att_3rd']
+OPP_METRICS = ['sot_conceded']
 
 # ✅ NEW: Simplified list of features for the ZIP Inflation (Logistic) part (3 features + const)
 INFLATION_PREDICTOR_COLUMNS = [
