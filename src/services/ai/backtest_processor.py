@@ -35,7 +35,7 @@ def calculate_factors(df_player: pd.DataFrame, df_team_def: pd.DataFrame) -> pd.
     logger.info("Calculating rolling opponent defensive factors (O-Factors)...")
     
     # 1. Define the defensive stats columns we need
-    DEF_STATS = ['sot_conceded', 'tackles_att_3rd']
+    DEF_STATS = ['sot_conceded']
     DEF_COLS = ['team_name', 'match_date'] + DEF_STATS
     
     # --- Prepare Defense DataFrames with explicit final column names ---
@@ -46,8 +46,7 @@ def calculate_factors(df_player: pd.DataFrame, df_team_def: pd.DataFrame) -> pd.
         columns={
             'team_name': 'away_team', # Merge key
             'sot_conceded': 'sot_conceded_opp_away_raw', # Final column name
-            'tackles_att_3rd': 'tackles_att_3rd_opp_away_raw' # Final column name
-        }, 
+                }, 
         inplace=True
     )
     
@@ -57,7 +56,6 @@ def calculate_factors(df_player: pd.DataFrame, df_team_def: pd.DataFrame) -> pd.
         columns={
             'team_name': 'home_team', # Merge key
             'sot_conceded': 'sot_conceded_opp_home_raw', # Final column name
-            'tackles_att_3rd': 'tackles_att_3rd_opp_home_raw' # Final column name
         }, 
         inplace=True
     )
