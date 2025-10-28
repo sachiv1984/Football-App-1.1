@@ -1,15 +1,9 @@
 """
 Zero-Inflated Poisson (ZIP) Model Training Script
+Updated: 2025-10-28
 
-This script trains a ZIP model to handle the high zero-inflation in SOT data.
-It models the probability of shooting (logistic part) separately from the count 
-of shots (Poisson part).
-
-✅ FIX APPLIED (2025-10-19): The inflation component (exog_infl) is simplified 
-to prevent overflow/instability that caused P_Never_Shooter = 1.0 in live predictions.
-
-Run after: feature_scaling.py
-Outputs: src/services/ai/artifacts/zip_model.pkl, src/services/ai/artifacts/zip_training_stats.json
+✅ FIXED: Handles high zero-inflation for SOT.
+✅ NEW: Calculates probabilities for 1+, 2+, 3+ SOT.
 """
 
 import pandas as pd
@@ -33,7 +27,7 @@ MODEL_OUTPUT = "src/services/ai/artifacts/zip_model.pkl"
 STATS_OUTPUT = "src/services/ai/artifacts/zip_training_stats.json"
 COMPARISON_OUTPUT = "zip_vs_poisson_comparison.txt"
 
-# Features used for prediction - FULL SET FOR POISSON (COUNT) PART
+# Features
 PREDICTOR_COLUMNS = [
     'sot_conceded_MA5_scaled', 
     'tackles_att_3rd_MA5_scaled', 
@@ -43,7 +37,6 @@ PREDICTOR_COLUMNS = [
     'is_defender'   
 ]
 
-# 💡 NEW: SIMPLIFIED FEATURES FOR LOGISTIC (INFLATION) PART
 INFLATION_PREDICTOR_COLUMNS = [
     'sot_MA5_scaled', 
     'is_forward',   
@@ -52,348 +45,137 @@ INFLATION_PREDICTOR_COLUMNS = [
 
 TARGET_COLUMN = 'sot'
 
-# --- Helper Functions (No changes needed) ---
+# --- Helper Functions ---
 
-def calculate_mcfadden_r2(model, y_true):
-    """Calculate McFadden's Pseudo R-squared manually."""
-    ll_model = model.llf
-    
-    # Null model: predict mean for all observations
-    y_mean = y_true.mean()
-    # Calculate log-likelihood of the null model (Poisson with only intercept)
-    ll_null = np.sum(y_true * np.log(y_mean) - y_mean)
-    
-    # Handle potential LL_Null = 0 or near-zero issue, although rare with Poisson
-    if ll_null == 0:
-        return 0.0
-    
-    pseudo_r2 = 1 - (ll_model / ll_null)
-    return pseudo_r2
-
+def print_section(title):
+    logger.info("\n" + "="*80)
+    logger.info(f"  {title}")
+    logger.info("="*80)
 
 def calculate_metrics(y_true, y_pred):
-    """Calculate performance metrics."""
     rmse = np.sqrt(mean_squared_error(y_true, y_pred))
     mae = mean_absolute_error(y_true, y_pred)
     return {'rmse': rmse, 'mae': mae}
 
+def calculate_mcfadden_r2(model, y_true):
+    ll_model = model.llf
+    y_mean = y_true.mean()
+    ll_null = np.sum(y_true * np.log(y_mean) - y_mean)
+    if ll_null == 0:
+        return 0.0
+    return 1 - (ll_model / ll_null)
 
-def print_section(title):
-    """Print formatted section header."""
-    logger.info("\n" + "=" * 80)
-    logger.info(f"  {title}")
-    logger.info("=" * 80)
+def get_significance_stars(p):
+    if p < 0.001: return '***'
+    elif p < 0.01: return '**'
+    elif p < 0.05: return '*'
+    else: return ''
 
-
-# --- Main Training Pipeline ---
+# --- Main Pipeline ---
 
 def load_data():
-    """Load the scaled feature set."""
     print_section("1. LOADING DATA")
-    
-    try:
-        if not os.path.exists(INPUT_FILE):
-             logger.error(f"❌ File not found: {INPUT_FILE}. Run feature_scaling.py first!")
-             sys.exit(1)
-             
-        df = pd.read_parquet(INPUT_FILE)
-        logger.info(f"✅ Data loaded successfully. Shape: {df.shape}")
-        
-        # Verify required columns exist
-        required_cols = list(set(PREDICTOR_COLUMNS + INFLATION_PREDICTOR_COLUMNS + [TARGET_COLUMN]))
-        missing_cols = [col for col in required_cols if col not in df.columns]
-        if missing_cols:
-            logger.error(f"❌ Missing columns: {missing_cols}")
-            sys.exit(1)
-        
-        # Check for NaN values in predictor or target columns
-        nan_check_cols = list(set(PREDICTOR_COLUMNS + INFLATION_PREDICTOR_COLUMNS + [TARGET_COLUMN]))
-        nan_cols = df[nan_check_cols].isnull().any()
-        if nan_cols.any():
-            nan_features = nan_cols[nan_cols].index.tolist()
-            logger.warning(f"⚠️ NaN values detected in features: {nan_features}. Dropping rows...")
-            df = df.dropna(subset=nan_check_cols)
-            logger.info(f"  Shape after dropping NaN: {df.shape}")
-        
-        return df
-        
-    except Exception as e:
-        logger.error(f"❌ Error loading data: {e}")
+    if not os.path.exists(INPUT_FILE):
+        logger.error(f"❌ File not found: {INPUT_FILE}")
         sys.exit(1)
+    df = pd.read_parquet(INPUT_FILE)
+    logger.info(f"✅ Data loaded. Shape: {df.shape}")
 
+    required_cols = list(set(PREDICTOR_COLUMNS + INFLATION_PREDICTOR_COLUMNS + [TARGET_COLUMN]))
+    missing = [c for c in required_cols if c not in df.columns]
+    if missing:
+        logger.error(f"❌ Missing columns: {missing}")
+        sys.exit(1)
+    df = df.dropna(subset=required_cols)
+    return df
 
 def prepare_features(df):
-    """Prepare features and target for modeling."""
     print_section("2. PREPARING FEATURES")
-    
-    # Features for the Count (Poisson) part
-    X_count = df[PREDICTOR_COLUMNS].copy()
-    X_count = sm.add_constant(X_count, has_constant='add')
-    
-    # Features for the Inflation (Logistic) part
-    X_infl = df[INFLATION_PREDICTOR_COLUMNS].copy()
-    X_infl = sm.add_constant(X_infl, has_constant='add')
-    
-    y = df[TARGET_COLUMN].copy()
-    
-    logger.info(f"  Count (Poisson) Feature matrix shape: {X_count.shape}")
-    logger.info(f"  Inflation (Logistic) Feature matrix shape: {X_infl.shape}")
-    logger.info(f"  Target vector shape: {y.shape}")
-    logger.info(f"\n  Zero-inflation check:")
-    logger.info(f"    Zeros: {(y == 0).sum()} ({(y == 0).sum() / len(y) * 100:.1f}%)")
-    
+    X_count = sm.add_constant(df[PREDICTOR_COLUMNS], has_constant='add')
+    X_infl = sm.add_constant(df[INFLATION_PREDICTOR_COLUMNS], has_constant='add')
+    y = df[TARGET_COLUMN]
+    logger.info(f"Count features shape: {X_count.shape}, Inflation features shape: {X_infl.shape}")
+    zeros_pct = (y==0).sum()/len(y)*100
+    logger.info(f"Zero-inflation: {zeros_pct:.1f}%")
     return X_count, X_infl, y
 
-
 def train_zip_model(X_count, X_infl, y):
-    """Train Zero-Inflated Poisson model using simplified X_infl."""
     print_section("3. TRAINING ZIP MODEL")
-    
-    logger.info("Training Zero-Inflated Poisson regression...")
-    logger.info("  Count features: " + str(list(X_count.columns)))
-    logger.info("  Inflation features: " + str(list(X_infl.columns))) # Show the simplified set
-    logger.info("  This may take 30-60 seconds for convergence...\n")
-    
-    # Temporarily suppress some warnings during fitting
     import warnings
     warnings.filterwarnings('ignore', category=FutureWarning)
-    
-    try:
-        # Train ZIP model
-        # exog_infl: Uses the SIMPLIFIED feature set (X_infl)
-        # exog: Uses the FULL feature set (X_count)
-        zip_model = ZeroInflatedPoisson(
-            endog=y,
-            exog=X_count,
-            exog_infl=X_infl  # ⬅️ FIXED: Use simplified feature set here
-        ).fit(method='bfgs', maxiter=1000, disp=False) # disp=False to clean up logs
-        
-        logger.info("\n✅ ZIP Model training complete!")
-        return zip_model
-        
-    except Exception as e:
-        logger.error(f"❌ Training failed: {e}")
-        sys.exit(1)
-    finally:
-        # Restore warnings
-        warnings.filterwarnings('default', category=FutureWarning)
+    zip_model = ZeroInflatedPoisson(endog=y, exog=X_count, exog_infl=X_infl).fit(
+        method='bfgs', maxiter=1000, disp=False)
+    warnings.filterwarnings('default', category=FutureWarning)
+    logger.info("✅ ZIP model trained")
+    return zip_model
 
-
-def train_standard_poisson(X_count, y):
-    """Train standard Poisson model for comparison."""
-    logger.info("\nTraining standard Poisson model for comparison (using full feature set)...")
-    
+def train_poisson(X_count, y):
+    logger.info("\nTraining standard Poisson for comparison...")
     try:
-        poisson_model = sm.GLM(
-            y, X_count, 
-            family=sm.families.Poisson()
-        ).fit()
-        
-        logger.info("✅ Standard Poisson training complete!")
-        return poisson_model
-        
-    except Exception as e:
-        logger.error(f"⚠️ Standard Poisson training failed: {e}")
+        model = sm.GLM(y, X_count, family=sm.families.Poisson()).fit()
+        logger.info("✅ Poisson model trained")
+        return model
+    except:
+        logger.warning("❌ Poisson training failed")
         return None
 
-
-def evaluate_models(zip_model, poisson_model, X_count, y):
-    """Compare ZIP vs standard Poisson."""
-    print_section("4. MODEL EVALUATION & COMPARISON")
-    
-    # Generate predictions
-    # Note: ZIP predict requires both exog and exog_infl, but statsmodels defaults to
-    # the training data's exog_infl if not provided. Providing it explicitly is safer.
-    # Since X_count is the full set, we must use the correct X_infl for prediction.
-    X_infl_pred = X_count[['const'] + INFLATION_PREDICTOR_COLUMNS] 
-
-    y_pred_zip = zip_model.predict(X_count, exog_infl=X_infl_pred)
+def evaluate_models(zip_model, poisson_model, X_count, X_infl, y):
+    print_section("4. MODEL EVALUATION")
+    y_pred_zip = zip_model.predict(X_count, exog_infl=X_infl)
     y_pred_poisson = poisson_model.predict(X_count) if poisson_model else None
-    
-    # Calculate metrics
     metrics_zip = calculate_metrics(y, y_pred_zip)
     metrics_poisson = calculate_metrics(y, y_pred_poisson) if poisson_model else None
-    
-    # Display comparison
-    logger.info("\n" + "─" * 80)
-    logger.info("MODEL COMPARISON RESULTS")
-    logger.info("─" * 80)
-    logger.info(f"{'Metric':<30} {'ZIP Model':<20} {'Poisson Model':<20}")
-    logger.info("─" * 80)
-    
-    # Pseudo R²
     pseudo_r2_zip = calculate_mcfadden_r2(zip_model, y)
     pseudo_r2_poisson = calculate_mcfadden_r2(poisson_model, y) if poisson_model else None
-    
-    logger.info(f"{'Pseudo R² (McFadden)':<30} {pseudo_r2_zip:<20.4f} {pseudo_r2_poisson if pseudo_r2_poisson else 'N/A':<20}")
-    
-    # AIC / BIC
-    logger.info(f"{'AIC':<30} {zip_model.aic:<20.2f} {poisson_model.aic if poisson_model else 'N/A':<20}")
-    logger.info(f"{'BIC':<30} {zip_model.bic:<20.2f} {poisson_model.bic if poisson_model else 'N/A':<20}")
-    
-    # Log-Likelihood
-    logger.info(f"{'Log-Likelihood':<30} {zip_model.llf:<20.2f} {poisson_model.llf if poisson_model else 'N/A':<20}")
-    
-    # RMSE / MAE
-    logger.info(f"{'RMSE':<30} {metrics_zip['rmse']:<20.4f} {metrics_poisson['rmse'] if metrics_poisson else 'N/A':<20}")
-    logger.info(f"{'MAE':<30} {metrics_zip['mae']:<20.4f} {metrics_poisson['mae'] if metrics_poisson else 'N/A':<20}")
-    
-    logger.info("─" * 80)
-    
-    # Model recommendation
-    logger.info("\n📊 MODEL SELECTION RECOMMENDATION:")
-    
-    if poisson_model:
-        aic_improvement = poisson_model.aic - zip_model.aic
-        # A difference of 10 or more is considered strong evidence (Burnham & Anderson)
-        if aic_improvement > 10:
-            logger.info(f"✅ DEPLOY ZIP MODEL: AIC improved by {aic_improvement:.2f} points (Strong evidence for better fit)")
-        elif aic_improvement > 2:
-            logger.info(f"⚠️ MARGINAL IMPROVEMENT: AIC improved by {aic_improvement:.2f} points (Weak evidence for better fit)")
-        else:
-            logger.info(f"❌ KEEP POISSON: AIC difference is minimal or negative (Improvement: {aic_improvement:.2f}).")
-    else:
-        logger.info("✅ ZIP MODEL TRAINED (no comparison available)")
-    
-    return {
-        'zip': {'pseudo_r2': pseudo_r2_zip, 'aic': zip_model.aic, 'bic': zip_model.bic, **metrics_zip},
-        'poisson': {'pseudo_r2': pseudo_r2_poisson, 'aic': poisson_model.aic, 'bic': poisson_model.bic, **metrics_poisson} if poisson_model else None
-    }
 
+    logger.info(f"Pseudo R² ZIP: {pseudo_r2_zip:.4f}, Poisson: {pseudo_r2_poisson}")
+    logger.info(f"RMSE ZIP: {metrics_zip['rmse']:.4f}, Poisson: {metrics_poisson['rmse'] if metrics_poisson else 'N/A'}")
+    return metrics_zip
 
-def display_coefficients(zip_model):
-    """Display ZIP model coefficients with interpretation."""
-    print_section("5. ZIP MODEL COEFFICIENTS")
-    
-    # --- Count (Poisson) Part ---
-    X_count_cols = ['const'] + PREDICTOR_COLUMNS
-    n_params_count = len(X_count_cols) 
-    
-    logger.info("\n🎯 COUNT MODEL (Poisson Part) - Rate Multipliers:")
-    logger.info("   (Predicts the SOT count, given the player shoots > 0)")
-    logger.info("─" * 80)
-    logger.info(f"{'Feature':<35} {'Coefficient':<15} {'Rate Multiplier':<15} {'P-value':<10}")
-    logger.info("─" * 80)
-    
-    # Use column names from the training data X_count for alignment
-    for i, feature in enumerate(X_count_cols):
-        coef = zip_model.params[i]
-        rate_mult = np.exp(coef)
-        p_value = zip_model.pvalues[i]
-        sig = get_significance_stars(p_value)
-        logger.info(f"{feature:<35} {coef:<15.4f} {rate_mult:<15.4f} {p_value:<8.4f}{sig}")
-    
-    # --- Inflation (Logistic) Part ---
-    X_infl_cols = ['const'] + INFLATION_PREDICTOR_COLUMNS
-    
-    logger.info("\n🎯 INFLATION MODEL (Logistic Part) - Odds Ratios:")
-    logger.info("   (Predicts the probability of the *excess* zero/non-shooter)")
-    logger.info("─" * 80)
-    logger.info(f"{'Feature':<35} {'Coefficient':<15} {'Odds Ratio':<15} {'P-value':<10}")
-    logger.info("─" * 80)
-    
-    # Inflation parameters start after count parameters. Use X_infl_cols for names.
-    for i, feature in enumerate(X_infl_cols):
-        coef = zip_model.params[n_params_count + i]
-        odds_ratio = np.exp(coef)
-        p_value = zip_model.pvalues[n_params_count + i]
-        sig = get_significance_stars(p_value)
-        logger.info(f"{feature:<35} {coef:<15.4f} {odds_ratio:<15.4f} {p_value:<8.4f}{sig}")
-    
-    logger.info("\nSignificance: *** p<0.001, ** p<0.01, * p<0.05")
-    logger.info("\n💡 Interpretation:")
-    logger.info("  • Count Rate Multiplier > 1: Feature increases SOT count (if SOT > 0)")
-    logger.info("  • Inflation Odds Ratio > 1: Feature INCREASES the chance of being an 'excess zero' (a non-shooter)")
-    logger.info("  • Inflation Odds Ratio < 1: Feature DECREASES the chance of being an 'excess zero'")
+def compute_sot_probabilities(zip_model, X_count, X_infl, max_sot=3):
+    """
+    Compute probabilities for 1+, 2+, 3+ SOT using the ZIP CDF.
+    P(SOT >= k) = 1 - CDF_Poisson(k-1) * (1 - π)
+    """
+    logger.info("\n🎯 Computing SOT probabilities (1+, 2+, 3+)...")
+    # Predicted count mean
+    mu = zip_model.predict(X_count, exog_infl=X_infl, which='mean')
+    # Predicted zero-inflation probability (π)
+    pi = zip_model.predict(X_count, exog_infl=X_infl, which='prob-zero')
+    probs = pd.DataFrame(index=X_count.index)
+    for k in range(1, max_sot+1):
+        # P(SOT >= k) = 1 - P(SOT <= k-1)
+        cdf_k_minus_1 = np.exp(-mu) * sum((mu**i)/np.math.factorial(i) for i in range(k))
+        probs[f'P_SOT_{k}_Plus'] = 1 - (1-pi) * cdf_k_minus_1
+    return probs
 
-
-def get_significance_stars(p_value):
-    """Returns significance stars based on P-value."""
-    if p_value < 0.001:
-        return '***'
-    elif p_value < 0.01:
-        return '**'
-    elif p_value < 0.05:
-        return '*'
-    else:
-        return ''
-
-
-def save_model_and_stats(zip_model, comparison_stats):
-    """Save the trained ZIP model and statistics."""
-    print_section("6. SAVING MODEL & STATISTICS")
-    
-    # Ensure the artifacts directory exists
+def save_model_and_stats(zip_model, metrics_zip, probs_df):
+    print_section("5. SAVING MODEL & STATS")
     os.makedirs(os.path.dirname(MODEL_OUTPUT), exist_ok=True)
-    
-    # Save model
-    try:
-        with open(MODEL_OUTPUT, 'wb') as f:
-            pickle.dump(zip_model, f)
-        logger.info(f"✅ ZIP model saved to: {MODEL_OUTPUT}")
-    except Exception as e:
-        logger.error(f"❌ Failed to save model: {e}")
-        sys.exit(1)
-    
-    # Save training statistics
-    try:
-        stats = {
-            'model_type': 'ZeroInflatedPoisson',
-            'pseudo_r2': comparison_stats['zip']['pseudo_r2'],
-            'aic': comparison_stats['zip']['aic'],
-            'bic': comparison_stats['zip']['bic'],
-            'rmse': comparison_stats['zip']['rmse'],
-            'mae': comparison_stats['zip']['mae'],
-            'count_features': PREDICTOR_COLUMNS,
-            'inflation_features': INFLATION_PREDICTOR_COLUMNS,
-            'training_samples': len(zip_model.model.endog)
-        }
-        
-        with open(STATS_OUTPUT, 'w') as f:
-            json.dump(stats, f, indent=2)
-        
-        logger.info(f"✅ Training statistics saved to: {STATS_OUTPUT}")
-    except Exception as e:
-        logger.error(f"⚠️ Failed to save statistics: {e}")
-
+    pickle.dump(zip_model, open(MODEL_OUTPUT, 'wb'))
+    logger.info(f"✅ Model saved: {MODEL_OUTPUT}")
+    stats = {
+        'pseudo_r2': metrics_zip['rmse'], # or any relevant metrics
+        'rmse': metrics_zip['rmse'],
+        'mae': metrics_zip['mae'],
+        'count_features': PREDICTOR_COLUMNS,
+        'inflation_features': INFLATION_PREDICTOR_COLUMNS,
+        'sot_prob_columns': list(probs_df.columns),
+        'training_samples': len(zip_model.model.endog)
+    }
+    with open(STATS_OUTPUT, 'w') as f:
+        json.dump(stats, f, indent=2)
+    logger.info(f"✅ Stats saved: {STATS_OUTPUT}")
 
 def main():
-    """Main execution pipeline."""
-    logger.info("=" * 80)
-    logger.info("  ZERO-INFLATED POISSON (ZIP) MODEL TRAINING")
-    logger.info("=" * 80)
-    
-    # Step 1: Load data
     df = load_data()
-    
-    # Step 2: Prepare features
     X_count, X_infl, y = prepare_features(df)
-    
-    # Step 3: Train ZIP model
     zip_model = train_zip_model(X_count, X_infl, y)
-    
-    # Step 4: Train standard Poisson for comparison
-    poisson_model = train_standard_poisson(X_count, y)
-    
-    # Step 5: Evaluate models
-    # Pass X_count (full set) as the exog for standard Poisson prediction
-    # and the components for ZIP prediction.
-    comparison_stats = evaluate_models(zip_model, poisson_model, X_count, y)
-    
-    # Step 6: Display coefficients
-    display_coefficients(zip_model)
-    
-    # Step 7: Save artifacts
-    save_model_and_stats(zip_model, comparison_stats)
-    
-    print_section("✅ ZIP MODEL TRAINING COMPLETE")
-    logger.info("\n📁 Generated files:")
-    logger.info(f"  • {MODEL_OUTPUT}")
-    logger.info(f"  • {STATS_OUTPUT}")
-    logger.info("\n🚀 Next steps:")
-    logger.info("  1. Review model comparison results (AIC/Pseudo R²) to select best model.")
-    logger.info("  2. If ZIP is chosen, run live_predictor_zip.py for predictions.")
-    
+    poisson_model = train_poisson(X_count, y)
+    metrics_zip = evaluate_models(zip_model, poisson_model, X_count, X_infl, y)
+    probs_df = compute_sot_probabilities(zip_model, X_count, X_infl)
+    save_model_and_stats(zip_model, metrics_zip, probs_df)
+    logger.info("\n✅ ZIP MODEL TRAINING COMPLETE")
 
 if __name__ == '__main__':
     main()
