@@ -237,7 +237,7 @@ def validate_output(df):
     required_columns = [
         'sot', 'min',  # Renamed columns
         'sot_MA5', 'min_MA5',  # Player factors
-        'sot_conceded_MA5', 'tackles_att_3rd_MA5',  # Opponent factors (from backtest_processor)
+        'sot_conceded_MA5',  # Opponent factors (from backtest_processor)
         'position_group', 'is_forward', 'is_defender'  # Position features (UPDATED)
     ]
     
