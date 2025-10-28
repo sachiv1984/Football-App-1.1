@@ -81,9 +81,7 @@ POSITION_MAPPING = {
 # ✅ FIXED: Updated to match training model (6 features, removed min_MA5_scaled)
 PREDICTOR_COLUMNS = [
     'sot_conceded_MA5_scaled', 
-    'tackles_att_3rd_MA5_scaled', 
     'sot_MA5_scaled', 
-    # 'min_MA5_scaled',  # ❌ REMOVED: Not in model anymore (redundant after position features)
     'summary_min',
     'is_forward', 
     'is_defender' 
