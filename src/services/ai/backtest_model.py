@@ -17,7 +17,6 @@ MODEL_OUTPUT = "poisson_model.pkl"
 # ✅ UPDATED: Added is_forward and is_defender position features
 PREDICTOR_COLUMNS = [
     'sot_conceded_MA5_scaled',      # Opponent weakness (O-Factor)
-    'tackles_att_3rd_MA5_scaled',   # Opponent pressing (O-Factor)
     'sot_MA5_scaled',                # Player form (P-Factor)
     'summary_min',                   # Expected minutes this match (raw)
     'is_forward',                    # Position: Forward (binary, not scaled)
