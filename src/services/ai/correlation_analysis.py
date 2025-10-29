@@ -8,19 +8,20 @@ import os
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 logger = logging.getLogger(__name__)
 
-# --- Configuration (UPDATED) ---
+# --- Configuration (UPDATED with Venue Feature) ---
 # Now loading the file that includes P-Factors
 FEATURE_FILE = "final_feature_set_pfactors.parquet" 
 # Target column is 'sot' (Shots on Target), the current match performance
 TARGET_COLUMN = 'sot'
-# Including the new P-Factors and Position Features in the list of features to analyze
+# Including the new P-Factors, Position Features, AND VENUE FEATURE
 FEATURE_COLUMNS = [
     'sot_conceded_MA5', 
     'tackles_att_3rd_MA5', 
     'sot_MA5', 
     'min_MA5',
-    'is_forward',   # <-- NEW: Binary indicator for Forward
-    'is_defender'   # <-- NEW: Binary indicator for Attacking Defender
+    'is_forward',   
+    'is_defender',  
+    'is_home'   # <-- NEW: Binary indicator for Home/Away (Venue Feature)
 ] 
 MIN_PERIODS = 5 
 
@@ -72,7 +73,7 @@ def analyze_correlations(df: pd.DataFrame):
     for feature, r_value in correlation_results.items():
         logger.info(f"   {feature:<20}: {r_value:.4f}")
 
-    # 3. Interpretation (UPDATED for Position Features)
+    # 3. Interpretation (UPDATED for Venue Feature)
     logger.info("\n--- Interpretation ---")
     
     # P-Factor Expectations:
@@ -85,10 +86,11 @@ def analyze_correlations(df: pd.DataFrame):
     logger.info("     - sot_conceded_MA5: POSITIVE expected (Weaker defense => more SOT).")
     logger.info("     - tackles_att_3rd_MA5: NEGATIVE expected (Aggressive defense => fewer SOT).")
 
-    # Position Feature Expectations:
-    logger.info("   Position Features (New):")
+    # Position/Venue Feature Expectations:
+    logger.info("   Auxiliary Features (Position/Venue):")
     logger.info("     - is_forward: Strong POSITIVE expected (Forwards should have the highest correlation with SOT).")
     logger.info("     - is_defender: Weak/Negative expected (Attacking defenders still shoot less than MFs/FWs).")
+    logger.info("     - is_home: Weak POSITIVE expected (Home team advantage often results in more shots).") # <-- NEW EXPECTATION
 
     # Simple check for the most critical features
     sot_ma5_r = correlation_results.get('sot_MA5', 0)
