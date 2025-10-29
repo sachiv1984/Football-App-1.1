@@ -334,3 +334,125 @@ def analyze_predictions_by_zero_status(results, y):
         logger.info("─" * 60)
         
         y_pred = results[model_name]['predictions']
+        
+        # For actual zeros
+        zeros_mask = y == 0
+        logger.info(f"\nFor Actual ZEROS (n={zeros_mask.sum()}):")
+        y_pred_zeros = y_pred[zeros_mask]
+        logger.info(f"  Mean prediction: {y_pred_zeros.mean():.4f}")
+        logger.info(f"  Median prediction: {np.median(y_pred_zeros):.4f}")
+        logger.info(f"  Max prediction: {y_pred_zeros.max():.4f}")
+        
+        # For actual non-zeros
+        nonzeros_mask = y > 0
+        logger.info(f"\nFor Actual NON-ZEROS (n={nonzeros_mask.sum()}):")
+        y_pred_nonzeros = y_pred[nonzeros_mask]
+        logger.info(f"  Mean prediction: {y_pred_nonzeros.mean():.4f}")
+        logger.info(f"  Median prediction: {np.median(y_pred_nonzeros):.4f}")
+        logger.info(f"  Mean actual: {y[nonzeros_mask].mean():.4f}")
+
+
+def generate_recommendation(results):
+    """Generate final recommendation."""
+    print_section("6. FINAL RECOMMENDATION")
+    
+    if 'poisson' not in results or 'zip' not in results:
+        logger.info("⚠️ Cannot generate recommendation - need both models")
+        return
+    
+    # Key decision metrics
+    # Lower is better for AIC/Brier/RMSE, so a negative difference means ZIP is better.
+    aic_improvement = results['poisson']['aic'] - results['zip']['aic']
+    brier_improvement = results['poisson']['brier_score'] - results['zip']['brier_score']
+    rmse_improvement = results['poisson']['rmse'] - results['zip']['rmse']
+    
+    logger.info("\n📊 KEY IMPROVEMENTS (Poisson → ZIP):")
+    logger.info("─" * 60)
+    logger.info(f"  AIC difference (Poisson - ZIP): {aic_improvement:+.2f} {'✅ (ZIP better)' if aic_improvement > 0 else '❌ (Poisson better)'}")
+    logger.info(f"  Brier difference (Poisson - ZIP): {brier_improvement:+.4f} {'✅ (ZIP better)' if brier_improvement > 0 else '❌ (Poisson better)'}")
+    logger.info(f"  RMSE difference (Poisson - ZIP): {rmse_improvement:+.4f} {'✅ (ZIP better)' if rmse_improvement > 0 else '❌ (Poisson better)'}")
+    
+    # Make recommendation
+    # Score favors ZIP model (if difference > 0, ZIP is better for that metric)
+    score = 0
+    if aic_improvement > 10:
+        score += 3
+    elif aic_improvement > 0:
+        score += 1
+    
+    if brier_improvement > 0.01:
+        score += 2
+    elif brier_improvement > 0:
+        score += 1
+    
+    if rmse_improvement > 0.01:
+        score += 2
+    elif rmse_improvement > 0:
+        score += 1
+    
+    logger.info("\n" + "=" * 60)
+    
+    if score >= 5:
+        logger.info("✅ STRONG RECOMMENDATION: Deploy ZIP Model")
+        logger.info("   ZIP shows significant improvements across key metrics (AIC, Brier, RMSE)")
+    elif score >= 3:
+        logger.info("⚠️ MODERATE RECOMMENDATION: Consider ZIP Model")
+        logger.info("   ZIP shows improvements but gains are modest or mixed")
+    else:
+        logger.info("❌ RECOMMENDATION: Keep Poisson Model")
+        logger.info("   ZIP does not show sufficient improvement over Poisson")
+    
+    logger.info("=" * 60)
+
+
+def save_report(results):
+    """Save detailed report to file."""
+    logger.info(f"\n💾 Saving detailed report to: {OUTPUT_FILE}")
+    
+    with open(OUTPUT_FILE, 'w') as f:
+        f.write("=" * 80 + "\n")
+        f.write("  POISSON VS ZIP MODEL COMPARISON REPORT\n")
+        f.write("=" * 80 + "\n\n")
+        
+        for model_name, model_results in results.items():
+            f.write(f"\n{model_name.upper()} MODEL RESULTS:\n")
+            f.write("─" * 60 + "\n")
+            for key, value in model_results.items():
+                if key not in ['predictions', 'prob_predictions', 'pred_dist']:
+                    f.write(f"  {key}: {value}\n")
+    
+    logger.info("✅ Report saved successfully")
+
+
+def main():
+    """Main execution pipeline."""
+    logger.info("=" * 80)
+    logger.info("  POISSON VS ZIP MODEL COMPARISON")
+    logger.info("=" * 80)
+    
+    # Load data
+    X, y, df = load_data()
+    
+    # Load models
+    models = load_models()
+    
+    # Compare models
+    results = compare_models(models, X, y)
+    
+    # Display comparison
+    display_comparison(results)
+    
+    # Analyze by zero status
+    analyze_predictions_by_zero_status(results, y)
+    
+    # Generate recommendation
+    generate_recommendation(results)
+    
+    # Save report
+    save_report(results)
+    
+    print_section("✅ COMPARISON COMPLETE")
+
+
+if __name__ == '__main__':
+    main()
