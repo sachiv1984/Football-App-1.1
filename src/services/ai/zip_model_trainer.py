@@ -5,8 +5,7 @@ This script trains a ZIP model to handle the high zero-inflation in SOT data.
 It models the probability of shooting (logistic part) separately from the count 
 of shots (Poisson part).
 
-✅ FIX APPLIED (2025-10-19): The inflation component (exog_infl) is simplified 
-to prevent overflow/instability that caused P_Never_Shooter = 1.0 in live predictions.
+✅ VERSION 4.1: Added is_home venue feature (6 features total)
 
 Run after: feature_scaling.py
 Outputs: src/services/ai/artifacts/zip_model.pkl, src/services/ai/artifacts/zip_training_stats.json
@@ -34,19 +33,23 @@ STATS_OUTPUT = "src/services/ai/artifacts/zip_training_stats.json"
 COMPARISON_OUTPUT = "zip_vs_poisson_comparison.txt"
 
 # Features used for prediction - FULL SET FOR POISSON (COUNT) PART
+# ✅ UPDATED: Added is_home venue feature (6th feature)
 PREDICTOR_COLUMNS = [
     'sot_conceded_MA5_scaled',  
     'sot_MA5_scaled', 
     'summary_min',
     'is_forward',   
-    'is_defender'   
+    'is_defender',
+    'is_home'  # ✅ NEW: Venue feature
 ]
 
-# 💡 NEW: SIMPLIFIED FEATURES FOR LOGISTIC (INFLATION) PART
+# SIMPLIFIED FEATURES FOR LOGISTIC (INFLATION) PART
+# ✅ UPDATED: Added is_home to inflation features
 INFLATION_PREDICTOR_COLUMNS = [
     'sot_MA5_scaled', 
     'is_forward',   
-    'is_defender'   
+    'is_defender',
+    'is_home'  # ✅ NEW: Venue affects shooting probability
 ]
 
 TARGET_COLUMN = 'sot'
@@ -141,16 +144,24 @@ def prepare_features(df):
     logger.info(f"\n  Zero-inflation check:")
     logger.info(f"    Zeros: {(y == 0).sum()} ({(y == 0).sum() / len(y) * 100:.1f}%)")
     
+    # ✅ NEW: Show venue distribution
+    if 'is_home' in df.columns:
+        home_count = df['is_home'].sum()
+        home_pct = (home_count / len(df)) * 100
+        logger.info(f"\n  Venue distribution:")
+        logger.info(f"    Home matches: {home_count} ({home_pct:.1f}%)")
+        logger.info(f"    Away matches: {len(df) - home_count} ({100-home_pct:.1f}%)")
+    
     return X_count, X_infl, y
 
 
 def train_zip_model(X_count, X_infl, y):
     """Train Zero-Inflated Poisson model using simplified X_infl."""
-    print_section("3. TRAINING ZIP MODEL")
+    print_section("3. TRAINING ZIP MODEL (v4.1 with venue)")
     
     logger.info("Training Zero-Inflated Poisson regression...")
     logger.info("  Count features: " + str(list(X_count.columns)))
-    logger.info("  Inflation features: " + str(list(X_infl.columns))) # Show the simplified set
+    logger.info("  Inflation features: " + str(list(X_infl.columns)))
     logger.info("  This may take 30-60 seconds for convergence...\n")
     
     # Temporarily suppress some warnings during fitting
@@ -159,13 +170,11 @@ def train_zip_model(X_count, X_infl, y):
     
     try:
         # Train ZIP model
-        # exog_infl: Uses the SIMPLIFIED feature set (X_infl)
-        # exog: Uses the FULL feature set (X_count)
         zip_model = ZeroInflatedPoisson(
             endog=y,
             exog=X_count,
-            exog_infl=X_infl  # ⬅️ FIXED: Use simplified feature set here
-        ).fit(method='bfgs', maxiter=1000, disp=False) # disp=False to clean up logs
+            exog_infl=X_infl
+        ).fit(method='bfgs', maxiter=1000, disp=False)
         
         logger.info("\n✅ ZIP Model training complete!")
         return zip_model
@@ -201,9 +210,6 @@ def evaluate_models(zip_model, poisson_model, X_count, y):
     print_section("4. MODEL EVALUATION & COMPARISON")
     
     # Generate predictions
-    # Note: ZIP predict requires both exog and exog_infl, but statsmodels defaults to
-    # the training data's exog_infl if not provided. Providing it explicitly is safer.
-    # Since X_count is the full set, we must use the correct X_infl for prediction.
     X_infl_pred = X_count[['const'] + INFLATION_PREDICTOR_COLUMNS] 
 
     y_pred_zip = zip_model.predict(X_count, exog_infl=X_infl_pred)
@@ -244,7 +250,6 @@ def evaluate_models(zip_model, poisson_model, X_count, y):
     
     if poisson_model:
         aic_improvement = poisson_model.aic - zip_model.aic
-        # A difference of 10 or more is considered strong evidence (Burnham & Anderson)
         if aic_improvement > 10:
             logger.info(f"✅ DEPLOY ZIP MODEL: AIC improved by {aic_improvement:.2f} points (Strong evidence for better fit)")
         elif aic_improvement > 2:
@@ -274,13 +279,19 @@ def display_coefficients(zip_model):
     logger.info(f"{'Feature':<35} {'Coefficient':<15} {'Rate Multiplier':<15} {'P-value':<10}")
     logger.info("─" * 80)
     
-    # Use column names from the training data X_count for alignment
     for i, feature in enumerate(X_count_cols):
         coef = zip_model.params[i]
         rate_mult = np.exp(coef)
         p_value = zip_model.pvalues[i]
         sig = get_significance_stars(p_value)
-        logger.info(f"{feature:<35} {coef:<15.4f} {rate_mult:<15.4f} {p_value:<8.4f}{sig}")
+        
+        # ✅ NEW: Add interpretation for is_home
+        if feature == 'is_home':
+            interp = f" [Home: {(rate_mult-1)*100:+.1f}% SOT]"
+        else:
+            interp = ""
+        
+        logger.info(f"{feature:<35} {coef:<15.4f} {rate_mult:<15.4f} {p_value:<8.4f}{sig}{interp}")
     
     # --- Inflation (Logistic) Part ---
     X_infl_cols = ['const'] + INFLATION_PREDICTOR_COLUMNS
@@ -291,7 +302,6 @@ def display_coefficients(zip_model):
     logger.info(f"{'Feature':<35} {'Coefficient':<15} {'Odds Ratio':<15} {'P-value':<10}")
     logger.info("─" * 80)
     
-    # Inflation parameters start after count parameters. Use X_infl_cols for names.
     for i, feature in enumerate(X_infl_cols):
         coef = zip_model.params[n_params_count + i]
         odds_ratio = np.exp(coef)
@@ -338,6 +348,7 @@ def save_model_and_stats(zip_model, comparison_stats):
     try:
         stats = {
             'model_type': 'ZeroInflatedPoisson',
+            'model_version': 'v4.1_with_venue',  # ✅ NEW: Version tracking
             'pseudo_r2': comparison_stats['zip']['pseudo_r2'],
             'aic': comparison_stats['zip']['aic'],
             'bic': comparison_stats['zip']['bic'],
@@ -359,7 +370,8 @@ def save_model_and_stats(zip_model, comparison_stats):
 def main():
     """Main execution pipeline."""
     logger.info("=" * 80)
-    logger.info("  ZERO-INFLATED POISSON (ZIP) MODEL TRAINING")
+    logger.info("  ZERO-INFLATED POISSON (ZIP) MODEL TRAINING v4.1")
+    logger.info("  (With venue feature: is_home)")
     logger.info("=" * 80)
     
     # Step 1: Load data
@@ -375,8 +387,6 @@ def main():
     poisson_model = train_standard_poisson(X_count, y)
     
     # Step 5: Evaluate models
-    # Pass X_count (full set) as the exog for standard Poisson prediction
-    # and the components for ZIP prediction.
     comparison_stats = evaluate_models(zip_model, poisson_model, X_count, y)
     
     # Step 6: Display coefficients
@@ -385,13 +395,14 @@ def main():
     # Step 7: Save artifacts
     save_model_and_stats(zip_model, comparison_stats)
     
-    print_section("✅ ZIP MODEL TRAINING COMPLETE")
+    print_section("✅ ZIP MODEL TRAINING COMPLETE (v4.1)")
     logger.info("\n📁 Generated files:")
     logger.info(f"  • {MODEL_OUTPUT}")
     logger.info(f"  • {STATS_OUTPUT}")
     logger.info("\n🚀 Next steps:")
     logger.info("  1. Review model comparison results (AIC/Pseudo R²) to select best model.")
     logger.info("  2. If ZIP is chosen, run live_predictor_zip.py for predictions.")
+    logger.info("  3. Models already in artifacts/ directory - ready for deployment!")
     
 
 if __name__ == '__main__':
