@@ -13,6 +13,7 @@ Set MODEL_TYPE = 'zip' or 'poisson' to choose.
 ✅ DEBUG ADDED 2025-10-28: Added debug logging for star players
 ✅ FIX APPLIED 2025-10-29: Added 'is_home' feature to match 7-parameter models.
 ✅ FIX APPLIED 2025-10-29: Corrected ZIP prediction calls to resolve 'prob-inflate is not available' error.
+✅ FIX APPLIED 2025-10-29: Corrected ZIP prediction call to use 'mean' instead of 'expected' for E_SOT (RESOLVES VALUEERROR).
 """
 
 import os
@@ -594,8 +595,8 @@ def run_predictions(model, df_features_scaled, df_raw, model_type='poisson'):
     
     if model_type == 'zip':
         # --- ZIP Expected Value (E_SOT) ---
-        # 🐛 FIX: Use 'expected' for the mean prediction
-        e_sot = model.predict(X, which='expected', exog_infl=df_infl_scaled)
+        # 🟢 CORRECTED FIX: Use 'mean' for the expected value prediction (resolves ValueError)
+        e_sot = model.predict(X, which='mean', exog_infl=df_infl_scaled)
         
         # Convert to simple array
         if hasattr(e_sot, 'values'):
@@ -772,4 +773,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
