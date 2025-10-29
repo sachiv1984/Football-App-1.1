@@ -7,7 +7,7 @@ from supabase import create_client, Client
 from dotenv import load_dotenv
 import logging
 import sys
-import ast # <<< NEW IMPORT: Needed for safe parsing
+import ast # Needed for safe parsing
 
 # ✅ Ensure project root is on Python path (fix for GitHub runner)
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../..")))
@@ -109,6 +109,7 @@ def validate_player_match_stats():
     """Validate player_match_stats table - the primary data source."""
     print_section("1. PLAYER MATCH STATS VALIDATION")
 
+    # 👇 UPDATED: Added home_team, away_team, and team_side to the selection
     player_cols = "player_id, player_name, team_name, summary_sot, summary_min, summary_positions, home_team, away_team, team_side, match_datetime"
     df = fetch_with_deduplication(
         supabase,
@@ -127,19 +128,24 @@ def validate_player_match_stats():
     logger.info(f"  Total records: {len(df)}")
     logger.info(f"  Unique players: {df['player_id'].nunique()}")
     logger.info(f"  Unique teams: {df['team_name'].nunique()}")
+    df['match_datetime'] = pd.to_datetime(df['match_datetime'], utc=True)
     logger.info(f"  Date range: {df['match_datetime'].min()} to {df['match_datetime'].max()}")
 
     # --- Missing Values ---
     logger.info(f"\n🔍 Missing Values Check:")
     missing = df.isnull().sum()
-    critical_columns = ['player_id', 'player_name', 'team_name', 'summary_sot', 'summary_min', 'match_datetime', 'summary_positions']
+    # 👇 UPDATED: Added venue-related columns to critical checks
+    critical_columns = [
+        'player_id', 'player_name', 'team_name', 'summary_sot', 'summary_min', 
+        'match_datetime', 'summary_positions', 'home_team', 'away_team', 'team_side'
+    ]
 
     for col in critical_columns:
         missing_count = missing.get(col, 0)
         if missing_count > 0:
             pct = (missing_count / len(df)) * 100
             
-            if col == 'summary_positions':
+            if col in ['summary_positions', 'home_team', 'away_team', 'team_side']:
                 logger.error(f"  🔴 {col}: {missing_count} missing ({pct:.1f}%) - CRITICAL FOR NEW MODEL")
             else:
                 logger.warning(f"  ⚠️ {col}: {missing_count} missing ({pct:.1f}%)")
@@ -148,6 +154,24 @@ def validate_player_match_stats():
         else:
             logger.info(f"  ✅ {col}: No missing values")
 
+    # --- New: Venue Data Consistency Check ---
+    logger.info(f"\n🏟 VENUE DATA CONSISTENCY CHECK:")
+
+    # Check for records where the player's team is neither the home nor the away team
+    if all(col in df.columns for col in ['team_name', 'home_team', 'away_team']):
+        inconsistent_teams = df[
+            (df['team_name'] != df['home_team']) & 
+            (df['team_name'] != df['away_team'])
+        ]
+
+        if len(inconsistent_teams) > 0:
+            logger.error(f"  🔴 {len(inconsistent_teams)} records where team_name is not home_team or away_team! (e.g., Team: {inconsistent_teams['team_name'].iloc[0]}, Home: {inconsistent_teams['home_team'].iloc[0]})")
+            issues.append(f"Team mismatch in match metadata: {len(inconsistent_teams)} records")
+        else:
+            logger.info(f"  ✅ Team names are consistent with home_team/away_team fields.")
+    else:
+        logger.warning("  ⚠️ Cannot run team consistency check: Missing home_team/away_team columns.")
+        
     # --- Position Data Validation (FIXED) ---
     logger.info(f"\n📍 PLAYER POSITION DATA VALIDATION:")
     
