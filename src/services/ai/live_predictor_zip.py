@@ -276,23 +276,74 @@ def calculate_ma5_factors(df: pd.DataFrame) -> pd.DataFrame:
     df_processed = df.copy()
     df_processed.rename(columns={'summary_sot': 'sot', 'summary_min': 'min'}, inplace=True)
     
+    # Calculate player MA5 (based on their own history)
     for col in MA5_METRICS:
         df_processed[f'{col}_MA5'] = (
             df_processed.groupby('player_id')[col]
             .transform(lambda x: x.rolling(window=MIN_PERIODS, min_periods=1, closed='left').mean())
         )
-        
+    
+    # Determine opponent team
     df_processed['opponent_team'] = np.where(
         df_processed['team_side'] == 'home', 
         df_processed['away_team'], 
         df_processed['home_team']
     )
     
+    # 🔧 FIX: Calculate opponent MA5 differently for historical vs future matches
+    # For historical matches: use actual match data
+    # For future matches: use opponent's defensive history (calculated from their perspective as the defending team)
+    
     for col in OPP_METRICS:
-        df_processed[f'{col}_MA5'] = (
-            df_processed.groupby('opponent_team')[col]
+        # First, calculate each TEAM's defensive MA5 (when they were the team being attacked)
+        # This is based on THEIR historical data as the team_name
+        team_defensive_ma5 = (
+            df_processed.groupby('team_name')[col]
             .transform(lambda x: x.rolling(window=MIN_PERIODS, min_periods=1, closed='left').mean())
         )
+        
+        # Now map this defensive MA5 to when they are the OPPONENT
+        # Create a mapping of team defensive averages
+        team_def_avg = df_processed.groupby('team_name')[col].apply(
+            lambda x: x.rolling(window=MIN_PERIODS, min_periods=1, closed='left').mean()
+        ).reset_index()
+        
+        # For each match, look up the opponent's defensive average
+        opponent_ma5_map = {}
+        for idx, row in df_processed.iterrows():
+            opponent = row['opponent_team']
+            # Get the opponent's defensive stats from their historical matches
+            opponent_history = df_processed[
+                (df_processed['team_name'] == opponent) & 
+                (df_processed['match_datetime'] < row['match_datetime'])
+            ]
+            
+            if len(opponent_history) >= MIN_PERIODS:
+                # Calculate their last 5 matches defensive average
+                recent_defense = opponent_history.tail(MIN_PERIODS)[col].mean()
+                opponent_ma5_map[idx] = recent_defense
+            elif len(opponent_history) > 0:
+                # Use what we have if less than 5
+                opponent_ma5_map[idx] = opponent_history[col].mean()
+            else:
+                # No history - will be filled with league average later
+                opponent_ma5_map[idx] = np.nan
+        
+        # Assign the opponent MA5
+        df_processed[f'{col}_MA5'] = pd.Series(opponent_ma5_map)
+        
+        # 🔧 FIX: Fill missing opponent data with league average
+        missing_count = df_processed[f'{col}_MA5'].isna().sum()
+        if missing_count > 0:
+            # Calculate league average from historical completed matches only
+            historical_matches = df_processed[df_processed[col].notna()]
+            if len(historical_matches) > 0:
+                league_avg = historical_matches[col].mean()
+                df_processed[f'{col}_MA5'] = df_processed[f'{col}_MA5'].fillna(league_avg)
+                logger.info(f"  ⚠️ Filled {missing_count} missing {col}_MA5 with league avg: {league_avg:.2f}")
+            else:
+                logger.warning(f"  ⚠️ No historical data to calculate league average for {col}")
+    
     return df_processed
 
 
