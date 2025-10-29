@@ -109,8 +109,8 @@ def validate_player_match_stats():
     """Validate player_match_stats table - the primary data source."""
     print_section("1. PLAYER MATCH STATS VALIDATION")
 
-    # ✅ UPDATED: Added summary_xg and summary_non_pen_xg for v4.2
-    player_cols = "player_id, player_name, team_name, summary_sot, summary_min, summary_positions, home_team, away_team, team_side, match_datetime, summary_xg, summary_non_pen_xg"
+    # ✅ Using summary_non_pen_xg as primary xG feature for v4.2
+    player_cols = "player_id, player_name, team_name, summary_sot, summary_min, summary_positions, home_team, away_team, team_side, match_datetime, summary_non_pen_xg"
     df = fetch_with_deduplication(
         supabase,
         "player_match_stats",
@@ -141,8 +141,8 @@ def validate_player_match_stats():
         'match_datetime', 'summary_positions', 'home_team', 'away_team', 'team_side'
     ]
     
-    # Optional but important columns (xG data)
-    optional_important = ['summary_xg', 'summary_non_pen_xg']
+    # Optional but important column (npxG data)
+    optional_important = ['summary_non_pen_xg']
 
     for col in critical_columns:
         missing_count = missing.get(col, 0)
@@ -158,7 +158,7 @@ def validate_player_match_stats():
         else:
             logger.info(f"  ✅ {col}: No missing values")
     
-    # Check optional xG columns
+    # Check optional npxG column
     for col in optional_important:
         missing_count = missing.get(col, 0)
         if missing_count > 0:
@@ -167,20 +167,293 @@ def validate_player_match_stats():
         else:
             logger.info(f"  ✅ {col}: No missing values")
 
-    # --- New: XG Data Quality Check ---
-    logger.info(f"\n🎯 EXPECTED GOALS (xG) DATA VALIDATION:")
+    # --- New: Non-Penalty xG Data Quality Check ---
+    logger.info(f"\n🎯 NON-PENALTY EXPECTED GOALS (npxG) DATA VALIDATION:")
     
-    if 'summary_xg' in df.columns:
-        df['summary_xg'] = pd.to_numeric(df['summary_xg'], errors='coerce')
+    if 'summary_non_pen_xg' in df.columns:
+        df['summary_non_pen_xg'] = pd.to_numeric(df['summary_non_pen_xg'], errors='coerce')
         
         # Check coverage
-        xg_available = df['summary_xg'].notna().sum()
-        xg_coverage = (xg_available / len(df)) * 100
+        npxg_available = df['summary_non_pen_xg'].notna().sum()
+        npxg_coverage = (npxg_available / len(df)) * 100
         
-        logger.info(f"  Data Coverage: {xg_available}/{len(df)} records ({xg_coverage:.1f}%)")
+        logger.info(f"  Data Coverage: {npxg_available}/{len(df)} records ({npxg_coverage:.1f}%)")
         
-        if xg_coverage >= 95:
-            logger.info(f"  ✅ Excellent xG coverage (≥95%) - READY FOR v4.2")
+        if npxg_coverage >= 95:
+            logger.info(f"  ✅ Excellent npxG coverage (≥95%) - READY FOR v4.2")
+        elif npxg_coverage >= 80:
+            logger.warning(f"  ⚠️ Good npxG coverage (80-95%) - USABLE but some gaps")
+        elif npxg_coverage >= 50:
+            logger.warning(f"  ⚠️ Moderate npxG coverage (50-80%) - CONSIDER using carefully")
+            issues.append(f"Moderate npxG coverage: {npxg_coverage:.1f}%")
+        else:
+            logger.error(f"  🔴 Poor npxG coverage (<50%) - NOT RECOMMENDED for modeling")
+            issues.append(f"Poor npxG coverage: {npxg_coverage:.1f}% - Cannot use for v4.2")
+        
+        # Check for valid npxG values (should be 0 to ~3 per match)
+        if npxg_available > 0:
+            npxg_data = df[df['summary_non_pen_xg'].notna()]['summary_non_pen_xg']
+            
+            logger.info(f"\n  npxG Statistics:")
+            logger.info(f"    Mean: {npxg_data.mean():.3f}")
+            logger.info(f"    Median: {npxg_data.median():.3f}")
+            logger.info(f"    Std Dev: {npxg_data.std():.3f}")
+            logger.info(f"    Min: {npxg_data.min():.3f}")
+            logger.info(f"    Max: {npxg_data.max():.3f}")
+            
+            # Check for unrealistic npxG values
+            max_reasonable_npxg = 5.0
+            high_npxg = df[df['summary_non_pen_xg'] > max_reasonable_npxg]
+            
+            if len(high_npxg) > 0:
+                logger.warning(f"  ⚠️ {len(high_npxg)} records with npxG > {max_reasonable_npxg} (outliers)")
+            
+            negative_npxg = df[df['summary_non_pen_xg'] < 0]
+            if len(negative_npxg) > 0:
+                logger.error(f"  🔴 {len(negative_npxg)} records with negative npxG (data error)")
+                issues.append(f"Negative npxG values: {len(negative_npxg)} records")
+            
+            # Check if npxG is systematically missing for certain positions
+            if 'summary_positions' in df.columns:
+                df['primary_pos'] = df['summary_positions'].apply(safe_extract_position)
+                npxg_by_position = df.groupby('primary_pos')['summary_non_pen_xg'].apply(
+                    lambda x: (x.notna().sum() / len(x) * 100) if len(x) > 0 else 0
+                )
+                
+                logger.info(f"\n  npxG Coverage by Position:")
+                for pos, cov in npxg_by_position.sort_values(ascending=False).head(8).items():
+                    logger.info(f"    {pos}: {cov:.1f}%")
+                
+                # Check if goalkeepers have npxG (they shouldn't)
+                gk_with_npxg = df[(df['primary_pos'] == 'GK') & (df['summary_non_pen_xg'] > 0)]
+                if len(gk_with_npxg) > 0:
+                    logger.warning(f"  ⚠️ {len(gk_with_npxg)} goalkeepers with npxG > 0 (data quality issue)")
+    else:
+        logger.error("  ❌ 'summary_non_pen_xg' column not found - CANNOT PROCEED WITH v4.2")
+        issues.append("summary_non_pen_xg column missing - v4.2 feature unavailable")
+
+    # --- Venue Data Consistency Check ---
+    logger.info(f"\n🏟 VENUE DATA CONSISTENCY CHECK:")
+
+    if all(col in df.columns for col in ['team_name', 'home_team', 'away_team']):
+        inconsistent_teams = df[
+            (df['team_name'] != df['home_team']) & 
+            (df['team_name'] != df['away_team'])
+        ]
+
+        if len(inconsistent_teams) > 0:
+            logger.error(f"  🔴 {len(inconsistent_teams)} records where team_name is not home_team or away_team!")
+            issues.append(f"Team mismatch in match metadata: {len(inconsistent_teams)} records")
+        else:
+            logger.info(f"  ✅ Team names are consistent with home_team/away_team fields.")
+    else:
+        logger.warning("  ⚠️ Cannot run team consistency check: Missing home_team/away_team columns.")
+        
+    # --- Position Data Validation ---
+    logger.info(f"\n📍 PLAYER POSITION DATA VALIDATION:")
+    
+    if 'summary_positions' in df.columns:
+        df['primary_pos_code'] = df['summary_positions'].apply(safe_extract_position)
+        
+        valid_codes = ['FW', 'MF', 'DF', 'GK', 'CB', 'LB', 'RB', 'WB', 'CM', 'DM', 'AM', 'LM', 'RM', 'LW', 'RW']
+        
+        invalid_pos_records = df[~df['primary_pos_code'].isin(valid_codes)]
+        invalid_pos_records = invalid_pos_records[invalid_pos_records['primary_pos_code'].notna()]
+
+        if len(invalid_pos_records) > 0:
+            example_code = invalid_pos_records['primary_pos_code'].iloc[0] if not invalid_pos_records.empty else '?'
+            logger.error(f"  🔴 {len(invalid_pos_records)} records with invalid position codes (e.g., '{example_code}')")
+            issues.append(f"Invalid position codes: {len(invalid_pos_records)} records")
+        else:
+            logger.info(f"  ✅ All non-missing position data contains valid codes after parsing fix.")
+
+        print_position_distribution(df, 'summary_positions', "Raw Position Distribution")
+    else:
+        logger.error("  ❌ 'summary_positions' column not found in DataFrame!")
+        issues.append("'summary_positions' column missing from fetched data.")
+
+    # --- Minutes Validation ---
+    logger.info(f"\n⚠️ MINUTES DATA VALIDATION:")
+    df['summary_min'] = pd.to_numeric(df['summary_min'], errors='coerce')
+    max_valid_minutes = 120
+    invalid_minutes = df[df['summary_min'] > max_valid_minutes]
+
+    if len(invalid_minutes) > 0:
+        logger.error(f"  🔴 {len(invalid_minutes)} records with minutes > {max_valid_minutes}")
+        issues.append(f"Invalid minutes data: {len(invalid_minutes)} records > {max_valid_minutes}")
+    else:
+        logger.info(f"  ✅ All minutes values are realistic (≤ {max_valid_minutes})")
+
+    zero_or_negative = df[df['summary_min'] <= 0]
+    if len(zero_or_negative) > 0:
+        logger.warning(f"  ⚠️ {len(zero_or_negative)} records with minutes ≤ 0")
+
+    # --- SOT Validation ---
+    logger.info(f"\n⚽ SHOTS ON TARGET VALIDATION:")
+    df['summary_sot'] = pd.to_numeric(df['summary_sot'], errors='coerce')
+    max_reasonable_sot = 15
+    high_sot = df[df['summary_sot'] > max_reasonable_sot]
+
+    if len(high_sot) > 0:
+        logger.warning(f"  ⚠️ {len(high_sot)} records with SOT > {max_reasonable_sot}")
+    else:
+        logger.info(f"  ✅ All SOT values are reasonable (≤ {max_reasonable_sot})")
+
+    negative_sot = df[df['summary_sot'] < 0]
+    if len(negative_sot) > 0:
+        logger.error(f"  🔴 {len(negative_sot)} records with negative SOT")
+        issues.append(f"Negative SOT: {len(negative_sot)} records")
+
+    # --- Duplicate Records ---
+    logger.info(f"\n🔁 DUPLICATE RECORDS CHECK:")
+    duplicates_strict = df[df.duplicated(subset=['player_id', 'match_datetime', 'team_name'], keep=False)]
+    if len(duplicates_strict) > 0:
+        logger.error(f"  🔴 {len(duplicates_strict)} duplicate player-match records found!")
+        issues.append(f"True duplicate records: {len(duplicates_strict)} rows")
+    else:
+        logger.info(f"  ✅ No duplicate records found")
+
+    return df, issues
+
+# ---------------------------------------------------------------
+# 2. Team Defense Stats Validation
+# ---------------------------------------------------------------
+def validate_team_defense_stats():
+    """Validate team defense stats tables."""
+    print_section("2. TEAM DEFENSE STATS VALIDATION")
+
+    df_shooting = fetch_with_deduplication(supabase, "team_shooting_stats", "match_date, team_name, opp_shots_on_target")
+    df_defense = fetch_with_deduplication(supabase, "team_defense_stats", "match_date, team_name, team_tackles_att_3rd")
+
+    if df_shooting.empty or df_defense.empty:
+        logger.error("❌ Missing team defense data!")
+        return None, None, []
+
+    issues = []
+
+    merged = pd.merge(df_shooting, df_defense, on=['match_date', 'team_name'], how='inner')
+    if len(merged) < len(df_shooting):
+        issues.append(f"Unmatched shooting records: {len(df_shooting) - len(merged)}")
+
+    return df_shooting, df_defense, issues
+
+# ---------------------------------------------------------------
+# 3. Fixtures Validation
+# ---------------------------------------------------------------
+def validate_fixtures():
+    """Validate fixtures table."""
+    print_section("3. FIXTURES TABLE VALIDATION")
+
+    df = fetch_with_deduplication(supabase, "fixtures", "datetime, hometeam, awayteam, matchweek, status", "datetime")
+
+    if df.empty:
+        logger.error("❌ No fixtures data found!")
+        return None, []
+
+    issues = []
+    df['datetime'] = pd.to_datetime(df['datetime'], utc=True)
+    now = pd.Timestamp.now(tz='UTC')
+
+    future = df[df['datetime'] > now]
+    finished_future = future[future['status'].str.lower() == 'finished']
+
+    if len(finished_future) > 0:
+        issues.append(f"Future fixtures marked finished: {len(finished_future)}")
+
+    return df, issues
+
+# ---------------------------------------------------------------
+# 4. Cross-table Validation
+# ---------------------------------------------------------------
+def cross_validate_data():
+    """Cross-validate relationships between tables."""
+    print_section("4. CROSS-TABLE VALIDATION")
+
+    df_player = fetch_with_deduplication(supabase, "player_match_stats", "team_name, home_team, away_team, match_datetime")
+    df_fixtures = fetch_with_deduplication(supabase, "fixtures", "datetime, hometeam, awayteam", "datetime")
+
+    if df_player.empty or df_fixtures.empty:
+        logger.error("❌ Cannot perform cross-validation - missing data")
+        return []
+
+    df_player['match_datetime'] = pd.to_datetime(df_player['match_datetime'], utc=True)
+    df_player['match_date'] = df_player['match_datetime'].dt.date
+    df_fixtures['datetime'] = pd.to_datetime(df_fixtures['datetime'], utc=True)
+    df_fixtures['match_date'] = df_fixtures['datetime'].dt.date
+    df_fixtures.rename(columns={'hometeam': 'home_team', 'awayteam': 'away_team'}, inplace=True)
+
+    merged = pd.merge(
+        df_player[['match_date', 'home_team', 'away_team']].drop_duplicates(),
+        df_fixtures[['match_date', 'home_team', 'away_team']],
+        on=['match_date', 'home_team', 'away_team'],
+        how='left',
+        indicator=True
+    )
+
+    orphaned_player_matches = merged[merged['_merge'] == 'left_only']
+    if len(orphaned_player_matches) > 0:
+        return [f"Orphaned player matches: {len(orphaned_player_matches)}"]
+    return []
+
+# ---------------------------------------------------------------
+# 5. Summary Report
+# ---------------------------------------------------------------
+def generate_summary_report(all_issues):
+    """Generate final summary report."""
+    print_section("5. VALIDATION SUMMARY")
+
+    if not all_issues:
+        logger.info("\n✅ ALL VALIDATION CHECKS PASSED!")
+        logger.info("\n🎯 v4.2 Feature Status:")
+        logger.info("  ✅ Non-penalty xG (npxG) ready for use")
+        logger.info("  ✅ Venue feature (is_home) available")
+        logger.info("  ✅ Position features (is_forward, is_defender) available")
+        logger.info("\n📊 Run correlation_analysis.py for feature correlation checks")
+        return True
+    else:
+        logger.error(f"\n❌ VALIDATION FAILED: {len(all_issues)} ISSUES FOUND")
+        for i, issue in enumerate(all_issues, 1):
+            logger.error(f"  {i}. {issue}")
+        return False
+
+# ---------------------------------------------------------------
+# Main Entry Point
+# ---------------------------------------------------------------
+def main():
+    logger.info("=" * 80)
+    logger.info("  DATA VALIDATION & QUALITY CHECK (v4.2 with npxG)")
+    logger.info("=" * 80)
+
+    all_issues = []
+
+    df_player, player_issues = validate_player_match_stats()
+    if player_issues:
+        all_issues.extend(player_issues)
+
+    df_shooting, df_defense, defense_issues = validate_team_defense_stats()
+    if defense_issues:
+        all_issues.extend(defense_issues)
+
+    df_fixtures, fixture_issues = validate_fixtures()
+    if fixture_issues:
+        all_issues.extend(fixture_issues)
+
+    cross_issues = cross_validate_data()
+    if cross_issues:
+        all_issues.extend(cross_issues)
+
+    validation_passed = generate_summary_report(all_issues)
+
+    if validation_passed:
+        logger.info("\n✅ Proceed to backtest training")
+        sys.exit(0)
+    else:
+        logger.error("\n❌ Fix issues before proceeding to backtest training")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
+(f"  ✅ Excellent xG coverage (≥95%) - READY FOR v4.2")
         elif xg_coverage >= 80:
             logger.warning(f"  ⚠️ Good xG coverage (80-95%) - USABLE but some gaps")
         elif xg_coverage >= 50:
