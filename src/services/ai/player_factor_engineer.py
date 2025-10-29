@@ -3,7 +3,7 @@
 import pandas as pd
 import numpy as np
 import logging
-import ast # <<< NEW IMPORT: Needed for safe parsing of list-like strings
+import ast
 
 # --- Logging Setup ---
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
@@ -77,14 +77,6 @@ def rename_columns_for_consistency(df):
 def process_position_data(df):
     """
     Extract and process position data with hybrid filtering.
-    
-    Keeps:
-    - All Forwards and Midfielders
-    - Defenders with avg SOT >= 0.3 (attacking defenders like Trent, Reece James)
-    
-    Removes:
-    - Goalkeepers (never shoot)
-    - Pure defenders (avg SOT < 0.3)
     """
     logger.info("\n" + "="*60)
     logger.info("PROCESSING POSITION DATA (HYBRID FILTERING)")
@@ -100,8 +92,7 @@ def process_position_data(df):
     df['position'] = df['summary_positions'].apply(safe_extract_position)
     logger.info(f"  ✅ Extracted primary position using robust parsing.")
     
-    # 2. Map to position groups (Must include the detailed codes from your logs: CB, CM, etc.)
-    # Note: Your validation log showed detailed codes (CB, CM, LB, etc.), so the mapping must be expanded.
+    # 2. Map to position groups
     position_mapping = {
         'GK': 'Goalkeeper',
         # Defenders (DF, CB, LB, RB, WB)
@@ -114,14 +105,12 @@ def process_position_data(df):
     
     df['position_group'] = df['position'].map(position_mapping)
     
-    # Fill missing positions with 'Unknown' for diagnostics, then filter/default
+    # Handle missing/unmapped positions
     missing_positions_count = df['position_group'].isna().sum()
     if missing_positions_count > 0:
-        # First, check how many started as None/NaN after parsing
         na_count = df['position'].isna().sum()
         logger.warning(f"  ⚠️ {na_count} records had no position data (NaN) or failed parsing.")
         
-        # Now map unmapped codes (like the original CB/CM) to 'Midfielder' (conservative default)
         unknown_codes = df[df['position_group'].isna()]['position'].nunique()
         if unknown_codes > 0:
              logger.warning(f"  ⚠️ {unknown_codes} unknown position codes remaining after mapping, defaulting to 'Midfielder'.")
@@ -142,16 +131,7 @@ def process_position_data(df):
     
     # 5. HYBRID FILTERING
     original_count = len(df)
-    
-    # Threshold for attacking defenders
     ATTACKING_DEFENDER_THRESHOLD = 0.3
-    
-    # Keep if:
-    # - Forward or Midfielder (always keep)
-    # - Defender with avg SOT >= threshold (attacking defenders)
-    # Remove:
-    # - Goalkeepers (always remove)
-    # - Pure defenders (avg SOT < threshold)
     
     attacking_defenders_df = df[
         (df['position_group'] == 'Defender') & 
@@ -184,13 +164,12 @@ def process_position_data(df):
     
     # 7. Create dummy variables for model
     df['is_forward'] = (df['position_group'] == 'Forward').astype(int)
-    df['is_defender'] = (df['position_group'] == 'Defender').astype(int)  # Attacking defenders
+    df['is_defender'] = (df['position_group'] == 'Defender').astype(int)
     
     logger.info(f"\n  ✅ Created position dummy variables:")
     logger.info(f"    is_forward: {df['is_forward'].sum()} ({(df['is_forward'].sum()/len(df)*100):.1f}%)")
     logger.info(f"    is_defender: {df['is_defender'].sum()} ({(df['is_defender'].sum()/len(df)*100):.1f}%) [attacking defenders only]")
     
-    # Calculate baseline (Midfielders) count
     midfielders_count = ((~df['is_forward'].astype(bool)) & (~df['is_defender'].astype(bool))).sum()
     midfielders_pct = (midfielders_count/len(df)*100)
     logger.info(f"    Midfielders (baseline): {midfielders_count} ({midfielders_pct:.1f}%)")
@@ -203,9 +182,6 @@ def process_position_data(df):
 def calculate_player_ma5_factors(df):
     """
     Calculate rolling MA5 (Moving Average over 5 matches) for player-specific metrics.
-    
-    NOTE: This is now calculated AFTER position filtering, so only relevant offensive players 
-    are used for their own rolling averages.
     """
     logger.info("Calculating Player MA5 Factors (P-Factors)...")
     
@@ -230,16 +206,43 @@ def calculate_player_ma5_factors(df):
     return df
 
 
+def calculate_venue_factor(df):
+    """
+    Creates a binary feature for the venue (Home vs. Away).
+    Assumes 'team_side' column exists with values 'home' or 'away'.
+    """
+    logger.info("Creating Venue Factor (is_home)...")
+    
+    if 'team_side' not in df.columns:
+        logger.warning("⚠️ 'team_side' column missing. Cannot create venue factor.")
+        return df
+
+    # Create the binary 'is_home' feature (1=Home, 0=Away)
+    df['is_home'] = (df['team_side'] == 'home').astype(int)
+    
+    home_count = df['is_home'].sum()
+    away_count = len(df) - home_count
+    
+    logger.info(f"  ✅ Created 'is_home' binary factor.")
+    logger.info(f"    Home count (1): {home_count}")
+    logger.info(f"    Away count (0): {away_count}")
+    
+    logger.info(f"Venue factor calculation complete. Shape: {df.shape}")
+    
+    return df
+
+
 def validate_output(df):
     """Validate the output before saving."""
     logger.info("\nValidating output data...")
     
     required_columns = [
-        'sot', 'min',  # Renamed columns
-        'sot_MA5', 'min_MA5',  # Player factors
-        'sot_conceded_MA5',  # Opponent factors (from backtest_processor)
-        'position_group', 'is_forward', 'is_defender',  # Position features
-        'team_side'  # ✅ NEW: Home/Away data for venue feature
+        'sot', 'min',
+        'sot_MA5', 'min_MA5',
+        'sot_conceded_MA5',
+        'position_group', 'is_forward', 'is_defender',
+        'team_side',
+        'is_home'  # ✅ UPDATED: The engineered venue feature
     ]
     
     missing = [col for col in required_columns if col not in df.columns]
@@ -248,7 +251,7 @@ def validate_output(df):
         logger.error(f"❌ Missing required columns: {missing}")
         exit(1)
     
-    # ✅ NEW: Validate team_side values
+    # Validate team_side values
     if 'team_side' in df.columns:
         team_side_values = df['team_side'].unique()
         logger.info(f"  ℹ️ team_side values found: {team_side_values}")
@@ -275,12 +278,12 @@ def validate_output(df):
     logger.info(f"  Forwards: {df['is_forward'].sum()} ({(df['is_forward'].sum()/len(df)*100):.1f}%)")
     logger.info(f"  Att.Defenders: {df['is_defender'].sum()} ({(df['is_defender'].sum()/len(df)*100):.1f}%)")
     
-    # ✅ NEW: Show home/away distribution
-    if 'team_side' in df.columns:
-        home_count = (df['team_side'] == 'home').sum()
-        away_count = (df['team_side'] == 'away').sum()
-        logger.info(f"  Home matches: {home_count} ({(home_count/len(df)*100):.1f}%)")
-        logger.info(f"  Away matches: {away_count} ({(away_count/len(df)*100):.1f}%)")
+    # Show home/away distribution (engineered feature)
+    if 'is_home' in df.columns:
+        home_count = df['is_home'].sum()
+        away_count = len(df) - home_count
+        logger.info(f"  Home matches (is_home=1): {home_count} ({(home_count/len(df)*100):.1f}%)")
+        logger.info(f"  Away matches (is_home=0): {away_count} ({(away_count/len(df)*100):.1f}%)")
     
     # Show average SOT by position
     logger.info("\n📊 Average SOT by Position:")
@@ -317,12 +320,14 @@ def main():
     # Step 2: Rename columns for consistency
     df = rename_columns_for_consistency(df)
     
-    # Step 3: Process position data (NEW - CRITICAL STEP)
+    # Step 3: Process position data (CRITICAL STEP)
     df = process_position_data(df)
     
     # Step 4: Calculate player MA5 factors
-    # NOTE: Now calculated AFTER filtering, so only offensive players included
     df = calculate_player_ma5_factors(df)
+    
+    # Step 4.5: Calculate Venue Factor (NEW STEP)
+    df = calculate_venue_factor(df)
     
     # Step 5: Validate output
     validate_output(df)
