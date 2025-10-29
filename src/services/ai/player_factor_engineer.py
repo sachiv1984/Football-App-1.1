@@ -1,4 +1,4 @@
-# src/services/ai/player_factor_engineer.py - Revised
+# src/services/ai/player_factor_engineer.py - Revised with venue feature support
 
 import pandas as pd
 import numpy as np
@@ -238,7 +238,8 @@ def validate_output(df):
         'sot', 'min',  # Renamed columns
         'sot_MA5', 'min_MA5',  # Player factors
         'sot_conceded_MA5',  # Opponent factors (from backtest_processor)
-        'position_group', 'is_forward', 'is_defender'  # Position features (UPDATED)
+        'position_group', 'is_forward', 'is_defender',  # Position features
+        'team_side'  # ✅ NEW: Home/Away data for venue feature
     ]
     
     missing = [col for col in required_columns if col not in df.columns]
@@ -246,6 +247,15 @@ def validate_output(df):
     if missing:
         logger.error(f"❌ Missing required columns: {missing}")
         exit(1)
+    
+    # ✅ NEW: Validate team_side values
+    if 'team_side' in df.columns:
+        team_side_values = df['team_side'].unique()
+        logger.info(f"  ℹ️ team_side values found: {team_side_values}")
+        expected_values = {'home', 'away'}
+        unexpected = set(team_side_values) - expected_values - {None, np.nan}
+        if unexpected:
+            logger.warning(f"  ⚠️ Unexpected team_side values: {unexpected}")
     
     # Check for excessive NaN values in critical columns
     for col in required_columns:
@@ -264,6 +274,13 @@ def validate_output(df):
     logger.info(f"  Date range: {df['match_datetime'].min()} to {df['match_datetime'].max()}")
     logger.info(f"  Forwards: {df['is_forward'].sum()} ({(df['is_forward'].sum()/len(df)*100):.1f}%)")
     logger.info(f"  Att.Defenders: {df['is_defender'].sum()} ({(df['is_defender'].sum()/len(df)*100):.1f}%)")
+    
+    # ✅ NEW: Show home/away distribution
+    if 'team_side' in df.columns:
+        home_count = (df['team_side'] == 'home').sum()
+        away_count = (df['team_side'] == 'away').sum()
+        logger.info(f"  Home matches: {home_count} ({(home_count/len(df)*100):.1f}%)")
+        logger.info(f"  Away matches: {away_count} ({(away_count/len(df)*100):.1f}%)")
     
     # Show average SOT by position
     logger.info("\n📊 Average SOT by Position:")
