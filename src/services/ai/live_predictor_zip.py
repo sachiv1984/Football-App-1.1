@@ -1,5 +1,5 @@
 """
-Live Predictor with Zero-Inflated Poisson (ZIP) Model Support
+Live Predictor with Zero-Inflated Poisson (ZIP) Model Support - WITH DEBUG
 
 This version can use either:
 1. Standard Poisson model (poisson_model.pkl)
@@ -10,6 +10,7 @@ Set MODEL_TYPE = 'zip' or 'poisson' to choose.
 ✅ UPDATED 2025-10-19: Implemented position extraction and hybrid filtering logic.
 ✅ UPDATED 2025-10-27: Removed min_MA5_scaled from model features (redundant after position features).
 ✅ FIX APPLIED 2025-10-19: Correctly handles the simplified feature set for ZIP model prediction (exog_infl).
+✅ DEBUG ADDED 2025-10-28: Added debug logging for star players
 """
 
 import os
@@ -78,7 +79,7 @@ POSITION_MAPPING = {
     'FW': 'Forward', 'LW': 'Forward', 'RW': 'Forward'
 }
 
-# ✅ FIXED: Updated to match training model (6 features, removed min_MA5_scaled)
+# ✅ FIXED: Updated to match training model (5 features, removed tackles)
 PREDICTOR_COLUMNS = [
     'sot_conceded_MA5_scaled', 
     'sot_MA5_scaled', 
@@ -183,14 +184,7 @@ def load_and_merge_raw_data() -> pd.DataFrame:
         order_by="match_date"
     ).rename(columns={'opp_shots_on_target': 'sot_conceded'})
     
-    df_tackle_def = fetch_with_deduplication(
-        supabase_client=supabase,
-        table_name="team_defense_stats", 
-        select_columns="match_date, team_name, team_tackles_att_3rd",
-        order_by="match_date"
-    ).rename(columns={'team_tackles_att_3rd': 'tackles_att_3rd'})
-    
-    df_team_def = pd.merge(df_shooting_def, df_tackle_def, on=merge_keys, how='inner')
+    df_team_def = df_shooting_def.copy()
     df_team_def['match_date'] = pd.to_datetime(df_team_def['match_date']).dt.date
     
     df_historical = pd.merge(df_player_history, df_team_def, on=['match_date', 'team_name'], how='left')
@@ -238,11 +232,16 @@ def load_and_merge_raw_data() -> pd.DataFrame:
             future_rows.append(side_players)
             
     df_future = pd.concat(future_rows, ignore_index=True) if future_rows else pd.DataFrame()
-    for col in ['summary_sot', 'summary_min', 'sot_conceded', 'tackles_att_3rd']:
+    for col in ['summary_sot', 'summary_min', 'sot_conceded']:
         df_future[col] = np.nan
     
     df_final = pd.concat([df_historical, df_future], ignore_index=True)
     df_final = df_final.sort_values(by=['match_datetime', 'player_id']).reset_index(drop=True)
+    
+    # 🔍 DEBUG: Store df_player_history globally for debugging
+    global df_player_history_global
+    df_player_history_global = df_player_history
+    
     return df_final
 
 def clean_and_enrich_data(df: pd.DataFrame) -> pd.DataFrame:
@@ -313,13 +312,102 @@ def get_live_gameweek_features(df_processed: pd.DataFrame) -> pd.DataFrame:
     next_gameweek = scheduled_games['matchweek'].min()
     df_live = scheduled_games[scheduled_games['matchweek'] == next_gameweek].copy()
     
+    # 🔍 DEBUG: Check star players BEFORE filtering
+    logger.info("\n" + "="*80)
+    logger.info("🔍 DEBUG: CHECKING STAR PLAYERS (Before MA5 dropna)")
+    logger.info("="*80)
+    star_players = ['Erling Haaland', 'Mohamed Salah', 'Bukayo Saka', 'Cole Palmer', 'Phil Foden', 'Bruno Fernandes']
+    for player in star_players:
+        player_data = df_live[df_live['player_name'] == player]
+        if not player_data.empty:
+            logger.info(f"\n✅ {player} FOUND:")
+            logger.info(f"   Team: {player_data['team_name'].values[0]}")
+            logger.info(f"   Opponent: {player_data['opponent_team'].values[0]}")
+            logger.info(f"   Position: {player_data['position_group'].values[0]}")
+            logger.info(f"   sot_MA5: {player_data['sot_MA5'].values[0]}")
+            logger.info(f"   min_MA5: {player_data['min_MA5'].values[0]}")
+            logger.info(f"   sot_conceded_MA5: {player_data['sot_conceded_MA5'].values[0]}")
+            
+            # Check match count in history
+            if 'df_player_history_global' in globals():
+                match_count = len(df_player_history_global[df_player_history_global['player_name'] == player])
+                logger.info(f"   Historical matches: {match_count}")
+        else:
+            logger.info(f"\n❌ {player}: NOT FOUND in df_live (Gameweek {next_gameweek})")
+    logger.info("="*80 + "\n")
+    
     REQUIRED_MA5_COLUMNS = [f'{col}_MA5' for col in MA5_METRICS + OPP_METRICS]
+    df_live_before_dropna = df_live.copy()
     df_live = df_live.dropna(subset=REQUIRED_MA5_COLUMNS).copy()
+    
+    # 🔍 DEBUG: Check which star players were dropped by NaN
+    logger.info("\n" + "="*80)
+    logger.info("🔍 DEBUG: AFTER MA5 DROPNA")
+    logger.info("="*80)
+    logger.info(f"   Records before dropna: {len(df_live_before_dropna)}")
+    logger.info(f"   Records after dropna: {len(df_live)}")
+    logger.info(f"   Records lost: {len(df_live_before_dropna) - len(df_live)}")
+    
+    for player in star_players:
+        was_present = not df_live_before_dropna[df_live_before_dropna['player_name'] == player].empty
+        still_present = not df_live[df_live['player_name'] == player].empty
+        
+        if was_present and not still_present:
+            logger.info(f"\n❌ {player}: DROPPED by MA5 dropna")
+            player_data = df_live_before_dropna[df_live_before_dropna['player_name'] == player]
+            for col in REQUIRED_MA5_COLUMNS:
+                logger.info(f"      {col}: {player_data[col].values[0]}")
+        elif still_present:
+            logger.info(f"\n✅ {player}: Still present after dropna")
+    logger.info("="*80 + "\n")
     
     # --- Mandatory Model Qualification Filters ---
     initial_qualified_count = len(df_live)
+    df_live_before_mins = df_live.copy()
     df_live = df_live[df_live['min_MA5'] >= MIN_EXPECTED_MINUTES].copy()
+    
+    # 🔍 DEBUG: Check MIN filter
+    logger.info("\n" + "="*80)
+    logger.info(f"🔍 DEBUG: AFTER MIN_EXPECTED_MINUTES >= {MIN_EXPECTED_MINUTES}")
+    logger.info("="*80)
+    logger.info(f"   Records before: {len(df_live_before_mins)}")
+    logger.info(f"   Records after: {len(df_live)}")
+    logger.info(f"   Records lost: {len(df_live_before_mins) - len(df_live)}")
+    
+    for player in star_players:
+        was_present = not df_live_before_mins[df_live_before_mins['player_name'] == player].empty
+        still_present = not df_live[df_live['player_name'] == player].empty
+        
+        if was_present and not still_present:
+            logger.info(f"\n❌ {player}: DROPPED by MIN filter")
+            player_data = df_live_before_mins[df_live_before_mins['player_name'] == player]
+            logger.info(f"      min_MA5: {player_data['min_MA5'].values[0]} (< {MIN_EXPECTED_MINUTES})")
+        elif still_present:
+            logger.info(f"\n✅ {player}: Passed MIN filter")
+    logger.info("="*80 + "\n")
+    
+    df_live_before_sot = df_live.copy()
     df_live = df_live[df_live['sot_MA5'] >= MIN_SOT_MA5].copy()
+    
+    # 🔍 DEBUG: Check SOT filter
+    logger.info("\n" + "="*80)
+    logger.info(f"🔍 DEBUG: AFTER MIN_SOT_MA5 >= {MIN_SOT_MA5}")
+    logger.info("="*80)
+    logger.info(f"   Records before: {len(df_live_before_sot)}")
+    logger.info(f"   Records after: {len(df_live)}")
+    logger.info(f"   Records lost: {len(df_live_before_sot) - len(df_live)}")
+    
+    for player in star_players:
+        was_present = not df_live_before_sot[df_live_before_sot['player_name'] == player].empty
+        still_present = not df_live[df_live['player_name'] == player].empty
+        
+        if was_present and not still_present:
+            logger.info(f"\n❌ {player}: DROPPED by SOT filter")
+            player_data = df_live_before_sot[df_live_before_sot['player_name'] == player]
+            logger.info(f"      sot_MA5: {player_data['sot_MA5'].values[0]} (< {MIN_SOT_MA5})")
+        elif still_present:
+            logger.info(f"\n✅ {player}: Passed SOT filter")
+    logger.info("="*80 + "\n")
     
     logger.info(f"  Applied MIN_MINUTES/MIN_SOT filters: {len(df_live)} remaining.")
     
@@ -339,6 +427,18 @@ def get_live_gameweek_features(df_processed: pd.DataFrame) -> pd.DataFrame:
     
     logger.info(f"  Applied Hybrid Filter. Attacking Defenders kept: {len(attacking_defenders)}")
     logger.info(f"  Final qualified players: {len(df_final_qualified)}")
+    
+    # 🔍 DEBUG: Final check on star players
+    logger.info("\n" + "="*80)
+    logger.info("🔍 DEBUG: FINAL QUALIFIED PLAYERS")
+    logger.info("="*80)
+    for player in star_players:
+        is_qualified = not df_final_qualified[df_final_qualified['player_name'] == player].empty
+        if is_qualified:
+            logger.info(f"✅ {player}: IN FINAL LIST")
+        else:
+            logger.info(f"❌ {player}: NOT IN FINAL LIST")
+    logger.info("="*80 + "\n")
     
     if df_final_qualified.empty:
         return pd.DataFrame()
@@ -413,11 +513,11 @@ def scale_live_data(df_raw, scaler_data):
         logger.error(f"❌ Missing required features: {missing_features}")
         raise ValueError(f"Missing features: {missing_features}")
     
-    # Select final features (6 features matching training model)
+    # Select final features (5 features matching training model)
     final_features = df_features[PREDICTOR_COLUMNS]
     final_features = sm.add_constant(final_features, has_constant='add')
     
-    logger.info(f"✅ Features scaled. Final shape: {final_features.shape} (expected: N x 7 with const)")
+    logger.info(f"✅ Features scaled. Final shape: {final_features.shape} (expected: N x 6 with const)")
     
     return final_features
 
@@ -427,7 +527,7 @@ def run_predictions(model, df_features_scaled, df_raw, model_type='poisson'):
     
     # ✅ FIX: Create the correct simplified feature subset for the ZIP inflation component
     if model_type == 'zip':
-        # The full feature set (df_features_scaled, shape N x 7) is X (Count Part)
+        # The full feature set (df_features_scaled, shape N x 6) is X (Count Part)
         # Create the simplified feature set (X_infl, shape N x 4)
         df_infl_scaled = df_features_scaled[['const'] + INFLATION_PREDICTOR_COLUMNS] 
     
