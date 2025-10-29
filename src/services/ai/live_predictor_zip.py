@@ -656,19 +656,47 @@ def run_predictions(model, df_features_scaled, df_raw, model_type='poisson'):
     else:
         # Standard Poisson predictions
         df_raw['E_SOT'] = model.predict(df_features_scaled)
-        df_raw['P_SOT_1_Plus'] = 1 - np.exp(-df_raw['E_SOT'])
+        
+        # Calculate probability distributions for betting
+        from scipy.stats import poisson
+        
+        # P(0 SOT) - probability of zero
+        df_raw['P_SOT_0'] = poisson.pmf(0, df_raw['E_SOT'])
+        
+        # P(1+ SOT) - at least 1 shot on target (most common betting market)
+        df_raw['P_SOT_1_Plus'] = 1 - df_raw['P_SOT_0']
+        
+        # P(2+ SOT) - at least 2 shots on target
+        df_raw['P_SOT_2_Plus'] = 1 - poisson.cdf(1, df_raw['E_SOT'])
+        
+        # P(3+ SOT) - at least 3 shots on target
+        df_raw['P_SOT_3_Plus'] = 1 - poisson.cdf(2, df_raw['E_SOT'])
+        
+        # P(4+ SOT) - at least 4 shots on target (for high-confidence bets)
+        df_raw['P_SOT_4_Plus'] = 1 - poisson.cdf(3, df_raw['E_SOT'])
+        
+        # Confidence level based on E[SOT]
+        df_raw['confidence'] = pd.cut(
+            df_raw['E_SOT'],
+            bins=[0, 0.4, 0.8, float('inf')],
+            labels=['low', 'medium', 'high']
+        )
     
     report = df_raw.sort_values(by='E_SOT', ascending=False).copy()
     
     # Select columns for output
     output_cols = [
         'player_id', 'player_name', 'team_name', 'opponent_team', 
-        'E_SOT', 'P_SOT_1_Plus', 'min_MA5', 'sot_MA5', 'match_datetime'
+        'E_SOT', 'P_SOT_0', 'P_SOT_1_Plus', 'P_SOT_2_Plus', 'P_SOT_3_Plus', 'P_SOT_4_Plus',
+        'confidence', 'min_MA5', 'sot_MA5', 'match_datetime'
     ]
     
     # Add ZIP-specific column if available
     if 'P_Never_Shooter' in report.columns:
         output_cols.insert(6, 'P_Never_Shooter')
+    
+    # Only include columns that exist
+    output_cols = [col for col in output_cols if col in report.columns]
     
     final_report = report[output_cols].rename(columns={
         'min_MA5': 'expected_minutes',
@@ -680,16 +708,39 @@ def run_predictions(model, df_features_scaled, df_raw, model_type='poisson'):
     final_report.to_csv(PREDICTION_OUTPUT, index=False)
     logger.info(f"✅ Prediction report saved to {PREDICTION_OUTPUT}")
     
-    # Display top 10 predictions
+    # Display top 10 predictions with all probability columns
     logger.info(f"\n🎯 TOP 10 PREDICTIONS (Gameweek {df_raw['matchweek'].iloc[0]}):")
-    logger.info("─" * 100)
+    logger.info("─" * 120)
     
-    display_cols = ['player_name', 'team', 'opponent', 'E_SOT', 'P_SOT_1_Plus']
-    if 'P_Never_Shooter' in final_report.columns:
-        display_cols.insert(4, 'P_Never_Shooter')
+    # Show different columns based on model type
+    if model_type == 'zip' and 'P_Never_Shooter' in final_report.columns:
+        display_cols = ['player_name', 'team', 'opponent', 'E_SOT', 'P_Never_Shooter', 'P_SOT_1_Plus']
+    else:
+        display_cols = ['player_name', 'team', 'opponent', 'E_SOT', 'P_SOT_1_Plus', 'P_SOT_2_Plus', 'P_SOT_3_Plus', 'confidence']
+    
+    # Only include columns that exist
+    display_cols = [col for col in display_cols if col in final_report.columns]
     
     logger.info(final_report[display_cols].head(10).to_string(index=False))
-    logger.info("─" * 100)
+    logger.info("─" * 120)
+    
+    # Show additional betting insights
+    logger.info("\n💰 BETTING INSIGHTS:")
+    logger.info("─" * 80)
+    
+    # High confidence bets (E[SOT] >= 0.8)
+    high_conf = final_report[final_report['E_SOT'] >= 0.8].head(5)
+    if len(high_conf) > 0:
+        logger.info("\n🔥 Top 5 High-Confidence Bets (E[SOT] >= 0.8):")
+        logger.info(high_conf[['player_name', 'team', 'E_SOT', 'P_SOT_1_Plus', 'P_SOT_2_Plus']].to_string(index=False))
+    
+    # Best 2+ SOT opportunities
+    if 'P_SOT_2_Plus' in final_report.columns:
+        best_2plus = final_report.nlargest(5, 'P_SOT_2_Plus')
+        logger.info("\n⚡ Top 5 Best 2+ SOT Opportunities:")
+        logger.info(best_2plus[['player_name', 'team', 'E_SOT', 'P_SOT_2_Plus', 'P_SOT_3_Plus']].to_string(index=False))
+    
+    logger.info("─" * 80)
     
     return final_report
 
