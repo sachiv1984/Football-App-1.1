@@ -31,20 +31,25 @@ POISSON_MODEL = "src/services/ai/artifacts/poisson_model.pkl"
 ZIP_MODEL = "src/services/ai/artifacts/zip_model.pkl"
 OUTPUT_FILE = "model_comparison_report.txt"
 
+# --- FEATURE FIX: ADDED 'is_home' TO BOTH LISTS TO MATCH 7-FEATURE TRAINING MODEL ---
+
 # Features used for prediction - FULL SET FOR POISSON (COUNT) PART
+# This must match the 7 features the Poisson model was trained on.
 PREDICTOR_COLUMNS = [
     'sot_conceded_MA5_scaled', 
     'sot_MA5_scaled', 
     'summary_min',
     'is_forward',   
-    'is_defender'   
+    'is_defender',
+    'is_home' # <--- ADDED 'is_home' to fix the (981,6) vs (7,) mismatch
 ]
 
-# ✅ FIX: ADDED INFLATION COLUMNS to match the training script
+# Inflation columns used for the Logistic part of the ZIP model
 INFLATION_PREDICTOR_COLUMNS = [
     'sot_MA5_scaled', 
     'is_forward',   
-    'is_defender'   
+    'is_defender',
+    'is_home' # <--- ADDED 'is_home' to match ZIP training
 ] 
 
 TARGET_COLUMN = 'sot'
@@ -67,6 +72,7 @@ def load_data():
         
         # --- Data Cleaning to match the training data subset (705 rows) ---
         initial_shape = df.shape[0]
+        # Ensure all columns needed for both models' predictions are present
         required_cols = list(set(PREDICTOR_COLUMNS + INFLATION_PREDICTOR_COLUMNS + [TARGET_COLUMN]))
         
         # Replace Inf with NaN and then drop NaNs
@@ -81,11 +87,11 @@ def load_data():
             logger.info("✅ Data is clean (no NaNs/Infs in feature/target columns).")
         # ----------------------------------------------------
         
-        # Prepare features
+        # Prepare features for the COUNT part of the models (7 columns)
         X = df[PREDICTOR_COLUMNS].copy()
         y = df[TARGET_COLUMN].copy()
         
-        # Add constant (X will now have 7 features + 1 const = 8 columns)
+        # Add constant (X will now have 6 features + 1 const = 7 columns/parameters)
         X = sm.add_constant(X, has_constant='add')
         
         logger.info(f"  Feature matrix: {X.shape}")
@@ -178,8 +184,7 @@ def evaluate_model(model, X, y, model_name='Model'):
     
     # Generate predictions
     if model_name.lower() == 'zip':
-        # ✅ FIX: Pass the correct, simplified feature subset for the inflation component
-        # X is the full 8-column matrix used for the Count part
+        # Pass the correct, feature subset for the inflation component
         X_infl_pred = X[['const'] + INFLATION_PREDICTOR_COLUMNS] 
         y_pred = model.predict(X, exog_infl=X_infl_pred)
     else:
@@ -210,7 +215,7 @@ def evaluate_model(model, X, y, model_name='Model'):
     
     # Probability predictions for 1+ SOT
     if model_name.lower() == 'zip':
-        # ✅ FIX: Use the correct, simplified feature subset for the probability prediction as well
+        # Use the correct, simplified feature subset for the probability prediction as well
         X_infl_pred = X[['const'] + INFLATION_PREDICTOR_COLUMNS] 
         prob_results = model.predict(X, which='prob', exog_infl=X_infl_pred)
         
@@ -263,6 +268,7 @@ def compare_models(models, X, y):
     results = {}
     
     if models['poisson']:
+        # This will now use the 7-column data (6 features + const) and match the 7-parameter model
         results['poisson'] = evaluate_model(models['poisson'], X, y, 'Poisson')
     
     if models['zip']:
@@ -328,125 +334,3 @@ def analyze_predictions_by_zero_status(results, y):
         logger.info("─" * 60)
         
         y_pred = results[model_name]['predictions']
-        
-        # For actual zeros
-        zeros_mask = y == 0
-        logger.info(f"\nFor Actual ZEROS (n={zeros_mask.sum()}):")
-        y_pred_zeros = y_pred[zeros_mask]
-        logger.info(f"  Mean prediction: {y_pred_zeros.mean():.4f}")
-        logger.info(f"  Median prediction: {np.median(y_pred_zeros):.4f}")
-        logger.info(f"  Max prediction: {y_pred_zeros.max():.4f}")
-        
-        # For actual non-zeros
-        nonzeros_mask = y > 0
-        logger.info(f"\nFor Actual NON-ZEROS (n={nonzeros_mask.sum()}):")
-        y_pred_nonzeros = y_pred[nonzeros_mask]
-        logger.info(f"  Mean prediction: {y_pred_nonzeros.mean():.4f}")
-        logger.info(f"  Median prediction: {np.median(y_pred_nonzeros):.4f}")
-        logger.info(f"  Mean actual: {y[nonzeros_mask].mean():.4f}")
-
-
-def generate_recommendation(results):
-    """Generate final recommendation."""
-    print_section("6. FINAL RECOMMENDATION")
-    
-    if 'poisson' not in results or 'zip' not in results:
-        logger.info("⚠️ Cannot generate recommendation - need both models")
-        return
-    
-    # Key decision metrics
-    # Lower is better for AIC/Brier/RMSE, so a negative difference means ZIP is better.
-    aic_improvement = results['poisson']['aic'] - results['zip']['aic']
-    brier_improvement = results['poisson']['brier_score'] - results['zip']['brier_score']
-    rmse_improvement = results['poisson']['rmse'] - results['zip']['rmse']
-    
-    logger.info("\n📊 KEY IMPROVEMENTS (Poisson → ZIP):")
-    logger.info("─" * 60)
-    logger.info(f"  AIC difference (Poisson - ZIP): {aic_improvement:+.2f} {'✅ (ZIP better)' if aic_improvement > 0 else '❌ (Poisson better)'}")
-    logger.info(f"  Brier difference (Poisson - ZIP): {brier_improvement:+.4f} {'✅ (ZIP better)' if brier_improvement > 0 else '❌ (Poisson better)'}")
-    logger.info(f"  RMSE difference (Poisson - ZIP): {rmse_improvement:+.4f} {'✅ (ZIP better)' if rmse_improvement > 0 else '❌ (Poisson better)'}")
-    
-    # Make recommendation
-    # Score favors ZIP model (if difference > 0, ZIP is better for that metric)
-    score = 0
-    if aic_improvement > 10:
-        score += 3
-    elif aic_improvement > 0:
-        score += 1
-    
-    if brier_improvement > 0.01:
-        score += 2
-    elif brier_improvement > 0:
-        score += 1
-    
-    if rmse_improvement > 0.01:
-        score += 2
-    elif rmse_improvement > 0:
-        score += 1
-    
-    logger.info("\n" + "=" * 60)
-    
-    if score >= 5:
-        logger.info("✅ STRONG RECOMMENDATION: Deploy ZIP Model")
-        logger.info("   ZIP shows significant improvements across key metrics (AIC, Brier, RMSE)")
-    elif score >= 3:
-        logger.info("⚠️ MODERATE RECOMMENDATION: Consider ZIP Model")
-        logger.info("   ZIP shows improvements but gains are modest or mixed")
-    else:
-        logger.info("❌ RECOMMENDATION: Keep Poisson Model")
-        logger.info("   ZIP does not show sufficient improvement over Poisson")
-    
-    logger.info("=" * 60)
-
-
-def save_report(results):
-    """Save detailed report to file."""
-    logger.info(f"\n💾 Saving detailed report to: {OUTPUT_FILE}")
-    
-    with open(OUTPUT_FILE, 'w') as f:
-        f.write("=" * 80 + "\n")
-        f.write("  POISSON VS ZIP MODEL COMPARISON REPORT\n")
-        f.write("=" * 80 + "\n\n")
-        
-        for model_name, model_results in results.items():
-            f.write(f"\n{model_name.upper()} MODEL RESULTS:\n")
-            f.write("─" * 60 + "\n")
-            for key, value in model_results.items():
-                if key not in ['predictions', 'prob_predictions', 'pred_dist']:
-                    f.write(f"  {key}: {value}\n")
-    
-    logger.info("✅ Report saved successfully")
-
-
-def main():
-    """Main execution pipeline."""
-    logger.info("=" * 80)
-    logger.info("  POISSON VS ZIP MODEL COMPARISON")
-    logger.info("=" * 80)
-    
-    # Load data
-    X, y, df = load_data()
-    
-    # Load models
-    models = load_models()
-    
-    # Compare models
-    results = compare_models(models, X, y)
-    
-    # Display comparison
-    display_comparison(results)
-    
-    # Analyze by zero status
-    analyze_predictions_by_zero_status(results, y)
-    
-    # Generate recommendation
-    generate_recommendation(results)
-    
-    # Save report
-    save_report(results)
-    
-    print_section("✅ COMPARISON COMPLETE")
-
-
-if __name__ == '__main__':
-    main()
