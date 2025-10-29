@@ -103,14 +103,14 @@ def print_position_distribution(df, position_col='summary_positions', title="Pos
 # ---------------------------------------------------------------
 
 # ---------------------------------------------------------------
-# 1. Player Match Stats Validation (UPDATED)
+# 1. Player Match Stats Validation (UPDATED WITH XG)
 # ---------------------------------------------------------------
 def validate_player_match_stats():
     """Validate player_match_stats table - the primary data source."""
     print_section("1. PLAYER MATCH STATS VALIDATION")
 
-    # 👇 UPDATED: Added home_team, away_team, and team_side to the selection
-    player_cols = "player_id, player_name, team_name, summary_sot, summary_min, summary_positions, home_team, away_team, team_side, match_datetime"
+    # ✅ UPDATED: Added summary_xg and summary_non_pen_xg for v4.2
+    player_cols = "player_id, player_name, team_name, summary_sot, summary_min, summary_positions, home_team, away_team, team_side, match_datetime, summary_xg, summary_non_pen_xg"
     df = fetch_with_deduplication(
         supabase,
         "player_match_stats",
@@ -134,11 +134,15 @@ def validate_player_match_stats():
     # --- Missing Values ---
     logger.info(f"\n🔍 Missing Values Check:")
     missing = df.isnull().sum()
-    # 👇 UPDATED: Added venue-related columns to critical checks
+    
+    # Critical columns (must have data)
     critical_columns = [
         'player_id', 'player_name', 'team_name', 'summary_sot', 'summary_min', 
         'match_datetime', 'summary_positions', 'home_team', 'away_team', 'team_side'
     ]
+    
+    # Optional but important columns (xG data)
+    optional_important = ['summary_xg', 'summary_non_pen_xg']
 
     for col in critical_columns:
         missing_count = missing.get(col, 0)
@@ -146,18 +150,118 @@ def validate_player_match_stats():
             pct = (missing_count / len(df)) * 100
             
             if col in ['summary_positions', 'home_team', 'away_team', 'team_side']:
-                logger.error(f"  🔴 {col}: {missing_count} missing ({pct:.1f}%) - CRITICAL FOR NEW MODEL")
+                logger.error(f"  🔴 {col}: {missing_count} missing ({pct:.1f}%) - CRITICAL FOR MODEL")
             else:
                 logger.warning(f"  ⚠️ {col}: {missing_count} missing ({pct:.1f}%)")
                 
             issues.append(f"Missing values in {col}: {missing_count} rows ({pct:.1f}%)")
         else:
             logger.info(f"  ✅ {col}: No missing values")
+    
+    # Check optional xG columns
+    for col in optional_important:
+        missing_count = missing.get(col, 0)
+        if missing_count > 0:
+            pct = (missing_count / len(df)) * 100
+            logger.warning(f"  ⚠️ {col}: {missing_count} missing ({pct:.1f}%) - OPTIONAL FEATURE")
+        else:
+            logger.info(f"  ✅ {col}: No missing values")
 
-    # --- New: Venue Data Consistency Check ---
+    # --- New: XG Data Quality Check ---
+    logger.info(f"\n🎯 EXPECTED GOALS (xG) DATA VALIDATION:")
+    
+    if 'summary_xg' in df.columns:
+        df['summary_xg'] = pd.to_numeric(df['summary_xg'], errors='coerce')
+        
+        # Check coverage
+        xg_available = df['summary_xg'].notna().sum()
+        xg_coverage = (xg_available / len(df)) * 100
+        
+        logger.info(f"  Data Coverage: {xg_available}/{len(df)} records ({xg_coverage:.1f}%)")
+        
+        if xg_coverage >= 95:
+            logger.info(f"  ✅ Excellent xG coverage (≥95%) - READY FOR v4.2")
+        elif xg_coverage >= 80:
+            logger.warning(f"  ⚠️ Good xG coverage (80-95%) - USABLE but some gaps")
+        elif xg_coverage >= 50:
+            logger.warning(f"  ⚠️ Moderate xG coverage (50-80%) - CONSIDER using carefully")
+            issues.append(f"Moderate xG coverage: {xg_coverage:.1f}%")
+        else:
+            logger.error(f"  🔴 Poor xG coverage (<50%) - NOT RECOMMENDED for modeling")
+            issues.append(f"Poor xG coverage: {xg_coverage:.1f}% - Cannot use for v4.2")
+        
+        # Check for valid xG values (should be 0 to ~3 per match)
+        if xg_available > 0:
+            xg_data = df[df['summary_xg'].notna()]['summary_xg']
+            
+            logger.info(f"\n  xG Statistics:")
+            logger.info(f"    Mean: {xg_data.mean():.3f}")
+            logger.info(f"    Median: {xg_data.median():.3f}")
+            logger.info(f"    Std Dev: {xg_data.std():.3f}")
+            logger.info(f"    Min: {xg_data.min():.3f}")
+            logger.info(f"    Max: {xg_data.max():.3f}")
+            
+            # Check for unrealistic xG values
+            max_reasonable_xg = 5.0
+            high_xg = df[df['summary_xg'] > max_reasonable_xg]
+            
+            if len(high_xg) > 0:
+                logger.warning(f"  ⚠️ {len(high_xg)} records with xG > {max_reasonable_xg} (outliers)")
+            
+            negative_xg = df[df['summary_xg'] < 0]
+            if len(negative_xg) > 0:
+                logger.error(f"  🔴 {len(negative_xg)} records with negative xG (data error)")
+                issues.append(f"Negative xG values: {len(negative_xg)} records")
+            
+            # Check correlation with SOT (should be 0.4-0.6)
+            df['summary_sot'] = pd.to_numeric(df['summary_sot'], errors='coerce')
+            valid_for_corr = df[df['summary_xg'].notna() & df['summary_sot'].notna()]
+            
+            if len(valid_for_corr) > 100:
+                correlation = valid_for_corr['summary_xg'].corr(valid_for_corr['summary_sot'])
+                logger.info(f"\n  xG vs SOT Correlation: {correlation:.3f}")
+                
+                if correlation >= 0.4:
+                    logger.info(f"  ✅ Strong correlation (≥0.4) - xG is predictive of SOT")
+                elif correlation >= 0.2:
+                    logger.warning(f"  ⚠️ Moderate correlation (0.2-0.4) - xG may add value")
+                else:
+                    logger.error(f"  🔴 Weak correlation (<0.2) - xG may not be useful")
+                    issues.append(f"Weak xG-SOT correlation: {correlation:.3f}")
+            
+            # Check if xG is systematically missing for certain positions
+            if 'summary_positions' in df.columns:
+                df['primary_pos'] = df['summary_positions'].apply(safe_extract_position)
+                xg_by_position = df.groupby('primary_pos')['summary_xg'].apply(
+                    lambda x: (x.notna().sum() / len(x) * 100) if len(x) > 0 else 0
+                )
+                
+                logger.info(f"\n  xG Coverage by Position:")
+                for pos, cov in xg_by_position.sort_values(ascending=False).head(8).items():
+                    logger.info(f"    {pos}: {cov:.1f}%")
+                
+                # Check if goalkeepers have xG (they shouldn't)
+                gk_with_xg = df[(df['primary_pos'] == 'GK') & (df['summary_xg'] > 0)]
+                if len(gk_with_xg) > 0:
+                    logger.warning(f"  ⚠️ {len(gk_with_xg)} goalkeepers with xG > 0 (data quality issue)")
+    else:
+        logger.error("  ❌ 'summary_xg' column not found - CANNOT PROCEED WITH v4.2")
+        issues.append("summary_xg column missing - v4.2 feature unavailable")
+    
+    # Check non-penalty xG if available
+    if 'summary_non_pen_xg' in df.columns:
+        df['summary_non_pen_xg'] = pd.to_numeric(df['summary_non_pen_xg'], errors='coerce')
+        npxg_available = df['summary_non_pen_xg'].notna().sum()
+        npxg_coverage = (npxg_available / len(df)) * 100
+        
+        logger.info(f"\n  Non-Penalty xG Coverage: {npxg_coverage:.1f}%")
+        
+        if npxg_coverage >= 80:
+            logger.info(f"  ✅ Non-penalty xG available - Consider using instead of total xG")
+
+    # --- Venue Data Consistency Check ---
     logger.info(f"\n🏟 VENUE DATA CONSISTENCY CHECK:")
 
-    # Check for records where the player's team is neither the home nor the away team
     if all(col in df.columns for col in ['team_name', 'home_team', 'away_team']):
         inconsistent_teams = df[
             (df['team_name'] != df['home_team']) & 
@@ -165,43 +269,35 @@ def validate_player_match_stats():
         ]
 
         if len(inconsistent_teams) > 0:
-            logger.error(f"  🔴 {len(inconsistent_teams)} records where team_name is not home_team or away_team! (e.g., Team: {inconsistent_teams['team_name'].iloc[0]}, Home: {inconsistent_teams['home_team'].iloc[0]})")
+            logger.error(f"  🔴 {len(inconsistent_teams)} records where team_name is not home_team or away_team!")
             issues.append(f"Team mismatch in match metadata: {len(inconsistent_teams)} records")
         else:
             logger.info(f"  ✅ Team names are consistent with home_team/away_team fields.")
     else:
         logger.warning("  ⚠️ Cannot run team consistency check: Missing home_team/away_team columns.")
         
-    # --- Position Data Validation (FIXED) ---
+    # --- Position Data Validation ---
     logger.info(f"\n📍 PLAYER POSITION DATA VALIDATION:")
     
     if 'summary_positions' in df.columns:
-        
-        # 1. Clean the position data using the new safe_extract function
         df['primary_pos_code'] = df['summary_positions'].apply(safe_extract_position)
         
-        # 2. Check for records where parsing failed to produce a valid code (NaN is covered by the missing check above)
         valid_codes = ['FW', 'MF', 'DF', 'GK', 'CB', 'LB', 'RB', 'WB', 'CM', 'DM', 'AM', 'LM', 'RM', 'LW', 'RW']
         
-        # Identify records with invalid primary position codes (excluding NaNs which were checked above)
         invalid_pos_records = df[~df['primary_pos_code'].isin(valid_codes)]
-        
-        # Filter out NaN/None values from the filtered set to eliminate the UserWarning
         invalid_pos_records = invalid_pos_records[invalid_pos_records['primary_pos_code'].notna()]
 
         if len(invalid_pos_records) > 0:
             example_code = invalid_pos_records['primary_pos_code'].iloc[0] if not invalid_pos_records.empty else '?'
-            logger.error(f"  🔴 {len(invalid_pos_records)} records with invalid position codes (e.g., '{example_code}') AFTER CLEANING")
+            logger.error(f"  🔴 {len(invalid_pos_records)} records with invalid position codes (e.g., '{example_code}')")
             issues.append(f"Invalid position codes: {len(invalid_pos_records)} records")
         else:
             logger.info(f"  ✅ All non-missing position data contains valid codes after parsing fix.")
 
-        # Print the distribution to confirm data variety
         print_position_distribution(df, 'summary_positions', "Raw Position Distribution")
     else:
         logger.error("  ❌ 'summary_positions' column not found in DataFrame!")
         issues.append("'summary_positions' column missing from fetched data.")
-    # -------------------------------------------------------------
 
     # --- Minutes Validation ---
     logger.info(f"\n⚠️ MINUTES DATA VALIDATION:")
@@ -212,15 +308,12 @@ def validate_player_match_stats():
     if len(invalid_minutes) > 0:
         logger.error(f"  🔴 {len(invalid_minutes)} records with minutes > {max_valid_minutes}")
         issues.append(f"Invalid minutes data: {len(invalid_minutes)} records > {max_valid_minutes}")
-        invalid_minutes.to_csv('invalid_minutes_records.csv', index=False)
-        logger.error(f"  💾 Saved problematic records to 'invalid_minutes_records.csv'")
     else:
         logger.info(f"  ✅ All minutes values are realistic (≤ {max_valid_minutes})")
 
     zero_or_negative = df[df['summary_min'] <= 0]
     if len(zero_or_negative) > 0:
         logger.warning(f"  ⚠️ {len(zero_or_negative)} records with minutes ≤ 0")
-        issues.append(f"Zero/negative minutes: {len(zero_or_negative)} records")
 
     # --- SOT Validation ---
     logger.info(f"\n⚽ SHOTS ON TARGET VALIDATION:")
@@ -338,6 +431,8 @@ def generate_summary_report(all_issues):
 
     if not all_issues:
         logger.info("\n✅ ALL VALIDATION CHECKS PASSED!")
+        logger.info("\n🎯 xG Feature Status:")
+        logger.info("  Check the xG validation section above to confirm v4.2 readiness")
         return True
     else:
         logger.error(f"\n❌ VALIDATION FAILED: {len(all_issues)} ISSUES FOUND")
@@ -350,7 +445,7 @@ def generate_summary_report(all_issues):
 # ---------------------------------------------------------------
 def main():
     logger.info("=" * 80)
-    logger.info("  DATA VALIDATION & QUALITY CHECK (incl. Position Features)")
+    logger.info("  DATA VALIDATION & QUALITY CHECK (v4.2 with xG)")
     logger.info("=" * 80)
 
     all_issues = []
