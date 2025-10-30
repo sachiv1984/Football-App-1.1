@@ -38,6 +38,7 @@ OUTPUT_FILE = "model_comparison_report.txt"
 PREDICTOR_COLUMNS = [
     'sot_conceded_MA5_scaled', 
     'sot_MA5_scaled', 
+    'npxg_MA5_scaled', 
     'summary_min',
     'is_forward',   
     'is_defender',
@@ -46,7 +47,8 @@ PREDICTOR_COLUMNS = [
 
 # Inflation columns used for the Logistic part of the ZIP model
 INFLATION_PREDICTOR_COLUMNS = [
-    'sot_MA5_scaled', 
+    'sot_MA5_scaled',
+    'npxg_MA5_scaled', 
     'is_forward',   
     'is_defender',
     'is_home' # <--- ADDED 'is_home' to match ZIP training
