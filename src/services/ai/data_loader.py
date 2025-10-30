@@ -56,8 +56,8 @@ def load_data_for_backtest() -> tuple[pd.DataFrame, pd.DataFrame]:
     """Orchestrates the data loading for player and combined team defense metrics."""
     
     # --- 1. Player Stats (P-Factors Source) ---
-    # ✅ UPDATED: Added summary_positions to fetch player position data
-    player_cols = "id, player_id, player_name, team_name, summary_sot, summary_min, summary_positions, home_team, away_team, venue, team_side, match_datetime"
+    # ✅ UPDATED v4.2: Added summary_non_pen_xg for xG feature
+    player_cols = "id, player_id, player_name, team_name, summary_sot, summary_min, summary_positions, summary_non_pen_xg, home_team, away_team, venue, team_side, match_datetime"
     
     df_player = fetch_all_data_from_supabase(
         table_name="player_match_stats", 
@@ -71,6 +71,7 @@ def load_data_for_backtest() -> tuple[pd.DataFrame, pd.DataFrame]:
     
     # Clean and standardize player data types
     df_player['summary_min'] = pd.to_numeric(df_player['summary_min'], errors='coerce')
+    df_player['summary_non_pen_xg'] = pd.to_numeric(df_player['summary_non_pen_xg'], errors='coerce')  # ✅ NEW
     df_player['match_datetime'] = pd.to_datetime(df_player['match_datetime'], errors='coerce')
     df_player['match_date'] = df_player['match_datetime'].dt.date 
     
@@ -78,6 +79,7 @@ def load_data_for_backtest() -> tuple[pd.DataFrame, pd.DataFrame]:
     df_player = df_player.sort_values(by=['match_datetime', 'player_id']).reset_index(drop=True)
     logger.info(f"Player data (P-Factors) loaded: {df_player.shape}")
     logger.info(f"  ✅ Position data included: {df_player['summary_positions'].notna().sum()} players have position info")
+    logger.info(f"  ✅ npxG data included: {df_player['summary_non_pen_xg'].notna().sum()} records have npxG info")  # ✅ NEW
 
 
     # --------------------------------------------------------------------------
@@ -127,7 +129,7 @@ def load_data_for_backtest() -> tuple[pd.DataFrame, pd.DataFrame]:
 # --- Execution and Saving ---
 
 if __name__ == '__main__':
-    logger.info("Starting data loading process...")
+    logger.info("Starting data loading process (v4.2 with npxG)...")
     
     try:
         df_player, df_team_def = load_data_for_backtest()
