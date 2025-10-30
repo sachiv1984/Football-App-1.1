@@ -1,4 +1,5 @@
-# src/services/ai/player_factor_engineer.py - v4.2 (WITH ROBUST FIXES)
+# src/services/ai/player_factor_engineer.py
+# v4.2 (WITH ROBUST NPxG FIX)
 
 import pandas as pd
 import numpy as np
@@ -40,9 +41,8 @@ def safe_extract_position(pos_str):
     # Handle the expected clean format 'FW,MF' or simple 'FW'
     return pos_str.split(',')[0].strip().upper()
 
+
 # ---------------------------------------------
-
-
 def load_data():
     """Load the feature set with O-Factors from backtest_processor."""
     logger.info("Loading data from backtest_processor output...")
@@ -57,25 +57,35 @@ def load_data():
 
 
 def rename_columns_for_consistency(df):
-    """Rename summary columns to shorter names for easier processing."""
+    """
+    Rename summary columns to shorter names for easier processing.
+    ✅ NEW: summary_npxg → npxg handled safely.
+    """
     logger.info("Renaming columns for consistency...")
     
+    # Always safe rename for sot/min
     rename_map = {
         'summary_sot': 'sot',
-        'summary_min': 'min',
-        'summary_npxg': 'npxg'
+        'summary_min': 'min'
     }
-    
     df = df.rename(columns=rename_map)
-    logger.info(f"  ✅ Renamed: {list(rename_map.keys())} → {list(rename_map.values())}")
+
+    # ✅ Safe handling of npxg
+    if "summary_npxg" in df.columns:
+        df = df.rename(columns={"summary_npxg": "npxg"})
+        logger.info("  ✅ Renamed: summary_npxg → npxg")
+    else:
+        # Create blank column
+        df["npxg"] = np.nan
+        logger.warning("  ⚠️ 'summary_npxg' missing → created blank 'npxg'")
     
+    logger.info("  ✅ Rename completed")
     return df
 
 
 def process_position_data(df):
     """
     Extract and process position data with hybrid filtering.
-    CRITICAL FIX APPLIED: Ensures all columns are explicitly retained after filtering.
     """
     logger.info("\n" + "="*60)
     logger.info("PROCESSING POSITION DATA (HYBRID FILTERING)")
@@ -96,54 +106,42 @@ def process_position_data(df):
         'FW': 'Forward', 'LW': 'Forward', 'RW': 'Forward'
     }
     df['position_group'] = df['position'].map(position_mapping)
-    df['position_group'] = df['position_group'].fillna('Midfielder') # Default unmapped
+    df['position_group'] = df['position_group'].fillna('Midfielder') # Default 
     
-    # 3. Calculate player's average SOT (for hybrid filtering)
+    # 3. Calculate player's average SOT
     player_avg_sot = df.groupby('player_id')['sot'].mean().reset_index()
     player_avg_sot.columns = ['player_id', 'player_avg_sot']
     df = df.merge(player_avg_sot, on='player_id', how='left')
     
-    # 4. Show position distribution BEFORE filtering
+    # 4. Position distribution BEFORE filtering
     logger.info("\n  Position Distribution (Before Filtering):")
     position_counts = df['position_group'].value_counts()
     for pos, count in position_counts.items():
         pct = (count / len(df)) * 100
         logger.info(f"    {pos:<15} {count:>5} ({pct:>5.1f}%)")
     
-    # 5. HYBRID FILTERING (Primary Filtering Logic)
+    # 5. HYBRID FILTERING
     original_count = len(df)
     ATTACKING_DEFENDER_THRESHOLD = 0.3
     
-    # Store the list of columns BEFORE filtering to ensure all are retained
-    # This is the **CRITICAL GUARDRAIL** fix for column loss
+    # Guard: capture columns BEFORE filtering
     original_cols = df.columns.tolist() 
     
-    # Log attacking defenders (optional, for visibility)
-    attacking_defenders_df = df[
-        (df['position_group'] == 'Defender') & 
-        (df['player_avg_sot'] >= ATTACKING_DEFENDER_THRESHOLD)
-    ]
-    if len(attacking_defenders_df) > 0:
-        logger.info(f"\n  🎯 Found {attacking_defenders_df['player_id'].nunique()} unique attacking defenders (avg SOT >= {ATTACKING_DEFENDER_THRESHOLD}):")
-        top_attacking_defenders = attacking_defenders_df.groupby('player_name')['player_avg_sot'].first().sort_values(ascending=False).head(5)
-        for name, avg_sot in top_attacking_defenders.items():
-            logger.info(f"    {name:<30} {avg_sot:.3f}")
-            
-    # Create the boolean mask
+    # Mask logic
     offensive_player_mask = (
-        (df['position_group'].isin(['Forward', 'Midfielder'])) |  # Regular offensive players
-        ((df['position_group'] == 'Defender') & (df['player_avg_sot'] >= ATTACKING_DEFENDER_THRESHOLD))  # Attacking defenders
+        (df['position_group'].isin(['Forward', 'Midfielder'])) |
+        ((df['position_group'] == 'Defender') & (df['player_avg_sot'] >= ATTACKING_DEFENDER_THRESHOLD))
     )
     
-    # Apply the mask using .loc and selecting all columns explicitly to prevent drop
-    df = df.loc[offensive_player_mask, original_cols].copy() 
+    # Filter but keep ALL original columns
+    df = df.loc[offensive_player_mask, original_cols].copy()
     
     filtered_count = original_count - len(df)
     
     logger.info(f"\n  🗑️  Filtered out {filtered_count} non-offensive players")
     logger.info(f"  ✅ Remaining: {len(df)} offensive players")
     
-    # 6. Show position distribution AFTER filtering
+    # 6. Position distribution AFTER filtering
     logger.info("\n  Position Distribution (After Filtering):")
     position_counts = df['position_group'].value_counts()
     for pos, count in position_counts.items():
@@ -151,13 +149,13 @@ def process_position_data(df):
         avg_sot = df[df['position_group']==pos]['player_avg_sot'].mean()
         logger.info(f"    {pos:<15} {count:>5} ({pct:>5.1f}%) - Avg SOT: {avg_sot:.3f}")
     
-    # 7. Create dummy variables for model
+    # 7. Dummy variables
     df['is_forward'] = (df['position_group'] == 'Forward').astype(int)
     df['is_defender'] = (df['position_group'] == 'Defender').astype(int)
     
-    logger.info(f"\n  ✅ Created position dummy variables:")
+    logger.info("\n  ✅ Created position dummy variables:")
     logger.info(f"    is_forward: {df['is_forward'].sum()} ({(df['is_forward'].sum()/len(df)*100):.1f}%)")
-    logger.info(f"    is_defender: {df['is_defender'].sum()} ({(df['is_defender'].sum()/len(df)*100):.1f}%) [attacking defenders only]")
+    logger.info(f"    is_defender: {df['is_defender'].sum()} ({(df['is_defender'].sum()/len(df)*100):.1f}%)")
     
     midfielders_count = ((~df['is_forward'].astype(bool)) & (~df['is_defender'].astype(bool))).sum()
     midfielders_pct = (midfielders_count/len(df)*100)
@@ -170,8 +168,7 @@ def process_position_data(df):
 
 def calculate_player_ma5_factors(df):
     """
-    Calculate rolling MA5 (Moving Average over 5 matches) for player-specific metrics.
-    FIX APPLIED: Includes explicit numeric conversion to prevent calculation skip.
+    Calculate rolling MA5 (Moving Average over 5 matches)
     """
     logger.info("Calculating Player MA5 Factors (P-Factors)...")
     
@@ -182,10 +179,8 @@ def calculate_player_ma5_factors(df):
             logger.warning(f"⚠️ Metric '{metric}' not found in dataframe, skipping...")
             continue
         
-        # 🎯 PRIMARY FIX: Explicitly convert the metric column to numeric before calculation.
         df[metric] = pd.to_numeric(df[metric], errors='coerce') 
         
-        # Calculate rolling MA5 with closed='left'
         df[f'{metric}_MA5'] = (
             df.groupby('player_id')[metric]
             .transform(lambda x: x.rolling(window=MIN_PERIODS, min_periods=1, closed='left').mean())
@@ -199,9 +194,7 @@ def calculate_player_ma5_factors(df):
 
 
 def calculate_venue_factor(df):
-    """
-    Creates a binary feature for the venue (Home vs. Away).
-    """
+    """Creates a binary feature for the venue (Home vs. Away)."""
     logger.info("Creating Venue Factor (is_home)...")
     
     if 'team_side' not in df.columns:
@@ -213,7 +206,7 @@ def calculate_venue_factor(df):
     home_count = df['is_home'].sum()
     away_count = len(df) - home_count
     
-    logger.info(f"  ✅ Created 'is_home' binary factor.")
+    logger.info("  ✅ Created 'is_home' binary factor.")
     logger.info(f"    Home count (1): {home_count}")
     logger.info(f"    Away count (0): {away_count}")
     
@@ -239,8 +232,6 @@ def validate_output(df):
         logger.error(f"❌ Missing required columns: {missing}")
         exit(1)
     
-    # ... (Rest of validation logging remains the same) ...
-    
     logger.info(f"\n📊 Summary Statistics:")
     logger.info(f"  Total observations: {len(df)}")
     logger.info(f"  Unique players: {df['player_id'].nunique()}")
@@ -251,7 +242,7 @@ def validate_output(df):
         npxg_coverage = df['npxg_MA5'].notna().sum() / len(df) * 100
         logger.info(f"  ✅ npxg_MA5 coverage: {npxg_coverage:.1f}%")
         
-    logger.info("\✅ Validation complete")
+    logger.info("✅ Validation complete")
 
 
 def save_output(df):
@@ -270,13 +261,13 @@ def save_output(df):
 def main():
     """Main execution pipeline."""
     logger.info("="*70)
-    logger.info("  PLAYER FACTOR ENGINEER v4.2 - WITH xG FEATURE (FIXED)")
+    logger.info("  PLAYER FACTOR ENGINEER v4.2 - WITH NPxG SAFE MODE")
     logger.info("="*70)
     
     df = load_data()
     df = rename_columns_for_consistency(df)
-    df = process_position_data(df) # **Fixed here**
-    df = calculate_player_ma5_factors(df) # **Fixed here**
+    df = process_position_data(df)
+    df = calculate_player_ma5_factors(df)
     df = calculate_venue_factor(df)
     validate_output(df)
     save_output(df)
