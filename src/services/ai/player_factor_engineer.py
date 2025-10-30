@@ -147,6 +147,7 @@ def process_position_data(df):
         for name, avg_sot in top_attacking_defenders.items():
             logger.info(f"    {name:<30} {avg_sot:.3f}")
     
+    # IMPORTANT: Use .copy() to ensure the slice is a new DataFrame and avoids SettingWithCopyWarning
     df = df[
         (df['position_group'].isin(['Forward', 'Midfielder'])) |  # Regular offensive players
         ((df['position_group'] == 'Defender') & (df['player_avg_sot'] >= ATTACKING_DEFENDER_THRESHOLD))  # Attacking defenders
@@ -185,7 +186,7 @@ def process_position_data(df):
 def calculate_player_ma5_factors(df):
     """
     Calculate rolling MA5 (Moving Average over 5 matches) for player-specific metrics.
-    ✅ v4.2: Now includes npxg_MA5 calculation
+    ✅ v4.2: Now includes npxg_MA5 calculation. FIX: Explicitly convert metric to numeric.
     """
     logger.info("Calculating Player MA5 Factors (P-Factors)...")
     
@@ -196,6 +197,11 @@ def calculate_player_ma5_factors(df):
         if metric not in df.columns:
             logger.warning(f"⚠️ Metric '{metric}' not found in dataframe, skipping...")
             continue
+        
+        # 💡 FIX: Explicitly convert the metric column to numeric before calculation.
+        # This resolves potential issues where a column might be a mixed type object
+        # (e.g., strings and floats) after filtering in the previous step.
+        df[metric] = pd.to_numeric(df[metric], errors='coerce') 
         
         # Calculate rolling MA5 with closed='left' (exclude current match)
         df[f'{metric}_MA5'] = (
@@ -317,7 +323,7 @@ def validate_output(df):
     for pos, val in avg_npxg.items():
         logger.info(f"  {pos:<15} {val:.3f}")
     
-    logger.info("\n✅ Validation complete")
+    logger.info("\✅ Validation complete")
 
 
 def save_output(df):
