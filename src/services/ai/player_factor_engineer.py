@@ -68,7 +68,7 @@ def rename_columns_for_consistency(df):
     rename_map = {
         'summary_sot': 'sot',
         'summary_min': 'min',
-        'summary_npxg': 'npxg'  # ✅ ADDED
+        'summary_non_pen_xg': 'npxg'  # ✅ ADDED
     }
     
     df = df.rename(columns=rename_map)
