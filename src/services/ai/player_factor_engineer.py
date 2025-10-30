@@ -19,7 +19,10 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from src.services.ai.backtest.data_loader_v4 import load_data_for_backtest
+# ✅ ✅ ✅ FIX A — Correct import path
+from src.services.ai.data_loader import load_data_for_backtest
+# ✅ ✅ ✅ (Old bad import was:)
+# from src.services.ai.backtest.data_loader_v4 import load_data_for_backtest
 
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 logger = logging.getLogger(__name__)
@@ -88,7 +91,7 @@ def process_position_data(df: pd.DataFrame) -> pd.DataFrame:
     # Before filtering — stats
     counts = df["position_group"].value_counts()
     logger.info("\n  Position Distribution (Before Filtering):")
-    for k,v in counts.items():
+    for k, v in counts.items():
         logger.info(f"    {k:15s} {v:4d} ({v/len(df):5.1%})")
 
     # Hybrid logic:
@@ -108,7 +111,7 @@ def process_position_data(df: pd.DataFrame) -> pd.DataFrame:
 
     dist = df["position_group"].value_counts()
     logger.info("  Position Distribution (After Filtering):")
-    for p,c in dist.items():
+    for p, c in dist.items():
         mean_s = df.loc[df["position_group"] == p, "player_avg_sot"].mean()
         logger.info(f"    {p:15s} {c:4d} ({c/len(df):5.1%}) - Avg SOT: {mean_s:.3f}")
 
@@ -183,12 +186,12 @@ def validate_output(df: pd.DataFrame):
     logger.info(f"  Forwards:           {df['is_forward'].sum()}")
     logger.info(f"  Att.Defenders:      {df['is_defender'].sum()}")
 
-    # Coverage check
-    coverage = df["npxg_M5"].notna().mean() if "npxg_MA5" in df else 0
     if "npxg_MA5" in df:
         coverage = df["npxg_MA5"].notna().mean()
-    logger.info(f"  ✅ npxg_MA5 coverage: {coverage:.1%}")
+    else:
+        coverage = 0
 
+    logger.info(f"  ✅ npxg_MA5 coverage: {coverage:.1%}")
     logger.info("✅ Validation complete")
 
 
