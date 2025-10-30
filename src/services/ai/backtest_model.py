@@ -11,17 +11,17 @@ logger = logging.getLogger(__name__)
 
 # --- Configuration ---
 INPUT_FILE = "final_feature_set_scaled.parquet"
-MODEL_OUTPUT = "poisson_model.pkl"
+MODEL_OUTPUT = "poisson_model_v4.2.pkl"
 
-# Predictor columns for the model
-# ✅ UPDATED: Added is_home venue feature (6th feature)
+# Predictor columns for the model (updated to include npxg_MA5_scaled)
 PREDICTOR_COLUMNS = [
-    'sot_conceded_MA5_scaled',      # Opponent weakness (O-Factor)
-    'sot_MA5_scaled',                # Player form (P-Factor)
-    'summary_min',                   # Expected minutes this match (raw)
-    'is_forward',                    # Position: Forward (binary, not scaled)
-    'is_defender',                   # Position: Attacking Defender (binary, not scaled)
-    'is_home'                        # ✅ NEW: Venue: Home (binary, not scaled)
+    'sot_conceded_MA5_scaled',  # Opponent weakness
+    'sot_MA5_scaled',           # Player form
+    'npxg_MA5_scaled',          # Expected goals factor
+    'summary_min',              # Expected minutes
+    'is_forward',               # Position: Forward
+    'is_defender',              # Position: Attacking Defender
+    'is_home'                   # Venue: Home
 ]
 
 TARGET_COLUMN = 'sot'
@@ -76,16 +76,12 @@ def prepare_features(df):
 def train_poisson_model(X, y):
     """Train Poisson regression model."""
     logger.info("\nTraining Poisson Regression model...")
-    logger.info("  Model family: Poisson (log link)")
-    logger.info("  Solver: IRLS (Iteratively Reweighted Least Squares)")
     
     try:
         # Train Poisson GLM
         model = sm.GLM(y, X, family=sm.families.Poisson()).fit()
-        
         logger.info("✅ Model training complete")
         return model
-        
     except Exception as e:
         logger.error(f"❌ Model training failed: {e}")
         exit(1)
@@ -97,175 +93,61 @@ def display_model_summary(model, X, y):
     logger.info("  MODEL PERFORMANCE SUMMARY")
     logger.info("="*70)
     
-    # 1. Model Fit Statistics
-    logger.info("\n📊 Model Fit Statistics:")
-    
-    # Calculate McFadden's Pseudo R-squared
+    # McFadden's Pseudo R²
     ll_model = model.llf
-    
     if hasattr(model, 'llnull'):
         ll_null = model.llnull
         pseudo_r2 = 1 - (ll_model / ll_null)
-        
-        logger.info(f"  Pseudo R² (McFadden): {pseudo_r2:.4f} ({pseudo_r2*100:.2f}%)")
-        logger.info(f"  Log-Likelihood (Model): {ll_model:.2f}")
-        logger.info(f"  Log-Likelihood (Null):  {ll_null:.2f}")
     else:
-        y_mean = y.mean()
-        if y_mean > 0:
-            ll_null = np.sum(y * np.log(y_mean) - y_mean - np.log(np.maximum(1, np.arange(1, len(y)+1))))
-            pseudo_r2 = 1 - (ll_model / ll_null)
-            logger.info(f"  Pseudo R² (McFadden): {pseudo_r2:.4f} ({pseudo_r2*100:.2f}%)")
-            logger.info(f"  Log-Likelihood (Model): {ll_model:.2f}")
-            logger.info(f"  Log-Likelihood (Null):  {ll_null:.2f} (calculated)")
-        else:
-            logger.warning("  ⚠️ Could not calculate Pseudo R² (mean SOT = 0)")
-            pseudo_r2 = np.nan
+        pseudo_r2 = np.nan
+
+    logger.info(f"  Pseudo R² (McFadden): {pseudo_r2:.4f}")
+    logger.info(f"  AIC: {model.aic:.2f}")
+    logger.info(f"  BIC: {model.bic:.2f}")
     
-    logger.info(f"  AIC:                  {model.aic:.2f}")
-    logger.info(f"  BIC:                  {model.bic_llf:.2f}")
-    
-    # 2. Prediction Performance
+    # Prediction performance
     y_pred = model.predict(X)
     rmse = np.sqrt(np.mean((y - y_pred)**2))
     mae = np.mean(np.abs(y - y_pred))
     
-    logger.info(f"\n📊 Prediction Performance:")
-    logger.info(f"  RMSE:                 {rmse:.4f}")
-    logger.info(f"  MAE:                  {mae:.4f}")
-    logger.info(f"  Mean Actual SOT:      {y.mean():.4f}")
-    logger.info(f"  Mean Predicted SOT:   {y_pred.mean():.4f}")
+    logger.info(f"\nPrediction Performance:")
+    logger.info(f"  RMSE: {rmse:.4f}")
+    logger.info(f"  MAE:  {mae:.4f}")
     
-    # 3. Feature Coefficients (Rate Multipliers)
-    logger.info(f"\n📊 Feature Coefficients (Rate Multipliers):")
-    logger.info(f"  {'Feature':<35} {'Coefficient':<12} {'Rate Mult.':<12} {'P-value':<10}")
-    logger.info(f"  {'-'*70}")
-    
-    feature_names = ['const'] + PREDICTOR_COLUMNS
-    
-    for feature in feature_names:
-        if feature not in model.params.index:
-            continue
-            
-        coef = model.params[feature]
-        rate_mult = np.exp(coef)
-        p_value = model.pvalues[feature]
-        
-        # Interpretation
-        if feature == 'const':
-            interp = "(baseline)"
-        elif rate_mult > 1.05:
-            interp = f"(+{(rate_mult-1)*100:.1f}% SOT) ✅"
-        elif rate_mult < 0.95:
-            interp = f"({(rate_mult-1)*100:.1f}% SOT) ⚠️"
-        else:
-            interp = "(minimal effect)"
-        
-        # Significance
-        sig = "***" if p_value < 0.001 else "**" if p_value < 0.01 else "*" if p_value < 0.05 else ""
-        
-        logger.info(f"  {feature:<35} {coef:>11.4f} {rate_mult:>11.4f}{sig:<3} {interp}")
-    
-    logger.info(f"\n  Significance: *** p<0.001, ** p<0.01, * p<0.05")
-    
-    # 4. Position & Venue Feature Insights
-    logger.info(f"\n📊 Feature Effect Insights:")
-    
-    if 'is_forward' in model.params.index and 'is_defender' in model.params.index:
-        forward_mult = np.exp(model.params['is_forward'])
-        defender_mult = np.exp(model.params['is_defender'])
-        
-        logger.info(f"\n  Position Effects (vs Midfielders baseline):")
-        logger.info(f"    Forwards:            {(forward_mult-1)*100:+.1f}% SOT (mult: {forward_mult:.3f}x)")
-        logger.info(f"    Att.Defenders:       {(defender_mult-1)*100:+.1f}% SOT (mult: {defender_mult:.3f}x)")
-    
-    # ✅ NEW: Venue effect analysis
-    if 'is_home' in model.params.index:
-        home_mult = np.exp(model.params['is_home'])
-        home_pvalue = model.pvalues['is_home']
-        
-        logger.info(f"\n  Venue Effect:")
-        logger.info(f"    Home vs Away:        {(home_mult-1)*100:+.1f}% SOT (mult: {home_mult:.3f}x)")
-        logger.info(f"    P-value:             {home_pvalue:.4f} {'✅ Significant' if home_pvalue < 0.05 else '⚠️ Not significant'}")
-        
-        if home_mult > 1.05:
-            logger.info(f"    Interpretation:      Home advantage confirmed! 🏟️")
-        elif home_mult < 0.95:
-            logger.info(f"    Interpretation:      Away advantage (unusual!) ✈️")
-        else:
-            logger.info(f"    Interpretation:      Minimal venue effect")
-    
-    # 5. Training Sample Info
-    logger.info(f"\n📊 Training Sample:")
-    logger.info(f"  Total observations:   {len(y)}")
-    logger.info(f"  Zero SOT matches:     {(y == 0).sum()} ({(y==0).sum()/len(y)*100:.1f}%)")
-    logger.info(f"  Non-zero matches:     {(y > 0).sum()} ({(y>0).sum()/len(y)*100:.1f}%)")
-    logger.info(f"  Max SOT in sample:    {y.max():.0f}")
-    
-    # 6. Comparison with Previous Versions
-    logger.info(f"\n📊 Model Evolution:")
-    logger.info(f"  v3.1 (5 features):    10.94% Pseudo R²")
-    logger.info(f"  v4.0 (6 features):    {pseudo_r2*100:.2f}% Pseudo R²")
-    
-    if not np.isnan(pseudo_r2):
-        improvement = (pseudo_r2 - 0.1094) * 100
-        if improvement > 0:
-            logger.info(f"  Improvement:          +{improvement:.2f} percentage points ✅")
-            logger.info(f"  Status:               BETTER than v3.1 - Deploy this model!")
-        elif improvement > -0.5:
-            logger.info(f"  Change:               {improvement:.2f} percentage points (similar)")
-            logger.info(f"  Status:               Similar to v3.1 - Safe to deploy")
-        else:
-            logger.info(f"  Change:               {improvement:.2f} percentage points ⚠️")
-            logger.warning(f"  Status:               WORSE than v3.1 - Investigate before deploying!")
+    # Feature coefficients
+    logger.info("\nFeature Coefficients (Rate Multipliers):")
+    for feature in ['const'] + PREDICTOR_COLUMNS:
+        coef = model.params.get(feature, np.nan)
+        rate_mult = np.exp(coef) if not np.isnan(coef) else np.nan
+        p_val = model.pvalues.get(feature, np.nan)
+        logger.info(f"  {feature:<20} coef={coef:.4f}, mult={rate_mult:.3f}, p={p_val:.4f}")
 
 
 def save_model(model):
     """Save the trained model to disk."""
     logger.info(f"\nSaving model to {MODEL_OUTPUT}...")
-    
     try:
         with open(MODEL_OUTPUT, 'wb') as f:
             pickle.dump(model, f)
-        
-        logger.info(f"✅ Model saved successfully")
-        logger.info(f"   File: {MODEL_OUTPUT}")
-        logger.info(f"   Size: {os.path.getsize(MODEL_OUTPUT) / 1024:.1f} KB")
-        
+        logger.info(f"✅ Model saved successfully ({os.path.getsize(MODEL_OUTPUT)/1024:.1f} KB)")
     except Exception as e:
         logger.error(f"❌ Error saving model: {e}")
         exit(1)
 
 
 def main():
-    """Main execution pipeline."""
     logger.info("="*70)
-    logger.info("  POISSON REGRESSION MODEL TRAINING - WITH VENUE FEATURE (v4.1)")
+    logger.info("  POISSON REGRESSION MODEL TRAINING - WITH NPXG & VENUE (v4.2)")
     logger.info("="*70)
     
-    # Step 1: Load data
     df = load_data()
-    
-    # Step 2: Prepare features
     X, y, df_clean = prepare_features(df)
-    
-    # Step 3: Train model
     model = train_poisson_model(X, y)
-    
-    # Step 4: Display results
     display_model_summary(model, X, y)
-    
-    # Step 5: Save model
     save_model(model)
     
-    logger.info("\n" + "="*70)
-    logger.info("  ✅ MODEL TRAINING COMPLETE (v4.1 with venue)")
-    logger.info("="*70)
-    logger.info("\n🚨 CRITICAL NEXT STEPS:")
-    logger.info("   1. Copy poisson_model.pkl to src/services/ai/artifacts/")
-    logger.info("   2. Copy training_stats.json to src/services/ai/artifacts/")
-    logger.info("   3. Update live_predictor_zip.py to use 6 features")
-    logger.info("\nNext step: Run live_predictor_zip.py for predictions")
+    logger.info("\n✅ MODEL TRAINING COMPLETE (v4.2)")
+    logger.info("Next step: Run live_predictor_zip.py for live predictions")
 
 
 if __name__ == '__main__':
