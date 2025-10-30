@@ -1,5 +1,5 @@
 """
-Live Predictor with Zero-Inflated Poisson (ZIP) Model Support - WITH DEBUG
+Live Predictor with Zero-Inflated Poisson (ZIP) Model Support - v4.2 WITH xG
 
 This version can use either:
 1. Standard Poisson model (poisson_model.pkl)
@@ -7,13 +7,8 @@ This version can use either:
 
 Set MODEL_TYPE = 'zip' or 'poisson' to choose.
 
-✅ UPDATED 2025-10-19: Implemented position extraction and hybrid filtering logic.
-✅ UPDATED 2025-10-27: Removed min_MA5_scaled from model features (redundant after position features).
-✅ FIX APPLIED 2025-10-19: Correctly handles the simplified feature set for ZIP model prediction (exog_infl).
-✅ DEBUG ADDED 2025-10-28: Added debug logging for star players
-✅ FIX APPLIED 2025-10-29: Added 'is_home' feature to match 7-parameter models.
-✅ FIX APPLIED 2025-10-29: Corrected ZIP prediction calls to resolve 'prob-inflate is not available' error.
-✅ FIX APPLIED 2025-10-29: Corrected ZIP prediction call to use 'mean' instead of 'expected' for E_SOT (RESOLVES VALUEERROR).
+✅ UPDATED v4.2: Added npxg_MA5 feature (7 features total)
+✅ Previous updates: Position features, venue (is_home), hybrid filtering
 """
 
 import os
@@ -50,7 +45,7 @@ SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 ARTIFACT_PATH = "src/services/ai/artifacts/" 
 
 # ✅ CHOOSE MODEL TYPE: 'zip' or 'poisson'
-MODEL_TYPE = os.getenv("MODEL_TYPE", "poisson")  # ✅ CHANGED: Default to Poisson (recommended)
+MODEL_TYPE = os.getenv("MODEL_TYPE", "poisson")  # ✅ Default to Poisson (recommended)
 
 if MODEL_TYPE == 'zip':
     MODEL_FILE = ARTIFACT_PATH + "zip_model.pkl"
@@ -67,7 +62,7 @@ MIN_EXPECTED_MINUTES = 15.0
 MIN_SOT_MA5 = 0.1
 MIN_MATCHES_PLAYED = 3
 
-# --- Position Feature Configuration (NEW) ---
+# --- Position Feature Configuration ---
 ATTACKING_DEFENDER_THRESHOLD = 0.3  # Min avg SOT to qualify as attacking defender
 
 POSITION_MAPPING = {
@@ -82,26 +77,28 @@ POSITION_MAPPING = {
     'FW': 'Forward', 'LW': 'Forward', 'RW': 'Forward'
 }
 
-# ✅ FIXED: Updated to match 7-feature training model (5 features + is_home)
+# ✅ v4.2 UPDATED: 7 features (added npxg_MA5_scaled)
 PREDICTOR_COLUMNS = [
     'sot_conceded_MA5_scaled', 
-    'sot_MA5_scaled', 
+    'sot_MA5_scaled',
+    'npxg_MA5_scaled',  # ✅ NEW: xG feature
     'summary_min',
     'is_forward', 
     'is_defender',
-    'is_home' # <-- ADDED is_home
+    'is_home'
 ]
 
-# Still calculate min_MA5 for filtering purposes
-MA5_METRICS = ['sot', 'min']
+# ✅ v4.2 UPDATED: Now calculate npxg_MA5 as well
+MA5_METRICS = ['sot', 'min', 'npxg']  # ✅ ADDED npxg
 OPP_METRICS = ['sot_conceded']
 
-# ✅ NEW: Simplified list of features for the ZIP Inflation (Logistic) part (3 features + is_home + const)
+# ✅ v4.2 UPDATED: ZIP Inflation features (if using ZIP model)
 INFLATION_PREDICTOR_COLUMNS = [
     'sot_MA5_scaled', 
+    'npxg_MA5_scaled',  # ✅ NEW: xG in inflation model
     'is_forward',   
     'is_defender',
-    'is_home' # <-- ADDED is_home
+    'is_home'
 ]
 
 # --- Supabase Initialization ---
@@ -117,7 +114,7 @@ except Exception as e:
     exit(1)
 
 # ----------------------------------------------------------------------
-# --- NEW Position Utility Function ---
+# --- Position Utility Function ---
 # ----------------------------------------------------------------------
 
 def safe_extract_position(pos_str):
@@ -130,14 +127,13 @@ def safe_extract_position(pos_str):
     
     pos_str = str(pos_str).strip()
     
-    # Handle corrupted format '["FW", "MF"]' (using try/except for robustness)
+    # Handle corrupted format '["FW", "MF"]'
     if pos_str.startswith('["') and pos_str.endswith(']'):
         try:
             pos_list = ast.literal_eval(pos_str)
             if isinstance(pos_list, list) and pos_list:
                 return pos_list[0].strip().upper()
         except (ValueError, SyntaxError, IndexError):
-            # Fallback for corrupted but unparsable formats
             cleaned_str = pos_str.strip('[" ]').replace('"', '')
             return cleaned_str.split(',')[0].strip().upper()
             
@@ -168,8 +164,8 @@ def load_and_merge_raw_data() -> pd.DataFrame:
     now = pd.Timestamp.now(tz='UTC')
     df_fixtures['is_future'] = df_fixtures['datetime'] > now
 
-    # MODIFIED: Include 'summary_positions' from the player_match_stats table
-    player_cols = "player_id, player_name, team_name, summary_sot, summary_min, home_team, away_team, team_side, match_datetime, summary_positions"
+    # ✅ v4.2 UPDATED: Added summary_non_pen_xg to fetch
+    player_cols = "player_id, player_name, team_name, summary_sot, summary_min, summary_non_pen_xg, home_team, away_team, team_side, match_datetime, summary_positions"
     df_player_history = fetch_with_deduplication(
         supabase_client=supabase,
         table_name="player_match_stats", 
@@ -177,8 +173,9 @@ def load_and_merge_raw_data() -> pd.DataFrame:
         order_by="match_datetime"
     )
 
-    df_player_history['summary_sot'] = pd.to_numeric(df_player_history['summary_sot'], errors='coerce') # Ensure SOT is numeric
+    df_player_history['summary_sot'] = pd.to_numeric(df_player_history['summary_sot'], errors='coerce')
     df_player_history['summary_min'] = pd.to_numeric(df_player_history['summary_min'], errors='coerce')
+    df_player_history['summary_non_pen_xg'] = pd.to_numeric(df_player_history['summary_non_pen_xg'], errors='coerce')  # ✅ NEW
     df_player_history['match_datetime'] = pd.to_datetime(df_player_history['match_datetime'], utc=True)
     df_player_history['match_date'] = df_player_history['match_datetime'].dt.date 
 
@@ -208,7 +205,7 @@ def load_and_merge_raw_data() -> pd.DataFrame:
     player_match_counts = df_player_history.groupby('player_id').size().reset_index(name='match_count')
     qualified_player_ids = player_match_counts[player_match_counts['match_count'] >= MIN_MATCHES_PLAYED]['player_id'].tolist()
     
-    # MODIFIED: Preserve 'summary_positions' for future fixtures
+    # ✅ v4.2: Preserve summary_positions for future fixtures
     active_players = (
         df_player_history[df_player_history['player_id'].isin(qualified_player_ids)]
         .sort_values('match_datetime')
@@ -238,7 +235,9 @@ def load_and_merge_raw_data() -> pd.DataFrame:
             future_rows.append(side_players)
             
     df_future = pd.concat(future_rows, ignore_index=True) if future_rows else pd.DataFrame()
-    for col in ['summary_sot', 'summary_min', 'sot_conceded']:
+    
+    # ✅ v4.2: Set future match columns to NaN (including npxg)
+    for col in ['summary_sot', 'summary_min', 'summary_non_pen_xg', 'sot_conceded']:
         df_future[col] = np.nan
     
     df_final = pd.concat([df_historical, df_future], ignore_index=True)
@@ -253,7 +252,7 @@ def load_and_merge_raw_data() -> pd.DataFrame:
 def clean_and_enrich_data(df: pd.DataFrame) -> pd.DataFrame:
     """
     Creates positional dummy variables (is_forward, is_defender) 
-    and the new 'is_home' feature.
+    and the 'is_home' feature.
     """
     df_enriched = df.copy()
     
@@ -267,11 +266,8 @@ def clean_and_enrich_data(df: pd.DataFrame) -> pd.DataFrame:
     logger.info(f"  Filtered out {initial_count - len(df_enriched)} Goalkeeper records.")
     
     # --- Step 3: Create Model Feature Dummy Variables ---
-    # Midfielders are the baseline (is_forward=0, is_defender=0)
     df_enriched['is_forward'] = (df_enriched['position_group'] == 'Forward').astype(int)
     df_enriched['is_defender'] = (df_enriched['position_group'] == 'Defender').astype(int)
-    
-    # ✅ NEW FIX: Create the 'is_home' feature
     df_enriched['is_home'] = (df_enriched['team_side'] == 'home').astype(int)
     
     logger.info(f"✅ Position and location data extracted, dummies created. Enriched data shape: {df_enriched.shape}")
@@ -280,16 +276,36 @@ def clean_and_enrich_data(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def calculate_ma5_factors(df: pd.DataFrame) -> pd.DataFrame:
-    """Calculate MA5 factors for players and opponents."""
+    """
+    Calculate MA5 factors for players and opponents.
+    ✅ v4.2: Now includes npxg_MA5 calculation
+    """
     df_processed = df.copy()
-    df_processed.rename(columns={'summary_sot': 'sot', 'summary_min': 'min'}, inplace=True)
+    
+    # ✅ v4.2 UPDATED: Added npxg to rename map
+    rename_map = {
+        'summary_sot': 'sot',
+        'summary_min': 'min',
+        'summary_non_pen_xg': 'npxg'  # ✅ NEW
+    }
+    df_processed.rename(columns=rename_map, inplace=True)
     
     # Calculate player MA5 (based on their own history)
     for col in MA5_METRICS:
+        if col not in df_processed.columns:
+            logger.warning(f"⚠️ Column '{col}' not found, skipping MA5 calculation")
+            continue
+            
         df_processed[f'{col}_MA5'] = (
             df_processed.groupby('player_id')[col]
             .transform(lambda x: x.rolling(window=MIN_PERIODS, min_periods=1, closed='left').mean())
         )
+        
+        # ✅ v4.2: Show npxg_MA5 coverage
+        if col == 'npxg':
+            coverage = df_processed[f'{col}_MA5'].notna().sum() / len(df_processed) * 100
+            mean_val = df_processed[f'{col}_MA5'].mean()
+            logger.info(f"  ✅ Calculated {col}_MA5 | Coverage: {coverage:.1f}% | Mean: {mean_val:.3f}")
     
     # Determine opponent team
     df_processed['opponent_team'] = np.where(
@@ -298,55 +314,43 @@ def calculate_ma5_factors(df: pd.DataFrame) -> pd.DataFrame:
         df_processed['home_team']
     )
     
-    # 🔧 FIX: Calculate opponent MA5 differently for historical vs future matches
-    
+    # Calculate opponent MA5
     for col in OPP_METRICS:
-        
         opponent_ma5_map = {}
-        # Iterate over all rows to calculate the opponent's defensive MA5 up to the point of that match
+        
         for idx, row in df_processed.iterrows():
             opponent = row['opponent_team']
             
-            # Get the opponent's historical defensive stats
-            # Filter for the opponent's matches that occurred *before* the current match
             opponent_history = df_processed[
                 (df_processed['team_name'] == opponent) & 
                 (df_processed['match_datetime'] < row['match_datetime'])
             ].sort_values('match_datetime')
             
             if len(opponent_history) >= MIN_PERIODS:
-                # Calculate their last 5 matches defensive average
                 recent_defense = opponent_history.tail(MIN_PERIODS)['sot_conceded'].mean()
                 opponent_ma5_map[idx] = recent_defense
             elif len(opponent_history) > 0:
-                # Use what we have if less than 5
                 opponent_ma5_map[idx] = opponent_history['sot_conceded'].mean()
             else:
-                # No history - will be filled with league average later
                 opponent_ma5_map[idx] = np.nan
         
-        # Assign the opponent MA5
         df_processed[f'{col}_MA5'] = pd.Series(opponent_ma5_map)
         
-        # 🔧 FIX: Fill missing opponent data with league average
+        # Fill missing opponent data with league average
         missing_count = df_processed[f'{col}_MA5'].isna().sum()
         if missing_count > 0:
-            # Calculate league average from historical completed matches only
             historical_matches = df_processed[df_processed['sot_conceded'].notna()]
             if len(historical_matches) > 0:
                 league_avg = historical_matches['sot_conceded'].mean()
                 df_processed[f'{col}_MA5'] = df_processed[f'{col}_MA5'].fillna(league_avg)
                 logger.info(f"  ⚠️ Filled {missing_count} missing {col}_MA5 with league avg: {league_avg:.2f}")
-            else:
-                logger.warning(f"  ⚠️ No historical data to calculate league average for {col}")
     
     return df_processed
 
 
 def get_live_gameweek_features(df_processed: pd.DataFrame) -> pd.DataFrame:
     """
-    Filter for live gameweek and apply qualification criteria, 
-    including the hybrid attacking defender filter based on sot_MA5.
+    Filter for live gameweek and apply qualification criteria.
     """
     scheduled_games = df_processed[
         (df_processed['status'].isin(['scheduled', 'fixture', 'upcoming', 'not started'])) |
@@ -372,10 +376,10 @@ def get_live_gameweek_features(df_processed: pd.DataFrame) -> pd.DataFrame:
             logger.info(f"   Opponent: {player_data['opponent_team'].values[0]}")
             logger.info(f"   Position: {player_data['position_group'].values[0]}")
             logger.info(f"   sot_MA5: {player_data['sot_MA5'].values[0]}")
+            logger.info(f"   npxg_MA5: {player_data['npxg_MA5'].values[0]}")  # ✅ NEW
             logger.info(f"   min_MA5: {player_data['min_MA5'].values[0]}")
             logger.info(f"   sot_conceded_MA5: {player_data['sot_conceded_MA5'].values[0]}")
             
-            # Check match count in history
             if 'df_player_history_global' in globals():
                 match_count = len(df_player_history_global[df_player_history_global['player_name'] == player])
                 logger.info(f"   Historical matches: {match_count}")
@@ -383,6 +387,7 @@ def get_live_gameweek_features(df_processed: pd.DataFrame) -> pd.DataFrame:
             logger.info(f"\n❌ {player}: NOT FOUND in df_live (Gameweek {next_gameweek})")
     logger.info("="*80 + "\n")
     
+    # ✅ v4.2 UPDATED: Added npxg_MA5 to required columns
     REQUIRED_MA5_COLUMNS = [f'{col}_MA5' for col in MA5_METRICS + OPP_METRICS]
     df_live_before_dropna = df_live.copy()
     df_live = df_live.dropna(subset=REQUIRED_MA5_COLUMNS).copy()
@@ -408,8 +413,7 @@ def get_live_gameweek_features(df_processed: pd.DataFrame) -> pd.DataFrame:
             logger.info(f"\n✅ {player}: Still present after dropna")
     logger.info("="*80 + "\n")
     
-    # --- Mandatory Model Qualification Filters ---
-    initial_qualified_count = len(df_live)
+    # Apply quality filters
     df_live_before_mins = df_live.copy()
     df_live = df_live[df_live['min_MA5'] >= MIN_EXPECTED_MINUTES].copy()
     
@@ -458,24 +462,17 @@ def get_live_gameweek_features(df_processed: pd.DataFrame) -> pd.DataFrame:
     
     logger.info(f"  Applied MIN_MINUTES/MIN_SOT filters: {len(df_live)} remaining.")
     
-    # --- NEW: Hybrid Filtering Logic (Matching Training Pipeline) ---
-    
-    # 1. Non-Defender Group: Keep all Forwards and Midfielders who qualified above.
+    # Hybrid filtering logic
     non_defenders = df_live[df_live['position_group'].isin(['Forward', 'Midfielder'])].copy()
-    
-    # 2. Defender Group: Keep only Defenders who meet the SOT threshold (0.3).
     defenders = df_live[df_live['position_group'] == 'Defender'].copy()
-    attacking_defenders = defenders[
-        defenders['sot_MA5'] >= ATTACKING_DEFENDER_THRESHOLD
-    ].copy()
+    attacking_defenders = defenders[defenders['sot_MA5'] >= ATTACKING_DEFENDER_THRESHOLD].copy()
     
-    # 3. Combine the groups for the final prediction set
     df_final_qualified = pd.concat([non_defenders, attacking_defenders], ignore_index=True)
     
     logger.info(f"  Applied Hybrid Filter. Attacking Defenders kept: {len(attacking_defenders)}")
     logger.info(f"  Final qualified players: {len(df_final_qualified)}")
     
-    # 🔍 DEBUG: Final check on star players
+    # 🔍 DEBUG: Final check
     logger.info("\n" + "="*80)
     logger.info("🔍 DEBUG: FINAL QUALIFIED PLAYERS")
     logger.info("="*80)
@@ -490,7 +487,7 @@ def get_live_gameweek_features(df_processed: pd.DataFrame) -> pd.DataFrame:
     if df_final_qualified.empty:
         return pd.DataFrame()
     
-    # Set the 'summary_min' feature to the calculated MA5 min for live prediction
+    # Set summary_min for prediction
     df_final_qualified['summary_min'] = df_final_qualified['min_MA5'] 
     
     return df_final_qualified
@@ -512,7 +509,7 @@ def load_artifacts():
         if 'model_type' in stats_dict:
             # New format from ZIP trainer
             logger.info(f"   Model type: {stats_dict['model_type']}")
-            # Load scaler stats from training_stats.json (always needed)
+            # Load scaler stats from training_stats.json
             scaler_file = ARTIFACT_PATH + "training_stats.json"
             with open(scaler_file, 'r') as f:
                 scaler_dict = json.load(f)
@@ -521,27 +518,38 @@ def load_artifacts():
             # Old format (scaler stats directly)
             scaler_data = pd.DataFrame(stats_dict).T
         
+        # ✅ v4.2: Verify npxg_MA5 in scaler data
+        if 'npxg_MA5' not in scaler_data.index:
+            logger.error("❌ npxg_MA5 not found in training_stats.json!")
+            logger.error("   Did you retrain with v4.2 code?")
+            exit(1)
+        else:
+            logger.info(f"   ✅ npxg_MA5 scaling stats found")
+        
         return model, scaler_data
         
     except FileNotFoundError as e:
         logger.error(f"❌ Model file not found: {e}")
         logger.error(f"   Expected: {MODEL_FILE}")
-        logger.error(f"   🚨 CRITICAL: Did you run backtest_model.py and manually upload the artifacts?")
+        logger.error(f"   🚨 CRITICAL: Did you run backtest_model.py and upload artifacts?")
         exit(1)
 
 
 def scale_live_data(df_raw, scaler_data):
-    """Scale features using training statistics."""
+    """
+    Scale features using training statistics.
+    ✅ v4.2: Now scales npxg_MA5 in addition to other MA5 features
+    """
     df_features = df_raw.copy()
     
-    # Get features that need scaling (exclude raw features like summary_min and binary dummies)
+    # ✅ v4.2: Get features that need scaling (includes npxg_MA5_scaled now)
     feature_stems_to_scale = [
         col.replace('_scaled', '') 
         for col in PREDICTOR_COLUMNS 
         if col not in ['summary_min', 'is_forward', 'is_defender', 'is_home'] 
     ]
     
-    # Scale MA5 features using training statistics
+    # Scale MA5 features
     for feature_stem in feature_stems_to_scale:
         if feature_stem not in scaler_data.index:
             logger.warning(f"⚠️ Feature '{feature_stem}' not found in scaler_data, skipping scaling.")
@@ -553,8 +561,12 @@ def scale_live_data(df_raw, scaler_data):
             (df_features[feature_stem] - mu) / sigma 
             if sigma != 0 else 0
         )
+        
+        # ✅ v4.2: Log npxg_MA5 scaling
+        if feature_stem == 'npxg_MA5':
+            logger.info(f"   ✅ Scaled npxg_MA5 (μ={mu:.3f}, σ={sigma:.3f})")
     
-    # Copy unscaled binary/raw features to their final names
+    # Copy unscaled binary/raw features
     df_features['is_forward'] = df_features['is_forward']
     df_features['is_defender'] = df_features['is_defender']
     df_features['is_home'] = df_features['is_home'] 
@@ -566,27 +578,29 @@ def scale_live_data(df_raw, scaler_data):
         logger.error(f"❌ Missing required features: {missing_features}")
         raise ValueError(f"Missing features: {missing_features}")
     
-    # Select final features (6 features + 1 const = 7 total matching training model)
+    # Select final features (7 features + const = 8 total)
     final_features = df_features[PREDICTOR_COLUMNS]
     final_features = sm.add_constant(final_features, has_constant='add')
     
-    logger.info(f"✅ Features scaled. Final shape: {final_features.shape} (expected: N x 7 with const)")
+    logger.info(f"✅ Features scaled. Final shape: {final_features.shape} (expected: N x 8 with const)")
     
-    # ✅ ZIP Check: The full feature set for the COUNT part (df_features_scaled, shape N x 7)
+    # ✅ v4.2 UPDATED: ZIP inflation features now include npxg_MA5_scaled
     if MODEL_TYPE == 'zip':
-        # Create the simplified feature set for the INFLATION part (shape N x 5 with const)
         X_infl_cols = ['const'] + INFLATION_PREDICTOR_COLUMNS
         X_infl = final_features[X_infl_cols]
-        logger.info(f"   ZIP Inflation Features (X_infl) shape: {X_infl.shape} (expected: N x 5 with const)")
+        logger.info(f"   ZIP Inflation Features (X_infl) shape: {X_infl.shape} (expected: N x 6 with const)")
         
     return final_features
 
 
 def run_predictions(model, df_features_scaled, df_raw, model_type='poisson'):
-    """Generate predictions using ZIP or Poisson model."""
+    """
+    Generate predictions using ZIP or Poisson model.
+    ✅ v4.2: Updated to handle 7-feature model (8 with const)
+    """
     
     if model_type == 'zip':
-        # The full feature set is X (Count Part)
+        # ✅ v4.2: Updated inflation features (now 5 features + const = 6)
         df_infl_scaled = df_features_scaled[['const'] + INFLATION_PREDICTOR_COLUMNS] 
     else:
         df_infl_scaled = None 
@@ -595,7 +609,6 @@ def run_predictions(model, df_features_scaled, df_raw, model_type='poisson'):
     
     if model_type == 'zip':
         # --- ZIP Expected Value (E_SOT) ---
-        # 🟢 CORRECTED FIX: Use 'mean' for the expected value prediction (resolves ValueError)
         e_sot = model.predict(X, which='mean', exog_infl=df_infl_scaled)
         
         # Convert to simple array
@@ -608,10 +621,7 @@ def run_predictions(model, df_features_scaled, df_raw, model_type='poisson'):
         df_raw['E_SOT'] = e_sot
         
         # --- ZIP P(1+ SOT) ---
-        # Use 'prob' which returns P(Y=0)
         prob_zero = model.predict(X, which='prob', exog_infl=df_infl_scaled)
-        
-        # Convert to simple 1D numpy array and clean up
         prob_zero = np.asarray(prob_zero).ravel()
         if len(prob_zero) > len(df_raw):
             prob_zero = prob_zero[:len(df_raw)]
@@ -623,13 +633,8 @@ def run_predictions(model, df_features_scaled, df_raw, model_type='poisson'):
         df_raw['P_SOT_1_Plus'] = p_vals
         
         # --- ZIP P(structural zero/Never Shooter) (pi) ---
-        # 🐛 FIX: Use 'link-infl' to get the linear predictor (eta_infl) and apply sigmoid/logistic function.
         eta_infl = model.predict(X, which='link-infl', exog_infl=df_infl_scaled) 
-
-        # Logistic (Sigmoid) function: P = 1 / (1 + exp(-eta))
         prob_inflate = 1 / (1 + np.exp(-eta_infl))
-        
-        # Convert to simple 1D numpy array and clean up
         prob_inflate = np.asarray(prob_inflate).ravel()
         if len(prob_inflate) > len(df_raw):
             prob_inflate = prob_inflate[:len(df_raw)]
@@ -649,7 +654,7 @@ def run_predictions(model, df_features_scaled, df_raw, model_type='poisson'):
         # P(0 SOT) - probability of zero
         df_raw['P_SOT_0'] = poisson.pmf(0, df_raw['E_SOT'])
         
-        # P(1+ SOT) - at least 1 shot on target (most common betting market)
+        # P(1+ SOT) - at least 1 shot on target
         df_raw['P_SOT_1_Plus'] = 1 - df_raw['P_SOT_0']
         
         # P(2+ SOT) - at least 2 shots on target
@@ -658,7 +663,7 @@ def run_predictions(model, df_features_scaled, df_raw, model_type='poisson'):
         # P(3+ SOT) - at least 3 shots on target
         df_raw['P_SOT_3_Plus'] = 1 - poisson.cdf(2, df_raw['E_SOT'])
         
-        # P(4+ SOT) - at least 4 shots on target (for high-confidence bets)
+        # P(4+ SOT) - at least 4 shots on target
         df_raw['P_SOT_4_Plus'] = 1 - poisson.cdf(3, df_raw['E_SOT'])
         
         # Confidence level based on E[SOT]
@@ -670,11 +675,11 @@ def run_predictions(model, df_features_scaled, df_raw, model_type='poisson'):
     
     report = df_raw.sort_values(by='E_SOT', ascending=False).copy()
     
-    # Select columns for output
+    # ✅ v4.2: Added npxg_MA5 to output columns
     output_cols = [
         'player_id', 'player_name', 'team_name', 'opponent_team', 
         'E_SOT', 'P_SOT_0', 'P_SOT_1_Plus', 'P_SOT_2_Plus', 'P_SOT_3_Plus', 'P_SOT_4_Plus',
-        'confidence', 'min_MA5', 'sot_MA5', 'match_datetime'
+        'confidence', 'min_MA5', 'sot_MA5', 'npxg_MA5', 'match_datetime'  # ✅ ADDED npxg_MA5
     ]
     
     # Add ZIP-specific column if available
@@ -687,6 +692,7 @@ def run_predictions(model, df_features_scaled, df_raw, model_type='poisson'):
     final_report = report[output_cols].rename(columns={
         'min_MA5': 'expected_minutes',
         'sot_MA5': 'recent_sot_avg',
+        'npxg_MA5': 'recent_npxg_avg',  # ✅ NEW
         'team_name': 'team',
         'opponent_team': 'opponent'
     }).round(3)
@@ -694,15 +700,15 @@ def run_predictions(model, df_features_scaled, df_raw, model_type='poisson'):
     final_report.to_csv(PREDICTION_OUTPUT, index=False)
     logger.info(f"✅ Prediction report saved to {PREDICTION_OUTPUT}")
     
-    # Display top 10 predictions with all probability columns
+    # Display top 10 predictions
     logger.info(f"\n🎯 TOP 10 PREDICTIONS (Gameweek {df_raw['matchweek'].iloc[0]}):")
     logger.info("─" * 120)
     
-    # Show different columns based on model type
+    # ✅ v4.2: Include npxG in display
     if model_type == 'zip' and 'P_Never_Shooter' in final_report.columns:
-        display_cols = ['player_name', 'team', 'opponent', 'E_SOT', 'P_Never_Shooter', 'P_SOT_1_Plus']
+        display_cols = ['player_name', 'team', 'opponent', 'E_SOT', 'recent_npxg_avg', 'P_Never_Shooter', 'P_SOT_1_Plus']
     else:
-        display_cols = ['player_name', 'team', 'opponent', 'E_SOT', 'P_SOT_1_Plus', 'P_SOT_2_Plus', 'P_SOT_3_Plus', 'confidence']
+        display_cols = ['player_name', 'team', 'opponent', 'E_SOT', 'recent_npxg_avg', 'P_SOT_1_Plus', 'P_SOT_2_Plus', 'P_SOT_3_Plus', 'confidence']
     
     # Only include columns that exist
     display_cols = [col for col in display_cols if col in final_report.columns]
@@ -718,13 +724,25 @@ def run_predictions(model, df_features_scaled, df_raw, model_type='poisson'):
     high_conf = final_report[final_report['E_SOT'] >= 0.8].head(5)
     if len(high_conf) > 0:
         logger.info("\n🔥 Top 5 High-Confidence Bets (E[SOT] >= 0.8):")
-        logger.info(high_conf[['player_name', 'team', 'E_SOT', 'P_SOT_1_Plus', 'P_SOT_2_Plus']].to_string(index=False))
+        insight_cols = ['player_name', 'team', 'E_SOT', 'recent_npxg_avg', 'P_SOT_1_Plus', 'P_SOT_2_Plus']
+        insight_cols = [col for col in insight_cols if col in high_conf.columns]
+        logger.info(high_conf[insight_cols].to_string(index=False))
     
     # Best 2+ SOT opportunities
     if 'P_SOT_2_Plus' in final_report.columns:
         best_2plus = final_report.nlargest(5, 'P_SOT_2_Plus')
         logger.info("\n⚡ Top 5 Best 2+ SOT Opportunities:")
-        logger.info(best_2plus[['player_name', 'team', 'E_SOT', 'P_SOT_2_Plus', 'P_SOT_3_Plus']].to_string(index=False))
+        insight_cols = ['player_name', 'team', 'E_SOT', 'recent_npxg_avg', 'P_SOT_2_Plus', 'P_SOT_3_Plus']
+        insight_cols = [col for col in insight_cols if col in best_2plus.columns]
+        logger.info(best_2plus[insight_cols].to_string(index=False))
+    
+    # ✅ v4.2 NEW: High xG players
+    if 'recent_npxg_avg' in final_report.columns:
+        high_xg = final_report.nlargest(5, 'recent_npxg_avg')
+        logger.info("\n🎯 Top 5 High xG Players:")
+        xg_cols = ['player_name', 'team', 'recent_npxg_avg', 'E_SOT', 'P_SOT_1_Plus']
+        xg_cols = [col for col in xg_cols if col in high_xg.columns]
+        logger.info(high_xg[xg_cols].to_string(index=False))
     
     logger.info("─" * 80)
     
@@ -733,7 +751,8 @@ def run_predictions(model, df_features_scaled, df_raw, model_type='poisson'):
 def main():
     """Main execution pipeline."""
     logger.info("=" * 70)
-    logger.info(f"STARTING LIVE PREDICTION SERVICE ({MODEL_TYPE.upper()} MODEL)")
+    logger.info(f"STARTING LIVE PREDICTION SERVICE v4.2 ({MODEL_TYPE.upper()} MODEL)")
+    logger.info("WITH xG FEATURE (7 features total)")
     logger.info("=" * 70)
     
     # Load model
@@ -745,13 +764,13 @@ def main():
         logger.error("No data loaded from database")
         return
 
-    # NEW STEP: Enrich data with positional dummies, 'is_home', and filter GKs
+    # Enrich data with positional dummies and is_home
     df_enriched = clean_and_enrich_data(df_combined_raw)
 
-    # Calculate MA5 factors
+    # Calculate MA5 factors (including npxg_MA5)
     df_processed = calculate_ma5_factors(df_enriched)
     
-    # Get live features and apply all remaining filters (including hybrid SOT filter for defenders)
+    # Get live features and apply filters
     df_live_raw = get_live_gameweek_features(df_processed)
     
     if df_live_raw.empty:
@@ -767,7 +786,7 @@ def main():
     report = run_predictions(model, df_scaled_input, df_live_raw, model_type=MODEL_TYPE)
     
     logger.info("=" * 70)
-    logger.info("LIVE PREDICTION SERVICE COMPLETE")
+    logger.info("✅ LIVE PREDICTION SERVICE COMPLETE (v4.2)")
     logger.info("=" * 70)
 
 
