@@ -404,11 +404,6 @@ def generate_summary_report(all_issues):
 
     if not all_issues:
         logger.info("\n✅ **ALL VALIDATION CHECKS PASSED!**")
-        logger.info("\n🎯 **v4.2 Feature Status (Non-Penalty xG):**")
-        logger.info("  ✅ Non-penalty xG (npxG) ready for use")
-        logger.info("  ✅ Venue feature (is_home) available")
-        logger.info("  ✅ Position features (is_forward, is_defender) available")
-        logger.info("\n📊 Run correlation_analysis.py for feature correlation checks")
         return True
     else:
         logger.error(f"\n❌ **VALIDATION FAILED: {len(all_issues)} ISSUES FOUND**")
