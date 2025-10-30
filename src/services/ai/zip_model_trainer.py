@@ -37,6 +37,7 @@ COMPARISON_OUTPUT = "zip_vs_poisson_comparison.txt"
 PREDICTOR_COLUMNS = [
     'sot_conceded_MA5_scaled',  
     'sot_MA5_scaled', 
+    'npxg_MA5_scaled',
     'summary_min',
     'is_forward',   
     'is_defender',
