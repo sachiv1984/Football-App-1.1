@@ -14,21 +14,20 @@ INPUT_FILE = "final_feature_set_pfactors.parquet"
 OUTPUT_FILE = "final_feature_set_scaled.parquet"
 STATS_FILE = "training_stats.json"
 
-# Features to standardize (Z-score normalization)
-# NOTE: MA5 features are standardized, but NOT position features (they're binary)
+# ✅ v4.2: Only 3 MA5 features need scaling (npxg_MA5 added)
 FEATURES_TO_SCALE = [
     'sot_MA5',
     'sot_conceded_MA5',
-    'npxg_MA5',  # NEW: Expected goals MA5
+    'npxg_MA5'  # ✅ NEW: Expected goals MA5
 ]
 
 # Features to keep raw (no scaling)
 # These are binary (0/1) or interpretable as-is (minutes)
 RAW_FEATURES = [
-    'min',              # Raw minutes expected for this match
+    'summary_min',      # Raw minutes expected (from min_MA5)
     'is_forward',       # Binary position indicator (0 or 1)
-    'is_defender',      # Binary position indicator (0 or 1) - attacking defenders
-    'is_home'           # ✅ NEW: Binary home/away indicator (0 or 1)
+    'is_defender',      # Binary position indicator (0 or 1)
+    'is_home'           # Binary home/away indicator (0 or 1)
 ]
 
 
@@ -45,11 +44,34 @@ def load_data():
         sys.exit(1)
 
 
+def validate_columns(df):
+    """Ensure all required columns exist."""
+    logger.info("Validating required columns...")
+    
+    # ✅ v4.2: Check for npxg_MA5
+    required = FEATURES_TO_SCALE + ['min_MA5', 'is_forward', 'is_defender', 'team_side', 'sot']
+    missing = [col for col in required if col not in df.columns]
+    
+    if missing:
+        logger.error(f"❌ Missing required columns: {missing}")
+        logger.error("Ensure player_factor_engineer.py completed successfully")
+        sys.exit(1)
+    
+    logger.info(f"✅ All {len(required)} required columns present")
+    
+    # ✅ v4.2: Verify npxg_MA5 has data
+    if 'npxg_MA5' in df.columns:
+        npxg_coverage = df['npxg_MA5'].notna().sum() / len(df) * 100
+        npxg_mean = df['npxg_MA5'].mean()
+        logger.info(f"✅ npxg_MA5: {npxg_coverage:.1f}% coverage, mean={npxg_mean:.3f}")
+        
+        if npxg_coverage < 50:
+            logger.warning(f"⚠️ Low npxg_MA5 coverage ({npxg_coverage:.1f}%)")
+
+
 def create_venue_feature(df):
     """
     Create is_home binary feature from team_side column.
-    
-    is_home = 1 if team_side == 'home', else 0
     """
     logger.info("\nCreating venue feature (is_home)...")
     
@@ -69,26 +91,7 @@ def create_venue_feature(df):
     logger.info(f"    Home matches (is_home=1): {home_count:>5} ({home_pct:>5.1f}%)")
     logger.info(f"    Away matches (is_home=0): {away_count:>5} ({away_pct:>5.1f}%)")
     
-    unique_values = df['is_home'].unique()
-    if not set(unique_values).issubset({0, 1}):
-        logger.warning(f"  ⚠️ Unexpected is_home values: {unique_values}")
-    
     return df
-
-
-def validate_columns(df):
-    """Ensure all required columns exist."""
-    logger.info("Validating required columns...")
-    
-    required = FEATURES_TO_SCALE + ['min', 'is_forward', 'is_defender', 'team_side', 'sot']
-    missing = [col for col in required if col not in df.columns]
-    
-    if missing:
-        logger.error(f"❌ Missing required columns: {missing}")
-        logger.error("Ensure player_factor_engineer.py completed successfully")
-        sys.exit(1)
-    
-    logger.info(f"✅ All {len(required)} required columns present")
 
 
 def add_summary_min(df):
@@ -98,14 +101,12 @@ def add_summary_min(df):
     """
     logger.info("Checking for 'summary_min' column...")
     
-    if 'min' in df.columns and 'summary_min' not in df.columns:
-        logger.info("  'summary_min' not found, creating from 'min' column.")
-        df['summary_min'] = df['min']
-    elif 'summary_min' in df.columns:
-        logger.info("  ✅ 'summary_min' already exists")
-    else:
-        logger.warning("  ⚠️ Neither 'summary_min' nor 'min' found, creating from min_MA5")
+    # Use min_MA5 as expected minutes for future predictions
+    if 'summary_min' not in df.columns:
+        logger.info("  'summary_min' not found, creating from 'min_MA5' column.")
         df['summary_min'] = df['min_MA5']
+    else:
+        logger.info("  ✅ 'summary_min' already exists")
     
     return df
 
@@ -113,23 +114,28 @@ def add_summary_min(df):
 def standardize_features(df):
     """
     Standardize MA5 features using Z-score normalization.
-    Position and venue features (is_forward, is_defender, is_home) are NOT scaled.
+    ✅ v4.2: Now scales 3 features (added npxg_MA5)
     """
-    logger.info("\nStandardizing MA5 features...")
+    logger.info("\nStandardizing MA5 features (v4.2)...")
     logger.info(f"  Features to scale: {FEATURES_TO_SCALE}")
     logger.info(f"  Features kept raw: {RAW_FEATURES}")
     
     scaler = StandardScaler()
     df_scaled = df.copy()
     
+    # Fill NaN with mean for scaling (will be marked as NaN again after)
     df_temp = df[FEATURES_TO_SCALE].fillna(df[FEATURES_TO_SCALE].mean())
     scaled_values = scaler.fit_transform(df_temp)
     
+    # Apply scaled values and restore NaN where original was NaN
     for i, feature in enumerate(FEATURES_TO_SCALE):
         df_scaled[f'{feature}_scaled'] = scaled_values[:, i]
         df_scaled.loc[df[feature].isna(), f'{feature}_scaled'] = np.nan
-        logger.info(f"  ✅ Scaled {feature} (μ={scaler.mean_[i]:.3f}, σ={scaler.scale_[i]:.3f})")
+        
+        marker = " ✅ xG" if feature == 'npxg_MA5' else ""
+        logger.info(f"  ✅ Scaled {feature} (μ={scaler.mean_[i]:.3f}, σ={scaler.scale_[i]:.3f}){marker}")
     
+    # Save scaling statistics (ONLY the 3 MA5 features)
     stats = {f: {'mean': float(scaler.mean_[i]), 'std': float(scaler.scale_[i])} 
              for i, f in enumerate(FEATURES_TO_SCALE)}
     
@@ -137,6 +143,8 @@ def standardize_features(df):
         json.dump(stats, f, indent=2)
     
     logger.info(f"\n✅ Scaling statistics saved to {STATS_FILE}")
+    logger.info(f"   Features saved: {list(stats.keys())}")
+    
     return df_scaled
 
 
@@ -148,15 +156,15 @@ def prepare_final_dataset(df):
     
     keep_cols = [
         'player_id', 'player_name', 'team_name', 'match_datetime',
-        'home_team', 'away_team', 'opponent_team',
-        'sot',
-        *scaled_cols,
-        *RAW_FEATURES,
-        'summary_min',
+        'home_team', 'away_team', 'opponent',
+        'sot',  # Target variable
+        *scaled_cols,  # Scaled MA5 features
+        *RAW_FEATURES,  # Raw features (binary + minutes)
         'position_group', 'player_avg_sot',
         'team_side'
     ]
     
+    # Only keep columns that exist
     keep_cols = [col for col in keep_cols if col in df.columns]
     df_final = df[keep_cols].copy()
     
@@ -171,7 +179,7 @@ def validate_output(df):
     logger.info("\nValidating output data...")
     
     scaled_cols = [f'{f}_scaled' for f in FEATURES_TO_SCALE]
-    critical_cols = scaled_cols + ['min', 'is_forward', 'is_defender', 'is_home'] + ['sot']
+    critical_cols = scaled_cols + RAW_FEATURES + ['sot']
     
     for col in critical_cols:
         if col not in df.columns:
@@ -206,6 +214,7 @@ def validate_output(df):
     if 'is_home' in df.columns:
         logger.info(f"  is_home:     {df['is_home'].sum():>5} ({(df['is_home'].sum()/len(df)*100):>5.1f}%) = 1")
     
+    # Venue impact on SOT
     if 'is_home' in df.columns and 'sot' in df.columns:
         home_sot = df[df['is_home'] == 1]['sot'].mean()
         away_sot = df[df['is_home'] == 0]['sot'].mean()
@@ -215,12 +224,21 @@ def validate_output(df):
         logger.info(f"  Away: {away_sot:.3f}")
         logger.info(f"  Home advantage: {diff_pct:+.1f}%")
     
+    # ✅ v4.2: Show npxG stats
+    if 'npxg_MA5_scaled' in df.columns:
+        logger.info("\n📊 npxG Feature (v4.2):")
+        npxg_mean = df['npxg_MA5_scaled'].mean()
+        npxg_std = df['npxg_MA5_scaled'].std()
+        logger.info(f"  npxg_MA5_scaled mean: {npxg_mean:.3f} (should be ~0)")
+        logger.info(f"  npxg_MA5_scaled std:  {npxg_std:.3f} (should be ~1)")
+    
     logger.info("\n📊 Scaled Feature Ranges (Z-scores):")
     for col in scaled_cols:
         if col in df.columns:
             min_val = df[col].min()
             max_val = df[col].max()
-            logger.info(f"  {col:<30} [{min_val:>6.2f}, {max_val:>6.2f}]")
+            marker = " ✅ xG" if 'npxg' in col else ""
+            logger.info(f"  {col:<30} [{min_val:>6.2f}, {max_val:>6.2f}]{marker}")
     
     logger.info("\n✅ Validation complete")
 
@@ -241,7 +259,7 @@ def save_output(df):
 def main():
     """Main execution pipeline."""
     logger.info("="*70)
-    logger.info("  FEATURE SCALING - WITH POSITION, VENUE & npxg_MA5")
+    logger.info("  FEATURE SCALING v4.2 - WITH npxg_MA5")
     logger.info("="*70)
     
     df = load_data()
@@ -254,9 +272,17 @@ def main():
     save_output(df)
     
     logger.info("="*70)
-    logger.info("  ✅ FEATURE SCALING COMPLETE")
+    logger.info("  ✅ FEATURE SCALING COMPLETE (v4.2)")
     logger.info("="*70)
-    logger.info("\nNext step: Run backtest_model.py")
+    logger.info(f"\n✅ Key Changes:")
+    logger.info(f"  • Scaled features: {len(FEATURES_TO_SCALE)} (added npxg_MA5)")
+    logger.info(f"  • training_stats.json has {len(FEATURES_TO_SCALE)} entries")
+    logger.info(f"  • Removed: min_MA5, tackles_att_3rd_MA5 (not used in model)")
+    logger.info(f"\n📁 Output files:")
+    logger.info(f"  • {OUTPUT_FILE}")
+    logger.info(f"  • {STATS_FILE} (3 features)")
+    logger.info(f"\nNext step: Run backtest_model.py or zip_model_trainer.py")
+    logger.info("="*70)
 
 
 if __name__ == '__main__':
