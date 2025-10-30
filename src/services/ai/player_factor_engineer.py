@@ -1,4 +1,4 @@
-# src/services/ai/player_factor_engineer.py - Revised with venue feature support
+# src/services/ai/player_factor_engineer.py - v4.2 (WITH xG FEATURE)
 
 import pandas as pd
 import numpy as np
@@ -15,7 +15,8 @@ OUTPUT_FILE = "final_feature_set_pfactors.parquet"
 MIN_PERIODS = 5  # Minimum periods for rolling average
 
 # Player-level metrics to calculate MA5 for
-MA5_METRICS = ['sot', 'min']
+# ✅ v4.2 CHANGE: Added 'npxg' to MA5_METRICS
+MA5_METRICS = ['sot', 'min', 'npxg']  # ✅ ADDED npxg
 
 # --- Helper Function for Position Parsing ---
 def safe_extract_position(pos_str):
@@ -63,9 +64,11 @@ def rename_columns_for_consistency(df):
     """Rename summary columns to shorter names for easier processing."""
     logger.info("Renaming columns for consistency...")
     
+    # ✅ v4.2 CHANGE: Added npxg to rename map
     rename_map = {
         'summary_sot': 'sot',
-        'summary_min': 'min'
+        'summary_min': 'min',
+        'summary_npxg': 'npxg'  # ✅ ADDED
     }
     
     df = df.rename(columns=rename_map)
@@ -182,6 +185,7 @@ def process_position_data(df):
 def calculate_player_ma5_factors(df):
     """
     Calculate rolling MA5 (Moving Average over 5 matches) for player-specific metrics.
+    ✅ v4.2: Now includes npxg_MA5 calculation
     """
     logger.info("Calculating Player MA5 Factors (P-Factors)...")
     
@@ -199,7 +203,13 @@ def calculate_player_ma5_factors(df):
             .transform(lambda x: x.rolling(window=MIN_PERIODS, min_periods=1, closed='left').mean())
         )
         
-        logger.info(f"  ✅ Calculated {metric}_MA5")
+        # ✅ v4.2: Show coverage for npxg_MA5
+        if metric == 'npxg':
+            coverage = df[f'{metric}_MA5'].notna().sum() / len(df) * 100
+            mean_val = df[f'{metric}_MA5'].mean()
+            logger.info(f"  ✅ Calculated {metric}_MA5 | Coverage: {coverage:.1f}% | Mean: {mean_val:.3f}")
+        else:
+            logger.info(f"  ✅ Calculated {metric}_MA5")
     
     logger.info(f"Player MA5 calculation complete. Shape: {df.shape}")
     
@@ -236,13 +246,14 @@ def validate_output(df):
     """Validate the output before saving."""
     logger.info("\nValidating output data...")
     
+    # ✅ v4.2 CHANGE: Added npxg and npxg_MA5 to required columns
     required_columns = [
-        'sot', 'min',
-        'sot_MA5', 'min_MA5',
+        'sot', 'min', 'npxg',  # ✅ ADDED npxg
+        'sot_MA5', 'min_MA5', 'npxg_MA5',  # ✅ ADDED npxg_MA5
         'sot_conceded_MA5',
         'position_group', 'is_forward', 'is_defender',
         'team_side',
-        'is_home'  # ✅ UPDATED: The engineered venue feature
+        'is_home'
     ]
     
     missing = [col for col in required_columns if col not in df.columns]
@@ -259,6 +270,15 @@ def validate_output(df):
         unexpected = set(team_side_values) - expected_values - {None, np.nan}
         if unexpected:
             logger.warning(f"  ⚠️ Unexpected team_side values: {unexpected}")
+    
+    # ✅ v4.2: Validate npxG coverage
+    if 'npxg_MA5' in df.columns:
+        npxg_coverage = df['npxg_MA5'].notna().sum() / len(df) * 100
+        npxg_mean = df['npxg_MA5'].mean()
+        logger.info(f"  ✅ npxg_MA5 coverage: {npxg_coverage:.1f}% | Mean: {npxg_mean:.3f}")
+        
+        if npxg_coverage < 95:
+            logger.warning(f"  ⚠️ Low npxg_MA5 coverage ({npxg_coverage:.1f}%)")
     
     # Check for excessive NaN values in critical columns
     for col in required_columns:
@@ -291,6 +311,12 @@ def validate_output(df):
     for pos, val in avg_sot.items():
         logger.info(f"  {pos:<15} {val:.3f}")
     
+    # ✅ v4.2: Show average npxG by position
+    logger.info("\n📊 Average npxG by Position:")
+    avg_npxg = df.groupby('position_group')['npxg'].mean()
+    for pos, val in avg_npxg.items():
+        logger.info(f"  {pos:<15} {val:.3f}")
+    
     logger.info("\n✅ Validation complete")
 
 
@@ -311,7 +337,7 @@ def save_output(df):
 def main():
     """Main execution pipeline."""
     logger.info("="*70)
-    logger.info("  PLAYER FACTOR ENGINEER (P-FACTORS) - WITH POSITION FEATURES")
+    logger.info("  PLAYER FACTOR ENGINEER v4.2 - WITH xG FEATURE")
     logger.info("="*70)
     
     # Step 1: Load data
@@ -323,22 +349,23 @@ def main():
     # Step 3: Process position data (CRITICAL STEP)
     df = process_position_data(df)
     
-    # Step 4: Calculate player MA5 factors
+    # Step 4: Calculate player MA5 factors (✅ now includes npxg_MA5)
     df = calculate_player_ma5_factors(df)
     
-    # Step 4.5: Calculate Venue Factor (NEW STEP)
+    # Step 4.5: Calculate Venue Factor
     df = calculate_venue_factor(df)
     
-    # Step 5: Validate output
+    # Step 5: Validate output (✅ now checks npxg_MA5)
     validate_output(df)
     
     # Step 6: Save output
     save_output(df)
     
     logger.info("="*70)
-    logger.info("  ✅ PLAYER FACTOR ENGINEERING COMPLETE")
+    logger.info("  ✅ PLAYER FACTOR ENGINEERING COMPLETE (v4.2)")
     logger.info("="*70)
-    logger.info("\nNext step: Run feature_scaling.py")
+    logger.info("\n📊 New Feature: npxg_MA5 (non-penalty xG moving average)")
+    logger.info("Next step: Run feature_scaling.py")
 
 
 if __name__ == '__main__':
