@@ -87,19 +87,26 @@ def load_models():
 def evaluate_model(model, X, y, model_name='Model'):
     logger.info(f"\n📊 Evaluating {model_name}...")
     results = {}
-    
+
+    y_array = np.array(y).flatten()
+
     if model_name.lower() == 'zip':
-        # --- FIX: Align inflation features to trained model ---
-        X_infl_pred = X[model.model.exog_infl_names].copy()
+        X_infl_pred = X[['const'] + INFLATION_PREDICTOR_COLUMNS].copy()
         y_pred = model.predict(X, exog_infl=X_infl_pred)
+
+        # Probability for 1+ SOT
+        prob_zero = model.predict(X, which='prob', exog_infl=X_infl_pred)
+        if isinstance(prob_zero, tuple):
+            prob_zero = prob_zero[0]
+        prob_zero = np.array(prob_zero).flatten()[:len(y_array)]
+        y_pred_proba = 1 - prob_zero
     else:
         y_pred = model.predict(X)
-    
+        y_pred_array = np.array(y_pred).flatten()
+        y_pred_proba = 1 - np.exp(-y_pred_array)
+
     results['predictions'] = y_pred
-    y_array = np.array(y).flatten()
     y_pred_array = np.array(y_pred).flatten()
-    
-    # Metrics
     results['rmse'] = np.sqrt(mean_squared_error(y_array, y_pred_array))
     results['mae'] = mean_absolute_error(y_array, y_pred_array)
     results['mean_pred'] = y_pred_array.mean()
@@ -107,21 +114,11 @@ def evaluate_model(model, X, y, model_name='Model'):
     results['aic'] = getattr(model, 'aic', np.nan)
     results['bic'] = getattr(model, 'bic', np.nan)
     results['llf'] = getattr(model, 'llf', np.nan)
-    
-    # Probabilities for Brier score
-    if model_name.lower() == 'zip':
-        prob_zero = model.predict(X, which='prob', exog_infl=X_infl_pred)
-        if isinstance(prob_zero, tuple):
-            prob_zero = prob_zero[0]
-        prob_zero = np.array(prob_zero).flatten()[:len(y_array)]
-        y_pred_proba = 1 - prob_zero
-    else:
-        y_pred_proba = 1 - np.exp(-y_pred_array)
-    
     results['prob_predictions'] = y_pred_proba
     results['brier_score'] = np.mean((y_pred_proba - (y_array>0).astype(int))**2)
-    
+
     return results
+
 
 
 def compare_models(models, X, y):
