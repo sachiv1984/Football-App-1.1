@@ -1,11 +1,11 @@
 """
-Zero-Inflated Poisson (ZIP) Model Training Script
+Zero-Inflated Poisson (ZIP) Model Training Script - v4.2
 
 This script trains a ZIP model to handle the high zero-inflation in SOT data.
 It models the probability of shooting (logistic part) separately from the count 
 of shots (Poisson part).
 
-✅ VERSION 4.1: Added is_home venue feature (6 features total)
+✅ VERSION 4.2: Added npxg_MA5_scaled feature (7 features total)
 
 Run after: feature_scaling.py
 Outputs: src/services/ai/artifacts/zip_model.pkl, src/services/ai/artifacts/zip_training_stats.json
@@ -33,29 +33,30 @@ STATS_OUTPUT = "src/services/ai/artifacts/zip_training_stats.json"
 COMPARISON_OUTPUT = "zip_vs_poisson_comparison.txt"
 
 # Features used for prediction - FULL SET FOR POISSON (COUNT) PART
-# ✅ UPDATED: Added is_home venue feature (6th feature)
+# ✅ v4.2: 7 features (includes npxg_MA5_scaled)
 PREDICTOR_COLUMNS = [
     'sot_conceded_MA5_scaled',  
     'sot_MA5_scaled', 
-    'npxg_MA5_scaled',
+    'npxg_MA5_scaled',  # ✅ xG feature
     'summary_min',
     'is_forward',   
     'is_defender',
-    'is_home'  # ✅ NEW: Venue feature
+    'is_home'
 ]
 
 # SIMPLIFIED FEATURES FOR LOGISTIC (INFLATION) PART
-# ✅ UPDATED: Added is_home to inflation features
+# ✅ v4.2: 5 features (includes npxg_MA5_scaled)
 INFLATION_PREDICTOR_COLUMNS = [
     'sot_MA5_scaled', 
+    'npxg_MA5_scaled',  # ✅ ADDED: xG in inflation model
     'is_forward',   
     'is_defender',
-    'is_home'  # ✅ NEW: Venue affects shooting probability
+    'is_home'
 ]
 
 TARGET_COLUMN = 'sot'
 
-# --- Helper Functions (No changes needed) ---
+# --- Helper Functions ---
 
 def calculate_mcfadden_r2(model, y_true):
     """Calculate McFadden's Pseudo R-squared manually."""
@@ -66,7 +67,7 @@ def calculate_mcfadden_r2(model, y_true):
     # Calculate log-likelihood of the null model (Poisson with only intercept)
     ll_null = np.sum(y_true * np.log(y_mean) - y_mean)
     
-    # Handle potential LL_Null = 0 or near-zero issue, although rare with Poisson
+    # Handle potential LL_Null = 0 or near-zero issue
     if ll_null == 0:
         return 0.0
     
@@ -127,25 +128,27 @@ def load_data():
 
 def prepare_features(df):
     """Prepare features and target for modeling."""
-    print_section("2. PREPARING FEATURES")
+    print_section("2. PREPARING FEATURES (v4.2)")
     
-    # Features for the Count (Poisson) part
+    # Features for the Count (Poisson) part - 7 features
     X_count = df[PREDICTOR_COLUMNS].copy()
     X_count = sm.add_constant(X_count, has_constant='add')
     
-    # Features for the Inflation (Logistic) part
+    # Features for the Inflation (Logistic) part - 5 features
     X_infl = df[INFLATION_PREDICTOR_COLUMNS].copy()
     X_infl = sm.add_constant(X_infl, has_constant='add')
     
     y = df[TARGET_COLUMN].copy()
     
     logger.info(f"  Count (Poisson) Feature matrix shape: {X_count.shape}")
-    logger.info(f"  Inflation (Logistic) Feature matrix shape: {X_infl.shape}")
-    logger.info(f"  Target vector shape: {y.shape}")
+    logger.info(f"  Count features: {PREDICTOR_COLUMNS}")
+    logger.info(f"\n  Inflation (Logistic) Feature matrix shape: {X_infl.shape}")
+    logger.info(f"  Inflation features: {INFLATION_PREDICTOR_COLUMNS}")
+    logger.info(f"\n  Target vector shape: {y.shape}")
     logger.info(f"\n  Zero-inflation check:")
     logger.info(f"    Zeros: {(y == 0).sum()} ({(y == 0).sum() / len(y) * 100:.1f}%)")
     
-    # ✅ NEW: Show venue distribution
+    # Show venue distribution
     if 'is_home' in df.columns:
         home_count = df['is_home'].sum()
         home_pct = (home_count / len(df)) * 100
@@ -153,16 +156,22 @@ def prepare_features(df):
         logger.info(f"    Home matches: {home_count} ({home_pct:.1f}%)")
         logger.info(f"    Away matches: {len(df) - home_count} ({100-home_pct:.1f}%)")
     
+    # Show npxG distribution
+    if 'npxg_MA5_scaled' in df.columns:
+        npxg_mean = df['npxg_MA5_scaled'].mean()
+        npxg_std = df['npxg_MA5_scaled'].std()
+        logger.info(f"\n  npxG feature stats:")
+        logger.info(f"    Mean: {npxg_mean:.3f}")
+        logger.info(f"    Std: {npxg_std:.3f}")
+    
     return X_count, X_infl, y
 
 
 def train_zip_model(X_count, X_infl, y):
-    """Train Zero-Inflated Poisson model using simplified X_infl."""
-    print_section("3. TRAINING ZIP MODEL (v4.1 with venue)")
+    """Train Zero-Inflated Poisson model."""
+    print_section("3. TRAINING ZIP MODEL (v4.2 with xG)")
     
     logger.info("Training Zero-Inflated Poisson regression...")
-    logger.info("  Count features: " + str(list(X_count.columns)))
-    logger.info("  Inflation features: " + str(list(X_infl.columns)))
     logger.info("  This may take 30-60 seconds for convergence...\n")
     
     # Temporarily suppress some warnings during fitting
@@ -252,11 +261,11 @@ def evaluate_models(zip_model, poisson_model, X_count, y):
     if poisson_model:
         aic_improvement = poisson_model.aic - zip_model.aic
         if aic_improvement > 10:
-            logger.info(f"✅ DEPLOY ZIP MODEL: AIC improved by {aic_improvement:.2f} points (Strong evidence for better fit)")
+            logger.info(f"✅ DEPLOY ZIP MODEL: AIC improved by {aic_improvement:.2f} points (Strong evidence)")
         elif aic_improvement > 2:
-            logger.info(f"⚠️ MARGINAL IMPROVEMENT: AIC improved by {aic_improvement:.2f} points (Weak evidence for better fit)")
+            logger.info(f"⚠️ MARGINAL IMPROVEMENT: AIC improved by {aic_improvement:.2f} points (Weak evidence)")
         else:
-            logger.info(f"❌ KEEP POISSON: AIC difference is minimal or negative (Improvement: {aic_improvement:.2f}).")
+            logger.info(f"❌ KEEP POISSON: AIC difference is minimal or negative ({aic_improvement:.2f})")
     else:
         logger.info("✅ ZIP MODEL TRAINED (no comparison available)")
     
@@ -268,7 +277,7 @@ def evaluate_models(zip_model, poisson_model, X_count, y):
 
 def display_coefficients(zip_model):
     """Display ZIP model coefficients with interpretation."""
-    print_section("5. ZIP MODEL COEFFICIENTS")
+    print_section("5. ZIP MODEL COEFFICIENTS (v4.2)")
     
     # --- Count (Poisson) Part ---
     X_count_cols = ['const'] + PREDICTOR_COLUMNS
@@ -286,9 +295,11 @@ def display_coefficients(zip_model):
         p_value = zip_model.pvalues[i]
         sig = get_significance_stars(p_value)
         
-        # ✅ NEW: Add interpretation for is_home
+        # Add interpretations
         if feature == 'is_home':
             interp = f" [Home: {(rate_mult-1)*100:+.1f}% SOT]"
+        elif feature == 'npxg_MA5_scaled':
+            interp = f" [✅ xG effect]"
         else:
             interp = ""
         
@@ -308,13 +319,17 @@ def display_coefficients(zip_model):
         odds_ratio = np.exp(coef)
         p_value = zip_model.pvalues[n_params_count + i]
         sig = get_significance_stars(p_value)
-        logger.info(f"{feature:<35} {coef:<15.4f} {odds_ratio:<15.4f} {p_value:<8.4f}{sig}")
+        
+        # Add xG interpretation
+        interp = " [✅ xG in inflation]" if feature == 'npxg_MA5_scaled' else ""
+        
+        logger.info(f"{feature:<35} {coef:<15.4f} {odds_ratio:<15.4f} {p_value:<8.4f}{sig}{interp}")
     
     logger.info("\nSignificance: *** p<0.001, ** p<0.01, * p<0.05")
     logger.info("\n💡 Interpretation:")
     logger.info("  • Count Rate Multiplier > 1: Feature increases SOT count (if SOT > 0)")
-    logger.info("  • Inflation Odds Ratio > 1: Feature INCREASES the chance of being an 'excess zero' (a non-shooter)")
-    logger.info("  • Inflation Odds Ratio < 1: Feature DECREASES the chance of being an 'excess zero'")
+    logger.info("  • Inflation Odds Ratio > 1: INCREASES chance of being 'excess zero' (non-shooter)")
+    logger.info("  • Inflation Odds Ratio < 1: DECREASES chance of being 'excess zero'")
 
 
 def get_significance_stars(p_value):
@@ -340,7 +355,8 @@ def save_model_and_stats(zip_model, comparison_stats):
     try:
         with open(MODEL_OUTPUT, 'wb') as f:
             pickle.dump(zip_model, f)
-        logger.info(f"✅ ZIP model saved to: {MODEL_OUTPUT}")
+        file_size = os.path.getsize(MODEL_OUTPUT) / 1024
+        logger.info(f"✅ ZIP model saved to: {MODEL_OUTPUT} ({file_size:.1f} KB)")
     except Exception as e:
         logger.error(f"❌ Failed to save model: {e}")
         sys.exit(1)
@@ -349,7 +365,7 @@ def save_model_and_stats(zip_model, comparison_stats):
     try:
         stats = {
             'model_type': 'ZeroInflatedPoisson',
-            'model_version': 'v4.1_with_venue',  # ✅ NEW: Version tracking
+            'model_version': 'v4.2_with_npxg',  # ✅ v4.2
             'pseudo_r2': comparison_stats['zip']['pseudo_r2'],
             'aic': comparison_stats['zip']['aic'],
             'bic': comparison_stats['zip']['bic'],
@@ -371,8 +387,8 @@ def save_model_and_stats(zip_model, comparison_stats):
 def main():
     """Main execution pipeline."""
     logger.info("=" * 80)
-    logger.info("  ZERO-INFLATED POISSON (ZIP) MODEL TRAINING v4.1")
-    logger.info("  (With venue feature: is_home)")
+    logger.info("  ZERO-INFLATED POISSON (ZIP) MODEL TRAINING v4.2")
+    logger.info("  (With xG feature: npxg_MA5_scaled - 7 features total)")
     logger.info("=" * 80)
     
     # Step 1: Load data
@@ -396,14 +412,15 @@ def main():
     # Step 7: Save artifacts
     save_model_and_stats(zip_model, comparison_stats)
     
-    print_section("✅ ZIP MODEL TRAINING COMPLETE (v4.1)")
+    print_section("✅ ZIP MODEL TRAINING COMPLETE (v4.2)")
     logger.info("\n📁 Generated files:")
     logger.info(f"  • {MODEL_OUTPUT}")
     logger.info(f"  • {STATS_OUTPUT}")
     logger.info("\n🚀 Next steps:")
-    logger.info("  1. Review model comparison results (AIC/Pseudo R²) to select best model.")
-    logger.info("  2. If ZIP is chosen, run live_predictor_zip.py for predictions.")
-    logger.info("  3. Models already in artifacts/ directory - ready for deployment!")
+    logger.info("  1. Review model comparison results (AIC/Pseudo R²)")
+    logger.info("  2. Set MODEL_TYPE=zip and run live_predictor_zip.py")
+    logger.info("  3. Models ready in artifacts/ directory!")
+    logger.info("\n✅ v4.2 UPDATE: 7 features including npxg_MA5_scaled")
     
 
 if __name__ == '__main__':
