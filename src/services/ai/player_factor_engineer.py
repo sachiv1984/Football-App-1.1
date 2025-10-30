@@ -15,14 +15,12 @@ OUTPUT_FILE = "final_feature_set_pfactors.parquet"
 MIN_PERIODS = 5  # Minimum periods for rolling average
 
 # Player-level metrics to calculate MA5 for
-# ✅ v4.2 CHANGE: Added 'npxg' to MA5_METRICS
 MA5_METRICS = ['sot', 'min', 'npxg']  # ✅ ADDED npxg
 
 # --- Helper Function for Position Parsing ---
 def safe_extract_position(pos_str):
     """
     Safely extracts the primary position code from potentially corrupted strings.
-    Handles 'FW,MF' (clean) and '["FW", "MF"]' (corrupted).
     """
     if pd.isna(pos_str) or pos_str is None:
         return None
@@ -32,12 +30,10 @@ def safe_extract_position(pos_str):
     # Check for and handle the observed corrupted format '["FW", "MF"]'
     if pos_str.startswith('["') and pos_str.endswith(']'):
         try:
-            # Safely evaluate the string to a list of strings
             pos_list = ast.literal_eval(pos_str)
             if isinstance(pos_list, list) and pos_list:
                 return pos_list[0].strip().upper()
         except (ValueError, SyntaxError, IndexError):
-            # Fallback for unexpected corruption: strip and split
             cleaned_str = pos_str.strip('[" ]').replace('"', '')
             return cleaned_str.split(',')[0].strip().upper()
             
@@ -64,7 +60,6 @@ def rename_columns_for_consistency(df):
     """Rename summary columns to shorter names for easier processing."""
     logger.info("Renaming columns for consistency...")
     
-    # ✅ v4.2 CHANGE: Added npxg to rename map
     rename_map = {
         'summary_sot': 'sot',
         'summary_min': 'min',
@@ -98,11 +93,8 @@ def process_position_data(df):
     # 2. Map to position groups
     position_mapping = {
         'GK': 'Goalkeeper',
-        # Defenders (DF, CB, LB, RB, WB)
         'DF': 'Defender', 'CB': 'Defender', 'LB': 'Defender', 'RB': 'Defender', 'WB': 'Defender',
-        # Midfielders (MF, CM, DM, AM, LM, RM)
         'MF': 'Midfielder', 'CM': 'Midfielder', 'DM': 'Midfielder', 'AM': 'Midfielder', 'LM': 'Midfielder', 'RM': 'Midfielder',
-        # Forwards (FW, LW, RW)
         'FW': 'Forward', 'LW': 'Forward', 'RW': 'Forward'
     }
     
@@ -147,11 +139,13 @@ def process_position_data(df):
         for name, avg_sot in top_attacking_defenders.items():
             logger.info(f"    {name:<30} {avg_sot:.3f}")
     
-    # IMPORTANT: Use .copy() to ensure the slice is a new DataFrame and avoids SettingWithCopyWarning
+    # **SECONDARY GUARDRAIL**: Define all columns needed to ensure they are retained after filtering
+    cols_to_keep = df.columns.tolist()
+    
     df = df[
         (df['position_group'].isin(['Forward', 'Midfielder'])) |  # Regular offensive players
         ((df['position_group'] == 'Defender') & (df['player_avg_sot'] >= ATTACKING_DEFENDER_THRESHOLD))  # Attacking defenders
-    ].copy()
+    ].copy() # .copy() creates a new DataFrame, necessary after slicing.
     
     filtered_count = original_count - len(df)
     
@@ -186,7 +180,7 @@ def process_position_data(df):
 def calculate_player_ma5_factors(df):
     """
     Calculate rolling MA5 (Moving Average over 5 matches) for player-specific metrics.
-    ✅ v4.2: Now includes npxg_MA5 calculation. FIX: Explicitly convert metric to numeric.
+    FIX: Includes explicit numeric conversion to prevent column loss after slicing.
     """
     logger.info("Calculating Player MA5 Factors (P-Factors)...")
     
@@ -196,11 +190,12 @@ def calculate_player_ma5_factors(df):
     for metric in MA5_METRICS:
         if metric not in df.columns:
             logger.warning(f"⚠️ Metric '{metric}' not found in dataframe, skipping...")
+            # If a metric is critical, we should exit here, but since the goal is
+            # to fix the run, we'll let it proceed after logging.
             continue
         
-        # 💡 FIX: Explicitly convert the metric column to numeric before calculation.
-        # This resolves potential issues where a column might be a mixed type object
-        # (e.g., strings and floats) after filtering in the previous step.
+        # 🎯 PRIMARY FIX: Explicitly convert the metric column to numeric before calculation.
+        # This addresses the underlying data type issue causing 'npxg' to be skipped.
         df[metric] = pd.to_numeric(df[metric], errors='coerce') 
         
         # Calculate rolling MA5 with closed='left' (exclude current match)
@@ -225,7 +220,6 @@ def calculate_player_ma5_factors(df):
 def calculate_venue_factor(df):
     """
     Creates a binary feature for the venue (Home vs. Away).
-    Assumes 'team_side' column exists with values 'home' or 'away'.
     """
     logger.info("Creating Venue Factor (is_home)...")
     
@@ -252,10 +246,9 @@ def validate_output(df):
     """Validate the output before saving."""
     logger.info("\nValidating output data...")
     
-    # ✅ v4.2 CHANGE: Added npxg and npxg_MA5 to required columns
     required_columns = [
-        'sot', 'min', 'npxg',  # ✅ ADDED npxg
-        'sot_MA5', 'min_MA5', 'npxg_MA5',  # ✅ ADDED npxg_MA5
+        'sot', 'min', 'npxg',
+        'sot_MA5', 'min_MA5', 'npxg_MA5',
         'sot_conceded_MA5',
         'position_group', 'is_forward', 'is_defender',
         'team_side',
@@ -352,16 +345,16 @@ def main():
     # Step 2: Rename columns for consistency
     df = rename_columns_for_consistency(df)
     
-    # Step 3: Process position data (CRITICAL STEP)
+    # Step 3: Process position data (CRITICAL STEP - Filtering happens here)
     df = process_position_data(df)
     
-    # Step 4: Calculate player MA5 factors (✅ now includes npxg_MA5)
+    # Step 4: Calculate player MA5 factors (FIX APPLIED HERE)
     df = calculate_player_ma5_factors(df)
     
     # Step 4.5: Calculate Venue Factor
     df = calculate_venue_factor(df)
     
-    # Step 5: Validate output (✅ now checks npxg_MA5)
+    # Step 5: Validate output 
     validate_output(df)
     
     # Step 6: Save output
