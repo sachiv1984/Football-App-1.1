@@ -22,7 +22,6 @@ import json
 import ast 
 from supabase import create_client, Client
 from dotenv import load_dotenv
-from scipy.stats import poisson # Imported here to avoid potential circular dependency issues
 
 # ✅ Fix: ensure project root is on Python path BEFORE imports
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
@@ -615,7 +614,6 @@ def run_predictions(model, df_features_scaled, df_raw, model_type='poisson'):
     """
     Generate predictions using ZIP or Poisson model.
     ✅ v4.2: Updated to handle 7-feature model (8 with const)
-    ✅ FIX: Manually calculate P_Never_Shooter using model parameters.
     """
     
     if model_type == 'zip':
@@ -653,27 +651,12 @@ def run_predictions(model, df_features_scaled, df_raw, model_type='poisson'):
         df_raw['P_SOT_1_Plus'] = p_vals
         
         # --- ZIP P(structural zero/Never Shooter) (pi) ---
-        # 🛑 FIX IMPLEMENTED: Calculate P_Never_Shooter (pi) manually using model.params 
-        # as 'link-infl' and 'prob-inflate' are not supported in this environment/version.
-        
-        # 1. Determine the number of count (Poisson) parameters. 
-        # PREDICTOR_COLUMNS has 7 features, plus 'const' = 8 parameters.
-        n_count_params = len(PREDICTOR_COLUMNS) + 1 
-        
-        # 2. The inflation parameters (gamma) are the last ones in the model.params array.
-        # INFLATION_PREDICTOR_COLUMNS has 5 features, plus 'const' = 6 parameters.
-        infl_params = model.params[n_count_params:] 
-        
-        # 3. Linear predictor for the inflation component: Z * gamma
-        # df_infl_scaled is the Z matrix (with constant)
-        link_inflate = np.dot(df_infl_scaled, infl_params)
-        
-        # 4. Apply the inverse Logit link function (Statsmodels default for ZIP inflation)
-        # P(Never Shooter) = 1 / (1 + exp(-log_odds))
-        prob_inflate = 1 / (1 + np.exp(-link_inflate))
-        
-        # 5. Assign result
+        # ✅ FIXED: Use 'prob-inflate' instead of 'link-infl'
+        prob_inflate = model.predict(X, which='prob-inflate', exog_infl=df_infl_scaled)
         prob_inflate = np.asarray(prob_inflate).ravel()
+        if len(prob_inflate) > len(df_raw):
+            prob_inflate = prob_inflate[:len(df_raw)]
+        
         if len(prob_inflate) != len(df_raw):
             raise ValueError(f"Length mismatch: prob_inflate={len(prob_inflate)}, df_raw={len(df_raw)}")
         
@@ -684,6 +667,7 @@ def run_predictions(model, df_features_scaled, df_raw, model_type='poisson'):
         df_raw['E_SOT'] = model.predict(X)
         
         # Calculate probability distributions for betting
+        from scipy.stats import poisson
         
         # P(0 SOT) - probability of zero
         df_raw['P_SOT_0'] = poisson.pmf(0, df_raw['E_SOT'])
