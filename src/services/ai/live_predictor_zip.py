@@ -502,26 +502,43 @@ def load_artifacts():
             model = pickle.load(f)
         logger.info(f"✅ Model loaded from: {MODEL_FILE}")
         
-        with open(STATS_FILE, 'r') as f:
-            stats_dict = json.load(f)
+        # ✅ FIXED: Always load training_stats.json first (contains scaling params)
+        training_stats_path = ARTIFACT_PATH + "training_stats.json"
         
-        # Handle different stats file formats
-        if 'model_type' in stats_dict:
-            # New format from ZIP trainer
-            logger.info(f"   Model type: {stats_dict['model_type']}")
-            # Load scaler stats from training_stats.json
-            scaler_file = ARTIFACT_PATH + "training_stats.json"
-            with open(scaler_file, 'r') as f:
-                scaler_dict = json.load(f)
-            scaler_data = pd.DataFrame(scaler_dict).T
+        # Try current directory first (for fresh training), then artifacts
+        if os.path.exists("training_stats.json"):
+            training_stats_path = "training_stats.json"
+            logger.info(f"   Using training_stats.json from current directory (fresh)")
+        elif os.path.exists(ARTIFACT_PATH + "training_stats.json"):
+            training_stats_path = ARTIFACT_PATH + "training_stats.json"
+            logger.info(f"   Using training_stats.json from artifacts")
         else:
-            # Old format (scaler stats directly)
-            scaler_data = pd.DataFrame(stats_dict).T
+            logger.error(f"❌ training_stats.json not found!")
+            exit(1)
+        
+        with open(training_stats_path, 'r') as f:
+            scaler_dict = json.load(f)
+        
+        scaler_data = pd.DataFrame(scaler_dict).T
+        logger.info(f"   Loaded scaling stats for {len(scaler_dict)} features")
+        
+        # Load model-specific stats if using ZIP (optional, just for info)
+        if MODEL_TYPE == 'zip':
+            try:
+                with open(STATS_FILE, 'r') as f:
+                    zip_stats = json.load(f)
+                if 'model_type' in zip_stats:
+                    logger.info(f"   Model type: {zip_stats['model_type']}")
+                    if 'model_version' in zip_stats:
+                        logger.info(f"   Model version: {zip_stats['model_version']}")
+            except FileNotFoundError:
+                logger.warning(f"   ⚠️ {STATS_FILE} not found (optional)")
         
         # ✅ v4.2: Verify npxg_MA5 in scaler data
         if 'npxg_MA5' not in scaler_data.index:
             logger.error("❌ npxg_MA5 not found in training_stats.json!")
             logger.error("   Did you retrain with v4.2 code?")
+            logger.error(f"   Features found: {list(scaler_data.index)}")
             exit(1)
         else:
             logger.info(f"   ✅ npxg_MA5 scaling stats found")
