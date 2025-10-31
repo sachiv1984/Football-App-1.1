@@ -638,7 +638,8 @@ def run_predictions(model, df_features_scaled, df_raw, model_type='poisson'):
         df_raw['E_SOT'] = e_sot
         
         # --- ZIP P(1+ SOT) ---
-        prob_zero = model.predict(X, which='prob', exog_infl=df_infl_scaled)
+        # Use prob-zero to get P(Y=0), then compute P(Y≥1) = 1 - P(Y=0)
+        prob_zero = model.predict(X, which='prob-zero', exog_infl=df_infl_scaled)
         prob_zero = np.asarray(prob_zero).ravel()
         if len(prob_zero) > len(df_raw):
             prob_zero = prob_zero[:len(df_raw)]
@@ -650,8 +651,8 @@ def run_predictions(model, df_features_scaled, df_raw, model_type='poisson'):
         df_raw['P_SOT_1_Plus'] = p_vals
         
         # --- ZIP P(structural zero/Never Shooter) (pi) ---
-        eta_infl = model.predict(X, which='link-infl', exog_infl=df_infl_scaled) 
-        prob_inflate = 1 / (1 + np.exp(-eta_infl))
+        # ✅ FIXED: Use 'prob-inflate' instead of 'link-infl'
+        prob_inflate = model.predict(X, which='prob-inflate', exog_infl=df_infl_scaled)
         prob_inflate = np.asarray(prob_inflate).ravel()
         if len(prob_inflate) > len(df_raw):
             prob_inflate = prob_inflate[:len(df_raw)]
