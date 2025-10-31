@@ -651,9 +651,28 @@ def run_predictions(model, df_features_scaled, df_raw, model_type='poisson'):
         df_raw['P_SOT_1_Plus'] = p_vals
         
         # --- ZIP P(structural zero/Never Shooter) (pi) ---
-        # ✅ FIXED: Use 'prob-inflate' instead of 'link-infl'
-        prob_inflate = model.predict(X, which='prob-inflate', exog_infl=df_infl_scaled)
-        prob_inflate = np.asarray(prob_inflate).ravel()
+        # 🛑 FIX IMPLEMENTED HERE: 
+        # The error "which = prob-inflate is not available" is fixed 
+        # by using 'link-infl' and applying the inverse logit (sigmoid) function.
+        
+        try:
+            # 1. Get the linear predictor (log-odds) for the inflation component
+            link_inflate = model.predict(X, which='link-infl', exog_infl=df_infl_scaled)
+            link_inflate = np.asarray(link_inflate).ravel()
+            
+            # 2. Apply the inverse link function (Logit/Sigmoid)
+            # P(Never Shooter) = 1 / (1 + exp(-link_inflate))
+            prob_inflate = 1 / (1 + np.exp(-link_inflate))
+
+        except ValueError as e:
+            if "link-infl" in str(e):
+                logger.error("❌ 'link-infl' prediction is not available. Check your statsmodels version or model implementation.")
+                raise e
+            else:
+                raise e
+        
+        # End of FIX
+        
         if len(prob_inflate) > len(df_raw):
             prob_inflate = prob_inflate[:len(df_raw)]
         
