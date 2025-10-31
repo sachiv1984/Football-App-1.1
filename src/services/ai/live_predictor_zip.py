@@ -651,11 +651,19 @@ def run_predictions(model, df_features_scaled, df_raw, model_type='poisson'):
         df_raw['P_SOT_1_Plus'] = p_vals
         
         # --- ZIP P(structural zero/Never Shooter) (pi) ---
-        # ✅ FIXED: Use 'prob-inflate' instead of 'link-infl'
-        prob_inflate = model.predict(X, which='prob-inflate', exog_infl=df_infl_scaled)
+        # ✅ FIXED: Manual calculation since 'prob-inflate' not available in older statsmodels
+        # Get the inflation model parameters
+        n_count_params = len(PREDICTOR_COLUMNS) + 1  # +1 for const
+        
+        # Extract inflation parameters (they come after count parameters)
+        infl_params = model.params[n_count_params:]
+        
+        # Calculate linear predictor for inflation
+        eta_infl = np.dot(df_infl_scaled, infl_params)
+        
+        # Apply logistic function to get inflation probability
+        prob_inflate = 1 / (1 + np.exp(-eta_infl))
         prob_inflate = np.asarray(prob_inflate).ravel()
-        if len(prob_inflate) > len(df_raw):
-            prob_inflate = prob_inflate[:len(df_raw)]
         
         if len(prob_inflate) != len(df_raw):
             raise ValueError(f"Length mismatch: prob_inflate={len(prob_inflate)}, df_raw={len(df_raw)}")
