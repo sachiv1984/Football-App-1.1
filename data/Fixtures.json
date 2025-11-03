@@ -1168,24 +1168,24 @@
     "datetime": "2025-11-02T14:00:00.000Z",
     "hometeam": "West Ham",
     "awayteam": "Newcastle Utd",
-    "homescore": null,
-    "awayscore": null,
+    "homescore": 3,
+    "awayscore": 1,
     "status": "finished",
     "venue": "London Stadium",
     "matchweek": 10,
-    "matchurl": "https://fbref.com/en/matches/2025-11-02"
+    "matchurl": "https://fbref.com/en/matches/55587dfc/West-Ham-United-Newcastle-United-November-2-2025-Premier-League"
   },
   {
     "id": "Manchester_City_2025-11-02_Bournemouth",
     "datetime": "2025-11-02T16:30:00.000Z",
     "hometeam": "Manchester City",
     "awayteam": "Bournemouth",
-    "homescore": null,
-    "awayscore": null,
+    "homescore": 3,
+    "awayscore": 1,
     "status": "finished",
     "venue": "Etihad Stadium",
     "matchweek": 10,
-    "matchurl": "https://fbref.com/en/matches/2025-11-02"
+    "matchurl": "https://fbref.com/en/matches/cc77588b/Manchester-City-Bournemouth-November-2-2025-Premier-League"
   },
   {
     "id": "Sunderland_2025-11-03_Everton",
